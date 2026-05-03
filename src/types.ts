@@ -409,16 +409,28 @@ export interface FirestoreErrorInfo {
   };
 }
 
+export interface RecipeItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  total: number;
+}
+
+export interface DepartmentRecipe {
+  departmentId: string;
+  departmentName: string;
+  items: RecipeItem[];
+  totalCost: number;
+  notes?: string;
+}
+
 export interface ProductRecipe {
   id: string;
   name: string;
   category: 'نوم' | 'سفرة' | 'انتريه' | 'أخرى';
-  departmentCosts: {
-    departmentId: string;
-    departmentName: string;
-    estimatedCost: number;
-    notes?: string;
-  }[];
+  departments: DepartmentRecipe[];
   totalEstimatedCost: number;
   lastUpdated: string;
 }

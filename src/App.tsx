@@ -86,7 +86,7 @@ import {
 } from 'recharts';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, increment, serverTimestamp, writeBatch, setDoc } from 'firebase/firestore';
-import { Item, Supplier, Purchase, Issuance, Warehouse, Unit, CostCenter, ProductionJob, LoadingManifest, DeliveryReceipt, Waste, BladeSharpening, PlateSharpening, MachineMaintenance, Employee, Attendance, FinancialTransaction, Loan, Payroll, SupplierPayment, JobLabor, JobOtherCost, ProductionRecord, CompanySettings, UserProfile, StockAudit, BOM, WorkCenter, ManufacturingOperation, LostSale, SalesOrder, ProductRecipe } from './types';
+import { Item, Supplier, Purchase, Issuance, Warehouse, Unit, CostCenter, ProductionJob, LoadingManifest, DeliveryReceipt, Waste, BladeSharpening, PlateSharpening, MachineMaintenance, Employee, Attendance, FinancialTransaction, Loan, Payroll, SupplierPayment, JobLabor, JobOtherCost, ProductionRecord, CompanySettings, UserProfile, StockAudit, BOM, WorkCenter, ManufacturingOperation, LostSale, SalesOrder, ProductRecipe, RecipeItem, DepartmentRecipe } from './types';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -1750,6 +1750,7 @@ function MainApp({
           <ProductRecipesView 
             recipes={productRecipes}
             costCenters={costCenters}
+            items={items}
           />
         )}
         {activeTab === 'production' && (
@@ -4633,8 +4634,10 @@ function ProductionLine({
                         productName: recipe.name,
                         estimatedCost: recipe.totalEstimatedCost,
                         technicalSpecs: (formData.technicalSpecs || '') + `\n--- تعتمد على نموذج: ${recipe.name} ---\n` + 
-                                       recipe.departmentCosts.filter(d => d.estimatedCost > 0)
-                                         .map(d => `${d.departmentName}: ${d.estimatedCost.toLocaleString()} ج.م ${d.notes ? `(${d.notes})` : ''}`)
+                                       recipe.departments.filter(d => d.totalCost > 0)
+                                         .map(d => `${d.departmentName}: ${d.totalCost.toLocaleString()} ج.م` + 
+                                           d.items.map(it => `\n   - ${it.name} (${it.quantity} ${it.unit || 'قطعة'})`).join('')
+                                         )
                                          .join('\n')
                       });
                     }
@@ -11990,14 +11993,14 @@ function SettingsView({
   );
 }
 
-function ProductRecipesView({ recipes, costCenters }: { recipes: ProductRecipe[], costCenters: CostCenter[] }) {
+function ProductRecipesView({ recipes, costCenters, items: stockItems }: { recipes: ProductRecipe[], costCenters: CostCenter[], items: Item[] }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<ProductRecipe | null>(null);
   const [search, setSearch] = useState('');
   const [recipeForm, setRecipeForm] = useState<Partial<ProductRecipe>>({
     name: '',
     category: 'أخرى',
-    departmentCosts: []
+    departments: []
   });
 
   useEffect(() => {
@@ -12005,10 +12008,11 @@ function ProductRecipesView({ recipes, costCenters }: { recipes: ProductRecipe[]
       setRecipeForm({
         name: '',
         category: 'أخرى',
-        departmentCosts: costCenters.map(cc => ({
+        departments: costCenters.map(cc => ({
           departmentId: cc.id,
           departmentName: cc.name,
-          estimatedCost: 0,
+          items: [],
+          totalCost: 0,
           notes: ''
         }))
       });
@@ -12021,9 +12025,42 @@ function ProductRecipesView({ recipes, costCenters }: { recipes: ProductRecipe[]
     }
   }, [editingRecipe]);
 
+  const handleAddItem = (deptIdx: number) => {
+    const newDepts = [...(recipeForm.departments || [])];
+    const newItem: RecipeItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: '',
+      quantity: 1,
+      unit: 'قطعة',
+      unitPrice: 0,
+      total: 0
+    };
+    newDepts[deptIdx].items.push(newItem);
+    setRecipeForm({ ...recipeForm, departments: newDepts });
+  };
+
+  const handleUpdateItem = (deptIdx: number, itemIdx: number, updates: Partial<RecipeItem>) => {
+    const newDepts = [...(recipeForm.departments || [])];
+    const item = { ...newDepts[deptIdx].items[itemIdx], ...updates };
+    item.total = item.quantity * item.unitPrice;
+    newDepts[deptIdx].items[itemIdx] = item;
+    
+    // Recalculate department total
+    newDepts[deptIdx].totalCost = newDepts[deptIdx].items.reduce((sum, it) => sum + it.total, 0);
+    
+    setRecipeForm({ ...recipeForm, departments: newDepts });
+  };
+
+  const handleRemoveItem = (deptIdx: number, itemIdx: number) => {
+    const newDepts = [...(recipeForm.departments || [])];
+    newDepts[deptIdx].items.splice(itemIdx, 1);
+    newDepts[deptIdx].totalCost = newDepts[deptIdx].items.reduce((sum, it) => sum + it.total, 0);
+    setRecipeForm({ ...recipeForm, departments: newDepts });
+  };
+
   const handleSave = async () => {
     if (!recipeForm.name) return;
-    const total = (recipeForm.departmentCosts || []).reduce((sum, d) => sum + Number(d.estimatedCost || 0), 0);
+    const total = (recipeForm.departments || []).reduce((sum, d) => sum + Number(d.totalCost || 0), 0);
     
     const data = {
       ...recipeForm,
@@ -12044,14 +12081,23 @@ function ProductRecipesView({ recipes, costCenters }: { recipes: ProductRecipe[]
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا النموذج؟')) return;
+    try {
+      await deleteDoc(doc(db, 'productRecipes', id));
+    } catch (err) {
+      handleFirestoreError(err, 'delete', 'productRecipes');
+    }
+  };
+
   const filtered = recipes.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.category.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">نماذج التكاليف</h2>
-          <p className="text-slate-500 mt-2 font-bold text-lg text-right">تعريف التكاليف المعيارية للمنتجات حسب الأقسام</p>
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">نماذج التكاليف التحليلية</h2>
+          <p className="text-slate-500 mt-2 font-bold text-lg text-right">تعريف المواد والمصنعيات المعيارية لكل قسم</p>
         </div>
         <div className="flex items-center gap-3">
            <div className="relative w-full md:w-64">
@@ -12082,6 +12128,9 @@ function ProductRecipesView({ recipes, costCenters }: { recipes: ProductRecipe[]
                   <Button variant="ghost" size="icon" onClick={() => setEditingRecipe(recipe)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
                     <Edit2 size={16} />
                   </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(recipe.id)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
+                    <Trash2 size={16} />
+                  </Button>
                 </div>
               </div>
               <CardTitle className="text-2xl font-black text-slate-900">{recipe.name}</CardTitle>
@@ -12091,18 +12140,28 @@ function ProductRecipesView({ recipes, costCenters }: { recipes: ProductRecipe[]
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="space-y-3">
-                {recipe.departmentCosts.filter(d => d.estimatedCost > 0).map((dept, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-zinc-50 rounded-xl border border-zinc-100 group/item hover:bg-white hover:border-primary/20 transition-all">
-                    <span className="text-sm font-bold text-slate-600 group-hover/item:text-slate-900">{dept.departmentName}</span>
-                    <div className="flex flex-col items-end">
-                      <span className="text-sm font-black text-slate-900">{dept.estimatedCost.toLocaleString()} <small className="text-[10px]">ج.م</small></span>
-                      {dept.notes && <span className="text-[10px] text-slate-400 font-medium">{dept.notes}</span>}
+              <div className="space-y-4">
+                {recipe.departments.filter(d => (d.items?.length || 0) > 0 || (d.totalCost || 0) > 0).map((dept, i) => (
+                  <div key={i} className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 group/item hover:bg-white hover:border-primary/20 transition-all">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-black text-slate-900 py-1 px-3 bg-white rounded-lg shadow-sm border border-slate-100">{dept.departmentName}</span>
+                      <span className="text-sm font-black text-primary font-mono">{dept.totalCost.toLocaleString()} ج.م</span>
+                    </div>
+                    <div className="space-y-1 mt-3">
+                       {dept.items.slice(0, 3).map((item, idx) => (
+                          <div key={idx} className="flex justify-between text-[11px] text-slate-500 font-bold">
+                            <span>{item.name} <small className="text-slate-400 font-normal">({item.quantity} {item.unit})</small></span>
+                            <span className="text-slate-700">{item.total.toLocaleString()}</span>
+                          </div>
+                       ))}
+                       {dept.items.length > 3 && (
+                         <div className="text-[10px] text-primary font-black pt-1">+{dept.items.length - 3} بنود أخرى...</div>
+                       )}
                     </div>
                   </div>
                 ))}
-                {recipe.departmentCosts.filter(d => d.estimatedCost > 0).length === 0 && (
-                   <p className="text-center text-slate-400 text-xs py-4">لم يتم تحديد تكاليف بعد</p>
+                {recipe.departments.every(d => (d.items?.length || 0) === 0) && (
+                   <p className="text-center text-slate-400 text-xs py-4">لم يتم تحديد تفاصيل بعد</p>
                 )}
               </div>
               <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400">
@@ -12115,40 +12174,40 @@ function ProductRecipesView({ recipes, costCenters }: { recipes: ProductRecipe[]
       </div>
 
       {(showAddForm || editingRecipe) && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto" dir="rtl">
-          <Card className="dribbble-card w-full max-w-3xl max-h-[90vh] overflow-auto my-8 border-none shadow-2xl">
-            <CardHeader className="sticky top-0 bg-white z-20 border-b border-slate-100 pb-6 mb-2">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-auto" dir="rtl">
+          <Card className="dribbble-card w-full max-w-5xl max-h-[92vh] overflow-hidden my-8 border-none shadow-2xl flex flex-col">
+            <CardHeader className="bg-white z-20 border-b border-slate-100 pb-6 shrink-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-3xl font-black text-slate-900">{editingRecipe ? 'تعديل نموذج' : 'إضافة نموذج تكاليف جديد'}</CardTitle>
-                  <CardDescription className="font-bold text-lg text-slate-500">حدد التكاليف المعيارية لكل مرحلة من مراحل الإنتاج للمنتج</CardDescription>
+                  <CardTitle className="text-3xl font-black text-slate-900 tracking-tight">{editingRecipe ? 'تعديل نموذج تحليلي' : 'إنشاء نموذج تكاليف تحليلي'}</CardTitle>
+                  <CardDescription className="font-bold text-lg text-slate-500">فَصّل تكاليف الخامات والمصنعيات لكل قسم من أقسام الإنتاج</CardDescription>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => { setShowAddForm(false); setEditingRecipe(null); }} className="rounded-xl">
-                  <X size={24} className="text-slate-400" />
+                <Button variant="ghost" size="icon" onClick={() => { setShowAddForm(false); setEditingRecipe(null); }} className="rounded-xl h-12 w-12 hover:bg-slate-100 transition-colors">
+                  <X size={28} className="text-slate-400" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-8 pt-4">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="flex-1 overflow-y-auto space-y-8 p-8 bg-slate-50/30">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
                     <label className="text-sm font-black text-slate-700 flex items-center gap-2">
-                      <div className="w-1 h-1 rounded-full bg-primary" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                       اسم المنتج / الموديل
                     </label>
                     <Input 
-                      placeholder="مثل: نوم لاتويا، سفرة كلاسيك..." 
-                      className="h-14 rounded-2xl bg-slate-50 border-none font-bold text-lg focus:bg-white transition-all shadow-sm" 
+                      placeholder="مثل: غرفة نوم ملكي، طقم انتريه مودرن..." 
+                      className="h-14 rounded-2xl bg-white border-slate-100 font-extrabold text-xl focus:ring-2 focus:ring-primary/20 transition-all shadow-sm" 
                       value={recipeForm.name}
                       onChange={e => setRecipeForm({...recipeForm, name: e.target.value})}
                     />
                   </div>
                   <div className="space-y-3">
                     <label className="text-sm font-black text-slate-700 flex items-center gap-2">
-                      <div className="w-1 h-1 rounded-full bg-primary" />
+                       <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
                       التصنيف الأساسي
                     </label>
                     <select 
-                      className="w-full h-14 rounded-2xl border-none bg-slate-50 px-4 font-black text-lg shadow-sm focus:bg-white transition-all outline-none"
+                      className="w-full h-14 rounded-2xl border-slate-100 bg-white px-4 font-black text-lg shadow-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                       value={recipeForm.category}
                       onChange={e => setRecipeForm({...recipeForm, category: e.target.value as any})}
                     >
@@ -12160,64 +12219,112 @@ function ProductRecipesView({ recipes, costCenters }: { recipes: ProductRecipe[]
                   </div>
                </div>
 
-               <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <h3 className="font-black text-xl text-slate-900">توزيع التكاليف المعيارية</h3>
-                    <Badge className="bg-slate-100 text-slate-600 border-none px-3 font-bold">توزيع حسب القسم</Badge>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {recipeForm.departmentCosts?.map((dept, idx) => (
-                      <div key={idx} className="flex flex-col md:flex-row gap-4 p-5 bg-slate-50/50 rounded-2xl border border-transparent hover:border-primary/20 hover:bg-white transition-all group/field">
-                        <div className="md:w-1/3 flex flex-col justify-center">
-                          <span className="font-black text-slate-700 text-lg group-hover/field:text-primary transition-colors">{dept.departmentName}</span>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">تكاليف القسم التقديرية</span>
+               <div className="space-y-10">
+                  {recipeForm.departments?.map((dept, deptIdx) => (
+                    <div key={deptIdx} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 transition-all hover:shadow-md group/dept">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-slate-50 pb-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary font-black text-xl">
+                            {deptIdx + 1}
+                          </div>
+                          <div>
+                            <h3 className="font-black text-2xl text-slate-900">{dept.departmentName}</h3>
+                            <p className="text-slate-400 text-sm font-bold">أضف الخامات والمصنعيات لهذا القسم</p>
+                          </div>
                         </div>
-                        <div className="flex-1 space-y-2">
-                           <div className="relative">
-                            <Input 
-                              type="number" 
-                              placeholder="0.00" 
-                              className="h-12 rounded-xl bg-white border-slate-200 font-black text-lg pl-12"
-                              value={dept.estimatedCost}
-                              onChange={e => {
-                                const newCosts = [...(recipeForm.departmentCosts || [])];
-                                newCosts[idx].estimatedCost = Number(e.target.value);
-                                setRecipeForm({...recipeForm, departmentCosts: newCosts});
-                              }}
-                            />
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">ج.م</span>
-                           </div>
-                        </div>
-                        <div className="flex-1">
-                          <Input 
-                            placeholder="خامات، مصنعيات، ملاحظات..." 
-                            className="h-12 rounded-xl bg-white border-slate-200 font-bold"
-                            value={dept.notes}
-                            onChange={e => {
-                               const newCosts = [...(recipeForm.departmentCosts || [])];
-                               newCosts[idx].notes = e.target.value;
-                               setRecipeForm({...recipeForm, departmentCosts: newCosts});
-                            }}
-                          />
+                        <div className="flex flex-col items-end">
+                           <span className="text-xs text-slate-400 font-black mb-1 uppercase tracking-tighter">إجمالي تكلفة القسم</span>
+                           <span className="text-3xl font-black text-primary font-mono">{(dept.totalCost || 0).toLocaleString()} <small className="text-sm opacity-60">ج.م</small></span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-               </div>
 
-               <div className="sticky bottom-4 z-20 bg-slate-900 p-8 rounded-[2rem] shadow-2xl shadow-slate-900/30 flex flex-col md:flex-row items-center justify-between gap-6 mt-12 border border-white/5">
-                  <div className="text-right">
-                    <p className="text-xs font-black text-primary uppercase tracking-widest mb-1">إجمالي التكلفة المعيارية التقديرية</p>
-                    <p className="text-4xl font-black text-white">
-                      {(recipeForm.departmentCosts || []).reduce((sum, d) => sum + Number(d.estimatedCost || 0), 0).toLocaleString()} <small className="text-lg opacity-50">ج.م</small>
-                    </p>
-                  </div>
-                  <div className="flex gap-4 w-full md:w-auto">
-                    <Button variant="ghost" className="flex-1 md:flex-none h-14 px-10 rounded-2xl font-black text-white hover:bg-white/10" onClick={() => { setShowAddForm(false); setEditingRecipe(null); }}>إلغاء</Button>
-                    <Button className="flex-1 md:flex-none btn-primary h-14 px-12 rounded-2xl text-xl font-black shadow-xl shadow-primary/20" onClick={handleSave}>حفظ وإعتماد</Button>
-                  </div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-12 gap-4 px-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                          <div className="col-span-5 text-right w-full">البند (خامة / مصنعية)</div>
+                          <div className="col-span-2 text-center">الكمية</div>
+                          <div className="col-span-2 text-center">سعر الوحدة</div>
+                          <div className="col-span-2 text-center">الإجمالي</div>
+                          <div className="col-span-1"></div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {dept.items.map((item, itemIdx) => (
+                            <div key={item.id} className="grid grid-cols-12 gap-3 p-3 bg-slate-50 rounded-2xl border border-transparent hover:border-primary/20 hover:bg-white transition-all">
+                              <div className="col-span-5">
+                                <div className="relative group/search">
+                                  <Input 
+                                    placeholder="ابحث عن خامة أو اكتب اسماً..."
+                                    list={`items-list-${deptIdx}-${itemIdx}`}
+                                    className="h-11 rounded-xl border-none bg-slate-100 group-hover/search:bg-white focus:bg-white font-bold"
+                                    value={item.name}
+                                    onChange={e => handleUpdateItem(deptIdx, itemIdx, { name: e.target.value })}
+                                  />
+                                  <datalist id={`items-list-${deptIdx}-${itemIdx}`}>
+                                    {stockItems.map(si => <option key={si.id} value={si.name} />)}
+                                  </datalist>
+                                </div>
+                              </div>
+                              <div className="col-span-2">
+                                <Input 
+                                  type="number"
+                                  className="h-11 rounded-xl border-none bg-slate-100 focus:bg-white font-black text-center"
+                                  value={item.quantity}
+                                  onChange={e => handleUpdateItem(deptIdx, itemIdx, { quantity: Number(e.target.value) })}
+                                />
+                              </div>
+                              <div className="col-span-2">
+                                <Input 
+                                  type="number"
+                                  className="h-11 rounded-xl border-none bg-slate-100 focus:bg-white font-black text-center"
+                                  value={item.unitPrice}
+                                  onChange={e => handleUpdateItem(deptIdx, itemIdx, { unitPrice: Number(e.target.value) })}
+                                />
+                              </div>
+                              <div className="col-span-2 flex items-center justify-center font-black text-slate-900 bg-white rounded-xl shadow-inner text-sm">
+                                {item.total.toLocaleString()}
+                              </div>
+                              <div className="col-span-1 flex items-center justify-center">
+                                <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(deptIdx, itemIdx)} className="h-10 w-10 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                                  <Trash2 size={18} />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <Button 
+                          variant="outline" 
+                          className="w-full h-14 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all font-black text-lg"
+                          onClick={() => handleAddItem(deptIdx)}
+                        >
+                          <Plus size={20} className="ml-2" />
+                          إضافة بند جديد لـ {dept.departmentName}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                </div>
             </CardContent>
+            
+            <div className="shrink-0 p-8 bg-slate-900 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="text-right">
+                  <p className="text-primary text-xs font-black uppercase tracking-[0.2em] mb-2 opacity-80">إجمالي التكلفة المعيارية التقديرية</p>
+                  <p className="text-5xl font-black text-white font-mono tracking-tighter">
+                    {(recipeForm.departments || []).reduce((sum, d) => sum + Number(d.totalCost || 0), 0).toLocaleString()} <small className="text-xl opacity-40 font-sans">ج.م</small>
+                  </p>
+                </div>
+                <div className="flex gap-4 w-full md:w-auto">
+                  <Button 
+                    variant="ghost" 
+                    className="flex-1 md:flex-none h-16 px-12 rounded-2xl font-black text-white hover:bg-white/10 text-lg transition-all" 
+                    onClick={() => { setShowAddForm(false); setEditingRecipe(null); }}
+                  >إلغاء</Button>
+                  <Button 
+                    className="flex-1 md:flex-none btn-primary h-16 px-16 rounded-2xl text-2xl font-black shadow-2xl shadow-primary/20 hover:-translate-y-1 active:translate-y-0 transition-all bg-primary border-none" 
+                    onClick={handleSave}
+                  >حفظ وتطبيق النموذج</Button>
+                </div>
+            </div>
           </Card>
         </div>
       )}

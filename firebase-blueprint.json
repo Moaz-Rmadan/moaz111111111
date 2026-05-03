@@ -537,22 +537,36 @@
     },
     "ProductRecipe": {
       "title": "ProductRecipe",
-      "description": "Standard cost model for a product",
+      "description": "Standard cost model for a product with itemized costs per department",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
         "category": { "type": "string" },
         "totalEstimatedCost": { "type": "number" },
         "lastUpdated": { "type": "string", "format": "date-time" },
-        "departmentCosts": {
+        "departments": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "departmentId": { "type": "string" },
               "departmentName": { "type": "string" },
-              "estimatedCost": { "type": "number" },
-              "notes": { "type": "string" }
+              "totalCost": { "type": "number" },
+              "notes": { "type": "string" },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "name": { "type": "string" },
+                    "quantity": { "type": "number" },
+                    "unit": { "type": "string" },
+                    "unitPrice": { "type": "number" },
+                    "total": { "type": "number" }
+                  }
+                }
+              }
             }
           }
         }
