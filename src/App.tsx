@@ -86,7 +86,7 @@ import {
 } from 'recharts';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, increment, serverTimestamp, writeBatch, setDoc } from 'firebase/firestore';
-import { Item, Supplier, Purchase, Issuance, Warehouse, Unit, CostCenter, ProductionJob, LoadingManifest, DeliveryReceipt, Waste, BladeSharpening, PlateSharpening, MachineMaintenance, Employee, Attendance, FinancialTransaction, Loan, Payroll, SupplierPayment, JobLabor, JobOtherCost, ProductionRecord, CompanySettings, UserProfile, StockAudit, BOM, WorkCenter, ManufacturingOperation, LostSale, SalesOrder } from './types';
+import { Item, Supplier, Purchase, Issuance, Warehouse, Unit, CostCenter, ProductionJob, LoadingManifest, DeliveryReceipt, Waste, BladeSharpening, PlateSharpening, MachineMaintenance, Employee, Attendance, FinancialTransaction, Loan, Payroll, SupplierPayment, JobLabor, JobOtherCost, ProductionRecord, CompanySettings, UserProfile, StockAudit, BOM, WorkCenter, ManufacturingOperation, LostSale, SalesOrder, ProductRecipe } from './types';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -833,6 +833,7 @@ function MainApp({
   const [manufacturingOperations, setManufacturingOperations] = useState<ManufacturingOperation[]>([]);
   const [lostSales, setLostSales] = useState<LostSale[]>([]);
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
+  const [productRecipes, setProductRecipes] = useState<ProductRecipe[]>([]);
   const [hrMenuOpen, setHrMenuOpen] = useState(false);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
 
@@ -1273,6 +1274,13 @@ function MainApp({
       }, (err) => handleFirestoreError(err, 'list', 'salesOrders'));
     }
 
+    let unsubProductRecipes = () => {};
+    if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
+      unsubProductRecipes = onSnapshot(collection(db, 'productRecipes'), (snap) => {
+        setProductRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductRecipe)));
+      }, (err) => handleFirestoreError(err, 'list', 'productRecipes'));
+    }
+
     return () => {
       unsubWarehouses();
       unsubUnits();
@@ -1303,6 +1311,7 @@ function MainApp({
       unsubManufacturingOperations();
       unsubLostSales();
       unsubSalesOrders();
+      unsubProductRecipes();
     };
   }, [user, profile]);
 
@@ -1507,6 +1516,7 @@ function MainApp({
                     >
                       <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
                         <SubNavButton active={activeTab === 'production'} onClick={() => handleNavClick('production')} label="أوامر الشغل" permission="production" profile={profile} />
+                        <SubNavButton active={activeTab === 'productRecipes'} onClick={() => handleNavClick('productRecipes')} label="نماذج التكاليف" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'productionCosts'} onClick={() => handleNavClick('productionCosts')} label="تحليل التكاليف" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'loading'} onClick={() => handleNavClick('loading')} label="بيان التحميل" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'deliveryReceipts'} onClick={() => handleNavClick('deliveryReceipts')} label="محاضر الاستلام" permission="production" profile={profile} />
@@ -1736,6 +1746,12 @@ function MainApp({
           />
         )}
         {activeTab === 'itemCard' && <ItemCardView items={items} suppliers={suppliers} purchases={purchases} issuances={issuances} getItemMovements={getItemMovements} />}
+        {activeTab === 'productRecipes' && (
+          <ProductRecipesView 
+            recipes={productRecipes}
+            costCenters={costCenters}
+          />
+        )}
         {activeTab === 'production' && (
           <ProductionLine 
             costCenters={costCenters} 
@@ -1746,6 +1762,7 @@ function MainApp({
             jobOtherCosts={jobOtherCosts}
             companyInfo={companySettings}
             items={items}
+            productRecipes={productRecipes}
           />
         )}
         {activeTab === 'productionCosts' && (
@@ -4003,7 +4020,8 @@ function ProductionLine({
   jobLabors,
   jobOtherCosts,
   companyInfo,
-  items
+  items,
+  productRecipes
 }: { 
   costCenters: CostCenter[], 
   productionJobs: ProductionJob[],
@@ -4012,7 +4030,8 @@ function ProductionLine({
   jobLabors: JobLabor[],
   jobOtherCosts: JobOtherCost[],
   companyInfo: CompanySettings,
-  items: Item[]
+  items: Item[],
+  productRecipes: ProductRecipe[]
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -4601,7 +4620,32 @@ function ProductionLine({
               <CardTitle className="font-black text-2xl">إضافة أمر إنتاج جديد</CardTitle>
               <CardDescription className="font-medium">أدخل تفاصيل الطلب لبدء عملية التصنيع</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 text-right" dir="rtl">
+              <div className="space-y-2 pb-4 border-b border-slate-100">
+                <label className="text-sm font-black text-primary">استخدام نموذج تكاليف جاهز</label>
+                <select 
+                  className="w-full h-12 rounded-2xl border-none bg-primary/5 px-4 font-black text-primary outline-none shadow-inner"
+                  onChange={e => {
+                    const recipe = productRecipes.find(r => r.id === e.target.value);
+                    if (recipe) {
+                      setFormData({
+                        ...formData,
+                        productName: recipe.name,
+                        estimatedCost: recipe.totalEstimatedCost,
+                        technicalSpecs: (formData.technicalSpecs || '') + `\n--- تعتمد على نموذج: ${recipe.name} ---\n` + 
+                                       recipe.departmentCosts.filter(d => d.estimatedCost > 0)
+                                         .map(d => `${d.departmentName}: ${d.estimatedCost.toLocaleString()} ج.م ${d.notes ? `(${d.notes})` : ''}`)
+                                         .join('\n')
+                      });
+                    }
+                  }}
+                >
+                  <option value="">-- اختر نموذج موديل --</option>
+                  {productRecipes.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} ({r.totalEstimatedCost.toLocaleString()} ج.م)</option>
+                  ))}
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">رقم الطلب</label>
@@ -11942,6 +11986,241 @@ function SettingsView({
         </div>
       </div>
 
+    </div>
+  );
+}
+
+function ProductRecipesView({ recipes, costCenters }: { recipes: ProductRecipe[], costCenters: CostCenter[] }) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<ProductRecipe | null>(null);
+  const [search, setSearch] = useState('');
+  const [recipeForm, setRecipeForm] = useState<Partial<ProductRecipe>>({
+    name: '',
+    category: 'أخرى',
+    departmentCosts: []
+  });
+
+  useEffect(() => {
+    if (showAddForm && !editingRecipe) {
+      setRecipeForm({
+        name: '',
+        category: 'أخرى',
+        departmentCosts: costCenters.map(cc => ({
+          departmentId: cc.id,
+          departmentName: cc.name,
+          estimatedCost: 0,
+          notes: ''
+        }))
+      });
+    }
+  }, [showAddForm, editingRecipe, costCenters]);
+
+  useEffect(() => {
+    if (editingRecipe) {
+      setRecipeForm(editingRecipe);
+    }
+  }, [editingRecipe]);
+
+  const handleSave = async () => {
+    if (!recipeForm.name) return;
+    const total = (recipeForm.departmentCosts || []).reduce((sum, d) => sum + Number(d.estimatedCost || 0), 0);
+    
+    const data = {
+      ...recipeForm,
+      totalEstimatedCost: total,
+      lastUpdated: new Date().toISOString()
+    };
+
+    try {
+      if (editingRecipe) {
+        await updateDoc(doc(db, 'productRecipes', editingRecipe.id), data);
+      } else {
+        await addDoc(collection(db, 'productRecipes'), data);
+      }
+      setShowAddForm(false);
+      setEditingRecipe(null);
+    } catch (err) {
+      handleFirestoreError(err, 'write', 'productRecipes');
+    }
+  };
+
+  const filtered = recipes.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.category.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">نماذج التكاليف</h2>
+          <p className="text-slate-500 mt-2 font-bold text-lg text-right">تعريف التكاليف المعيارية للمنتجات حسب الأقسام</p>
+        </div>
+        <div className="flex items-center gap-3">
+           <div className="relative w-full md:w-64">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Input 
+              placeholder="بحث في النماذج..." 
+              className="pr-10 h-11 rounded-xl border-slate-200 text-right" 
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <Button onClick={() => setShowAddForm(true)} className="btn-primary h-12 px-8 rounded-2xl">
+            <Plus size={20} className="ml-2" />
+            نموذج جديد
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" dir="rtl">
+        {filtered.map(recipe => (
+          <Card key={recipe.id} className="dribbble-card border-none hover:shadow-2xl transition-all group overflow-hidden">
+            <CardHeader className="bg-slate-50/50 pb-4">
+              <div className="flex items-center justify-between mb-4">
+                <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-lg">
+                  {recipe.category}
+                </Badge>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon" onClick={() => setEditingRecipe(recipe)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
+                    <Edit2 size={16} />
+                  </Button>
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-black text-slate-900">{recipe.name}</CardTitle>
+              <CardDescription className="font-bold text-primary flex items-center gap-2 mt-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                إجمالي التكلفة: {recipe.totalEstimatedCost.toLocaleString()} ج.م
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-3">
+                {recipe.departmentCosts.filter(d => d.estimatedCost > 0).map((dept, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-zinc-50 rounded-xl border border-zinc-100 group/item hover:bg-white hover:border-primary/20 transition-all">
+                    <span className="text-sm font-bold text-slate-600 group-hover/item:text-slate-900">{dept.departmentName}</span>
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-black text-slate-900">{dept.estimatedCost.toLocaleString()} <small className="text-[10px]">ج.م</small></span>
+                      {dept.notes && <span className="text-[10px] text-slate-400 font-medium">{dept.notes}</span>}
+                    </div>
+                  </div>
+                ))}
+                {recipe.departmentCosts.filter(d => d.estimatedCost > 0).length === 0 && (
+                   <p className="text-center text-slate-400 text-xs py-4">لم يتم تحديد تكاليف بعد</p>
+                )}
+              </div>
+              <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400">
+                 <span>آخر تحديث</span>
+                 <span>{recipe.lastUpdated ? format(new Date(recipe.lastUpdated), 'dd/MM/yyyy HH:mm') : '---'}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {(showAddForm || editingRecipe) && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto" dir="rtl">
+          <Card className="dribbble-card w-full max-w-3xl max-h-[90vh] overflow-auto my-8 border-none shadow-2xl">
+            <CardHeader className="sticky top-0 bg-white z-20 border-b border-slate-100 pb-6 mb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-3xl font-black text-slate-900">{editingRecipe ? 'تعديل نموذج' : 'إضافة نموذج تكاليف جديد'}</CardTitle>
+                  <CardDescription className="font-bold text-lg text-slate-500">حدد التكاليف المعيارية لكل مرحلة من مراحل الإنتاج للمنتج</CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => { setShowAddForm(false); setEditingRecipe(null); }} className="rounded-xl">
+                  <X size={24} className="text-slate-400" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-8 pt-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <label className="text-sm font-black text-slate-700 flex items-center gap-2">
+                      <div className="w-1 h-1 rounded-full bg-primary" />
+                      اسم المنتج / الموديل
+                    </label>
+                    <Input 
+                      placeholder="مثل: نوم لاتويا، سفرة كلاسيك..." 
+                      className="h-14 rounded-2xl bg-slate-50 border-none font-bold text-lg focus:bg-white transition-all shadow-sm" 
+                      value={recipeForm.name}
+                      onChange={e => setRecipeForm({...recipeForm, name: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-sm font-black text-slate-700 flex items-center gap-2">
+                      <div className="w-1 h-1 rounded-full bg-primary" />
+                      التصنيف الأساسي
+                    </label>
+                    <select 
+                      className="w-full h-14 rounded-2xl border-none bg-slate-50 px-4 font-black text-lg shadow-sm focus:bg-white transition-all outline-none"
+                      value={recipeForm.category}
+                      onChange={e => setRecipeForm({...recipeForm, category: e.target.value as any})}
+                    >
+                      <option value="نوم">غرف نوم</option>
+                      <option value="سفرة">غرف سفرة</option>
+                      <option value="انتريه">انتريه وصالون</option>
+                      <option value="أخرى">أخرى</option>
+                    </select>
+                  </div>
+               </div>
+
+               <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <h3 className="font-black text-xl text-slate-900">توزيع التكاليف المعيارية</h3>
+                    <Badge className="bg-slate-100 text-slate-600 border-none px-3 font-bold">توزيع حسب القسم</Badge>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {recipeForm.departmentCosts?.map((dept, idx) => (
+                      <div key={idx} className="flex flex-col md:flex-row gap-4 p-5 bg-slate-50/50 rounded-2xl border border-transparent hover:border-primary/20 hover:bg-white transition-all group/field">
+                        <div className="md:w-1/3 flex flex-col justify-center">
+                          <span className="font-black text-slate-700 text-lg group-hover/field:text-primary transition-colors">{dept.departmentName}</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">تكاليف القسم التقديرية</span>
+                        </div>
+                        <div className="flex-1 space-y-2">
+                           <div className="relative">
+                            <Input 
+                              type="number" 
+                              placeholder="0.00" 
+                              className="h-12 rounded-xl bg-white border-slate-200 font-black text-lg pl-12"
+                              value={dept.estimatedCost}
+                              onChange={e => {
+                                const newCosts = [...(recipeForm.departmentCosts || [])];
+                                newCosts[idx].estimatedCost = Number(e.target.value);
+                                setRecipeForm({...recipeForm, departmentCosts: newCosts});
+                              }}
+                            />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">ج.م</span>
+                           </div>
+                        </div>
+                        <div className="flex-1">
+                          <Input 
+                            placeholder="خامات، مصنعيات، ملاحظات..." 
+                            className="h-12 rounded-xl bg-white border-slate-200 font-bold"
+                            value={dept.notes}
+                            onChange={e => {
+                               const newCosts = [...(recipeForm.departmentCosts || [])];
+                               newCosts[idx].notes = e.target.value;
+                               setRecipeForm({...recipeForm, departmentCosts: newCosts});
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+               </div>
+
+               <div className="sticky bottom-4 z-20 bg-slate-900 p-8 rounded-[2rem] shadow-2xl shadow-slate-900/30 flex flex-col md:flex-row items-center justify-between gap-6 mt-12 border border-white/5">
+                  <div className="text-right">
+                    <p className="text-xs font-black text-primary uppercase tracking-widest mb-1">إجمالي التكلفة المعيارية التقديرية</p>
+                    <p className="text-4xl font-black text-white">
+                      {(recipeForm.departmentCosts || []).reduce((sum, d) => sum + Number(d.estimatedCost || 0), 0).toLocaleString()} <small className="text-lg opacity-50">ج.م</small>
+                    </p>
+                  </div>
+                  <div className="flex gap-4 w-full md:w-auto">
+                    <Button variant="ghost" className="flex-1 md:flex-none h-14 px-10 rounded-2xl font-black text-white hover:bg-white/10" onClick={() => { setShowAddForm(false); setEditingRecipe(null); }}>إلغاء</Button>
+                    <Button className="flex-1 md:flex-none btn-primary h-14 px-12 rounded-2xl text-xl font-black shadow-xl shadow-primary/20" onClick={handleSave}>حفظ وإعتماد</Button>
+                  </div>
+               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -534,6 +534,30 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name"]
+    },
+    "ProductRecipe": {
+      "title": "ProductRecipe",
+      "description": "Standard cost model for a product",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "totalEstimatedCost": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" },
+        "departmentCosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "departmentId": { "type": "string" },
+              "departmentName": { "type": "string" },
+              "estimatedCost": { "type": "number" },
+              "notes": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["name", "totalEstimatedCost"]
     }
   },
   "firestore": {
@@ -569,6 +593,7 @@
     "/lostSales/{id}": { "schema": "LostSale", "description": "Records of missed opportunities" },
     "/boms/{id}": { "schema": "BOM", "description": "Bill of Materials definitions" },
     "/workCenters/{id}": { "schema": "WorkCenter", "description": "Factory work centers" },
-    "/manufacturingOperations/{id}": { "schema": "ManufacturingOperation", "description": "Logged production operations" }
+    "/manufacturingOperations/{id}": { "schema": "ManufacturingOperation", "description": "Logged production operations" },
+    "/productRecipes/{id}": { "schema": "ProductRecipe", "description": "Standard product cost models" }
   }
 }

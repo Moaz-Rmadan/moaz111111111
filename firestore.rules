@@ -52,6 +52,9 @@ service cloud.firestore {
     // Collection: stockAudits
     // Fields: date (string), warehouseId (string), auditItems (array), notes (string), createdBy (string)
     //
+    // Collection: productRecipes
+    // Fields: name (string), category (string), totalEstimatedCost (number), departmentCosts (array)
+    //
     // ===============================================================
 
     // ===============================================================
@@ -239,6 +242,11 @@ service cloud.firestore {
     }
 
     match /manufacturingOperations/{id} {
+      allow read: if hasPermission('production') || hasPermission('reports');
+      allow write: if hasPermission('production');
+    }
+
+    match /productRecipes/{id} {
       allow read: if hasPermission('production') || hasPermission('reports');
       allow write: if hasPermission('production');
     }
