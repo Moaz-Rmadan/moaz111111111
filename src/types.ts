@@ -150,6 +150,8 @@ export interface Purchase {
   paidAmount: number;
   paymentStatus: 'آجل' | 'نقدي' | 'شيك';
   notes: string;
+  safeId?: string; // الخزنة التي تم الدفع منها
+  safeTransactionId?: string; // رقم الحركة المالية المرتبطة
 }
 
 export interface Issuance {
@@ -246,6 +248,8 @@ export interface BladeSharpening {
   quantity: number;
   cost: number;
   notes: string;
+  safeId?: string;
+  safeTransactionId?: string;
 }
 
 export interface PlateSharpening {
@@ -255,6 +259,8 @@ export interface PlateSharpening {
   quantity: number;
   cost: number;
   notes: string;
+  safeId?: string;
+  safeTransactionId?: string;
 }
 
 export interface MachineMaintenance {
@@ -264,6 +270,8 @@ export interface MachineMaintenance {
   maintenanceType: string;
   cost: number;
   notes: string;
+  safeId?: string;
+  safeTransactionId?: string;
 }
 
 export interface Employee {
@@ -458,16 +466,54 @@ export interface Safe {
   id: string;
   name: string;
   balance: number;
+  type?: 'خزنة رئيسية' | 'عهدة موظف' | 'بنك';
+}
+
+export interface SafeAudit {
+  id: string;
+  safeId: string;
+  date: string;
+  systemBalance: number;
+  physicalBalance: number;
+  difference: number;
+  notes: string;
+  createdBy: string;
+}
+
+export interface SafeSettlement {
+  id: string;
+  safeId: string;
+  date: string;
+  totalAmount: number;
+  notes: string;
+  expenses: SettledExpense[];
+  createdBy: string;
+  safeTransactionId?: string;
+}
+
+export interface SettledExpense {
+  description: string;
+  category: string;
+  amount: number;
+  date: string;
+  costCenterId?: string;
+  productionJobId?: string; // ربط المصروف بأمر إنتاج معين
+  driverId?: string; // ربط بالسائق (Employee)
+  manifestId?: string; // ربط ببيان تحميل معين (LoadingManifest)
 }
 
 export interface SafeTransaction {
   id: string;
   safeId: string;
   date: string;
-  type: 'إيداع' | 'سحب' | 'تحويل' | 'مصروفات' | 'مبيعات' | 'مشتريات' | 'رواتب' | 'أخرى';
+  type: 'إيداع' | 'سحب' | 'تحويل' | 'مصروفات' | 'مبيعات' | 'مشتريات' | 'رواتب' | 'قرض شخصي' | 'سداد قرض' | 'جرد' | 'أخرى';
   amount: number;
   description: string;
-  relatedId?: string;
+  relatedId?: string; // Used for Transfer (destination safeId), Purchase ID, or other related entity
+  costCenterId?: string; // لربط المصروف بمركز تكلفة معين (معرض، مصنع، إلخ)
+  productionJobId?: string; // ربط المصروف بأمر إنتاج معين للدراسة التكاليفية
+  driverId?: string; // ربط المصروف بسائق معين
+  manifestId?: string; // ربط المصروف ببيان تحميل معين
   category?: string;
   createdBy: string;
 }

@@ -178,7 +178,9 @@
         "bladeName": { "type": "string" },
         "quantity": { "type": "number" },
         "cost": { "type": "number" },
-        "notes": { "type": "string" }
+        "notes": { "type": "string" },
+        "safeId": { "type": "string" },
+        "safeTransactionId": { "type": "string" }
       },
       "required": ["date", "bladeName", "quantity"]
     },
@@ -191,7 +193,9 @@
         "plateName": { "type": "string" },
         "quantity": { "type": "number" },
         "cost": { "type": "number" },
-        "notes": { "type": "string" }
+        "notes": { "type": "string" },
+        "safeId": { "type": "string" },
+        "safeTransactionId": { "type": "string" }
       },
       "required": ["date", "plateName", "quantity"]
     },
@@ -204,7 +208,9 @@
         "machineName": { "type": "string" },
         "maintenanceType": { "type": "string" },
         "cost": { "type": "number" },
-        "notes": { "type": "string" }
+        "notes": { "type": "string" },
+        "safeId": { "type": "string" },
+        "safeTransactionId": { "type": "string" }
       },
       "required": ["date", "machineName", "maintenanceType"]
     },
@@ -419,7 +425,8 @@
             "hr": { "type": "boolean" },
             "reports": { "type": "boolean" },
             "suppliers": { "type": "boolean" },
-            "settings": { "type": "boolean" }
+            "settings": { "type": "boolean" },
+            "finance": { "type": "boolean" }
           }
         }
       },
@@ -579,9 +586,55 @@
       "type": "object",
       "properties": {
         "name": { "type": "string" },
-        "balance": { "type": "number" }
+        "balance": { "type": "number" },
+        "type": { "type": "string", "enum": ["خزنة رئيسية", "عهدة موظف", "بنك"] }
       },
       "required": ["name"]
+    },
+    "SafeAudit": {
+      "title": "SafeAudit",
+      "description": "A physical audit record for a safe",
+      "type": "object",
+      "properties": {
+        "safeId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "systemBalance": { "type": "number" },
+        "physicalBalance": { "type": "number" },
+        "difference": { "type": "number" },
+        "notes": { "type": "string" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["safeId", "date", "systemBalance", "physicalBalance"]
+    },
+    "SafeSettlement": {
+      "title": "SafeSettlement",
+      "description": "A formal settlement of petty cash expenses",
+      "type": "object",
+      "properties": {
+        "safeId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "totalAmount": { "type": "number" },
+        "notes": { "type": "string" },
+        "expenses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "category": { "type": "string" },
+              "amount": { "type": "number" },
+              "date": { "type": "string" },
+              "costCenterId": { "type": "string" },
+              "productionJobId": { "type": "string" },
+              "driverId": { "type": "string" },
+              "manifestId": { "type": "string" }
+            }
+          }
+        },
+        "createdBy": { "type": "string" },
+        "safeTransactionId": { "type": "string" }
+      },
+      "required": ["safeId", "date", "totalAmount", "expenses"]
     },
     "SafeTransaction": {
       "title": "SafeTransaction",
@@ -590,10 +643,14 @@
       "properties": {
         "safeId": { "type": "string" },
         "date": { "type": "string", "format": "date-time" },
-        "type": { "type": "string", "enum": ["إيداع", "سحب", "تحويل", "مصروفات", "مبيعات", "مشتريات", "رواتب", "أخرى"] },
+        "type": { "type": "string", "enum": ["إيداع", "سحب", "تحويل", "مصروفات", "مبيعات", "مشتريات", "رواتب", "قرض شخصي", "سداد قرض", "جرد", "أخرى"] },
         "amount": { "type": "number" },
         "description": { "type": "string" },
         "relatedId": { "type": "string" },
+        "costCenterId": { "type": "string" },
+        "productionJobId": { "type": "string" },
+        "driverId": { "type": "string" },
+        "manifestId": { "type": "string" },
         "category": { "type": "string" },
         "createdBy": { "type": "string" }
       },
@@ -636,6 +693,8 @@
     "/manufacturingOperations/{id}": { "schema": "ManufacturingOperation", "description": "Logged production operations" },
     "/productRecipes/{id}": { "schema": "ProductRecipe", "description": "Standard product cost models" },
     "/safes/{id}": { "schema": "Safe", "description": "Financial safes/treasury accounts" },
-    "/safeTransactions/{id}": { "schema": "SafeTransaction", "description": "Transactions in the safes" }
+    "/safeTransactions/{id}": { "schema": "SafeTransaction", "description": "Transactions in the safes" },
+    "/safeAudits/{id}": { "schema": "SafeAudit", "description": "Safe audit records" },
+    "/safeSettlements/{id}": { "schema": "SafeSettlement", "description": "Petty cash settlement records" }
   }
 }

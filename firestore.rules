@@ -261,6 +261,16 @@ service cloud.firestore {
       allow write: if hasPermission('finance');
     }
 
+    match /safeAudits/{id} {
+      allow read: if hasPermission('finance') || hasPermission('reports');
+      allow write: if hasPermission('finance');
+    }
+
+    match /safeSettlements/{id} {
+      allow read: if hasPermission('finance') || hasPermission('reports');
+      allow write: if hasPermission('finance');
+    }
+
     match /lostSales/{id} {
       allow read: if hasPermission('dashboard') || hasPermission('reports');
       allow write: if hasPermission('dashboard');

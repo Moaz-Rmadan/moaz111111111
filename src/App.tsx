@@ -10,6 +10,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
+  PieChart as PieChartIcon, 
+  Wallet,
   ShoppingCart,
   ShoppingBag, 
   ArrowUpRight, 
@@ -51,6 +53,11 @@ import {
   UserCircle,
   Save,
   MessageSquare,
+  FileCheck,
+  PlusCircle,
+  CreditCard,
+  Scale,
+  ReceiptText,
   Code
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -86,7 +93,7 @@ import {
 } from 'recharts';
 import { db, auth } from './firebase';
 import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, increment, serverTimestamp, writeBatch, setDoc } from 'firebase/firestore';
-import { Item, Supplier, Purchase, Issuance, Warehouse, Unit, CostCenter, ProductionJob, LoadingManifest, DeliveryReceipt, Waste, BladeSharpening, PlateSharpening, MachineMaintenance, Employee, Attendance, FinancialTransaction, Loan, Payroll, SupplierPayment, JobLabor, JobOtherCost, ProductionRecord, CompanySettings, UserProfile, StockAudit, BOM, WorkCenter, ManufacturingOperation, LostSale, SalesOrder, ProductRecipe, RecipeItem, DepartmentRecipe } from './types';
+import { Item, Supplier, Purchase, Issuance, Warehouse, Unit, CostCenter, ProductionJob, LoadingManifest, DeliveryReceipt, Waste, BladeSharpening, PlateSharpening, MachineMaintenance, Employee, Attendance, FinancialTransaction, Loan, Payroll, SupplierPayment, JobLabor, JobOtherCost, ProductionRecord, CompanySettings, UserProfile, StockAudit, BOM, WorkCenter, ManufacturingOperation, LostSale, SalesOrder, ProductRecipe, RecipeItem, DepartmentRecipe, Safe, SafeTransaction, SafeAudit, SafeSettlement, SettledExpense } from './types';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -836,6 +843,8 @@ function MainApp({
   const [productRecipes, setProductRecipes] = useState<ProductRecipe[]>([]);
   const [safes, setSafes] = useState<Safe[]>([]);
   const [safeTransactions, setSafeTransactions] = useState<SafeTransaction[]>([]);
+  const [safeAudits, setSafeAudits] = useState<SafeAudit[]>([]);
+  const [safeSettlements, setSafeSettlements] = useState<SafeSettlement[]>([]);
   const [hrMenuOpen, setHrMenuOpen] = useState(false);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
 
@@ -1276,6 +1285,18 @@ function MainApp({
       }, (err) => handleFirestoreError(err, 'list', 'salesOrders'));
     }
 
+    let unsubSafeAudits = () => {};
+    let unsubSafeSettlements = () => {};
+    if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
+      unsubSafeAudits = onSnapshot(collection(db, 'safeAudits'), (snap) => {
+        setSafeAudits(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeAudit)));
+      }, (err) => handleFirestoreError(err, 'list', 'safeAudits'));
+
+      unsubSafeSettlements = onSnapshot(collection(db, 'safeSettlements'), (snap) => {
+        setSafeSettlements(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeSettlement)));
+      }, (err) => handleFirestoreError(err, 'list', 'safeSettlements'));
+    }
+
     let unsubProductRecipes = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubProductRecipes = onSnapshot(collection(db, 'productRecipes'), (snap) => {
@@ -1327,6 +1348,8 @@ function MainApp({
       unsubManufacturingOperations();
       unsubLostSales();
       unsubSalesOrders();
+      unsubSafeAudits();
+      unsubSafeSettlements();
       unsubProductRecipes();
       unsubSafes();
       unsubSafeTransactions();
@@ -1585,15 +1608,13 @@ function MainApp({
             </div>
           )}
 
-          <NavButton active={activeTab === 'purchases'} onClick={() => handleNavClick('purchases')} icon={<ShoppingCart size={20} />} label="المشتريات" permission="purchases" profile={profile} />
-          
           {(profile?.isAdmin || profile?.permissions?.finance) && (
             <div className="space-y-1">
                <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
                 <span>المودول المالي</span>
                 <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
               </div>
-              <NavButton active={activeTab === 'safe'} onClick={() => handleNavClick('safe')} icon={<Building2 size={20} />} label="الخزنة والعهدة" permission="finance" profile={profile} />
+              <NavButton active={activeTab === 'safe'} onClick={() => handleNavClick('safe')} icon={<Building2 size={20} />} label="المالية والخزنة" permission="finance" profile={profile} />
             </div>
           )}
 
@@ -1760,7 +1781,7 @@ function MainApp({
           jobLabors={jobLabors}
           jobOtherCosts={jobOtherCosts}
         />}
-        {activeTab === 'safe' && <SafeModule safes={safes} safeTransactions={safeTransactions} profile={profile} />}
+        {activeTab === 'safe' && <SafeModule safes={safes} safeTransactions={safeTransactions} safeAudits={safeAudits} safeSettlements={safeSettlements} profile={profile} purchases={purchases} items={items} suppliers={suppliers} costCenters={costCenters} productionJobs={productionJobs} employees={employees} loadingManifests={loadingManifests} />}
         {activeTab === 'inventory' && (
           <Inventory 
             items={items} 
@@ -1811,14 +1832,13 @@ function MainApp({
         )}
         {activeTab === 'loading' && <LoadingManifests manifests={loadingManifests} companyInfo={companySettings} />}
         {activeTab === 'deliveryReceipts' && <DeliveryReceipts receipts={deliveryReceipts} companyInfo={companySettings} />}
-        {activeTab === 'purchases' && <Purchases items={items} suppliers={suppliers} purchases={purchases} />}
         {activeTab === 'issuances' && <Issuances items={items} issuances={issuances} costCenters={costCenters} />}
         {activeTab === 'stockAudit' && <StockAuditView items={items} warehouses={warehouses} audits={stockAudits} />}
         {activeTab === 'returns' && <Returns items={items} suppliers={suppliers} costCenters={costCenters} />}
         {activeTab === 'waste' && <WastedItemsView items={items} wasteRecords={wasteRecords} />}
-        {activeTab === 'bladeSharpening' && <BladeSharpeningView records={bladeSharpening} />}
-        {activeTab === 'plateSharpening' && <PlateSharpeningView records={plateSharpening} />}
-        {activeTab === 'machineMaintenance' && <MachineMaintenanceView records={machineMaintenance} />}
+        {activeTab === 'bladeSharpening' && <BladeSharpeningView records={bladeSharpening} safes={safes} profile={profile} />}
+        {activeTab === 'plateSharpening' && <PlateSharpeningView records={plateSharpening} safes={safes} profile={profile} />}
+        {activeTab === 'machineMaintenance' && <MachineMaintenanceView records={machineMaintenance} safes={safes} profile={profile} />}
         {activeTab === 'employees' && <EmployeesView employees={employees} />}
         {activeTab === 'attendance' && <AttendanceView employees={employees} attendance={attendance} />}
         {activeTab === 'hrProduction' && <ProductionView employees={employees} productionRecords={productionRecords} />}
@@ -1850,6 +1870,8 @@ function MainApp({
             purchases={purchases} 
             items={items} 
             supplierPayments={supplierPayments} 
+            safes={safes}
+            profile={profile}
             setEditingSupplier={setEditingSupplier}
             setShowDeleteConfirm={setShowDeleteConfirmBase}
           />
@@ -5751,25 +5773,183 @@ function DeliveryReceipts({ receipts, companyInfo }: { receipts: DeliveryReceipt
   );
 }
 
-function SafeModule({ safes, safeTransactions, profile }: { 
+function ExpenseAnalytics({ transactions, costCenters }: { transactions: SafeTransaction[], costCenters: CostCenter[] }) {
+  const expenses = transactions.filter(t => t.type === 'سحب' || t.type === 'مصروفات');
+  
+  // 1. By Category
+  const categoryData = Object.entries(
+    expenses.reduce((acc, curr) => {
+      const cat = curr.category || 'غير مصنف';
+      acc[cat] = (acc[cat] || 0) + curr.amount;
+      return acc;
+    }, {} as Record<string, number>)
+  ).map(([name, value]) => ({ name, value }))
+   .sort((a, b) => b.value - a.value);
+
+  // 2. By Cost Center
+  const costCenterData = Object.entries(
+    expenses.reduce((acc, curr) => {
+      const ccName = costCenters.find(c => c.id === curr.costCenterId)?.name || 'عام';
+      acc[ccName] = (acc[ccName] || 0) + curr.amount;
+      return acc;
+    }, {} as Record<string, number>)
+  ).map(([name, value]) => ({ name, value }))
+   .sort((a, b) => b.value - a.value);
+
+  // 3. Trends (Last 30 days)
+  const last30Days = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (29 - i));
+    return format(d, 'yyyy-MM-dd');
+  });
+
+  const trendData = last30Days.map(date => ({
+    date: format(new Date(date), 'dd/MM', { locale: ar }),
+    amount: expenses.filter(t => t.date === date).reduce((sum, t) => sum + t.amount, 0)
+  }));
+
+  const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="dribbble-card border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="font-black text-slate-800">المصروفات حسب التصنيف</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {categoryData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="dribbble-card border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="font-black text-slate-800">المصروفات حسب مراكز التكلفة</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={costCenterData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12, fontWeight: 'bold' }} />
+                <Tooltip cursor={{ fill: '#f8fafc' }} />
+                <Bar dataKey="value" fill="#6366f1" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="dribbble-card border-none shadow-sm h-[400px]">
+        <CardHeader>
+          <CardTitle className="font-black text-slate-800">توجه المصروفات (آخر 30 يوم)</CardTitle>
+        </CardHeader>
+        <CardContent className="h-full">
+          <ResponsiveContainer width="100%" height="80%">
+            <AreaChart data={trendData}>
+              <defs>
+                <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fontWeight: 'bold' }} />
+              <YAxis tick={{ fontSize: 10, fontWeight: 'bold' }} />
+              <Tooltip />
+              <Area type="monotone" dataKey="amount" stroke="#6366f1" fillOpacity={1} fill="url(#colorAmount)" strokeWidth={3} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, profile, purchases, items, suppliers, costCenters, productionJobs, employees, loadingManifests }: { 
   safes: Safe[], 
   safeTransactions: SafeTransaction[], 
-  profile: UserProfile | null 
+  safeAudits: SafeAudit[],
+  safeSettlements: SafeSettlement[],
+  profile: UserProfile | null,
+  purchases: Purchase[],
+  items: Item[],
+  suppliers: Supplier[],
+  costCenters: CostCenter[],
+  productionJobs: ProductionJob[],
+  employees: Employee[],
+  loadingManifests: LoadingManifest[]
 }) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'purchases' | 'audits' | 'settlements' | 'analytics'>('overview');
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showAddSafe, setShowAddSafe] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
+  const [showSettlement, setShowSettlement] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [safeFilter, setSafeFilter] = useState('all');
   
   const [safeForm, setSafeForm] = useState({ name: '', initialBalance: 0 });
+  const [auditForm, setAuditForm] = useState({
+    safeId: '',
+    physicalBalance: 0,
+    notes: ''
+  });
+  const [settlementForm, setSettlementForm] = useState({
+    safeId: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    notes: '',
+    expenses: [] as SettledExpense[]
+  });
+  const [newExpense, setNewExpense] = useState<SettledExpense>({
+    description: '',
+    category: 'مصروفات أخرى',
+    amount: 0,
+    date: format(new Date(), 'yyyy-MM-dd'),
+    costCenterId: '',
+    productionJobId: '',
+    driverId: '',
+    manifestId: ''
+  });
   const [transactionForm, setTransactionForm] = useState({
     safeId: '',
     type: 'سحب' as SafeTransaction['type'],
     amount: 0,
     description: '',
     date: format(new Date(), 'yyyy-MM-dd'),
-    category: ''
+    category: '',
+    relatedId: '',
+    costCenterId: '',
+    productionJobId: '',
+    driverId: '',
+    manifestId: ''
   });
+
+  const expenseCategories = [
+    'قطاع النجارة', 'قطاع الدهانات', 'قطاع التنجيد', 
+    'كهرباء مصنع النجارة', 'كهرباء مصنع النجارة الجديد', 
+    'عهدة مشتريات', 'مصروفات أخرى', 'الموردين', 
+    'مسحوبات شخصية', 'صيانة', 'عهد السائقين', 'سلف العاملين',
+    'مبيعات نشارة', 'مبيعات مخلفات', 'خشب كسر', 'شراء أنابيب'
+  ];
 
   const filteredTransactions = safeTransactions.filter(t => {
     const matchesSafe = safeFilter === 'all' || t.safeId === safeFilter;
@@ -5799,21 +5979,71 @@ function SafeModule({ safes, safeTransactions, profile }: {
     try {
       const batch = writeBatch(db);
       const safeTransactionsRef = collection(db, 'safeTransactions');
-      const safeRef = doc(db, 'safes', transactionForm.safeId);
       
-      const multiplier = (transactionForm.type === 'إيداع' || transactionForm.type === 'مبيعات') ? 1 : -1;
-      const amountChange = transactionForm.amount * multiplier;
+      if (transactionForm.type === 'تحويل') {
+        if (!transactionForm.relatedId) {
+          alert('يرجى اختيار الخزنة المستلمة للتحويل');
+          return;
+        }
+        
+        // 1. Transaction: Out from Source
+        const txOut = {
+          ...transactionForm,
+          amount: Number(transactionForm.amount),
+          description: `تحويل صادر إلى ${safes.find(s => s.id === transactionForm.relatedId)?.name} - ${transactionForm.description}`,
+          createdBy: profile?.name || 'مستخدم'
+        };
+        batch.set(doc(safeTransactionsRef), txOut);
+        batch.update(doc(db, 'safes', transactionForm.safeId), {
+          balance: increment(-Number(transactionForm.amount))
+        });
 
-      const newTransaction = {
-        ...transactionForm,
-        amount: Number(transactionForm.amount),
-        createdBy: profile?.name || 'مستخدم'
-      };
+        // 2. Transaction: In to Destination
+        const txIn = {
+          ...transactionForm,
+          safeId: transactionForm.relatedId,
+          relatedId: transactionForm.safeId,
+          amount: Number(transactionForm.amount),
+          description: `تحويل وارد من ${safes.find(s => s.id === transactionForm.safeId)?.name} - ${transactionForm.description}`,
+          createdBy: profile?.name || 'مستخدم'
+        };
+        batch.set(doc(safeTransactionsRef), txIn);
+        batch.update(doc(db, 'safes', transactionForm.relatedId), {
+          balance: increment(Number(transactionForm.amount))
+        });
+      } else {
+        const safeRef = doc(db, 'safes', transactionForm.safeId);
+        const multiplier = (transactionForm.type === 'إيداع' || transactionForm.type === 'مبيعات' || transactionForm.type === 'قرض شخصي') ? 1 : -1;
+        const amountChange = transactionForm.amount * multiplier;
 
-      batch.set(doc(safeTransactionsRef), newTransaction);
-      batch.update(safeRef, {
-        balance: increment(amountChange)
-      });
+        const newTransaction = {
+          ...transactionForm,
+          amount: Number(transactionForm.amount),
+          createdBy: profile?.name || 'مستخدم'
+        };
+
+        batch.set(doc(safeTransactionsRef), newTransaction);
+        batch.update(safeRef, {
+          balance: increment(amountChange)
+        });
+
+        // Link with Production Job
+        if (multiplier === -1 && transactionForm.productionJobId) {
+          const costRef = doc(collection(db, 'jobOtherCosts'));
+          batch.set(costRef, {
+            jobId: transactionForm.productionJobId,
+            date: transactionForm.date,
+            description: `مصرف مالي: ${transactionForm.description}`,
+            amount: Number(transactionForm.amount),
+            notes: `خصم من: ${safes.find(s => s.id === transactionForm.safeId)?.name}`,
+            stage: 'مصاريف مالية'
+          });
+
+          batch.update(doc(db, 'productionJobs', transactionForm.productionJobId), {
+            totalOtherCost: increment(Number(transactionForm.amount))
+          });
+        }
+      }
 
       await batch.commit();
       setShowAddTransaction(false);
@@ -5823,9 +6053,123 @@ function SafeModule({ safes, safeTransactions, profile }: {
         amount: 0,
         description: '',
         date: format(new Date(), 'yyyy-MM-dd'),
-        category: ''
+        category: '',
+        relatedId: '',
+        costCenterId: '',
+        productionJobId: '',
+        driverId: '',
+        manifestId: ''
       });
     } catch (err) { handleFirestoreError(err, 'write', 'safeTransactions'); }
+  };
+
+  const handleAuditSafe = async () => {
+    if (!auditForm.safeId) return;
+
+    const safe = safes.find(s => s.id === auditForm.safeId);
+    if (!safe) return;
+
+    const physical = Number(auditForm.physicalBalance);
+    const system = safe.balance;
+    const diff = physical - system;
+
+    try {
+      const batch = writeBatch(db);
+      const auditRef = doc(collection(db, 'safeAudits'));
+      
+      batch.set(auditRef, {
+        safeId: auditForm.safeId,
+        date: format(new Date(), 'yyyy-MM-dd HH:mm'),
+        systemBalance: system,
+        physicalBalance: physical,
+        difference: diff,
+        notes: auditForm.notes,
+        createdBy: profile?.name || 'مستخدم'
+      });
+
+      // If there is a difference, create a corrective transaction
+      if (diff !== 0) {
+        const txRef = doc(collection(db, 'safeTransactions'));
+        batch.set(txRef, {
+          safeId: auditForm.safeId,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          type: 'جرد',
+          amount: Math.abs(diff),
+          description: diff > 0 ? 'تسوية جرد (زيادة)' : 'تسوية جرد (عجز)',
+          category: 'تسوية خزنة',
+          createdBy: profile?.name || 'مستخدم',
+          relatedId: auditRef.id
+        });
+
+        batch.update(doc(db, 'safes', auditForm.safeId), {
+          balance: physical // Force update to physical balance
+        });
+      }
+
+      await batch.commit();
+      setShowAudit(false);
+      setAuditForm({ safeId: '', physicalBalance: 0, notes: '' });
+    } catch (err) { handleFirestoreError(err, 'write', 'safeAudits'); }
+  };
+
+  const handleApplySettlement = async () => {
+    if (!settlementForm.safeId || settlementForm.expenses.length === 0) return;
+
+    const total = settlementForm.expenses.reduce((sum, e) => sum + e.amount, 0);
+
+    try {
+      const batch = writeBatch(db);
+      const settlementRef = doc(collection(db, 'safeSettlements'));
+      const txRef = doc(collection(db, 'safeTransactions'));
+
+      batch.set(settlementRef, {
+        safeId: settlementForm.safeId,
+        date: settlementForm.date,
+        totalAmount: total,
+        expenses: settlementForm.expenses,
+        notes: settlementForm.notes,
+        createdBy: profile?.name || 'مستخدم',
+        safeTransactionId: txRef.id
+      });
+
+      batch.set(txRef, {
+        safeId: settlementForm.safeId,
+        date: settlementForm.date,
+        type: 'مصروفات',
+        amount: total,
+        description: `تسوية عهدة: ${settlementForm.notes || 'مصاريف متنوعة'}`,
+        category: 'تسوية عهد',
+        createdBy: profile?.name || 'مستخدم',
+        relatedId: settlementRef.id
+      });
+
+      batch.update(doc(db, 'safes', settlementForm.safeId), {
+        balance: increment(-total)
+      });
+
+      // Link expenses with Production Jobs
+      settlementForm.expenses.forEach(expense => {
+        if (expense.productionJobId) {
+          const costRef = doc(collection(db, 'jobOtherCosts'));
+          batch.set(costRef, {
+            jobId: expense.productionJobId,
+            date: expense.date || settlementForm.date,
+            description: `تسوية عهدة: ${expense.description}`,
+            amount: Number(expense.amount),
+            notes: `من عهدة: ${safes.find(s => s.id === settlementForm.safeId)?.name}`,
+            stage: 'مصاريف مالية'
+          });
+
+          batch.update(doc(db, 'productionJobs', expense.productionJobId), {
+            totalOtherCost: increment(Number(expense.amount))
+          });
+        }
+      });
+
+      await batch.commit();
+      setShowSettlement(false);
+      setSettlementForm({ safeId: '', date: format(new Date(), 'yyyy-MM-dd'), notes: '', expenses: [] });
+    } catch (err) { handleFirestoreError(err, 'write', 'safeSettlements'); }
   };
 
   const handleDeleteTransaction = async (tx: SafeTransaction) => {
@@ -5848,153 +6192,586 @@ function SafeModule({ safes, safeTransactions, profile }: {
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">إدارة الخزنة والعهدة</h2>
-          <p className="text-slate-500 mt-2 font-bold text-lg">تتبع التدفقات النقدية والسيولة المالية للمصنع</p>
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">الإدارة المالية</h2>
+          <p className="text-slate-500 mt-2 font-bold text-lg">تتبع التدفقات النقدية والسيولة والمشتريات</p>
         </div>
         <div className="flex gap-3">
+          <Button onClick={() => setShowSettlement(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black gap-2 border-2 text-indigo-600 border-indigo-600/20 hover:bg-indigo-50">
+            <ReceiptText size={20} />
+            تسوية عهدة
+          </Button>
+          <Button onClick={() => setShowAudit(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black gap-2 border-2 text-primary border-primary/20 hover:bg-primary/5">
+            <ClipboardCheck size={20} />
+            جرد الخزنة
+          </Button>
           <Button onClick={() => setShowAddSafe(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black gap-2 border-2">
             <Building2 size={20} />
             إضافة خزنة/عهدة
           </Button>
           <Button onClick={() => setShowAddTransaction(true)} className="btn-primary h-12 px-8 rounded-2xl font-black gap-2 shadow-xl shadow-primary/20">
             <Plus size={20} />
-            حركة جديدة
+            حركة نقدية
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {safes.map(safe => (
-          <Card key={safe.id} className="dribbble-card border-none shadow-xl shadow-slate-200/50 group overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
-            <CardContent className="pt-8 relative z-10">
-              <div className="flex flex-col gap-2">
-                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
-                  <Building2 size={24} />
-                </div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{safe.name}</p>
-                <h3 className="text-2xl font-black text-slate-900">{safe.balance.toLocaleString()} <small className="text-xs">ج.م</small></h3>
+      <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
+        <Button 
+          onClick={() => setActiveTab('overview')} 
+          variant={activeTab === 'overview' ? 'default' : 'ghost'}
+          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'overview' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+        >
+          <PieChartIcon size={18} className="ml-2" />
+          الملخص والحركات
+        </Button>
+        <Button 
+          onClick={() => setActiveTab('purchases')} 
+          variant={activeTab === 'purchases' ? 'default' : 'ghost'}
+          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'purchases' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+        >
+          <ShoppingCart size={18} className="ml-2" />
+          مشتريات الخامات
+        </Button>
+        <Button 
+          onClick={() => setActiveTab('audits')} 
+          variant={activeTab === 'audits' ? 'default' : 'ghost'}
+          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'audits' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+        >
+          <History size={18} className="ml-2" />
+          سجل الجرد
+        </Button>
+        <Button 
+          onClick={() => setActiveTab('settlements')} 
+          variant={activeTab === 'settlements' ? 'default' : 'ghost'}
+          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'settlements' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+        >
+          <FileCheck size={18} className="ml-2" />
+          سجل التسويات
+        </Button>
+        <Button 
+          onClick={() => setActiveTab('analytics')} 
+          variant={activeTab === 'analytics' ? 'default' : 'ghost'}
+          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'analytics' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+        >
+          <BarChart3 size={18} className="ml-2" />
+          تحليل المصروفات
+        </Button>
+      </div>
+
+      {activeTab === 'overview' ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {safes.map(safe => (
+              <Card key={safe.id} className="dribbble-card border-none shadow-xl shadow-slate-200/50 group overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
+                <CardContent className="pt-8 relative z-10">
+                  <div className="flex flex-col gap-2">
+                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                      <Building2 size={24} />
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{safe.name}</p>
+                    <h3 className="text-2xl font-black text-slate-900">{safe.balance.toLocaleString()} <small className="text-xs">ج.م</small></h3>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {safes.length === 0 && (
+              <div className="col-span-full py-12 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                <ShieldAlert size={48} className="mb-4 opacity-20" />
+                <p className="font-black text-lg">لم يتم تعريف أي خزن بعد</p>
+                <Button variant="link" onClick={() => setShowAddSafe(true)} className="font-bold">أضف أول خزنة الآن</Button>
               </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Card className="lg:col-span-1 dribbble-card border-none shadow-xl shadow-slate-200/50">
+              <CardHeader>
+                <CardTitle className="font-black text-xl">ملخص الفترة</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase">إجمالي الإيداعات</p>
+                    <p className="text-xl font-black text-emerald-700">+{totalIn.toLocaleString()}</p>
+                  </div>
+                  <ArrowUpRight className="text-emerald-500" />
+                </div>
+                <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-black text-red-600 uppercase">إجمالي السحوبات</p>
+                    <p className="text-xl font-black text-red-700">-{totalOut.toLocaleString()}</p>
+                  </div>
+                  <ArrowUpRight className="text-red-500 rotate-90" />
+                </div>
+                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-black text-blue-600 uppercase">صافي التدفق</p>
+                    <p className="text-xl font-black text-blue-700">{(totalIn - totalOut).toLocaleString()}</p>
+                  </div>
+                  <BarChart3 className="text-blue-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2 dribbble-card border-none shadow-xl shadow-slate-200/50 overflow-hidden">
+              <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <CardTitle className="font-black text-xl">سجل الحركات</CardTitle>
+                <div className="flex gap-2">
+                  <select 
+                    value={safeFilter} 
+                    onChange={e => setSafeFilter(e.target.value)}
+                    className="h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold text-sm focus:ring-1 ring-primary"
+                  >
+                    <option value="all">كل الخزن</option>
+                    {safes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <Input 
+                    placeholder="بحث في الوصف..." 
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="h-10 w-48 bg-white"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="p-0 max-h-[600px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="font-black text-right">التاريخ</TableHead>
+                      <TableHead className="font-black text-right">الخزنة</TableHead>
+                      <TableHead className="font-black text-right">نوع الحركة</TableHead>
+                      <TableHead className="font-black text-right">المبلغ</TableHead>
+                      <TableHead className="font-black text-right">الوصف</TableHead>
+                      <TableHead className="w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.map(tx => (
+                      <TableRow key={tx.id} className="group hover:bg-slate-50 transition-colors">
+                        <TableCell className="font-bold text-slate-500">{tx.date}</TableCell>
+                        <TableCell className="font-black text-slate-700">{safes.find(s => s.id === tx.safeId)?.name}</TableCell>
+                        <TableCell>
+                          <Badge className={`font-black tracking-tighter ${
+                            (tx.type === 'إيداع' || tx.type === 'مبيعات') ? 'bg-emerald-100 text-emerald-700' : 
+                            (tx.type === 'تحويل') ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {tx.type}
+                          </Badge>
+                          {tx.costCenterId && (
+                            <div className="mt-1 text-[8px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md w-fit">
+                              {costCenters.find(c => c.id === tx.costCenterId)?.name}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className={`font-black text-lg ${
+                          (tx.type === 'إيداع' || tx.type === 'مبيعات') ? 'text-emerald-600' : 'text-red-600'
+                        }`}>
+                          {(tx.type === 'إيداع' || tx.type === 'مبيعات' ? '+' : '-')}{tx.amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-700">{tx.description}</span>
+                              {tx.relatedId && tx.type === 'مشتريات' && (
+                                <Badge variant="outline" className="text-[8px] border-primary/20 text-primary">رقم الفاتورة: {tx.relatedId.slice(-4)}</Badge>
+                              )}
+                            </div>
+                            {tx.category && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{tx.category}</span>}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {tx.productionJobId && (
+                                <Badge variant="secondary" className="text-[8px] bg-orange-50 text-orange-600 border-orange-200">
+                                  أمر: {productionJobs.find(j => j.id === tx.productionJobId)?.orderNo}
+                                </Badge>
+                              )}
+                              {tx.driverId && (
+                                <Badge variant="secondary" className="text-[8px] bg-blue-50 text-blue-600 border-blue-200">
+                                  سائق: {employees.find(e => e.id === tx.driverId)?.name}
+                                </Badge>
+                              )}
+                              {tx.manifestId && (
+                                <Badge variant="secondary" className="text-[8px] bg-green-50 text-green-600 border-green-200">
+                                  بيان: {loadingManifests.find(m => m.id === tx.manifestId)?.driverName}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteTransaction(tx)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredTransactions.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-20 text-slate-400 font-bold">لا توجد حركات مسجلة</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      ) : activeTab === 'purchases' ? (
+        <div className="animate-in slide-in-from-left duration-300">
+          <Purchases 
+            items={items} 
+            suppliers={suppliers} 
+            purchases={purchases} 
+            safes={safes}
+            profile={profile}
+          />
+        </div>
+      ) : activeTab === 'audits' ? (
+        <div className="animate-in slide-in-from-right duration-300">
+          <Card className="dribbble-card border-none shadow-xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="font-black text-2xl">سجل جرد الخزينة</CardTitle>
+              <div className="text-slate-400 text-sm font-bold">مقارنة الرصيد الدفتري مع المادي</div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-slate-100">
+                    <TableHead className="text-right font-black">التاريخ</TableHead>
+                    <TableHead className="text-right font-black">الخزنة</TableHead>
+                    <TableHead className="text-right font-black text-blue-600">رصيد النظام</TableHead>
+                    <TableHead className="text-right font-black text-emerald-600">رصيد مادي</TableHead>
+                    <TableHead className="text-right font-black">الفرق</TableHead>
+                    <TableHead className="text-right font-black">الحالة</TableHead>
+                    <TableHead className="text-right font-black">المستخدم</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {safeAudits.sort((a, b) => b.date.localeCompare(a.date)).map(audit => (
+                    <TableRow key={audit.id} className="group border-slate-50">
+                      <TableCell className="font-bold text-slate-500">{audit.date}</TableCell>
+                      <TableCell className="font-black text-slate-700">{safes.find(s => s.id === audit.safeId)?.name}</TableCell>
+                      <TableCell className="font-bold text-blue-600">{audit.systemBalance.toLocaleString()}</TableCell>
+                      <TableCell className="font-bold text-emerald-600">{audit.physicalBalance.toLocaleString()}</TableCell>
+                      <TableCell className={`font-black ${audit.difference === 0 ? 'text-slate-400' : audit.difference > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {audit.difference > 0 ? '+' : ''}{audit.difference.toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`font-black ${
+                          audit.difference === 0 ? 'bg-slate-100 text-slate-700' : 
+                          audit.difference > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {audit.difference === 0 ? 'مضبوطة' : audit.difference > 0 ? 'زيادة' : 'عجز'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-bold text-slate-500">{audit.createdBy}</TableCell>
+                    </TableRow>
+                  ))}
+                  {safeAudits.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-20 text-slate-400 font-bold">لا توجد سجلات جرد حتى الآن</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
-        ))}
-        {safes.length === 0 && (
-          <div className="col-span-full py-12 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
-            <ShieldAlert size={48} className="mb-4 opacity-20" />
-            <p className="font-black text-lg">لم يتم تعريف أي خزن بعد</p>
-            <Button variant="link" onClick={() => setShowAddSafe(true)} className="font-bold">أضف أول خزنة الآن</Button>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : activeTab === 'settlements' ? (
+        <div className="animate-in slide-in-from-left duration-300">
+          <Card className="dribbble-card border-none shadow-xl">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="font-black text-2xl">سجل تسوية العهد</CardTitle>
+              <div className="text-slate-400 text-sm font-bold">مصاريف العهد المحولة لنظام المصروفات</div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-slate-100">
+                    <TableHead className="text-right font-black">التاريخ</TableHead>
+                    <TableHead className="text-right font-black">العهدة</TableHead>
+                    <TableHead className="text-right font-black">إجمالي المبلغ</TableHead>
+                    <TableHead className="text-right font-black">عدد البنود</TableHead>
+                    <TableHead className="text-right font-black">ملاحظات</TableHead>
+                    <TableHead className="text-right font-black">المستخدم</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {safeSettlements.sort((a, b) => b.date.localeCompare(a.date)).map(settlement => (
+                    <TableRow key={settlement.id} className="group border-slate-50 hover:bg-slate-50/50">
+                      <TableCell className="font-bold text-slate-500">{settlement.date}</TableCell>
+                      <TableCell className="font-black text-indigo-700">{safes.find(s => s.id === settlement.safeId)?.name}</TableCell>
+                      <TableCell className="font-black text-slate-900 text-lg">{settlement.totalAmount.toLocaleString()} ج.م</TableCell>
+                      <TableCell className="font-bold text-slate-500">{settlement.expenses.length} بند</TableCell>
+                      <TableCell className="font-medium text-slate-600 max-w-xs truncate">{settlement.notes}</TableCell>
+                      <TableCell className="font-bold text-slate-500">{settlement.createdBy}</TableCell>
+                    </TableRow>
+                  ))}
+                  {safeSettlements.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-20 text-slate-400 font-bold">لا توجد سجلات تسوية حتى الآن</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      ) : activeTab === 'analytics' ? (
+        <div className="animate-in slide-in-from-bottom duration-300">
+          <ExpenseAnalytics transactions={safeTransactions} costCenters={costCenters} />
+        </div>
+      ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-1 dribbble-card border-none shadow-xl shadow-slate-200/50">
-          <CardHeader>
-            <CardTitle className="font-black text-xl">ملخص الفترة</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
-              <div>
-                <p className="text-[10px] font-black text-emerald-600 uppercase">إجمالي الإيداعات</p>
-                <p className="text-xl font-black text-emerald-700">+{totalIn.toLocaleString()}</p>
+      {/* Petty Cash Settlement Modal */}
+      {showSettlement && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <Card className="dribbble-card w-full max-w-2xl border-none shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden">
+            <div className="bg-indigo-600 p-6 text-white">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-black">تسوية عهدة مصروفات</h2>
+                  <p className="text-indigo-100 font-medium">تسجيل مجموعة من الفواتير والمنصرفات من العهدة</p>
+                </div>
+                <ReceiptText size={40} className="opacity-20" />
               </div>
-              <ArrowUpRight className="text-emerald-500" />
             </div>
-            <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex justify-between items-center">
-              <div>
-                <p className="text-[10px] font-black text-red-600 uppercase">إجمالي السحوبات</p>
-                <p className="text-xl font-black text-red-700">-{totalOut.toLocaleString()}</p>
+            <CardContent className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase">اختر العهدة</label>
+                  <select 
+                    className="w-full h-12 rounded-xl border-2 border-slate-100 px-3 bg-white font-black text-slate-900"
+                    value={settlementForm.safeId}
+                    onChange={e => setSettlementForm({...settlementForm, safeId: e.target.value})}
+                  >
+                    <option value="">اختر...</option>
+                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (الرصيد: {s.balance.toLocaleString()})</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase">تاريخ التسوية</label>
+                  <Input type="date" value={settlementForm.date} onChange={e => setSettlementForm({...settlementForm, date: e.target.value})} className="h-12 rounded-xl font-bold" />
+                </div>
               </div>
-              <ArrowUpRight className="text-red-500 rotate-90" />
-            </div>
-            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center">
-              <div>
-                <p className="text-[10px] font-black text-blue-600 uppercase">صافي التدفق</p>
-                <p className="text-xl font-black text-blue-700">{(totalIn - totalOut).toLocaleString()}</p>
-              </div>
-              <BarChart3 className="text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="lg:col-span-2 dribbble-card border-none shadow-xl shadow-slate-200/50 overflow-hidden">
-          <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle className="font-black text-xl">سجل الحركات</CardTitle>
-            <div className="flex gap-2">
-              <select 
-                value={safeFilter} 
-                onChange={e => setSafeFilter(e.target.value)}
-                className="h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold text-sm focus:ring-1 ring-primary"
-              >
-                <option value="all">كل الخزن</option>
-                {safes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <Input 
-                placeholder="بحث في الوصف..." 
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="h-10 w-48 bg-white"
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 max-h-[600px] overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="font-black text-right">التاريخ</TableHead>
-                  <TableHead className="font-black text-right">الخزنة</TableHead>
-                  <TableHead className="font-black text-right">نوع الحركة</TableHead>
-                  <TableHead className="font-black text-right">المبلغ</TableHead>
-                  <TableHead className="font-black text-right">الوصف</TableHead>
-                  <TableHead className="w-10"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTransactions.map(tx => (
-                  <TableRow key={tx.id} className="group hover:bg-slate-50 transition-colors">
-                    <TableCell className="font-bold text-slate-500">{tx.date}</TableCell>
-                    <TableCell className="font-black text-slate-700">{safes.find(s => s.id === tx.safeId)?.name}</TableCell>
-                    <TableCell>
-                      <Badge className={`font-black tracking-tighter ${
-                        (tx.type === 'إيداع' || tx.type === 'مبيعات') ? 'bg-emerald-100 text-emerald-700' : 
-                        (tx.type === 'تحويل') ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {tx.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className={`font-black text-lg ${
-                      (tx.type === 'إيداع' || tx.type === 'مبيعات') ? 'text-emerald-600' : 'text-red-600'
-                    }`}>
-                      {(tx.type === 'إيداع' || tx.type === 'مبيعات' ? '+' : '-')}{tx.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-700">{tx.description}</span>
-                        {tx.category && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{tx.category}</span>}
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase">عنوان التسوية / ملاحظات عامة</label>
+                <Input value={settlementForm.notes} onChange={e => setSettlementForm({...settlementForm, notes: e.target.value})} placeholder="مثال: تسوية مصاريف شهر مايو - عهدة صيانة" className="h-12 rounded-xl font-bold" />
+              </div>
+
+              {/* Expense Items Builder */}
+              <div className="space-y-4 p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                <h3 className="font-black text-slate-700 flex items-center gap-2">
+                  <PlusCircle size={18} />
+                  إضافة بنود المصاريف
+                </h3>
+                <div className="grid grid-cols-12 gap-2">
+                  <div className="col-span-4">
+                    <Input placeholder="بيان المصروف" value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} className="h-10 text-xs font-bold" />
+                  </div>
+                  <div className="col-span-3">
+                    <select 
+                      className="w-full h-10 rounded-md border text-xs font-bold px-2 bg-white"
+                      value={newExpense.category}
+                      onChange={e => setNewExpense({...newExpense, category: e.target.value})}
+                    >
+                      {['مشتريات خامات', 'قطع غيار', 'نولون ونقل', 'صيانة', 'ضيافة', 'أدوات مكتبية', 'إيجارات', 'كهرباء', 'مياه', 'فواتير', 'رواتب سريعة', 'سلف', 'أخرى'].map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-span-3">
+                    <Input type="number" placeholder="المبلغ" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="h-10 text-xs font-black" />
+                  </div>
+                  <div className="col-span-5 flex gap-2">
+                    <select 
+                      className="flex-1 h-10 rounded-md border text-[10px] font-bold px-2 bg-orange-50 border-orange-100"
+                      value={newExpense.productionJobId}
+                      onChange={e => setNewExpense({...newExpense, productionJobId: e.target.value})}
+                    >
+                      <option value="">ربط بأمر إنتاج؟</option>
+                      {productionJobs.filter(j => j.status !== 'تم التسليم').map(job => (
+                        <option key={job.id} value={job.id}>{job.orderNo}</option>
+                      ))}
+                    </select>
+                    <select 
+                      className="flex-1 h-10 rounded-md border text-[10px] font-bold px-1 bg-blue-50 border-blue-100"
+                      value={newExpense.driverId}
+                      onChange={e => setNewExpense({...newExpense, driverId: e.target.value})}
+                    >
+                      <option value="">سائق؟</option>
+                      {employees.filter(e => e.position === 'سائق').map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                    <select 
+                      className="flex-1 h-10 rounded-md border text-[10px] font-bold px-1 bg-green-50 border-green-100"
+                      value={newExpense.manifestId}
+                      onChange={e => setNewExpense({...newExpense, manifestId: e.target.value})}
+                    >
+                      <option value="">بيان؟</option>
+                      {loadingManifests.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 20).map(m => (
+                        <option key={m.id} value={m.id}>{m.driverName}</option>
+                      ))}
+                    </select>
+                    <Button 
+                      className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-lg text-xs px-4"
+                      onClick={() => {
+                        if (!newExpense.description || newExpense.amount <= 0) return;
+                        setSettlementForm({
+                          ...settlementForm,
+                          expenses: [...settlementForm.expenses, { ...newExpense }]
+                        });
+                        setNewExpense({ description: '', category: 'مصروفات أخرى', amount: 0, date: format(new Date(), 'yyyy-MM-dd'), costCenterId: '', productionJobId: '', driverId: '', manifestId: '' });
+                      }}
+                    >
+                      إضافة
+                    </Button>
+                  </div>
+                </div>
+
+                {settlementForm.expenses.length > 0 && (
+                  <div className="space-y-2 mt-4 pt-4 border-t border-slate-200">
+                    {settlementForm.expenses.map((expense, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-slate-100 group animate-in slide-in-from-right duration-200">
+                        <div className="flex items-center gap-4">
+                          <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-500">{idx + 1}</span>
+                          <div>
+                            <p className="font-black text-slate-700">{expense.description}</p>
+                            <div className="flex gap-1 mt-0.5">
+                              <p className="text-[10px] uppercase font-black text-slate-400 bg-slate-50 px-1 rounded inline-block">{expense.category}</p>
+                              {expense.productionJobId && (
+                                <p className="text-[10px] font-black text-orange-600 bg-orange-50 px-1 rounded inline-block border border-orange-100">
+                                  {productionJobs.find(j => j.id === expense.productionJobId)?.orderNo}
+                                </p>
+                              )}
+                              {expense.driverId && (
+                                <p className="text-[10px] font-black text-blue-600 bg-blue-50 px-1 rounded inline-block border border-blue-100">
+                                  سائق: {employees.find(e => e.id === expense.driverId)?.name}
+                                </p>
+                              )}
+                              {expense.manifestId && (
+                                <p className="text-[10px] font-black text-green-600 bg-green-50 px-1 rounded inline-block border border-green-100">
+                                  بيان: {loadingManifests.find(m => m.id === expense.manifestId)?.driverName}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-black text-indigo-600">{expense.amount.toLocaleString()}</span>
+                          <button 
+                            onClick={() => {
+                              const updated = [...settlementForm.expenses];
+                              updated.splice(idx, 1);
+                              setSettlementForm({...settlementForm, expenses: updated});
+                            }}
+                            className="text-red-300 hover:text-red-500 p-1 rounded-md hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleDeleteTransaction(tx)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 hover:bg-red-50"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredTransactions.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-20 text-slate-400 font-bold">لا توجد حركات مسجلة</TableCell>
-                  </TableRow>
+                    ))}
+                    <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-xl border border-indigo-100 mt-4">
+                      <span className="font-black text-indigo-700">إجمالي قيمة التسوية:</span>
+                      <span className="text-xl font-black text-indigo-900">{settlementForm.expenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString()} ج.م</span>
+                    </div>
+                  </div>
                 )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+              </div>
+            </CardContent>
+            <CardFooter className="p-6 bg-slate-50 flex gap-3 border-t border-slate-200">
+              <Button onClick={() => setShowSettlement(false)} variant="ghost" className="flex-1 h-12 font-black rounded-xl">إلغاء</Button>
+              <Button 
+                onClick={handleApplySettlement} 
+                className="flex-1 h-12 font-black rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled={!settlementForm.safeId || settlementForm.expenses.length === 0}
+              >
+                اعتماد وتسوية المصاريف
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
+      {/* Safe Audit Modal */}
+      {showAudit && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <Card className="dribbble-card w-full max-w-md border-none shadow-2xl animate-in fade-in zoom-in duration-300">
+            <CardHeader>
+              <CardTitle className="text-2xl font-black">جرد الخزنة / العهدة</CardTitle>
+              <p className="text-slate-500 text-sm font-bold">تحديد الرصيد المادي الفعلي لتسوية العجز أو الزيادة</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase">اختر الخزنة للجرد</label>
+                <select 
+                  className="w-full h-12 rounded-xl border-2 border-slate-100 px-3 bg-white font-black text-slate-900"
+                  value={auditForm.safeId}
+                  onChange={e => setAuditForm({...auditForm, safeId: e.target.value})}
+                >
+                  <option value="">اختر...</option>
+                  {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد النظام: {s.balance.toLocaleString()})</option>)}
+                </select>
+              </div>
+              
+              {auditForm.safeId && (
+                <div className="space-y-4 animate-in slide-in-from-top duration-300">
+                  <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center">
+                    <span className="text-blue-700 font-bold">رصيد النظام الحالي:</span>
+                    <span className="text-blue-900 font-black text-xl">
+                      {safes.find(s => s.id === auditForm.safeId)?.balance.toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase">الرصيد المادي (الموجود فعلياً)</label>
+                    <Input 
+                      type="number" 
+                      value={auditForm.physicalBalance} 
+                      onChange={e => setAuditForm({...auditForm, physicalBalance: Number(e.target.value)})} 
+                      className="h-12 rounded-xl font-bold text-2xl text-center text-emerald-600 border-2 border-emerald-100 focus:ring-emerald-200" 
+                    />
+                  </div>
+
+                  <div className={`p-4 rounded-2xl border flex justify-between items-center ${
+                    (auditForm.physicalBalance - (safes.find(s => s.id === auditForm.safeId)?.balance || 0)) === 0 
+                      ? 'bg-slate-50 border-slate-100' 
+                      : (auditForm.physicalBalance - (safes.find(s => s.id === auditForm.safeId)?.balance || 0)) > 0 
+                        ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'
+                  }`}>
+                    <span className="font-bold">الفرق (تسوية):</span>
+                    <span className={`font-black text-lg ${
+                      (auditForm.physicalBalance - (safes.find(s => s.id === auditForm.safeId)?.balance || 0)) >= 0 ? 'text-emerald-700' : 'text-red-700'
+                    }`}>
+                      {(auditForm.physicalBalance - (safes.find(s => s.id === auditForm.safeId)?.balance || 0)).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase">ملاحظات الجرد</label>
+                <Input value={auditForm.notes} onChange={e => setAuditForm({...auditForm, notes: e.target.value})} placeholder="مثال: سبب العجز أو الزيادة..." className="h-12 rounded-xl font-bold" />
+              </div>
+            </CardContent>
+            <CardFooter className="flex gap-3">
+              <Button onClick={() => setShowAudit(false)} variant="ghost" className="flex-1 h-12 font-black rounded-xl">إلغاء</Button>
+              <Button 
+                onClick={handleAuditSafe} 
+                disabled={!auditForm.safeId}
+                className="btn-primary flex-1 h-12 font-black rounded-xl"
+              >
+                اعتماد الجرد والتسوية
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
 
       {/* Add Safe Modal */}
       {showAddSafe && (
@@ -6031,7 +6808,9 @@ function SafeModule({ safes, safeTransactions, profile }: {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase">اختر الخزنة</label>
+                  <label className="text-xs font-black text-slate-400 uppercase">
+                    {transactionForm.type === 'تحويل' ? 'من (الخزنة المصدر)' : 'اختر الخزنة'}
+                  </label>
                   <select 
                     className="w-full h-12 px-4 bg-slate-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
                     value={transactionForm.safeId}
@@ -6041,23 +6820,48 @@ function SafeModule({ safes, safeTransactions, profile }: {
                     {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase">نوع الحركة</label>
-                  <select 
-                    className="w-full h-12 px-4 bg-slate-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
-                    value={transactionForm.type}
-                    onChange={e => setTransactionForm({...transactionForm, type: e.target.value as any})}
-                  >
-                    <option value="سحب">سحب (مصروف)</option>
-                    <option value="إيداع">إيداع (وارد)</option>
-                    <option value="مبيعات">مبيعات</option>
-                    <option value="مشتريات">مشتريات</option>
-                    <option value="رواتب">رواتب</option>
-                    <option value="مصروفات">مصروفات إدارية</option>
-                    <option value="أخرى">أخرى</option>
-                  </select>
-                </div>
+                {transactionForm.type === 'تحويل' ? (
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-primary uppercase">إلى (الخزنة المستلمة)</label>
+                    <select 
+                      className="w-full h-12 px-4 bg-primary/5 border-none rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
+                      value={transactionForm.relatedId}
+                      onChange={e => setTransactionForm({...transactionForm, relatedId: e.target.value})}
+                    >
+                      <option value="">اختر المستلم...</option>
+                      {safes.filter(s => s.id !== transactionForm.safeId).map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase">نوع الحركة</label>
+                    <select 
+                      className="w-full h-12 px-4 bg-slate-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
+                      value={transactionForm.type}
+                      onChange={e => setTransactionForm({...transactionForm, type: e.target.value as any})}
+                    >
+                      <option value="سحب">سحب (مصروف)</option>
+                      <option value="إيداع">إيداع (وارد)</option>
+                      <option value="تحويل">تحويل بين العهد</option>
+                      <option value="قرض شخصي">قرض شخصي (للخزنة)</option>
+                      <option value="سداد قرض">سداد قرض شخصي</option>
+                      <option value="مبيعات">مبيعات</option>
+                      <option value="مشتريات">مشتريات</option>
+                      <option value="رواتب">رواتب</option>
+                      <option value="مصروفات">مصروفات إدارية</option>
+                      <option value="أخرى">أخرى</option>
+                    </select>
+                  </div>
+                )}
               </div>
+              {transactionForm.type === 'تحويل' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase">تغيير نوع الحركة؟</label>
+                  <Button variant="ghost" className="w-full h-10 text-xs font-bold" onClick={() => setTransactionForm({...transactionForm, type: 'سحب'})}>
+                    إلغاء التحويل واختيار نوع آخر
+                  </Button>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase">المبلغ</label>
@@ -6070,7 +6874,73 @@ function SafeModule({ safes, safeTransactions, profile }: {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase">التصنيف</label>
-                <Input value={transactionForm.category || ''} onChange={e => setTransactionForm({...transactionForm, category: e.target.value})} placeholder="مثال: إيجار، عهدة مصنع" className="h-12 rounded-xl font-bold" />
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {expenseCategories.map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        const isIncome = cat.includes('مبيعات') || cat.includes('كسر');
+                        setTransactionForm({
+                          ...transactionForm, 
+                          category: cat, 
+                          description: transactionForm.description || cat, 
+                          type: isIncome ? 'إيداع' : 'مصروفات'
+                        });
+                      }}
+                      className={`text-[8px] font-black px-2 py-1 rounded-lg transition-all ${
+                        transactionForm.category === cat ? 'bg-primary text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input value={transactionForm.category || ''} onChange={e => setTransactionForm({...transactionForm, category: e.target.value})} placeholder="تصنيف مخصص..." className="h-12 rounded-xl font-bold" />
+                  <select 
+                    className="h-12 px-4 bg-slate-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
+                    value={transactionForm.costCenterId}
+                    onChange={e => setTransactionForm({...transactionForm, costCenterId: e.target.value})}
+                  >
+                    <option value="">مركز التكلفة (اختياري)</option>
+                    {costCenters.map(cc => <option key={cc.id} value={cc.id}>{cc.name}</option>)}
+                  </select>
+                </div>
+                <div className="mt-4">
+                  <select 
+                    className="w-full h-12 px-4 bg-orange-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-orange-200"
+                    value={transactionForm.productionJobId}
+                    onChange={e => setTransactionForm({...transactionForm, productionJobId: e.target.value})}
+                  >
+                    <option value="">ربط بأمر إنتاج مباشر (تكلفة Job)</option>
+                    {productionJobs.filter(j => j.status !== 'تم التسليم').map(job => (
+                      <option key={job.id} value={job.id}>أمر {job.orderNo} | {job.productName} ({job.clientName})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <select 
+                    className="w-full h-12 px-4 bg-blue-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-blue-200"
+                    value={transactionForm.driverId}
+                    onChange={e => setTransactionForm({...transactionForm, driverId: e.target.value})}
+                  >
+                    <option value="">ربط بالسائق...</option>
+                    {employees.filter(e => e.position === 'سائق').map(driver => (
+                      <option key={driver.id} value={driver.id}>{driver.name}</option>
+                    ))}
+                  </select>
+                  <select 
+                    className="w-full h-12 px-4 bg-green-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-green-200"
+                    value={transactionForm.manifestId}
+                    onChange={e => setTransactionForm({...transactionForm, manifestId: e.target.value})}
+                  >
+                    <option value="">ربط ببيان تحميل...</option>
+                    {loadingManifests.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 50).map(manifest => (
+                      <option key={manifest.id} value={manifest.id}>{manifest.date} | {manifest.driverName} ({manifest.clientName})</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase">الوصف / البيان</label>
@@ -6092,7 +6962,13 @@ function SafeModule({ safes, safeTransactions, profile }: {
   );
 }
 
-function Purchases({ items, suppliers, purchases }: { items: Item[], suppliers: Supplier[], purchases: Purchase[] }) {
+function Purchases({ items, suppliers, purchases, safes, profile }: { 
+  items: Item[], 
+  suppliers: Supplier[], 
+  purchases: Purchase[],
+  safes: Safe[],
+  profile: UserProfile | null
+}) {
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
@@ -6101,6 +6977,7 @@ function Purchases({ items, suppliers, purchases }: { items: Item[], suppliers: 
     selectedItems: [{ itemId: '', quantity: 0, unitPrice: 0 }],
     paidAmount: 0,
     paymentStatus: 'نقدي' as const,
+    safeId: '', // Linked safe
     notes: ''
   });
 
@@ -6157,13 +7034,39 @@ function Purchases({ items, suppliers, purchases }: { items: Item[], suppliers: 
 
   const handleAdd = async () => {
     if (!formData.supplierId || formData.selectedItems.some(i => !i.itemId || i.quantity <= 0)) return;
+    if (formData.paidAmount > 0 && !formData.safeId) {
+      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
+      return;
+    }
     
     const invoiceTotal = formData.selectedItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     const date = new Date().toISOString();
     
     try {
       const batch = writeBatch(db);
+      const supplier = suppliers.find(s => s.id === formData.supplierId);
       
+      let safeTransactionId = '';
+      if (formData.paidAmount > 0 && formData.safeId) {
+        const txRef = doc(collection(db, 'safeTransactions'));
+        safeTransactionId = txRef.id;
+        
+        batch.set(txRef, {
+          safeId: formData.safeId,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          type: 'مشتريات',
+          amount: Number(formData.paidAmount),
+          description: `دفعة مشتريات للمورد: ${supplier?.name}`,
+          category: 'خامات/مشتريات',
+          createdBy: profile?.name || 'مستخدم'
+        });
+
+        // Update safe balance
+        batch.update(doc(db, 'safes', formData.safeId), {
+          balance: increment(-Number(formData.paidAmount))
+        });
+      }
+
       for (const selectedItem of formData.selectedItems) {
         const item = items.find(i => i.id === selectedItem.itemId);
         const itemTotal = selectedItem.quantity * selectedItem.unitPrice;
@@ -6176,11 +7079,13 @@ function Purchases({ items, suppliers, purchases }: { items: Item[], suppliers: 
           quantity: selectedItem.quantity,
           unitPrice: selectedItem.unitPrice,
           total: itemTotal,
-          paidAmount: 0, // Individual items don't track paid amount in this logical grouping
+          paidAmount: formData.paidAmount > 0 ? (formData.paidAmount * (itemTotal / invoiceTotal)) : 0, 
           paymentStatus: formData.paymentStatus,
           notes: formData.notes,
           date,
-          unit: item?.unit || ''
+          unit: item?.unit || '',
+          safeId: formData.safeId || null,
+          safeTransactionId: safeTransactionId || null
         });
 
         // Update Item Stock
@@ -6215,6 +7120,7 @@ function Purchases({ items, suppliers, purchases }: { items: Item[], suppliers: 
         selectedItems: [{ itemId: '', quantity: 0, unitPrice: 0 }],
         paidAmount: 0,
         paymentStatus: 'نقدي',
+        safeId: '',
         notes: ''
       });
     } catch (err) {
@@ -6226,8 +7132,7 @@ function Purchases({ items, suppliers, purchases }: { items: Item[], suppliers: 
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
         <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">المشتريات</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">إدارة فواتير الشراء وتوريدات الخامات</p>
+          <p className="text-slate-500 font-bold">تسجيل ومتابعة فواتير شراء الخامات وربطها بالخزنة</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button onClick={handleExportExcel} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl border-slate-200 hover:bg-slate-50 font-bold">
@@ -6238,8 +7143,8 @@ function Purchases({ items, suppliers, purchases }: { items: Item[], suppliers: 
             <Printer size={18} className="ml-2" />
             طباعة
           </Button>
-          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8 text-sm md:text-base">
-            <Plus size={18} className="ml-2" />
+          <Button onClick={() => setShowAdd(true)} className="btn-primary h-12 px-8 rounded-2xl font-black gap-2 shadow-xl shadow-primary/20">
+            <Plus size={20} />
             فاتورة شراء جديدة
           </Button>
         </div>
@@ -6453,6 +7358,20 @@ function Purchases({ items, suppliers, purchases }: { items: Item[], suppliers: 
                   </select>
                 </div>
               </div>
+
+              {formData.paidAmount > 0 && (
+                <div className="space-y-2 animate-in slide-in-from-top duration-300">
+                  <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
+                  <select 
+                    className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
+                    value={formData.safeId}
+                    onChange={e => setFormData({...formData, safeId: e.target.value})}
+                  >
+                    <option value="">اختر الخزنة...</option>
+                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                  </select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">ملاحظات</label>
@@ -6806,6 +7725,8 @@ function Suppliers({
   purchases, 
   items, 
   supplierPayments,
+  safes,
+  profile,
   setEditingSupplier,
   setShowDeleteConfirm
 }: { 
@@ -6813,6 +7734,8 @@ function Suppliers({
   purchases: Purchase[], 
   items: Item[], 
   supplierPayments: SupplierPayment[],
+  safes: Safe[],
+  profile: any,
   setEditingSupplier: (s: Supplier) => void,
   setShowDeleteConfirm: (info: { collection: string, id: string }) => void
 }) {
@@ -6825,27 +7748,62 @@ function Suppliers({
     amount: 0,
     paymentMethod: 'نقدي' as const,
     referenceNumber: '',
+    safeId: '',
     notes: ''
   });
 
   const handleAddPayment = async () => {
     if (!paymentSupplierId || paymentData.amount <= 0) return;
+    if (paymentData.amount > 0 && !paymentData.safeId) {
+      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
+      return;
+    }
     
     const supplier = suppliers.find(s => s.id === paymentSupplierId);
     if (!supplier) return;
 
     try {
+      const batch = writeBatch(db);
+      
       // 1. Add payment record
-      await addDoc(collection(db, 'supplierPayments'), {
+      const paymentRef = doc(collection(db, 'supplierPayments'));
+      batch.set(paymentRef, {
         supplierId: paymentSupplierId,
-        ...paymentData
+        date: paymentData.date,
+        amount: paymentData.amount,
+        paymentMethod: paymentData.paymentMethod,
+        referenceNumber: paymentData.referenceNumber,
+        notes: paymentData.notes,
+        safeId: paymentData.safeId || null
       });
 
-      // 2. Update supplier balance
-      await updateDoc(doc(db, 'suppliers', paymentSupplierId), {
-        totalPayments: supplier.totalPayments + paymentData.amount,
-        balance: supplier.balance - paymentData.amount
+      // 2. Create safe transaction
+      if (paymentData.safeId) {
+        const txRef = doc(collection(db, 'safeTransactions'));
+        batch.set(txRef, {
+          safeId: paymentData.safeId,
+          date: paymentData.date,
+          type: 'مصروفات', // Or create a specific type for supplier payments
+          amount: paymentData.amount,
+          description: `سداد دفعة للمورد: ${supplier.name} ${paymentData.notes ? `- ${paymentData.notes}` : ''}`,
+          category: 'سداد موردين',
+          relatedId: paymentRef.id,
+          createdBy: profile?.name || 'مستخدم'
+        });
+
+        // 3. Update safe balance
+        batch.update(doc(db, 'safes', paymentData.safeId), {
+          balance: increment(-paymentData.amount)
+        });
+      }
+
+      // 4. Update supplier balance
+      batch.update(doc(db, 'suppliers', paymentSupplierId), {
+        totalPayments: increment(paymentData.amount),
+        balance: increment(-paymentData.amount)
       });
+
+      await batch.commit();
 
       setShowPaymentModal(false);
       setPaymentSupplierId(null);
@@ -6854,6 +7812,7 @@ function Suppliers({
         amount: 0,
         paymentMethod: 'نقدي',
         referenceNumber: '',
+        safeId: '',
         notes: ''
       });
     } catch (err) {
@@ -6883,7 +7842,43 @@ function Suppliers({
         </div>
       </div>
       
-      <Card className="dribbble-card overflow-hidden border-none">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+              <ShoppingBag size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">إجمالي المشتريات</p>
+              <p className="text-2xl font-black text-slate-900">{suppliers.reduce((acc, s) => acc + (s.totalPurchases || 0), 0).toLocaleString()} ج.م</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+              <CreditCard size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">إجمالي المدفوعات</p>
+              <p className="text-2xl font-black text-emerald-600">{suppliers.reduce((acc, s) => acc + (s.totalPayments || 0), 0).toLocaleString()} ج.م</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md border-r-4 border-r-orange-500">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600">
+              <Scale size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-orange-600">إجمالي الديون (مطلوب سداده)</p>
+              <p className="text-2xl font-black text-orange-600">{suppliers.reduce((acc, s) => acc + (s.balance || 0), 0).toLocaleString()} ج.م</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <Card className="dribbble-card overflow-hidden border-none text-right" dir="rtl">
         <Table>
           <TableHeader className="bg-slate-50/50">
             <TableRow className="hover:bg-transparent border-slate-100">
@@ -7057,6 +8052,17 @@ function Suppliers({
                   <Input className="rounded-xl h-11" value={paymentData.referenceNumber} onChange={e => setPaymentData({...paymentData, referenceNumber: e.target.value})} />
                 </div>
               )}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
+                <select 
+                  className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
+                  value={paymentData.safeId}
+                  onChange={e => setPaymentData({...paymentData, safeId: e.target.value})}
+                >
+                  <option value="">اختر الخزنة...</option>
+                  {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                </select>
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">ملاحظات</label>
                 <Input className="rounded-xl h-11" value={paymentData.notes} onChange={e => setPaymentData({...paymentData, notes: e.target.value})} />
@@ -8454,25 +9460,62 @@ function ReportsView({
   );
 }
 
-function BladeSharpeningView({ records }: { records: BladeSharpening[] }) {
+function BladeSharpeningView({ records, safes, profile }: { records: BladeSharpening[], safes: Safe[], profile: UserProfile | null }) {
   const [showAdd, setShowAdd] = useState(false);
   const [formData, setFormData] = useState({ 
     bladeName: '', 
     quantity: 1, 
     cost: 0, 
     notes: '',
-    date: format(new Date(), 'yyyy-MM-dd')
+    date: format(new Date(), 'yyyy-MM-dd'),
+    safeId: ''
   });
 
   const handleAdd = async () => {
     if (!formData.bladeName || formData.quantity <= 0) return;
+    if (formData.cost > 0 && !formData.safeId) {
+      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
+      return;
+    }
+
     try {
-      await addDoc(collection(db, 'bladeSharpening'), {
-        ...formData,
-        date: new Date(formData.date).toISOString()
+      const batch = writeBatch(db);
+      const recordRef = doc(collection(db, 'bladeSharpening'));
+      let safeTransactionId = '';
+
+      if (formData.cost > 0 && formData.safeId) {
+        const txRef = doc(collection(db, 'safeTransactions'));
+        safeTransactionId = txRef.id;
+        
+        batch.set(txRef, {
+          safeId: formData.safeId,
+          date: formData.date,
+          type: 'مصروفات',
+          amount: Number(formData.cost),
+          description: `سن صواني: ${formData.bladeName} (عدد ${formData.quantity})`,
+          category: 'صيانة ومصاريف سن',
+          createdBy: profile?.name || 'مستخدم',
+          relatedId: recordRef.id
+        });
+
+        batch.update(doc(db, 'safes', formData.safeId), {
+          balance: increment(-Number(formData.cost))
+        });
+      }
+
+      batch.set(recordRef, {
+        bladeName: formData.bladeName,
+        quantity: formData.quantity,
+        cost: formData.cost,
+        notes: formData.notes,
+        date: new Date(formData.date).toISOString(),
+        safeId: formData.safeId || null,
+        safeTransactionId: safeTransactionId || null
       });
+
+      await batch.commit();
       setShowAdd(false);
-      setFormData({ bladeName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd') });
+      setFormData({ bladeName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
     } catch (err) { handleFirestoreError(err, 'write', 'bladeSharpening'); }
   };
 
@@ -8544,6 +9587,19 @@ function BladeSharpeningView({ records }: { records: BladeSharpening[] }) {
                   <Input type="number" className="rounded-xl h-11" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} />
                 </div>
               </div>
+              {formData.cost > 0 && (
+                <div className="space-y-2 animate-in slide-in-from-top duration-300">
+                  <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
+                  <select 
+                    className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
+                    value={formData.safeId}
+                    onChange={e => setFormData({...formData, safeId: e.target.value})}
+                  >
+                    <option value="">اختر الخزنة...</option>
+                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                  </select>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">ملاحظات</label>
                 <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="أي ملاحظات إضافية..." />
@@ -8560,25 +9616,62 @@ function BladeSharpeningView({ records }: { records: BladeSharpening[] }) {
   );
 }
 
-function PlateSharpeningView({ records }: { records: PlateSharpening[] }) {
+function PlateSharpeningView({ records, safes, profile }: { records: PlateSharpening[], safes: Safe[], profile: UserProfile | null }) {
   const [showAdd, setShowAdd] = useState(false);
   const [formData, setFormData] = useState({ 
     plateName: '', 
     quantity: 1, 
     cost: 0, 
     notes: '',
-    date: format(new Date(), 'yyyy-MM-dd')
+    date: format(new Date(), 'yyyy-MM-dd'),
+    safeId: ''
   });
 
   const handleAdd = async () => {
     if (!formData.plateName || formData.quantity <= 0) return;
+    if (formData.cost > 0 && !formData.safeId) {
+      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
+      return;
+    }
+
     try {
-      await addDoc(collection(db, 'plateSharpening'), {
-        ...formData,
-        date: new Date(formData.date).toISOString()
+      const batch = writeBatch(db);
+      const recordRef = doc(collection(db, 'plateSharpening'));
+      let safeTransactionId = '';
+
+      if (formData.cost > 0 && formData.safeId) {
+        const txRef = doc(collection(db, 'safeTransactions'));
+        safeTransactionId = txRef.id;
+        
+        batch.set(txRef, {
+          safeId: formData.safeId,
+          date: formData.date,
+          type: 'مصروفات',
+          amount: Number(formData.cost),
+          description: `سن صفايح: ${formData.plateName} (عدد ${formData.quantity})`,
+          category: 'صيانة ومصاريف سن',
+          createdBy: profile?.name || 'مستخدم',
+          relatedId: recordRef.id
+        });
+
+        batch.update(doc(db, 'safes', formData.safeId), {
+          balance: increment(-Number(formData.cost))
+        });
+      }
+
+      batch.set(recordRef, {
+        plateName: formData.plateName,
+        quantity: formData.quantity,
+        cost: formData.cost,
+        notes: formData.notes,
+        date: new Date(formData.date).toISOString(),
+        safeId: formData.safeId || null,
+        safeTransactionId: safeTransactionId || null
       });
+
+      await batch.commit();
       setShowAdd(false);
-      setFormData({ plateName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd') });
+      setFormData({ plateName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
     } catch (err) { handleFirestoreError(err, 'write', 'plateSharpening'); }
   };
 
@@ -8650,6 +9743,19 @@ function PlateSharpeningView({ records }: { records: PlateSharpening[] }) {
                   <Input type="number" className="rounded-xl h-11" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} />
                 </div>
               </div>
+              {formData.cost > 0 && (
+                <div className="space-y-2 animate-in slide-in-from-top duration-300">
+                  <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
+                  <select 
+                    className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
+                    value={formData.safeId}
+                    onChange={e => setFormData({...formData, safeId: e.target.value})}
+                  >
+                    <option value="">اختر الخزنة...</option>
+                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                  </select>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">ملاحظات</label>
                 <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="أي ملاحظات إضافية..." />
@@ -8666,25 +9772,62 @@ function PlateSharpeningView({ records }: { records: PlateSharpening[] }) {
   );
 }
 
-function MachineMaintenanceView({ records }: { records: MachineMaintenance[] }) {
+function MachineMaintenanceView({ records, safes, profile }: { records: MachineMaintenance[], safes: Safe[], profile: UserProfile | null }) {
   const [showAdd, setShowAdd] = useState(false);
   const [formData, setFormData] = useState({ 
     machineName: '', 
     maintenanceType: '', 
     cost: 0, 
     notes: '',
-    date: format(new Date(), 'yyyy-MM-dd')
+    date: format(new Date(), 'yyyy-MM-dd'),
+    safeId: ''
   });
 
   const handleAdd = async () => {
     if (!formData.machineName || !formData.maintenanceType) return;
+    if (formData.cost > 0 && !formData.safeId) {
+      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
+      return;
+    }
+
     try {
-      await addDoc(collection(db, 'machineMaintenance'), {
-        ...formData,
-        date: new Date(formData.date).toISOString()
+      const batch = writeBatch(db);
+      const recordRef = doc(collection(db, 'machineMaintenance'));
+      let safeTransactionId = '';
+
+      if (formData.cost > 0 && formData.safeId) {
+        const txRef = doc(collection(db, 'safeTransactions'));
+        safeTransactionId = txRef.id;
+        
+        batch.set(txRef, {
+          safeId: formData.safeId,
+          date: formData.date,
+          type: 'مصروفات',
+          amount: Number(formData.cost),
+          description: `صيانة ماكينة: ${formData.machineName} (${formData.maintenanceType})`,
+          category: 'صيانة ومصاريف سن',
+          createdBy: profile?.name || 'مستخدم',
+          relatedId: recordRef.id
+        });
+
+        batch.update(doc(db, 'safes', formData.safeId), {
+          balance: increment(-Number(formData.cost))
+        });
+      }
+
+      batch.set(recordRef, {
+        machineName: formData.machineName,
+        maintenanceType: formData.maintenanceType,
+        cost: formData.cost,
+        notes: formData.notes,
+        date: new Date(formData.date).toISOString(),
+        safeId: formData.safeId || null,
+        safeTransactionId: safeTransactionId || null
       });
+
+      await batch.commit();
       setShowAdd(false);
-      setFormData({ machineName: '', maintenanceType: '', cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd') });
+      setFormData({ machineName: '', maintenanceType: '', cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
     } catch (err) { handleFirestoreError(err, 'write', 'machineMaintenance'); }
   };
 
@@ -8754,6 +9897,19 @@ function MachineMaintenanceView({ records }: { records: MachineMaintenance[] }) 
                 <label className="text-sm font-bold text-slate-700">التكلفة</label>
                 <Input type="number" className="rounded-xl h-11" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} />
               </div>
+              {formData.cost > 0 && (
+                <div className="space-y-2 animate-in slide-in-from-top duration-300">
+                  <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
+                  <select 
+                    className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
+                    value={formData.safeId}
+                    onChange={e => setFormData({...formData, safeId: e.target.value})}
+                  >
+                    <option value="">اختر الخزنة...</option>
+                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                  </select>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">ملاحظات</label>
                 <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="تفاصيل إضافية..." />
