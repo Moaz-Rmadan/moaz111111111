@@ -834,6 +834,8 @@ function MainApp({
   const [lostSales, setLostSales] = useState<LostSale[]>([]);
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
   const [productRecipes, setProductRecipes] = useState<ProductRecipe[]>([]);
+  const [safes, setSafes] = useState<Safe[]>([]);
+  const [safeTransactions, setSafeTransactions] = useState<SafeTransaction[]>([]);
   const [hrMenuOpen, setHrMenuOpen] = useState(false);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
 
@@ -1281,6 +1283,20 @@ function MainApp({
       }, (err) => handleFirestoreError(err, 'list', 'productRecipes'));
     }
 
+    let unsubSafes = () => {};
+    if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
+      unsubSafes = onSnapshot(collection(db, 'safes'), (snap) => {
+        setSafes(snap.docs.map(d => ({ id: d.id, ...d.data() } as Safe)));
+      }, (err) => handleFirestoreError(err, 'list', 'safes'));
+    }
+
+    let unsubSafeTransactions = () => {};
+    if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
+      unsubSafeTransactions = onSnapshot(collection(db, 'safeTransactions'), (snap) => {
+        setSafeTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeTransaction)));
+      }, (err) => handleFirestoreError(err, 'list', 'safeTransactions'));
+    }
+
     return () => {
       unsubWarehouses();
       unsubUnits();
@@ -1312,6 +1328,8 @@ function MainApp({
       unsubLostSales();
       unsubSalesOrders();
       unsubProductRecipes();
+      unsubSafes();
+      unsubSafeTransactions();
     };
   }, [user, profile]);
 
@@ -1569,6 +1587,16 @@ function MainApp({
 
           <NavButton active={activeTab === 'purchases'} onClick={() => handleNavClick('purchases')} icon={<ShoppingCart size={20} />} label="المشتريات" permission="purchases" profile={profile} />
           
+          {(profile?.isAdmin || profile?.permissions?.finance) && (
+            <div className="space-y-1">
+               <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                <span>المودول المالي</span>
+                <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
+              </div>
+              <NavButton active={activeTab === 'safe'} onClick={() => handleNavClick('safe')} icon={<Building2 size={20} />} label="الخزنة والعهدة" permission="finance" profile={profile} />
+            </div>
+          )}
+
           {(profile?.isAdmin || profile?.permissions?.hr) && (
             <div className="space-y-1">
                <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
@@ -1732,6 +1760,7 @@ function MainApp({
           jobLabors={jobLabors}
           jobOtherCosts={jobOtherCosts}
         />}
+        {activeTab === 'safe' && <SafeModule safes={safes} safeTransactions={safeTransactions} profile={profile} />}
         {activeTab === 'inventory' && (
           <Inventory 
             items={items} 
@@ -2446,7 +2475,8 @@ function UserManagement() {
                            key === 'purchases' ? 'المشتريات' : 
                            key === 'hr' ? 'الأجور' : 
                            key === 'reports' ? 'التقارير' : 
-                           key === 'suppliers' ? 'الموردين' : 'الإعدادات'}
+                           key === 'suppliers' ? 'الموردين' : 
+                           key === 'finance' ? 'الخزنة' : 'الإعدادات'}
                         </Badge>
                       )
                     ))
@@ -2559,7 +2589,8 @@ function UserManagement() {
                          key === 'purchases' ? <ShoppingCart size={18} /> : 
                          key === 'hr' ? <Users size={18} /> : 
                          key === 'reports' ? <BarChart3 size={18} /> : 
-                         key === 'suppliers' ? <Truck size={18} /> : <Settings size={18} />}
+                         key === 'suppliers' ? <Truck size={18} /> : 
+                         key === 'finance' ? <Building2 size={18} /> : <Settings size={18} />}
                       </div>
                       <span className={`font-black text-xs ${val ? 'text-primary' : 'text-slate-600'}`}>
                         {key === 'dashboard' ? 'لوحة التحكم' : 
@@ -2569,7 +2600,8 @@ function UserManagement() {
                          key === 'purchases' ? 'المشتريات' : 
                          key === 'hr' ? 'الأجور' : 
                          key === 'reports' ? 'التقارير' : 
-                         key === 'suppliers' ? 'الموردين' : 'الإعدادات'}
+                         key === 'suppliers' ? 'الموردين' : 
+                         key === 'finance' ? 'الخزنة' : 'الإعدادات'}
                       </span>
                     </div>
                   ))}
@@ -3285,87 +3317,77 @@ function Inventory({
       </div>
 
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print:hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3 print:hidden">
           {filtered.map(item => (
-            <Card key={item.id} className="dribbble-card group overflow-hidden">
+            <Card key={item.id} className="dribbble-card group overflow-hidden border-slate-100">
               <CardContent className="p-0">
-                <div className="p-6 space-y-4">
+                <div className="p-3 space-y-2">
                   <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <h3 className="font-black text-xl text-slate-900 group-hover:text-primary transition-colors">{item.name}</h3>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 border-none">
+                    <div className="space-y-0.5 min-w-0">
+                      <h3 className="font-black text-sm text-slate-900 group-hover:text-primary transition-colors truncate" title={item.name}>{item.name}</h3>
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        <Badge variant="secondary" className="text-[7px] font-black uppercase tracking-tight bg-blue-50 text-blue-600 border-none px-1 py-0">
                           {warehouses.find(w => w.id === item.warehouseId)?.name}
                         </Badge>
-                        <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-600 border-none">
-                          {item.department || 'غير مصنف'}
-                        </Badge>
-                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest text-slate-400 border-slate-200">
-                          {item.unit}
-                        </Badge>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50" onClick={() => setEditingItem(item)}>
-                        <Edit2 size={14} />
+                    <div className="flex gap-0.5">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md text-slate-400 hover:text-primary hover:bg-blue-50" onClick={() => setEditingItem(item)}>
+                        <Edit2 size={10} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
-                        <Trash2 size={14} />
+                      <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
+                        <Trash2 size={10} />
                       </Button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">الرصيد الحالي</p>
-                      <p className={`text-lg font-black ${item.currentBalance <= item.safetyLimit ? 'text-red-500' : 'text-slate-900'}`}>
-                        {item.currentBalance} <span className="text-[10px] text-slate-400">{item.unit}</span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100/50">
+                      <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tight mb-0.5">الرصيد</p>
+                      <p className={`text-xs font-black ${item.currentBalance <= item.safetyLimit ? 'text-red-500' : 'text-slate-900'}`}>
+                        {item.currentBalance} <span className="text-[7px] text-slate-400 font-medium">{item.unit}</span>
                       </p>
                     </div>
-                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">متوسط السعر</p>
-                      <p className="text-lg font-black text-primary">
-                        {item.price.toLocaleString()} <span className="text-[10px] text-slate-400">ج.م</span>
+                    <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100/50">
+                      <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tight mb-0.5">السعر</p>
+                      <p className="text-xs font-black text-primary">
+                        {item.price.toLocaleString()}
                       </p>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100/50">
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">إجمالي القيمة المادية (م.ط)</p>
+                  <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-100/30">
                     <div className="flex items-baseline justify-between">
-                      <p className="text-xl font-black text-emerald-700">
+                      <p className="text-xs font-black text-emerald-700">
                         {(item.totalValue || (item.currentBalance * item.price)).toLocaleString()}
                       </p>
-                      <span className="text-[10px] font-bold text-emerald-600">جنيهاً مصرياً</span>
+                      <span className="text-[7px] font-bold text-emerald-600">ج.م</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex -space-x-2 rtl:space-x-reverse">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-blue-600" title="وارد">
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-50">
+                    <div className="flex -space-x-1 rtl:space-x-reverse">
+                      <div className="w-5 h-5 rounded-full bg-blue-50 border border-white flex items-center justify-center text-[7px] font-black text-blue-600" title="وارد">
                         {item.inward}
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-orange-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-orange-600" title="منصرف">
+                      <div className="w-5 h-5 rounded-full bg-orange-50 border border-white flex items-center justify-center text-[7px] font-black text-orange-600" title="منصرف">
                         {item.outward}
-                      </div>
-                      <div className="w-8 h-8 rounded-full bg-red-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-red-600" title="هالك">
-                        {item.wasted || 0}
                       </div>
                     </div>
                     <Button 
                       onClick={() => setSelectedItemCard(item)}
                       variant="ghost" 
-                      className="text-xs font-bold text-primary hover:bg-blue-50 rounded-xl h-9"
+                      className="text-[9px] font-black text-primary hover:bg-blue-50 rounded-md h-6 px-1.5"
                     >
-                      كارت الصنف
-                      <ArrowUpRight size={14} className="mr-1" />
+                      كارت
+                      <ArrowUpRight size={8} className="mr-0.5" />
                     </Button>
                   </div>
                 </div>
                 
                 {item.currentBalance <= item.safetyLimit && (
-                  <div className="bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest py-1.5 text-center">
-                    تنبيه: رصيد منخفض
+                  <div className="bg-red-500 text-white text-[7px] font-black uppercase tracking-widest py-0.5 text-center">
+                    رصيد منخفض
                   </div>
                 )}
               </CardContent>
@@ -5724,6 +5746,347 @@ function DeliveryReceipts({ receipts, companyInfo }: { receipts: DeliveryReceipt
           </div>
           <PrintDeliveryReceipt receipt={selectedReceipt} companyInfo={companyInfo} />
         </>
+      )}
+    </div>
+  );
+}
+
+function SafeModule({ safes, safeTransactions, profile }: { 
+  safes: Safe[], 
+  safeTransactions: SafeTransaction[], 
+  profile: UserProfile | null 
+}) {
+  const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [showAddSafe, setShowAddSafe] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [safeFilter, setSafeFilter] = useState('all');
+  
+  const [safeForm, setSafeForm] = useState({ name: '', initialBalance: 0 });
+  const [transactionForm, setTransactionForm] = useState({
+    safeId: '',
+    type: 'سحب' as SafeTransaction['type'],
+    amount: 0,
+    description: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    category: ''
+  });
+
+  const filteredTransactions = safeTransactions.filter(t => {
+    const matchesSafe = safeFilter === 'all' || t.safeId === safeFilter;
+    const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (t.category && t.category.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesSafe && (matchesSearch || !searchTerm);
+  }).sort((a, b) => b.date.localeCompare(a.date));
+
+  const totalIn = filteredTransactions.filter(t => t.type === 'إيداع' || t.type === 'مبيعات').reduce((sum, t) => sum + t.amount, 0);
+  const totalOut = filteredTransactions.filter(t => t.type !== 'إيداع' && t.type !== 'مبيعات' && t.type !== 'تحويل').reduce((sum, t) => sum + t.amount, 0);
+
+  const handleAddSafe = async () => {
+    if (!safeForm.name) return;
+    try {
+      await addDoc(collection(db, 'safes'), {
+        name: safeForm.name,
+        balance: Number(safeForm.initialBalance) || 0
+      });
+      setShowAddSafe(false);
+      setSafeForm({ name: '', initialBalance: 0 });
+    } catch (err) { handleFirestoreError(err, 'write', 'safes'); }
+  };
+
+  const handleAddTransaction = async () => {
+    if (!transactionForm.safeId || transactionForm.amount <= 0) return;
+    
+    try {
+      const batch = writeBatch(db);
+      const safeTransactionsRef = collection(db, 'safeTransactions');
+      const safeRef = doc(db, 'safes', transactionForm.safeId);
+      
+      const multiplier = (transactionForm.type === 'إيداع' || transactionForm.type === 'مبيعات') ? 1 : -1;
+      const amountChange = transactionForm.amount * multiplier;
+
+      const newTransaction = {
+        ...transactionForm,
+        amount: Number(transactionForm.amount),
+        createdBy: profile?.name || 'مستخدم'
+      };
+
+      batch.set(doc(safeTransactionsRef), newTransaction);
+      batch.update(safeRef, {
+        balance: increment(amountChange)
+      });
+
+      await batch.commit();
+      setShowAddTransaction(false);
+      setTransactionForm({
+        safeId: '',
+        type: 'سحب',
+        amount: 0,
+        description: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        category: ''
+      });
+    } catch (err) { handleFirestoreError(err, 'write', 'safeTransactions'); }
+  };
+
+  const handleDeleteTransaction = async (tx: SafeTransaction) => {
+    if (!window.confirm('هل أنت متأكد من حذف هذه الحركة؟ سيتم تعديل رصيد الخزنة تلقائياً.')) return;
+    try {
+      const batch = writeBatch(db);
+      const multiplier = (tx.type === 'إيداع' || tx.type === 'مبيعات') ? -1 : 1;
+      const amountChange = tx.amount * multiplier;
+
+      batch.delete(doc(db, 'safeTransactions', tx.id));
+      batch.update(doc(db, 'safes', tx.safeId), {
+        balance: increment(amountChange)
+      });
+
+      await batch.commit();
+    } catch (err) { handleFirestoreError(err, 'delete', 'safeTransactions'); }
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">إدارة الخزنة والعهدة</h2>
+          <p className="text-slate-500 mt-2 font-bold text-lg">تتبع التدفقات النقدية والسيولة المالية للمصنع</p>
+        </div>
+        <div className="flex gap-3">
+          <Button onClick={() => setShowAddSafe(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black gap-2 border-2">
+            <Building2 size={20} />
+            إضافة خزنة/عهدة
+          </Button>
+          <Button onClick={() => setShowAddTransaction(true)} className="btn-primary h-12 px-8 rounded-2xl font-black gap-2 shadow-xl shadow-primary/20">
+            <Plus size={20} />
+            حركة جديدة
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {safes.map(safe => (
+          <Card key={safe.id} className="dribbble-card border-none shadow-xl shadow-slate-200/50 group overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
+            <CardContent className="pt-8 relative z-10">
+              <div className="flex flex-col gap-2">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                  <Building2 size={24} />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{safe.name}</p>
+                <h3 className="text-2xl font-black text-slate-900">{safe.balance.toLocaleString()} <small className="text-xs">ج.م</small></h3>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {safes.length === 0 && (
+          <div className="col-span-full py-12 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
+            <ShieldAlert size={48} className="mb-4 opacity-20" />
+            <p className="font-black text-lg">لم يتم تعريف أي خزن بعد</p>
+            <Button variant="link" onClick={() => setShowAddSafe(true)} className="font-bold">أضف أول خزنة الآن</Button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <Card className="lg:col-span-1 dribbble-card border-none shadow-xl shadow-slate-200/50">
+          <CardHeader>
+            <CardTitle className="font-black text-xl">ملخص الفترة</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
+              <div>
+                <p className="text-[10px] font-black text-emerald-600 uppercase">إجمالي الإيداعات</p>
+                <p className="text-xl font-black text-emerald-700">+{totalIn.toLocaleString()}</p>
+              </div>
+              <ArrowUpRight className="text-emerald-500" />
+            </div>
+            <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex justify-between items-center">
+              <div>
+                <p className="text-[10px] font-black text-red-600 uppercase">إجمالي السحوبات</p>
+                <p className="text-xl font-black text-red-700">-{totalOut.toLocaleString()}</p>
+              </div>
+              <ArrowUpRight className="text-red-500 rotate-90" />
+            </div>
+            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center">
+              <div>
+                <p className="text-[10px] font-black text-blue-600 uppercase">صافي التدفق</p>
+                <p className="text-xl font-black text-blue-700">{(totalIn - totalOut).toLocaleString()}</p>
+              </div>
+              <BarChart3 className="text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2 dribbble-card border-none shadow-xl shadow-slate-200/50 overflow-hidden">
+          <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle className="font-black text-xl">سجل الحركات</CardTitle>
+            <div className="flex gap-2">
+              <select 
+                value={safeFilter} 
+                onChange={e => setSafeFilter(e.target.value)}
+                className="h-10 px-3 bg-white border border-slate-200 rounded-xl font-bold text-sm focus:ring-1 ring-primary"
+              >
+                <option value="all">كل الخزن</option>
+                {safes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <Input 
+                placeholder="بحث في الوصف..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="h-10 w-48 bg-white"
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0 max-h-[600px] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50">
+                  <TableHead className="font-black text-right">التاريخ</TableHead>
+                  <TableHead className="font-black text-right">الخزنة</TableHead>
+                  <TableHead className="font-black text-right">نوع الحركة</TableHead>
+                  <TableHead className="font-black text-right">المبلغ</TableHead>
+                  <TableHead className="font-black text-right">الوصف</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.map(tx => (
+                  <TableRow key={tx.id} className="group hover:bg-slate-50 transition-colors">
+                    <TableCell className="font-bold text-slate-500">{tx.date}</TableCell>
+                    <TableCell className="font-black text-slate-700">{safes.find(s => s.id === tx.safeId)?.name}</TableCell>
+                    <TableCell>
+                      <Badge className={`font-black tracking-tighter ${
+                        (tx.type === 'إيداع' || tx.type === 'مبيعات') ? 'bg-emerald-100 text-emerald-700' : 
+                        (tx.type === 'تحويل') ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {tx.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className={`font-black text-lg ${
+                      (tx.type === 'إيداع' || tx.type === 'مبيعات') ? 'text-emerald-600' : 'text-red-600'
+                    }`}>
+                      {(tx.type === 'إيداع' || tx.type === 'مبيعات' ? '+' : '-')}{tx.amount.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-700">{tx.description}</span>
+                        {tx.category && <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{tx.category}</span>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDeleteTransaction(tx)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {filteredTransactions.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-20 text-slate-400 font-bold">لا توجد حركات مسجلة</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Add Safe Modal */}
+      {showAddSafe && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <Card className="dribbble-card w-full max-w-md border-none shadow-2xl animate-in fade-in zoom-in duration-300">
+            <CardHeader>
+              <CardTitle className="text-2xl font-black">إضافة خزنة أو عهدة جديدة</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase">اسم الخزنة</label>
+                <Input value={safeForm.name} onChange={e => setSafeForm({...safeForm, name: e.target.value})} placeholder="مثال: الخزنة الرئيسية، عهدة المحاسب" className="h-12 rounded-xl font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase">الرصيد الافتتاحي</label>
+                <Input type="number" value={safeForm.initialBalance} onChange={e => setSafeForm({...safeForm, initialBalance: Number(e.target.value)})} className="h-12 rounded-xl font-bold" />
+              </div>
+            </CardContent>
+            <CardFooter className="flex gap-3">
+              <Button onClick={() => setShowAddSafe(false)} variant="ghost" className="flex-1 h-12 font-black rounded-xl">إلغاء</Button>
+              <Button onClick={handleAddSafe} className="btn-primary flex-1 h-12 font-black rounded-xl">حفظ</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Transaction Modal */}
+      {showAddTransaction && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <Card className="dribbble-card w-full max-w-lg border-none shadow-2xl animate-in fade-in zoom-in duration-300">
+            <CardHeader>
+              <CardTitle className="text-2xl font-black">تسجيل حركة نقدية</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase">اختر الخزنة</label>
+                  <select 
+                    className="w-full h-12 px-4 bg-slate-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
+                    value={transactionForm.safeId}
+                    onChange={e => setTransactionForm({...transactionForm, safeId: e.target.value})}
+                  >
+                    <option value="">اختر...</option>
+                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase">نوع الحركة</label>
+                  <select 
+                    className="w-full h-12 px-4 bg-slate-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
+                    value={transactionForm.type}
+                    onChange={e => setTransactionForm({...transactionForm, type: e.target.value as any})}
+                  >
+                    <option value="سحب">سحب (مصروف)</option>
+                    <option value="إيداع">إيداع (وارد)</option>
+                    <option value="مبيعات">مبيعات</option>
+                    <option value="مشتريات">مشتريات</option>
+                    <option value="رواتب">رواتب</option>
+                    <option value="مصروفات">مصروفات إدارية</option>
+                    <option value="أخرى">أخرى</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase">المبلغ</label>
+                  <Input type="number" value={transactionForm.amount} onChange={e => setTransactionForm({...transactionForm, amount: Number(e.target.value)})} className="h-12 rounded-xl font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase">التاريخ</label>
+                  <Input type="date" value={transactionForm.date} onChange={e => setTransactionForm({...transactionForm, date: e.target.value})} className="h-12 rounded-xl font-bold" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase">التصنيف</label>
+                <Input value={transactionForm.category || ''} onChange={e => setTransactionForm({...transactionForm, category: e.target.value})} placeholder="مثال: إيجار، عهدة مصنع" className="h-12 rounded-xl font-bold" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase">الوصف / البيان</label>
+                <textarea 
+                  className="w-full h-24 p-4 bg-slate-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
+                  value={transactionForm.description}
+                  onChange={e => setTransactionForm({...transactionForm, description: e.target.value})}
+                ></textarea>
+              </div>
+            </CardContent>
+            <CardFooter className="flex gap-3">
+              <Button onClick={() => setShowAddTransaction(false)} variant="ghost" className="flex-1 h-12 font-black rounded-xl">إلغاء</Button>
+              <Button onClick={handleAddTransaction} className="btn-primary flex-1 h-12 font-black rounded-xl">تأكيد الحركة</Button>
+            </CardFooter>
+          </Card>
+        </div>
       )}
     </div>
   );
@@ -12042,6 +12405,16 @@ function ProductRecipesView({ recipes, costCenters, items: stockItems }: { recip
   const handleUpdateItem = (deptIdx: number, itemIdx: number, updates: Partial<RecipeItem>) => {
     const newDepts = [...(recipeForm.departments || [])];
     const item = { ...newDepts[deptIdx].items[itemIdx], ...updates };
+    
+    // Auto-fill from stockItems if name matches exactly and price/unit not provided in updates
+    if (updates.name && !updates.unit && !updates.unitPrice) {
+      const stockItem = stockItems.find(si => si.name === updates.name);
+      if (stockItem) {
+        item.unit = stockItem.unit;
+        item.unitPrice = stockItem.price;
+      }
+    }
+
     item.total = item.quantity * item.unitPrice;
     newDepts[deptIdx].items[itemIdx] = item;
     

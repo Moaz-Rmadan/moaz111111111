@@ -572,6 +572,32 @@
         }
       },
       "required": ["name", "totalEstimatedCost"]
+    },
+    "Safe": {
+      "title": "Safe",
+      "description": "A financial safe or treasury account",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "balance": { "type": "number" }
+      },
+      "required": ["name"]
+    },
+    "SafeTransaction": {
+      "title": "SafeTransaction",
+      "description": "A transaction in the safe",
+      "type": "object",
+      "properties": {
+        "safeId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["إيداع", "سحب", "تحويل", "مصروفات", "مبيعات", "مشتريات", "رواتب", "أخرى"] },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "relatedId": { "type": "string" },
+        "category": { "type": "string" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["safeId", "date", "type", "amount"]
     }
   },
   "firestore": {
@@ -608,6 +634,8 @@
     "/boms/{id}": { "schema": "BOM", "description": "Bill of Materials definitions" },
     "/workCenters/{id}": { "schema": "WorkCenter", "description": "Factory work centers" },
     "/manufacturingOperations/{id}": { "schema": "ManufacturingOperation", "description": "Logged production operations" },
-    "/productRecipes/{id}": { "schema": "ProductRecipe", "description": "Standard product cost models" }
+    "/productRecipes/{id}": { "schema": "ProductRecipe", "description": "Standard product cost models" },
+    "/safes/{id}": { "schema": "Safe", "description": "Financial safes/treasury accounts" },
+    "/safeTransactions/{id}": { "schema": "SafeTransaction", "description": "Transactions in the safes" }
   }
 }

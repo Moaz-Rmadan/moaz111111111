@@ -450,7 +450,26 @@ export interface UserProfile {
     reports: boolean;
     suppliers: boolean;
     settings: boolean;
+    finance: boolean;
   };
+}
+
+export interface Safe {
+  id: string;
+  name: string;
+  balance: number;
+}
+
+export interface SafeTransaction {
+  id: string;
+  safeId: string;
+  date: string;
+  type: 'إيداع' | 'سحب' | 'تحويل' | 'مصروفات' | 'مبيعات' | 'مشتريات' | 'رواتب' | 'أخرى';
+  amount: number;
+  description: string;
+  relatedId?: string;
+  category?: string;
+  createdBy: string;
 }
 
 export interface CompanySettings {
