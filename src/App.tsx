@@ -8,6 +8,11 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { loginWithGoogle, logout } from './firebase';
 import React, { useState, useEffect } from 'react';
 import { 
+  Activity,
+  Zap,
+  ArrowDownLeft,
+  ArrowLeft,
+  Check,
   LayoutDashboard, 
   Package, 
   PieChart as PieChartIcon, 
@@ -2772,105 +2777,212 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
   const movements = selectedId ? getItemMovements(selectedId) : [];
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
-        <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">كارت الصنف</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">عرض تفصيلي لحركة الصنف في المخزن</p>
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest px-3 py-1 bg-primary/10 rounded-full w-fit">
+            <Activity size={14} />
+            حركة الأصناف التفصيلية
+          </div>
+          <h2 className="text-4xl lg:text-6xl font-black tracking-tighter text-slate-900">كارت الصنف</h2>
+          <p className="text-slate-500 font-bold text-lg max-w-lg mt-2">عرض دفتر أستاذ المخزون لكل صنف للرقابة وتتبع الحركات</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => window.print()} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl border-slate-200 hover:bg-slate-50 font-bold text-sm md:text-base">
-            <Printer size={18} className="ml-2" />
-            طباعة الكارت
+          <Button onClick={() => window.print()} className="h-14 px-8 rounded-2xl font-black text-slate-700 bg-white hover:bg-slate-50 shadow-xl shadow-slate-200/50 border border-slate-100 transition-all hover:-translate-y-1">
+            <Printer size={20} className="ml-2" />
+            طباعة كارت الصنف
           </Button>
         </div>
       </div>
 
-      <Card className="dribbble-card border-none p-6 print:hidden">
-        <div className="flex flex-col md:flex-row gap-6 items-end">
-          <div className="flex-1 space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mr-1">اختر الصنف للمعاينة</label>
+      <Card className="dribbble-card border-none p-8 bg-white shadow-xl shadow-slate-200/50 print:hidden relative overflow-hidden">
+        <div className="absolute left-0 top-0 w-32 h-32 bg-primary/5 rounded-br-full pointer-events-none" />
+        <div className="flex flex-col md:flex-row gap-6 items-end relative z-10">
+          <div className="flex-1 space-y-3">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+               <Search size={14} className="text-primary" />
+               البحث عن صنف لعرض كارت الحركة
+            </label>
             <div className="relative">
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <select 
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
-                className="w-full pr-12 h-12 rounded-2xl border-slate-200 bg-slate-50 focus:ring-primary font-bold text-slate-700 appearance-none cursor-pointer"
+                className="w-full pl-6 pr-12 h-16 rounded-2xl border-2 border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-primary/20 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 font-bold text-lg text-slate-700 appearance-none cursor-pointer transition-all outline-none"
               >
-                <option value="">--- اختر صنفاً من القائمة ---</option>
+                <option value="">--- اضغط هنا للاختيار من القائمة ---</option>
                 {items.sort((a,b) => a.name.localeCompare(b.name)).map(item => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center pointer-events-none">
+                 <Package size={16} className="text-slate-400" />
+              </div>
             </div>
           </div>
         </div>
       </Card>
 
       {selectedItem ? (
-        <div className="space-y-8">
-          <div className="hidden print:block text-center mb-10">
-            <h1 className="text-3xl font-black text-slate-900">كارت صنف: {selectedItem.name}</h1>
-            <p className="text-slate-500 font-bold mt-2">تاريخ التقرير: {format(new Date(), 'dd/MM/yyyy')}</p>
-            <div className="mt-4 w-24 h-1 bg-primary mx-auto rounded-full" />
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="hidden print:block text-center mb-12 border-b-2 border-slate-100 pb-8 relative">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">سجل حركة صنف: {selectedItem.name}</h1>
+            <p className="text-slate-500 font-bold mt-2 tracking-widest text-xs">تاريخ التقرير المعتمد: {format(new Date(), 'dd/MM/yyyy · HH:mm')}</p>
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-900 rounded-full" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-6">
-            <StatCard title="رصيد أول المدة" value={`${selectedItem.openingBalance} ${selectedItem.unit}`} icon={<History className="text-blue-500" />} />
-            <StatCard title="إجمالي الوارد (+)" value={`${selectedItem.inward + selectedItem.returned} ${selectedItem.unit}`} icon={<Plus className="text-green-500" />} color="text-green-600" />
-            <StatCard title="إجمالي المنصرف (-)" value={`${selectedItem.outward} ${selectedItem.unit}`} icon={<ArrowUpRight className="text-red-500" />} color="text-red-600" />
-            <StatCard title="إجمالي الهالك" value={`${selectedItem.wasted || 0} ${selectedItem.unit}`} icon={<AlertTriangle className="text-orange-500" />} color="text-orange-600" />
-            <StatCard title="الرصيد الحالي" value={`${selectedItem.currentBalance} ${selectedItem.unit}`} icon={<Package className="text-primary" />} />
-            <StatCard title="سعر الوحدة" value={`${selectedItem.price.toLocaleString()} ج.م`} icon={<DollarSign className="text-amber-500" />} color="text-amber-600" />
-            <StatCard title="إجمالي القيمة" value={`${(selectedItem.currentBalance * selectedItem.price).toLocaleString()} ج.م`} icon={<Layers className="text-emerald-500" />} color="text-emerald-600" />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {[
+              { label: 'رصيد أول المدة', value: selectedItem.openingBalance || 0, color: 'text-slate-400', icon: <History size={24} />, bg: "bg-slate-50" },
+              { label: 'إجمالي التوريدات', value: (selectedItem.inward || 0) + (selectedItem.returned || 0), color: 'text-emerald-500', icon: <ArrowDownLeft size={24} />, bg: "bg-emerald-50/50" },
+              { label: 'إجمالي المنصرفات', value: selectedItem.outward || 0, color: 'text-red-500', icon: <ArrowUpRight size={24} />, bg: "bg-red-50/50" },
+              { label: 'إجمالي الهالك', value: selectedItem.wasted || 0, color: 'text-orange-500', icon: <AlertCircle size={24} />, bg: "bg-orange-50/50" },
+              { label: 'الرصيد الفعلي الحالي', value: selectedItem.currentBalance || 0, color: 'text-white', highlight: true, icon: <Package size={24} />, bg: "bg-slate-900" }
+            ].map((stat, i) => (
+              <div key={i} className={cn(
+                "p-8 rounded-[2.5rem] border transition-all duration-700 relative overflow-hidden group/stat flex flex-col justify-between h-[180px]",
+                stat.highlight 
+                  ? "bg-slate-900 text-white border-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.3)]" 
+                  : cn(stat.bg, "border-transparent hover:border-slate-100 hover:bg-white hover:shadow-2xl hover:-translate-y-2")
+              )}>
+                 <div className="flex items-center justify-between relative z-10">
+                    <div className={cn("p-3 rounded-2.5xl transition-transform duration-500 group-hover/stat:scale-110 group-hover/stat:rotate-12", 
+                      stat.highlight ? "bg-white/10 text-primary shadow-lg" : "bg-white text-slate-400 shadow-sm border border-slate-50")}>
+                       {stat.icon}
+                    </div>
+                    <span className={cn("text-[10px] font-black uppercase tracking-[0.2em] font-mono", stat.highlight ? "text-white/40" : "text-slate-400")}>{stat.label}</span>
+                 </div>
+                 <div className="relative z-10 mt-4">
+                    <p className={cn("text-5xl font-black tracking-tighter mb-1 font-mono", stat.highlight ? "text-white" : "text-slate-900")}>
+                       {(stat.value || 0).toLocaleString()}
+                    </p>
+                    <p className={cn("text-xs font-bold uppercase tracking-widest", stat.highlight ? "text-primary-foreground/40" : "text-slate-400")}>
+                       {selectedItem.unit}
+                    </p>
+                 </div>
+                 {stat.highlight && (
+                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover/stat:bg-primary/20 transition-all duration-1000" />
+                 )}
+              </div>
+            ))}
           </div>
 
-          <Card className="dribbble-card border-none overflow-hidden print:shadow-none">
-            <div className="overflow-x-auto">
+          <Card className="dribbble-card border-none overflow-hidden bg-white shadow-[0_10px_40px_rgba(0,0,0,0.03)] rounded-[3rem]">
+            <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center relative overflow-hidden">
+               <div className="relative z-10">
+                  <h4 className="font-black text-slate-900 uppercase tracking-[0.2em] text-[11px] flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white shadow-lg">
+                       <Activity size={14} />
+                    </div>
+                    سجل الحركة المحاسبية (كارت الصنف)
+                  </h4>
+               </div>
+               <div className="flex items-center gap-6 relative z-10">
+                  <div className="flex flex-col items-end">
+                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">متوسط سعر التقويم</span>
+                     <span className="font-black text-primary font-mono text-lg tracking-tighter">{(selectedItem.price || 0).toLocaleString()} <span className="text-[10px] font-sans">ج.م</span></span>
+                  </div>
+               </div>
+            </div>
+            
+            <div className="overflow-x-auto custom-scrollbar">
               <Table>
-                <TableHeader className="bg-slate-50">
-                  <TableRow>
-                    <TableHead className="font-black text-slate-900">التاريخ</TableHead>
-                    <TableHead className="font-black text-slate-900">نوع الحركة</TableHead>
-                    <TableHead className="font-black text-slate-900 text-center">وارد (+)</TableHead>
-                    <TableHead className="font-black text-slate-900 text-center">منصرف (-)</TableHead>
-                    <TableHead className="font-black text-slate-900 text-center">الرصيد</TableHead>
-                    <TableHead className="font-black text-slate-900 text-center">إجمالي القيمة</TableHead>
-                    <TableHead className="font-black text-slate-900">ملاحظات / التفاصيل</TableHead>
+                <TableHeader className="bg-slate-50/30 h-16">
+                  <TableRow className="border-slate-100">
+                    <TableHead className="font-black text-slate-900 px-8 text-[10px] uppercase tracking-widest">التاريخ والوقت</TableHead>
+                    <TableHead className="font-black text-slate-900 text-[10px] uppercase tracking-widest">المستند / نوع الحركة</TableHead>
+                    <TableHead className="font-black text-slate-900 text-center text-[10px] uppercase tracking-widest">الوارد (IN)</TableHead>
+                    <TableHead className="font-black text-slate-900 text-center text-[10px] uppercase tracking-widest">المنصرف (OUT)</TableHead>
+                    <TableHead className="font-black text-slate-900 text-center text-[10px] uppercase tracking-widest">الرصيد</TableHead>
+                    <TableHead className="font-black text-slate-900 text-center text-[10px] uppercase tracking-widest">القيمة</TableHead>
+                    <TableHead className="font-black text-slate-900 text-[10px] uppercase tracking-widest">ملاحظات والتفاصيل</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {movements.slice().reverse().map((m, idx) => (
-                    <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="text-slate-500 font-medium">
-                        {m.date !== '---' ? format(new Date(m.date), 'dd/MM/yyyy HH:mm') : '---'}
+                    <TableRow key={idx} className="h-20 hover:bg-slate-50/50 transition-all group/row border-slate-50">
+                      <TableCell className="px-8 font-bold font-mono text-xs text-slate-500 group-hover/row:text-slate-900 transition-colors">
+                        {m.date !== '---' ? format(new Date(m.date), 'dd/MM/yyyy · HH:mm', { locale: ar }) : '---'}
                       </TableCell>
                       <TableCell>
-                        <Badge className={`rounded-lg px-3 py-1 border-none font-bold ${
-                          m.type.includes('وارد') ? 'bg-green-100 text-green-700' : 
-                          m.type.includes('منصرف') ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'
-                        }`}>
-                          {m.type}
-                        </Badge>
+                         <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-2 h-2 rounded-full",
+                              m.type.includes('وارد') ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 
+                              m.type.includes('منصرف') ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]'
+                            )} />
+                            <span className="font-black text-[11px] text-slate-900 uppercase tracking-tight">{m.type}</span>
+                         </div>
                       </TableCell>
-                      <TableCell className="text-center text-green-600 font-black">{m.in > 0 ? `+${m.in}` : '-'}</TableCell>
-                      <TableCell className="text-center text-red-500 font-black">{m.out > 0 ? `-${m.out}` : '-'}</TableCell>
-                      <TableCell className="text-center font-black text-slate-900">{m.balance}</TableCell>
-                      <TableCell className="text-center font-black text-emerald-600">{(m.balance * selectedItem.price).toLocaleString()} ج.م</TableCell>
-                      <TableCell className="text-sm text-slate-600 font-medium">{m.notes}</TableCell>
+                      <TableCell className="text-center">
+                         <span className={cn("font-black text-xl tracking-tighter font-mono", m.in > 0 ? "text-emerald-600" : "text-slate-200")}>
+                           {m.in > 0 ? `+${m.in.toLocaleString()}` : '-'}
+                         </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                         <span className={cn("font-black text-xl tracking-tighter font-mono", m.out > 0 ? "text-red-500" : "text-slate-200")}>
+                           {m.out > 0 ? `-${m.out.toLocaleString()}` : '-'}
+                         </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="inline-flex items-center justify-center min-w-[70px] h-10 rounded-xl bg-slate-50 group-hover/row:bg-white group-hover/row:shadow-sm border border-transparent group-hover/row:border-slate-100 transition-all">
+                          <span className="font-black text-slate-900 text-xl tracking-tighter font-mono">{m.balance.toLocaleString()}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center font-black text-primary text-lg font-mono">
+                         {((m.balance || 0) * (selectedItem.price || 0)).toLocaleString()} <span className="text-[9px] font-sans text-slate-400">ج</span>
+                      </TableCell>
+                      <TableCell className="text-sm font-bold text-slate-600 max-w-[250px] leading-relaxed">
+                        {m.notes}
+                      </TableCell>
                     </TableRow>
                   ))}
+                  
+                  <TableRow className="bg-slate-900 h-24 font-black border-none sticky bottom-0 z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] hover:bg-slate-900">
+                     <TableCell colSpan={2} className="px-8">
+                        <div className="flex flex-col">
+                           <div className="flex items-center gap-2 mb-1.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                              <span className="text-white/40 text-[9px] uppercase tracking-[0.3em]">رصيد نهائي مطابق</span>
+                           </div>
+                           <span className="text-white text-2xl font-black tracking-tighter leading-none">إجمالي الكمية للحركة</span>
+                        </div>
+                     </TableCell>
+                     <TableCell className="text-center">
+                        <span className="text-emerald-400 text-2xl font-black tracking-tighter font-mono">
+                           {(movements.reduce((acc, m) => acc + (m.in || 0), 0) + (selectedItem.openingBalance || 0)).toLocaleString()}
+                        </span>
+                     </TableCell>
+                     <TableCell className="text-center">
+                        <span className="text-red-400 text-2xl font-black tracking-tighter font-mono">
+                           {movements.reduce((acc, m) => acc + (m.out || 0), 0).toLocaleString()}
+                        </span>
+                     </TableCell>
+                     <TableCell className="text-center">
+                        <div className="inline-flex bg-white/10 px-4 py-2 rounded-xl border border-white/10">
+                           <span className="text-primary text-3xl font-black tracking-tighter font-mono">
+                              {selectedItem.currentBalance.toLocaleString()}
+                           </span>
+                        </div>
+                     </TableCell>
+                     <TableCell className="text-center">
+                        <span className="text-white text-2xl font-black tracking-tighter font-mono">
+                           {(selectedItem.currentBalance * (selectedItem.price || 0)).toLocaleString()}
+                        </span>
+                     </TableCell>
+                     <TableCell></TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
             </div>
           </Card>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-            <Search className="text-slate-300" size={40} />
+        <div className="flex flex-col items-center justify-center py-32 bg-slate-50/50 rounded-[4rem] border-2 border-dashed border-slate-200 shadow-inner">
+          <div className="w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center mb-8 shadow-xl shadow-slate-200/50 rotate-3 transition-transform hover:rotate-6">
+            <Search className="text-slate-300" size={56} />
           </div>
-          <p className="text-slate-400 font-bold">يرجى اختيار صنف لعرض كارت الحركة الخاص به</p>
+          <h3 className="text-2xl font-black text-slate-800 tracking-tighter mb-2">لم يتم تحديد صنف</h3>
+          <p className="text-slate-500 font-bold">يرجى اختيار صنف من القائمة العلوية لاستعراض كارت الحركة الخاص به وتتبع الرصيد.</p>
         </div>
       )}
     </div>
@@ -3498,6 +3610,100 @@ function Inventory({
           className="lg:col-span-3"
         />
       </div>
+      
+      {/* Analytics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 dribbble-card border-none bg-white p-8 overflow-hidden h-[400px] flex flex-col">
+           <div className="flex items-center justify-between mb-8">
+              <div>
+                 <h4 className="font-black text-slate-900 uppercase tracking-[0.2em] text-xs mb-1">توزيع قيمة المخزون الحالية</h4>
+                 <p className="text-[10px] font-bold text-slate-400">أكبر الأصناف من حيث القيمة المالية المودعة</p>
+              </div>
+              <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] px-3 py-1.5 uppercase tracking-widest rounded-full">تحليل القيمة</Badge>
+           </div>
+           <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={filtered.sort((a, b) => (b.totalValue || (b.currentBalance * b.price)) - (a.totalValue || (a.currentBalance * a.price))).slice(0, 8)}>
+                    <defs>
+                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--primary)" stopOpacity={1} />
+                        <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.6} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="name" 
+                      hide 
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: '#f8fafc' }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-slate-900 p-4 rounded-2xl shadow-2xl border border-slate-800">
+                              <p className="text-white font-black text-sm mb-1">{payload[0].payload.name}</p>
+                              <p className="text-primary font-bold text-xs">{(payload[0].value as number).toLocaleString()} ج.م</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar 
+                      dataKey={(item) => item.totalValue || (item.currentBalance * item.price)} 
+                      fill="url(#barGradient)" 
+                      radius={[12, 12, 0, 0]} 
+                      barSize={40}
+                    />
+                 </BarChart>
+              </ResponsiveContainer>
+           </div>
+        </Card>
+
+        <Card className="dribbble-card border-none bg-slate-900 p-8 overflow-hidden h-[400px] flex flex-col relative">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px] -mr-32 -mt-32" />
+           
+           <div className="relative z-10">
+              <h4 className="font-black text-white uppercase tracking-[0.2em] text-xs mb-8">حالة المخزون الاستراتيجية</h4>
+              
+              <div className="space-y-6">
+                 {[
+                   { label: 'أصناف آمنة', count: filtered.filter(i => i.currentBalance > i.safetyLimit).length, color: 'bg-emerald-500', percentage: (filtered.filter(i => i.currentBalance > i.safetyLimit).length / filtered.length) * 100 },
+                   { label: 'أصناف حرجة', count: filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length, color: 'bg-orange-500', percentage: (filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length / filtered.length) * 100 },
+                   { label: 'أصناف منتهية', count: filtered.filter(i => i.currentBalance === 0).length, color: 'bg-red-500', percentage: (filtered.filter(i => i.currentBalance === 0).length / filtered.length) * 100 },
+                 ].map((stat, i) => (
+                   <div key={i} className="space-y-2">
+                      <div className="flex justify-between items-end">
+                         <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">{stat.label}</span>
+                         <span className="text-white font-black text-sm">{stat.count}</span>
+                      </div>
+                      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                         <motion.div 
+                           initial={{ width: 0 }}
+                           animate={{ width: `${stat.percentage}%` }}
+                           className={cn("h-full rounded-full shadow-[0_0_8px_rgba(255,255,255,0.1)]", stat.color)}
+                         />
+                      </div>
+                   </div>
+                 ))}
+              </div>
+
+              <div className="mt-12 p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                 <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">مؤشر كفاءة التخزين</p>
+                 <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black text-white tracking-tighter">84%</span>
+                    <span className="text-emerald-400 font-bold text-xs">↑ 12%</span>
+                 </div>
+              </div>
+           </div>
+        </Card>
+      </div>
 
       {/* Filter Section */}
       <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 space-y-6">
@@ -3558,7 +3764,7 @@ function Inventory({
 
       {/* Main Content Area */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((item, idx) => (
             <motion.div
               key={item.id}
@@ -3616,10 +3822,10 @@ function Inventory({
                          item.currentBalance <= item.safetyLimit ? "border-red-100" : "border-slate-50 group-hover:border-slate-100"
                        )}>
                           <div>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5 font-mono">
+                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5 font-mono">
                                <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                                الرصيد المتاح حالياً
-                            </p>
+                            </div>
                             <div className="flex items-baseline gap-2">
                                <p className={cn("text-4xl font-black tracking-tighter font-mono", item.currentBalance <= item.safetyLimit ? 'text-red-500' : 'text-slate-900')}>
                                   {(item.currentBalance || 0).toLocaleString()}
@@ -3777,35 +3983,44 @@ function Inventory({
                 ))}
                 
                 {/* Summary Row */}
-                <TableRow className="bg-slate-900 h-28 font-black border-none sticky bottom-0 z-20">
-                  <TableCell colSpan={2} className="px-10">
+                <TableRow className="bg-slate-900 h-32 font-black border-none sticky bottom-0 z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.1)]">
+                  <TableCell colSpan={2} className="px-12">
                      <div className="flex flex-col">
-                        <span className="text-white/40 text-[10px] uppercase tracking-[0.3em] mb-1">ملخص المخزون الذكي</span>
-                        <span className="text-white text-2xl font-black tracking-tighter">الإجمالي العام لكافة الأصناف</span>
+                        <div className="flex items-center gap-2 mb-2">
+                           <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                           <span className="text-white/40 text-[10px] uppercase tracking-[0.4em]">نظام مراقبة المخزون الذكي</span>
+                        </div>
+                        <span className="text-white text-3xl font-black tracking-tighter leading-none">إجمالي قيم المستودعات</span>
                      </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <div className="flex flex-col">
-                      <span className="text-primary text-3xl font-black tracking-tighter">
+                    <div className="flex flex-col items-center">
+                      <span className="text-primary text-4xl font-black tracking-tighter font-mono leading-none">
                         {filtered.reduce((acc, i) => acc + i.currentBalance, 0).toLocaleString()}
                       </span>
-                      <span className="text-white/40 text-[9px] font-black uppercase">إجمالي الكميات</span>
+                      <span className="text-white/30 text-[9px] font-black uppercase tracking-widest mt-1">إجمالي الكميات مجمعة</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="text-orange-500 text-2xl font-black tracking-tighter">
-                      {filtered.reduce((acc, i) => acc + (i.wasted || 0), 0).toLocaleString()}
-                    </span>
+                    <div className="flex flex-col items-center">
+                       <span className="text-orange-500 text-3xl font-black tracking-tighter font-mono leading-none">
+                         {filtered.reduce((acc, i) => acc + (i.wasted || 0), 0).toLocaleString()}
+                       </span>
+                       <span className="text-white/30 text-[9px] font-black uppercase tracking-widest mt-1">إجمالي الفواقد</span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-center opacity-10">
-                    <div className="w-8 h-px bg-white mx-auto shadow-[0_0_10px_white]" />
+                    <div className="w-12 h-px bg-white mx-auto shadow-[0_0_15px_white]" />
                   </TableCell>
-                  <TableCell className="text-right px-10">
+                  <TableCell className="text-right px-12">
                     <div className="flex flex-col items-end">
-                      <span className="text-primary text-4xl font-black tracking-tighter">
-                        {filtered.reduce((acc, i) => acc + (i.totalValue || (i.currentBalance * i.price)), 0).toLocaleString()}
-                      </span>
-                      <span className="text-white/40 text-[9px] font-black uppercase tracking-widest mt-1">إجمالي القيمة المحاسبية (ج.م)</span>
+                      <div className="flex items-center gap-3">
+                         <span className="text-primary text-5xl font-black tracking-tighter font-mono leading-none">
+                           {filtered.reduce((acc, i) => acc + (i.totalValue || (i.currentBalance * i.price)), 0).toLocaleString()}
+                         </span>
+                         <span className="text-white font-black text-xl">ج.م</span>
+                      </div>
+                      <span className="text-white/30 text-[9px] font-black uppercase tracking-widest mt-2">القيمة الدفترية الكلية للمخزون</span>
                     </div>
                   </TableCell>
                   <TableCell className="print:hidden"></TableCell>
@@ -14134,9 +14349,11 @@ function ProductRecipesView({ recipes, costCenters, items: stockItems }: { recip
                 </div>
               </div>
               <CardTitle className="text-2xl font-black text-slate-900">{recipe.name}</CardTitle>
-              <CardDescription className="font-bold text-primary flex items-center gap-2 mt-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                إجمالي التكلفة: {recipe.totalEstimatedCost.toLocaleString()} ج.م
+              <CardDescription asChild>
+                <div className="font-bold text-primary flex items-center gap-2 mt-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  إجمالي التكلفة: {recipe.totalEstimatedCost.toLocaleString()} ج.م
+                </div>
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
