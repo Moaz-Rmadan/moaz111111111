@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, db } from './firebase';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 export interface UserProfile {
   uid: string;
@@ -40,9 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (firebaseUser) {
         // Fetch profile
         try {
-          const { doc, getDoc, setDoc, onSnapshot } = await import('firebase/firestore');
-          const { db } = await import('./firebase');
-          
           const userDocRef = doc(db, 'users', firebaseUser.uid);
           
           // Use onSnapshot to keep profile in sync

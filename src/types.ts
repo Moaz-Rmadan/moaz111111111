@@ -93,6 +93,7 @@ export interface Item {
   unit: string;
   price: number;
   department: string;
+  category: string;
   warehouseId: string;
   openingBalance: number;
   inward: number;

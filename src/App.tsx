@@ -26,6 +26,7 @@ import {
   Settings,
   LogOut,
   Plus,
+  Briefcase,
   Search,
   AlertTriangle,
   FileText,
@@ -52,6 +53,7 @@ import {
   DollarSign,
   Wrench,
   ChevronDown,
+  ChevronUp,
   Building2,
   ShieldAlert,
   ShieldCheck,
@@ -64,7 +66,17 @@ import {
   Scale,
   ReceiptText,
   Code,
-  MoreHorizontal
+  MoreHorizontal,
+  TrendingUp,
+  Filter,
+  Database,
+  Target,
+  Home,
+  Box,
+  ArrowUpToLine,
+  ArrowDownToLine,
+  Eye,
+  Warehouse as WarehouseIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -302,11 +314,7 @@ function AppContent() {
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
+  return <AppContent />;
 }
 
 // --- Calculations ---
@@ -3463,6 +3471,7 @@ function Inventory({
   costCenters: CostCenter[]
 }) {
   const [search, setSearch] = useState('');
+  const [category, setCategory] = useState<string>('all');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
   const [selectedCostCenter, setSelectedCostCenter] = useState<string>('all');
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -3472,6 +3481,7 @@ function Inventory({
 
   const filtered = items.filter(i => 
     i.name.toLowerCase().includes(search.toLowerCase()) && 
+    (category === 'all' || i.category === category) &&
     (selectedWarehouseId === 'all' || i.warehouseId === selectedWarehouseId) &&
     (selectedCostCenter === 'all' || i.department === selectedCostCenter)
   );
@@ -3505,135 +3515,141 @@ function Inventory({
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700">
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
       {/* Header Section */}
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8 pb-4">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest px-3 py-1 bg-primary/10 rounded-full w-fit">
-            <Package size={14} />
-            إدارة المخزون والعهدة
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10 pb-6 relative">
+        <div className="space-y-6 relative z-10">
+          <div className="flex items-center gap-3 text-primary font-black text-xs uppercase tracking-[0.3em] px-5 py-2.5 bg-primary/5 border border-primary/10 rounded-full w-fit shadow-sm">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <Package size={16} />
+            إدارة المخزون والعهدة الرقمية
           </div>
-          <h2 className="text-4xl lg:text-7xl font-black tracking-tighter text-slate-900 leading-[0.85]">
-            المخزن <br />
-            <span className="text-slate-400">والأصناف</span>
+          <h2 className="text-5xl lg:text-8xl font-black tracking-tighter text-slate-900 leading-[0.8]">
+            المركز <br />
+            <span className="text-slate-300">اللوجستي</span>
           </h2>
-          <p className="text-slate-500 font-bold text-lg max-w-lg mt-4 leading-relaxed">
-            مراقبة شاملة للأرصدة، تنبيهات حد الأمان، وإحصائيات القيمة الإجمالية للمواد الخام والمستلزمات.
+          <p className="text-slate-400 font-bold text-xl max-w-xl mt-6 leading-relaxed italic">
+            مـنصة مـتكاملة لمـراقبة الأرصـدة والـتحليل الـمالي لـمجمل حـركة الخـامات والمـنتج النهـائي.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100">
-          <div className="flex bg-slate-100/50 p-1.5 rounded-2xl">
+        <div className="flex flex-wrap items-center gap-5 bg-white/50 backdrop-blur-xl p-4 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-white/60 relative z-10">
+          <div className="flex bg-slate-100/50 p-2 rounded-2xl border border-slate-200/50">
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={() => setViewMode('grid')}
-              className={`rounded-xl h-10 px-4 transition-all ${viewMode === 'grid' ? 'bg-white text-primary shadow-sm font-black' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`rounded-xl h-12 px-6 transition-all duration-500 ${viewMode === 'grid' ? 'bg-white text-primary shadow-xl font-black scale-105' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              <LayoutGrid size={18} className="ml-2" />
+              <LayoutGrid size={20} className="ml-2" />
               شبكة
             </Button>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={() => setViewMode('table')}
-              className={`rounded-xl h-10 px-4 transition-all ${viewMode === 'table' ? 'bg-white text-primary shadow-sm font-black' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`rounded-xl h-12 px-6 transition-all duration-500 ${viewMode === 'table' ? 'bg-white text-primary shadow-xl font-black scale-105' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              <List size={18} className="ml-2" />
+              <List size={20} className="ml-2" />
               جدول
             </Button>
           </div>
           
-          <Button onClick={() => setShowItemAdd(true)} className="btn-primary rounded-2xl h-12 px-8 font-black flex items-center gap-2">
-            <Plus size={20} />
-            إضافة صنف
+          <Button onClick={() => setShowItemAdd(true)} className="h-16 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3">
+            <Plus size={22} strokeWidth={3} />
+            إضافة صنف جديد
           </Button>
           
           <DropdownMenu>
-            <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "h-12 w-12 rounded-2xl p-0 border-slate-200 flex items-center justify-center")}>
-              <MoreHorizontal size={20} />
+            <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "h-16 w-16 rounded-2xl p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-sm flex items-center justify-center transition-all hover:rotate-90")}>
+              <Settings size={22} className="text-slate-400" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-2xl border-slate-100">
-              <DropdownMenuItem onClick={() => setShowCostCenterAdd(true)} className="rounded-xl p-3 font-bold gap-3">
-                <Layers size={18} className="text-slate-400" />
+            <DropdownMenuContent align="end" className="w-64 p-3 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-slate-100">
+              <DropdownMenuItem onClick={() => setShowCostCenterAdd(true)} className="rounded-xl p-4 font-black gap-3 text-slate-700 hover:bg-slate-50">
+                <Layers size={18} className="text-blue-500" />
                 إضافة مركز تكلفة
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.print()} className="rounded-xl p-3 font-bold gap-3 md:flex hidden">
+              <div className="h-px bg-slate-50 my-2" />
+              <DropdownMenuItem onClick={() => window.print()} className="rounded-xl p-4 font-black gap-3 text-slate-700 md:flex hidden hover:bg-slate-50">
                 <Printer size={18} className="text-slate-400" />
-                طباعة التقرير
+                طباعة جرد المخزن
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportExcel} className="rounded-xl p-3 font-bold gap-3 md:flex hidden text-emerald-600">
-                <FileText size={18} />
-                تصدير Excel
+              <DropdownMenuItem onClick={exportExcel} className="rounded-xl p-4 font-black gap-3 text-emerald-600 md:flex hidden hover:bg-emerald-50">
+                <Download size={18} />
+                تصدير Excel (تحليل)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Decorative elements */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
       </div>
 
-      {/* Stats Section */}
+      {/* Stats Section - Changed to col-span-4 for 3 cards per row */}
       <div className="bento-grid">
         <StatCardBento 
-          title="إجمالي قيمة المخزن" 
+          title="إجمالي السيولة المخزنية" 
           value={filtered.reduce((acc, item) => acc + (item.totalValue || (item.currentBalance * item.price)), 0)} 
           unit="ج.م" 
-          icon={<DollarSign size={28} />} 
-          trend="المحاسبي"
+          icon={<DollarSign size={32} strokeWidth={2.5} />} 
+          trend="أرصدة نقدية"
           color="primary"
-          className="lg:col-span-3"
+          className="lg:col-span-4"
         />
         <StatCardBento 
-          title="أصناف منتهية" 
+          title="عجز المخزون الحرج" 
           value={filtered.filter(i => i.currentBalance === 0).length} 
           unit="صنف" 
-          icon={<AlertCircle size={28} />} 
-          trend="عاجل"
+          icon={<AlertCircle size={32} strokeWidth={2.5} />} 
+          trend="رصيد صفري"
           color="red"
-          className="lg:col-span-3"
+          className="lg:col-span-4"
         />
         <StatCardBento 
-          title="أصناف وصلت للحد" 
+          title="أصناف إعادة الطلب" 
           value={filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length} 
           unit="صنف" 
-          icon={<Zap size={28} />} 
-          trend="إعادة طلب"
+          icon={<Zap size={32} strokeWidth={2.5} />} 
+          trend="تحت الأمان"
           color="orange"
-          className="lg:col-span-3"
-        />
-        <StatCardBento 
-          title="إجمالي الكميات" 
-          value={filtered.reduce((acc, item) => acc + item.currentBalance, 0)} 
-          unit="وحدة" 
-          icon={<Layers size={28} />} 
-          trend="متاح"
-          color="emerald"
-          className="lg:col-span-3"
+          className="lg:col-span-4"
         />
       </div>
       
       {/* Analytics Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 dribbble-card border-none bg-white p-8 overflow-hidden h-[400px] flex flex-col">
-           <div className="flex items-center justify-between mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <Card className="lg:col-span-2 dribbble-card border-none bg-white shadow-2xl shadow-slate-200/40 rounded-[3rem] p-10 overflow-hidden h-[450px] flex flex-col group/analytics">
+           <div className="flex items-center justify-between mb-10">
               <div>
-                 <h4 className="font-black text-slate-900 uppercase tracking-[0.2em] text-xs mb-1">توزيع قيمة المخزون الحالية</h4>
-                 <p className="text-[10px] font-bold text-slate-400">أكبر الأصناف من حيث القيمة المالية المودعة</p>
+                 <h4 className="font-black text-slate-900 uppercase tracking-[0.3em] text-[11px] mb-2 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                    توزيع القيمة الرأسمالية للمخزون
+                 </h4>
+                 <p className="text-xs font-bold text-slate-400 italic">تـصنيف الأصـناف حـسب الـوزن النـقدي المستـثمر</p>
               </div>
-              <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] px-3 py-1.5 uppercase tracking-widest rounded-full">تحليل القيمة</Badge>
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover/analytics:bg-primary group-hover/analytics:text-white transition-all duration-700">
+                    <PieChartIcon size={20} />
+                 </div>
+              </div>
            </div>
            <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                 <BarChart data={filtered.sort((a, b) => (b.totalValue || (b.currentBalance * b.price)) - (a.totalValue || (a.currentBalance * a.price))).slice(0, 8)}>
+                 <BarChart data={filtered.sort((a, b) => (b.totalValue || (b.currentBalance * b.price)) - (a.totalValue || (a.currentBalance * a.price))).slice(0, 7)}>
                     <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--primary)" stopOpacity={1} />
-                        <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.6} />
+                      <linearGradient id="inventoryBarGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366f1" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.4} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis 
                       dataKey="name" 
-                      hide 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fontWeight: 900, fill: '#1e293b' }}
+                      height={40}
                     />
                     <YAxis 
                       tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
@@ -3646,9 +3662,12 @@ function Inventory({
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           return (
-                            <div className="bg-slate-900 p-4 rounded-2xl shadow-2xl border border-slate-800">
-                              <p className="text-white font-black text-sm mb-1">{payload[0].payload.name}</p>
-                              <p className="text-primary font-bold text-xs">{(payload[0].value as number).toLocaleString()} ج.م</p>
+                            <div className="bg-slate-900/95 backdrop-blur-xl p-6 rounded-[2rem] shadow-2xl border border-slate-800">
+                              <p className="text-white font-black text-lg tracking-tight mb-2">{payload[0].payload.name}</p>
+                              <div className="flex items-baseline gap-2">
+                                 <p className="text-primary font-black text-2xl tracking-tighter">{(payload[0].value as number).toLocaleString()}</p>
+                                 <span className="text-slate-500 font-bold text-[10px] uppercase">ج.م</span>
+                              </div>
                             </div>
                           );
                         }
@@ -3657,261 +3676,263 @@ function Inventory({
                     />
                     <Bar 
                       dataKey={(item) => item.totalValue || (item.currentBalance * item.price)} 
-                      fill="url(#barGradient)" 
-                      radius={[12, 12, 0, 0]} 
-                      barSize={40}
+                      fill="url(#inventoryBarGradient)" 
+                      radius={[16, 16, 0, 0]} 
+                      barSize={45}
                     />
                  </BarChart>
               </ResponsiveContainer>
            </div>
         </Card>
 
-        <Card className="dribbble-card border-none bg-slate-900 p-8 overflow-hidden h-[400px] flex flex-col relative">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px] -mr-32 -mt-32" />
+        <Card className="dribbble-card border-none bg-slate-900 shadow-2xl shadow-indigo-900/20 rounded-[3rem] p-10 overflow-hidden h-[450px] flex flex-col relative group/strategy">
+           <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/20 rounded-full blur-[120px] -mr-40 -mt-40 transition-all duration-1000 group-hover/strategy:scale-125" />
            
-           <div className="relative z-10">
-              <h4 className="font-black text-white uppercase tracking-[0.2em] text-xs mb-8">حالة المخزون الاستراتيجية</h4>
+           <div className="relative z-10 flex flex-col h-full">
+              <h4 className="font-black text-white uppercase tracking-[0.3em] text-[11px] mb-10 flex items-center gap-3">
+                 <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                 ملـخص الكـفـاءة التشـغيـلية للمخـزون
+              </h4>
               
-              <div className="space-y-6">
+              <div className="space-y-8 flex-1">
                  {[
-                   { label: 'أصناف آمنة', count: filtered.filter(i => i.currentBalance > i.safetyLimit).length, color: 'bg-emerald-500', percentage: (filtered.filter(i => i.currentBalance > i.safetyLimit).length / filtered.length) * 100 },
-                   { label: 'أصناف حرجة', count: filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length, color: 'bg-orange-500', percentage: (filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length / filtered.length) * 100 },
-                   { label: 'أصناف منتهية', count: filtered.filter(i => i.currentBalance === 0).length, color: 'bg-red-500', percentage: (filtered.filter(i => i.currentBalance === 0).length / filtered.length) * 100 },
+                   { label: 'أصناف آمنة (متوفرة)', count: filtered.filter(i => i.currentBalance > i.safetyLimit).length, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/30', percentage: (filtered.filter(i => i.currentBalance > i.safetyLimit).length / filtered.length) * 100 },
+                   { label: 'أصناف تحت المراقبة', count: filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length, color: 'bg-amber-500', shadow: 'shadow-amber-500/30', percentage: (filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length / filtered.length) * 100 },
+                   { label: 'أرصدة معدومة', count: filtered.filter(i => i.currentBalance === 0).length, color: 'bg-rose-500', shadow: 'shadow-rose-500/30', percentage: (filtered.filter(i => i.currentBalance === 0).length / filtered.length) * 100 },
                  ].map((stat, i) => (
-                   <div key={i} className="space-y-2">
+                   <div key={i} className="space-y-3">
                       <div className="flex justify-between items-end">
-                         <span className="text-white/60 text-[10px] font-black uppercase tracking-widest">{stat.label}</span>
-                         <span className="text-white font-black text-sm">{stat.count}</span>
+                         <span className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">{stat.label}</span>
+                         <span className="text-white font-black text-xl tracking-tighter">{stat.count} <span className="text-[10px] text-white/20 font-bold mr-1">صنف</span></span>
                       </div>
-                      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden">
                          <motion.div 
                            initial={{ width: 0 }}
                            animate={{ width: `${stat.percentage}%` }}
-                           className={cn("h-full rounded-full shadow-[0_0_8px_rgba(255,255,255,0.1)]", stat.color)}
+                           transition={{ duration: 1.5, ease: "easeOut", delay: i * 0.2 }}
+                           className={cn("h-full rounded-full shadow-[0_0_15px_rgba(255,255,255,0.1)]", stat.color, stat.shadow)}
                          />
                       </div>
                    </div>
                  ))}
               </div>
 
-              <div className="mt-12 p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                 <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">مؤشر كفاءة التخزين</p>
-                 <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-black text-white tracking-tighter">84%</span>
-                    <span className="text-emerald-400 font-bold text-xs">↑ 12%</span>
+              <div className="mt-10 p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl relative overflow-hidden group/efficiency">
+                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover/efficiency:opacity-100 transition-opacity duration-700" />
+                 <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-3 relative z-10">مؤشر كـفاءة التـوفر اللـوجسـتي</p>
+                 <div className="flex items-baseline gap-3 relative z-10">
+                    <span className="text-5xl font-black text-white tracking-tighter leading-none">
+                       {Math.round((filtered.filter(i => i.currentBalance > i.safetyLimit).length / filtered.length) * 100)}%
+                    </span>
+                    <span className="text-emerald-400 font-black text-sm uppercase tracking-widest flex items-center gap-1 animate-bounce">
+                       <TrendingUp size={14} />
+                       صحي
+                    </span>
                  </div>
               </div>
            </div>
         </Card>
       </div>
 
-      {/* Filter Section */}
-      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-           <div className="flex-1 relative group">
-              <div className="absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary group-focus-within:text-white transition-all">
-                <Search size={20} />
+      {/* Filter & Search System */}
+      <div className="bg-white/50 backdrop-blur-3xl p-10 rounded-[3.5rem] border border-white/60 shadow-2xl shadow-slate-200/50 space-y-10 relative overflow-hidden group/filter">
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none group-hover/filter:scale-110 transition-transform duration-1000" />
+        
+        <div className="flex flex-col lg:flex-row lg:items-center gap-8 relative z-10">
+           <div className="flex-1 relative group/search">
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-focus-within/search:bg-slate-900 group-focus-within/search:text-white group-focus-within/search:scale-110 transition-all duration-500 border border-slate-100">
+                <Search size={22} strokeWidth={2.5} />
               </div>
               <Input 
-                placeholder="ابحث عن اسم الصنف أو الكود..." 
-                className="w-full h-16 pr-18 pl-6 rounded-[1.25rem] border-none bg-slate-50 focus-visible:ring-2 focus-visible:ring-primary/20 font-bold text-lg" 
+                placeholder="منـصة الـبحث الذكـي عن الأصـناف والأكـواد..." 
+                className="w-full h-24 pr-24 pl-10 rounded-[2.5rem] border-none bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] focus-visible:ring-0 focus-visible:shadow-[0_20px_60px_-15px_rgba(99,102,241,0.15)] font-black text-xl placeholder:text-slate-300 placeholder:italic transition-all duration-700 hover:shadow-indigo-500/5" 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
            </div>
 
-           <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 px-6 h-16 bg-slate-50 rounded-[1.25rem] border border-transparent overflow-x-auto max-w-full">
-                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4 whitespace-nowrap">المخزن:</span>
+           <div className="flex flex-wrap items-center gap-4">
+              <div className="p-2.5 bg-white/60 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-xl shadow-slate-200/20 flex items-center gap-2">
+                 <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-lg">
+                    <Filter size={18} strokeWidth={2.5} />
+                 </div>
+                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-sm px-2">
+                   {['الكل', 'مادة خام', 'منتج نهائي', 'تعبئة وتغليف'].map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setCategory(cat === 'الكل' ? 'all' : cat)}
+                        className={cn(
+                          "h-12 px-8 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all duration-500 shrink-0 whitespace-nowrap",
+                          (category === 'all' && cat === 'الكل') || (category === cat)
+                            ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105"
+                            : "text-slate-400 hover:bg-white hover:text-slate-600"
+                        )}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-5 pt-2 border-t border-slate-100/60 relative z-10">
+           <div className="flex items-center gap-3 px-6 py-3 bg-slate-50/50 rounded-2xl border border-slate-100/50">
+              <WarehouseIcon size={16} className="text-slate-400" />
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">تصنيف المستودعات:</span>
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
                  <button 
                   onClick={() => setSelectedWarehouseId('all')}
-                  className={`h-10 px-5 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === 'all' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:bg-slate-200'}`}
+                  className={`h-11 px-6 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === 'all' ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
                  >
-                  الكل
+                  كافة المخازن
                  </button>
                  {warehouses.map(w => (
                    <button 
                     key={w.id}
                     onClick={() => setSelectedWarehouseId(w.id)}
-                    className={`h-10 px-5 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === w.id ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:bg-slate-200'}`}
+                    className={`h-11 px-6 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === w.id ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
                    >
                     {w.name}
                    </button>
                  ))}
               </div>
            </div>
-        </div>
-
-        <div className="flex items-center gap-4 pt-4 border-t border-slate-100 overflow-x-auto pb-2">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2 whitespace-nowrap">مركز التكلفة:</span>
-            <button 
-              onClick={() => setSelectedCostCenter('all')}
-              className={`h-9 px-4 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === 'all' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-            >
-              جميع الأقسام
-            </button>
-            {costCenters.map(c => (
-              <button 
-                key={c.id}
-                onClick={() => setSelectedCostCenter(c.name)}
-                className={`h-9 px-4 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === c.name ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
-              >
-                {c.name}
-              </button>
-            ))}
+           
+           <div className="flex items-center gap-3 px-6 py-3 bg-slate-50/50 rounded-2xl border border-slate-100/50 ml-auto">
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">مراكز التكلفة:</span>
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                 <button 
+                  onClick={() => setSelectedCostCenter('all')}
+                  className={`h-11 px-6 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === 'all' ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:text-slate-600'}`}
+                 >
+                  جميع الأقسام
+                 </button>
+                 {costCenters.map(c => (
+                   <button 
+                    key={c.id}
+                    onClick={() => setSelectedCostCenter(c.name)}
+                    className={`h-11 px-6 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === c.name ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:text-slate-600'}`}
+                   >
+                    {c.name}
+                   </button>
+                 ))}
+              </div>
+           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {filtered.map((item, idx) => (
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
+              transition={{ delay: idx * 0.05, duration: 0.8, ease: "easeOut" }}
+              className="h-full"
             >
-               <Card className="dribbble-card border-none group h-full flex flex-col relative overflow-hidden bg-white shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 border border-slate-100 hover:border-primary/20">
+               <Card className="dribbble-card border-none group h-full flex flex-col relative overflow-hidden bg-white shadow-[0_15px_40px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_45px_100px_-10px_rgba(99,102,241,0.12)] transition-all duration-700 rounded-[3rem] border border-slate-100/40 hover:border-primary/10">
                   <div className={cn(
-                    "absolute top-0 inset-x-0 h-1.5 transition-all duration-700 z-20",
-                    item.currentBalance <= item.safetyLimit ? "bg-red-500 shadow-[0_4px_12px_rgba(239,68,68,0.4)] animate-pulse" : "bg-slate-100 group-hover:bg-primary"
+                    "absolute top-0 inset-x-0 h-2 transition-all duration-700 z-20",
+                    item.currentBalance <= item.safetyLimit ? "bg-red-500 shadow-[0_5px_15px_rgba(239,68,68,0.3)] animate-pulse" : "bg-slate-100 group-hover:bg-primary"
                   )} />
                   
-                  {/* Subtle Geometric Pattern Background */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 opacity-50 rounded-bl-full -mr-10 -mt-10 group-hover:bg-primary/5 transition-colors duration-700" />
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-slate-50 opacity-40 rounded-bl-[10rem] -mr-16 -mt-16 group-hover:bg-primary/5 transition-all duration-1000 rotate-12 pointer-events-none" />
                   
-                  <CardContent className="p-8 pb-5 flex-1 relative z-10">
-                    <div className="flex justify-between items-start mb-8">
+                  <CardContent className="p-10 pb-6 flex-1 relative z-10 flex flex-col">
+                    <div className="flex justify-between items-start mb-8 gap-4">
                        <div className="flex flex-col min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                              <Package size={10} className="text-slate-400 group-hover:text-primary transition-colors" />
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-primary/10 group-hover:rotate-12 transition-all duration-700 border border-slate-100">
+                              <Package size={16} className="text-slate-400 group-hover:text-primary transition-colors" />
                             </div>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis">
-                              {warehouses.find(w => w.id === item.warehouseId)?.name || 'غير معروف'}
-                            </span>
+                            <Badge variant="outline" className="bg-white border-slate-100 text-[9px] font-black tracking-widest text-slate-400 px-3 uppercase rounded-full group-hover:border-primary/20 group-hover:text-primary transition-all duration-700">
+                               {warehouses.find(w => w.id === item.warehouseId)?.name || 'غير معروف'}
+                            </Badge>
                           </div>
-                          <h3 className="font-black text-xl text-slate-900 group-hover:text-primary transition-colors leading-tight line-clamp-2 min-h-[3rem] tracking-tight" title={item.name}>
-                            {item.name}
+                          <h3 className="font-black text-2xl text-slate-900 group-hover:text-primary transition-colors leading-[1.2] line-clamp-2 tracking-tight group-hover:translate-x-1 duration-700">
+                             {item.name}
                           </h3>
-                          <div className="flex items-center gap-2 mt-2">
-                             {item.currentBalance === 0 ? (
-                               <Badge className="bg-red-100 text-red-600 border-none font-black text-[8px] px-2 py-0.5 rounded-md uppercase">نفذ المخزون</Badge>
-                             ) : item.currentBalance <= item.safetyLimit ? (
-                               <Badge className="bg-orange-100 text-orange-600 border-none font-black text-[8px] px-2 py-0.5 rounded-md uppercase">رصيد منخفض</Badge>
-                             ) : (
-                               <Badge className="bg-emerald-100 text-emerald-600 border-none font-black text-[8px] px-2 py-0.5 rounded-md uppercase">متوفر</Badge>
-                             )}
-                             <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">الحالة</span>
-                          </div>
                        </div>
-                       <div className="flex flex-col gap-2 translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500">
-                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl text-slate-400 hover:text-primary hover:bg-primary/5 border border-transparent hover:border-primary/10 shadow-sm bg-white" onClick={() => setEditingItem(item)}>
-                             <Edit2 size={16} />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 shadow-sm bg-white" onClick={() => setShowDeleteConfirm(item.id)}>
-                             <Trash2 size={16} />
-                          </Button>
+                       <div className="shrink-0 flex flex-col items-end text-left">
+                          <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-white flex items-center justify-center font-black text-xl shadow-xl shadow-slate-900/20 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-700">
+                             {item.unit}
+                          </div>
                        </div>
                     </div>
 
-                    <div className="space-y-6 mb-8 mt-4">
-                       <div className={cn(
-                         "flex items-end justify-between border-b pb-6 transition-colors",
-                         item.currentBalance <= item.safetyLimit ? "border-red-100" : "border-slate-50 group-hover:border-slate-100"
-                       )}>
+                    <div className="mt-8 space-y-6 flex-1">
+                       <div className="grid grid-cols-2 gap-6 p-6 rounded-[2rem] bg-slate-50/50 border border-slate-100 shadow-sm relative group-hover:bg-white group-hover:border-primary/10 transition-all duration-700 overflow-hidden">
                           <div>
-                            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5 font-mono">
-                               <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                               الرصيد المتاح حالياً
-                            </div>
-                            <div className="flex items-baseline gap-2">
-                               <p className={cn("text-4xl font-black tracking-tighter font-mono", item.currentBalance <= item.safetyLimit ? 'text-red-500' : 'text-slate-900')}>
-                                  {(item.currentBalance || 0).toLocaleString()}
-                               </p>
-                               <span className="text-xs font-bold text-slate-300 group-hover:text-slate-400 transition-colors uppercase">{item.unit}</span>
-                            </div>
-                          </div>
-                          {item.currentBalance <= item.safetyLimit ? (
-                            <div className="flex flex-col items-end gap-1">
-                               <Badge className="bg-red-50 text-red-500 border-none font-black text-[9px] px-2.5 py-1.5 rounded-xl uppercase tracking-tighter shadow-sm flex items-center gap-1">
-                                  <AlertTriangle size={10} />
-                                  رصيد حرج
-                               </Badge>
-                               <span className="text-[8px] font-bold text-red-400 uppercase">حد الأمان: {item.safetyLimit}</span>
-                            </div>
-                          ) : (
-                             <div className="w-10 h-10 rounded-full border-2 border-slate-50 flex items-center justify-center group-hover:border-primary/20 group-hover:rotate-12 transition-all">
-                                <Check size={16} className="text-slate-200 group-hover:text-primary/40" />
+                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-right">الرصيد المتاح</p>
+                             <div className="flex items-baseline gap-2 justify-end">
+                                <span className={cn(
+                                  "text-4xl font-black tracking-tighter transition-all duration-700 group-hover:scale-110 origin-right",
+                                  item.currentBalance <= item.safetyLimit ? "text-red-600" : "text-slate-900"
+                                )}>
+                                  {item.currentBalance}
+                                </span>
                              </div>
-                          )}
-                       </div>
-
-                       <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-slate-50/50 p-4 rounded-3xl group-hover:bg-slate-50 transition-colors duration-500 border border-transparent group-hover:border-slate-100/50">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">متوسط السعر</p>
-                             <p className="text-xl font-black text-primary tracking-tighter font-mono">
-                                {(item.price || 0).toLocaleString()} <span className="text-[10px] opacity-70 font-sans"> ج.م</span>
-                             </p>
                           </div>
-                          <div className="text-left bg-slate-50/50 p-4 rounded-3xl group-hover:bg-slate-50 transition-colors duration-500 border border-transparent group-hover:border-slate-100/50">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">القيمة المخزنية</p>
-                             <p className="text-xl font-black text-slate-900 tracking-tighter font-mono">
-                               {(item.totalValue || ((item.currentBalance || 0) * (item.price || 0))).toLocaleString()}
-                             </p>
+                          <div className="border-r border-slate-100 pr-6">
+                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-right">حد الأمان</p>
+                             <div className="flex items-baseline gap-2 justify-end">
+                                <span className="text-xl font-black text-slate-400 tracking-tight group-hover:text-slate-600 transition-colors">
+                                  {item.safetyLimit}
+                                </span>
+                             </div>
                           </div>
                        </div>
                        
-                       {/* Last Movement - Derived if possible */}
-                       <div className="flex items-center justify-between px-2">
-                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">آخر حركة مسجلة</span>
-                          <span className="text-[10px] font-bold text-slate-400">
-                             {(() => {
-                               const movs = getItemMovements(item.id);
-                               if (movs.length === 0) return 'لا يوجد حركات';
-                               const last = movs[movs.length - 1];
-                               return last.date !== '---' ? format(new Date(last.date), 'dd MMMM', { locale: ar }) : '---';
-                             })()}
-                          </span>
+                       <div className="flex items-center justify-between p-6 rounded-[2rem] bg-indigo-50/30 border border-indigo-100/50 group-hover:bg-indigo-500 group-hover:border-indigo-500 transition-all duration-700">
+                          <TrendingUp size={24} className="text-indigo-200 group-hover:text-white transition-colors" />
+                          <div className="text-left">
+                             <p className="text-[9px] font-black text-indigo-400 group-hover:text-white/60 uppercase tracking-widest mb-1">القيمة السوقية</p>
+                             <div className="flex items-baseline gap-2 justify-end">
+                                <span className="text-2xl font-black text-slate-900 group-hover:text-white transition-colors tracking-tighter">
+                                   {(item.totalValue || (item.currentBalance * item.price)).toLocaleString()}
+                                </span>
+                                <span className="text-[10px] font-bold text-slate-400 group-hover:text-white/50">ج.م</span>
+                             </div>
+                          </div>
                        </div>
                     </div>
                   </CardContent>
-                  
-                  <CardFooter className="p-4 pt-0 mt-auto">
-                     <Button 
-                        onClick={() => setSelectedItemCard(item)}
-                        variant="ghost" 
-                        className="w-full h-14 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-white hover:bg-primary transition-all duration-500 flex items-center justify-center gap-3 border border-slate-100 hover:border-primary group/btn shadow-sm"
-                     >
-                       عرض سجل حركة الصنف
-                       <div className="w-8 h-8 rounded-full bg-slate-50 group-hover/btn:bg-white/20 flex items-center justify-center transition-all duration-500 group-hover/btn:-translate-x-1 group-hover/btn:rotate-[-45deg]">
-                          <ArrowLeft size={16} />
-                       </div>
-                     </Button>
+
+                  <CardFooter className="p-8 pt-0 flex gap-4 transition-all duration-700 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+                    <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-black bg-slate-50 hover:bg-slate-900 hover:text-white transition-all duration-500" onClick={() => setSelectedItemCard(item)}>
+                      <Eye size={18} className="ml-2" />
+                      التفاصيل
+                    </Button>
+                    <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-black bg-indigo-50 text-primary hover:bg-primary hover:text-white transition-all duration-500" onClick={() => setEditingItem(item)}>
+                      <Edit2 size={18} className="ml-2" />
+                      تعديل
+                    </Button>
                   </CardFooter>
                </Card>
             </motion.div>
           ))}
         </div>
       ) : (
-        <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40">
+        <Card className="dribbble-card border-none bg-white shadow-xl overflow-hidden rounded-[3rem]">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="bg-slate-50/50 h-20 border-b border-slate-100">
+              <TableHeader className="bg-slate-50/50 h-16 border-none">
                 <TableRow>
-                  <TableHead className="font-black text-slate-900 px-10 text-[10px] uppercase tracking-[0.2em]">بيانات الصنف</TableHead>
-                  <TableHead className="font-black text-slate-900 text-[10px] uppercase tracking-[0.2em]">المخزن والشركة</TableHead>
-                  <TableHead className="font-black text-slate-900 text-center text-[10px] uppercase tracking-[0.2em]">الرصيد المتاح</TableHead>
-                  <TableHead className="font-black text-slate-900 text-center text-[10px] uppercase tracking-[0.2em]">الهالك</TableHead>
-                  <TableHead className="font-black text-slate-900 text-center text-[10px] uppercase tracking-[0.2em]">سعر الوحدة</TableHead>
-                  <TableHead className="font-black text-slate-900 text-right px-10 text-[10px] uppercase tracking-[0.2em]">القيمة الإجمالية</TableHead>
-                  <TableHead className="font-black text-slate-900 text-center print:hidden text-[10px] uppercase tracking-[0.2em]">الإجراءات</TableHead>
+                  <TableHead className="px-10 font-black text-slate-400 text-[10px] uppercase tracking-widest text-right">الصنف</TableHead>
+                  <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-widest text-right">المخزن/القسم</TableHead>
+                  <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-widest text-center">الرصيد</TableHead>
+                  <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-widest text-center">الهالك</TableHead>
+                  <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-widest text-center">السعر</TableHead>
+                  <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-widest text-right px-10">إجمالي القيمة</TableHead>
+                  <TableHead className="font-black text-slate-400 text-[10px] uppercase tracking-widest text-center px-6">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((item, idx) => (
-                  <TableRow key={item.id} className="h-24 hover:bg-slate-50/40 transition-all group border-slate-50">
+                  <TableRow key={item.id} className="h-28 hover:bg-slate-50/40 transition-all group border-slate-50">
                     <TableCell className="px-10">
                        <div className="flex items-center gap-4">
                           <div className={cn(
@@ -8190,203 +8211,229 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
-        <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">صرف الخامات</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">إدارة أذونات صرف الخامات لمراحل الإنتاج</p>
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest px-3 py-1 bg-primary/10 rounded-full w-fit">
+            <ClipboardCheck size={14} />
+            التحكم في المخزون
+          </div>
+          <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900">أذونات صرف الخامات</h2>
+          <p className="text-slate-500 font-bold text-lg max-w-lg mt-2">إدارة وتوثيق عمليات صرف الخامات من المستودعات إلى مراحل الإنتاج المختلفة</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button onClick={handleExportExcel} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl border-slate-200 hover:bg-slate-50 font-bold">
-            <Download size={18} className="ml-2" />
-            تصدير إكسيل
+          <Button onClick={handleExportExcel} variant="outline" className="h-14 px-6 rounded-2xl border-slate-200 hover:bg-slate-50 font-black text-slate-600 bg-white shadow-sm transition-all hover:-translate-y-1">
+            <Download size={20} className="ml-2" />
+            تصدير البيانات
           </Button>
-          <Button onClick={() => window.print()} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl border-slate-200 hover:bg-slate-50 font-bold">
-            <Printer size={18} className="ml-2" />
-            طباعة
+          <Button onClick={() => window.print()} variant="outline" className="h-14 px-6 rounded-2xl border-slate-200 hover:bg-slate-50 font-black text-slate-600 bg-white shadow-sm transition-all hover:-translate-y-1">
+            <Printer size={20} className="ml-2" />
+            طباعة الكشف
           </Button>
-          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8 text-sm md:text-base">
-            <Plus size={18} className="ml-2" />
+          <Button onClick={() => setShowAdd(true)} className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black shadow-xl shadow-primary/20 transition-all hover:-translate-y-1">
+            <Plus size={20} className="ml-2" />
             إذن صرف جديد
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm print:hidden">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+      <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 print:hidden relative overflow-hidden">
+        <div className="absolute left-0 top-0 w-32 h-32 bg-primary/5 rounded-br-full pointer-events-none" />
+        <div className="relative flex-1 w-full group">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
+            <Search size={18} />
+          </div>
           <Input 
             placeholder="البحث باسم الصنف، مركز التكلفة، أو رقم أمر الشغل..." 
-            className="pr-10 h-11 rounded-xl border-slate-200 focus:ring-primary/20"
+            className="pr-14 h-14 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 font-bold text-slate-700"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100">
-            <Input 
-              type="date" 
-              className="h-9 border-none bg-transparent font-bold text-xs" 
-              value={dateFilter.start}
-              onChange={e => setDateFilter({...dateFilter, start: e.target.value})}
-            />
-            <span className="text-slate-400 font-bold text-xs">إلى</span>
-            <Input 
-              type="date" 
-              className="h-9 border-none bg-transparent font-bold text-xs" 
-              value={dateFilter.end}
-              onChange={e => setDateFilter({...dateFilter, end: e.target.value})}
-            />
+        <div className="flex items-center gap-2 w-full md:w-auto relative z-10">
+          <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
+            <div className="flex flex-col px-3">
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">من تاريخ</span>
+              <Input 
+                type="date" 
+                className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
+                value={dateFilter.start}
+                onChange={e => setDateFilter({...dateFilter, start: e.target.value})}
+              />
+            </div>
+            <div className="w-px h-8 bg-slate-200 mx-2" />
+            <div className="flex flex-col px-3">
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">إلى تاريخ</span>
+              <Input 
+                type="date" 
+                className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
+                value={dateFilter.end}
+                onChange={e => setDateFilter({...dateFilter, end: e.target.value})}
+              />
+            </div>
             {(dateFilter.start || dateFilter.end) && (
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 text-slate-400 hover:text-red-500"
+                className="h-10 w-10 text-slate-400 hover:text-red-500 rounded-xl"
                 onClick={() => setDateFilter({ start: '', end: '' })}
               >
-                <X size={14} />
+                <X size={16} />
               </Button>
             )}
           </div>
         </div>
       </div>
 
-      <Card className="dribbble-card overflow-hidden border-none print:shadow-none">
-        <div className="hidden print:block text-center mb-8">
-          <h1 className="text-2xl font-black">تقرير أذونات الصرف</h1>
-          <p className="text-slate-500 font-bold mt-1">بتاريخ: {format(new Date(), 'dd/MM/yyyy')}</p>
-          <div className="mt-4 border-b-2 border-slate-900 w-full" />
+      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[2.5rem] relative">
+        <div className="hidden print:block text-center mb-12 py-8 border-b-2 border-slate-900 border-dashed">
+          <h1 className="text-4xl font-black tracking-tight">تقرير أذونات صرف الخامات</h1>
+          <p className="text-slate-500 font-bold mt-2 text-lg">سجل حركات المخازن المعتمد لليوم: {format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
         </div>
-        <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow className="hover:bg-transparent border-slate-100">
-              <TableHead className="text-right font-black text-slate-900 py-5">التاريخ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">رقم أمر الشغل</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الصنف</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الكمية</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الوحدة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">مركز التكلفة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الإجمالي</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredIssuances.slice().reverse().map(iss => (
-              <TableRow key={iss.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-bold text-slate-500">{format(new Date(iss.date), 'dd/MM/yyyy HH:mm')}</TableCell>
-                <TableCell className="font-black text-slate-900">
-                  <Badge variant="outline" className="border-slate-200 text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                    #{iss.jobOrderNo || '-'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-black text-slate-900">{items.find(i => i.id === iss.itemId)?.name}</TableCell>
-                <TableCell className="font-bold text-slate-600">{iss.quantity}</TableCell>
-                <TableCell className="text-slate-500 font-medium">{iss.unit}</TableCell>
-                <TableCell>
-                  <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-lg">
-                    {iss.costCenter}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-black text-primary">{iss.total.toLocaleString()} ج.م</TableCell>
+
+        <div className="overflow-x-auto custom-scrollbar">
+          <Table>
+            <TableHeader className="bg-slate-50/50 h-20">
+              <TableRow className="hover:bg-transparent border-slate-100">
+                <TableHead className="text-right font-black text-slate-900 px-8 text-xs uppercase tracking-[0.2em]">التاريخ</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">رقم أمر الشغل</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">الصنف</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">الكمية</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">مركز التكلفة</TableHead>
+                <TableHead className="text-right font-black text-slate-900 px-8 text-xs uppercase tracking-[0.2em]">الإجمالي</TableHead>
               </TableRow>
-            ))}
-            {filteredIssuances.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-20 text-slate-400 font-bold">لا توجد نتائج بحث مطابقة</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredIssuances.map(iss => (
+                <TableRow key={iss.id} className="h-24 border-slate-50 hover:bg-slate-50 transition-all border-b last:border-0 text-right">
+                  <TableCell className="px-8 font-bold text-slate-600">
+                    {format(new Date(iss.date), 'dd/MM/yyyy HH:mm')}
+                  </TableCell>
+                  <TableCell className="font-black text-slate-900">{iss.jobOrderNo}</TableCell>
+                  <TableCell className="font-bold text-slate-800">
+                    {items.find(i => i.id === iss.itemId)?.name || 'غير معروف'}
+                  </TableCell>
+                  <TableCell className="font-black text-primary">
+                    {iss.quantity} {iss.unit}
+                  </TableCell>
+                  <TableCell className="font-bold text-slate-500">{iss.costCenter}</TableCell>
+                  <TableCell className="px-8 font-black text-slate-900">
+                    {iss.total.toLocaleString()} <span className="text-[10px] text-slate-400">ج.م</span>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredIssuances.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-64 text-center">
+                    <div className="flex flex-col items-center justify-center gap-4 text-slate-300">
+                      <Search size={48} />
+                      <p className="font-black text-xl">لا توجد أذونات صرف مطابقة للبحث</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
 
-      {/* Add Issuance Dialog */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-2xl max-h-[90vh] overflow-auto my-8">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">إصدار إذن صرف خامات</CardTitle>
-              <CardDescription className="font-medium">حدد الأصناف والكميات المراد صرفها لمرحلة إنتاج معينة</CardDescription>
-              {error && <p className="text-red-500 font-bold text-sm mt-2">{error}</p>}
+          <Card className="dribbble-card w-full max-w-lg max-h-[90vh] overflow-auto border-none shadow-2xl animate-in zoom-in duration-300">
+            <CardHeader className="pb-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4">
+                <PlusCircle size={24} />
+              </div>
+              <CardTitle className="font-black text-2xl text-slate-900 tracking-tight">إضافة إذن صرف خامات</CardTitle>
+              <CardDescription className="font-bold text-slate-500">أدخل تفاصيل صرف الخامات لتحديث المخزون وتكاليف الإنتاج</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">رقم أمر الشغل</label>
-                  <Input className="rounded-xl h-11" value={formData.jobOrderNo} onChange={e => setFormData({...formData, jobOrderNo: e.target.value})} placeholder="مثال: 1234" />
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">رقم أمر الشغل</label>
+                  <Input 
+                    value={formData.jobOrderNo} 
+                    onChange={e => setFormData({...formData, jobOrderNo: e.target.value})} 
+                    placeholder="مثال: JO-2024-001" 
+                    className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white font-bold"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">مركز التكلفة (المرحلة)</label>
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">مركز التكلفة</label>
                   <select 
-                    className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white"
+                    className="w-full h-12 rounded-xl border border-slate-100 bg-slate-50 px-3 font-bold text-slate-700 focus:ring-4 focus:ring-primary/10 outline-none"
                     value={formData.costCenter}
                     onChange={e => setFormData({...formData, costCenter: e.target.value})}
                   >
                     <option value="">اختر مركز التكلفة...</option>
-                    {costCenters.map(s => (
-                      <option key={s.id} value={s.name}>{s.name}</option>
-                    ))}
+                    {costCenters.map(cc => <option key={cc.id} value={cc.name}>{cc.name}</option>)}
                   </select>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                  <h3 className="font-black text-slate-900">الأصناف المراد صرفها</h3>
-                  <Button variant="outline" size="sm" onClick={handleAddItem} className="rounded-xl border-slate-200 font-bold text-primary hover:bg-primary/5">
+                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
+                  <label className="text-sm font-black text-slate-900 tracking-tighter">الأصناف المراد صرفها</label>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleAddItem} 
+                    className="rounded-xl bg-white border-slate-100 hover:bg-slate-50 font-bold text-xs"
+                  >
                     <Plus size={14} className="ml-1" />
-                    إضافة صنف
+                    إضافة صنف آخر
                   </Button>
                 </div>
-
-                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-3 max-h-[40vh] overflow-auto pr-2 custom-scrollbar">
                   {formData.selectedItems.map((item, idx) => (
-                    <div key={idx} className="flex gap-4 items-end p-5 bg-slate-50/50 rounded-2xl border border-slate-100 relative group transition-all hover:bg-white hover:shadow-lg hover:shadow-slate-200/50">
+                    <div key={idx} className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-4 relative group hover:border-primary/20 transition-all">
                       {formData.selectedItems.length > 1 && (
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="absolute top-2 left-2 text-slate-300 hover:text-red-500 hover:bg-red-50 h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                          className="absolute top-2 left-2 text-slate-300 hover:text-red-500 h-8 w-8 rounded-lg"
                           onClick={() => handleRemoveItem(idx)}
                         >
                           <Trash2 size={14} />
                         </Button>
                       )}
-                      <div className="flex-1 space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">الصنف</label>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">اختر الصنف</label>
                         <select 
-                          className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white"
+                          className="w-full h-11 rounded-xl border border-slate-100 bg-slate-50 px-3 font-bold text-slate-800 focus:bg-white transition-all outline-none"
                           value={item.itemId}
                           onChange={e => handleItemChange(idx, 'itemId', e.target.value)}
                         >
-                          <option value="">اختر صنف...</option>
-                          {items.map(i => (
-                            <option key={i.id} value={i.id}>
-                              {i.name} (المتاح: {i.currentBalance} {i.unit})
-                            </option>
-                          ))}
+                          <option value="">-- اضغط للاختيار --</option>
+                          {items.map(i => <option key={i.id} value={i.id}>{i.name} (المتاح: {i.currentBalance})</option>)}
                         </select>
                       </div>
-                      <div className="w-32 space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">الكمية</label>
-                        <div className="relative">
-                          <Input 
-                            className="rounded-xl h-11"
-                            type="number" 
-                            value={item.quantity} 
-                            onChange={e => handleItemChange(idx, 'quantity', Number(e.target.value))} 
-                          />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">
-                            {items.find(i => i.id === item.itemId)?.unit}
-                          </span>
-                        </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الكمية الصادرة</label>
+                        <Input 
+                          type="number" 
+                          className="h-11 rounded-xl bg-slate-50 border-slate-100 font-black text-lg focus:bg-white transition-all" 
+                          value={item.quantity} 
+                          onChange={e => handleItemChange(idx, 'quantity', Number(e.target.value))} 
+                        />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-black flex items-center gap-2">
+                  <AlertCircle size={14} />
+                  {error}
+                </div>
+              )}
+
               <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
-                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} className="btn-primary px-10 h-12 font-black">تأكيد الصرف</Button>
+                <Button variant="ghost" onClick={() => setShowAdd(false)} className="h-12 px-6 rounded-xl font-bold text-slate-500">إلغاء</Button>
+                <Button onClick={handleAdd} className="h-12 px-10 rounded-xl bg-primary hover:bg-primary/90 text-white font-black shadow-xl shadow-primary/20 transition-all hover:scale-[1.02]">
+                  حفظ وإصدار الإذن
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -8396,10 +8443,10 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
   );
 }
 
-function Suppliers({ 
-  suppliers, 
-  purchases, 
-  items, 
+function Suppliers({
+  suppliers,
+  purchases,
+  items,
   supplierPayments,
   safes,
   profile,
@@ -8441,7 +8488,6 @@ function Suppliers({
     try {
       const batch = writeBatch(db);
       
-      // 1. Add payment record
       const paymentRef = doc(collection(db, 'supplierPayments'));
       batch.set(paymentRef, {
         supplierId: paymentSupplierId,
@@ -8453,13 +8499,12 @@ function Suppliers({
         safeId: paymentData.safeId || null
       });
 
-      // 2. Create safe transaction
       if (paymentData.safeId) {
         const txRef = doc(collection(db, 'safeTransactions'));
         batch.set(txRef, {
           safeId: paymentData.safeId,
           date: paymentData.date,
-          type: 'مصروفات', // Or create a specific type for supplier payments
+          type: 'مصروفات',
           amount: paymentData.amount,
           description: `سداد دفعة للمورد: ${supplier.name} ${paymentData.notes ? `- ${paymentData.notes}` : ''}`,
           category: 'سداد موردين',
@@ -8467,13 +8512,11 @@ function Suppliers({
           createdBy: profile?.name || 'مستخدم'
         });
 
-        // 3. Update safe balance
         batch.update(doc(db, 'safes', paymentData.safeId), {
           balance: increment(-paymentData.amount)
         });
       }
 
-      // 4. Update supplier balance
       batch.update(doc(db, 'suppliers', paymentSupplierId), {
         totalPayments: increment(paymentData.amount),
         balance: increment(-paymentData.amount)
@@ -8500,259 +8543,369 @@ function Suppliers({
   const supplierPurchases = purchases.filter(p => p.supplierId === selectedSupplier?.id);
   const supplierPaymentsList = supplierPayments.filter(p => p.supplierId === selectedSupplier?.id);
 
+  const totalPurchases = suppliers.reduce((acc, s) => acc + (s.totalPurchases || 0), 0);
+  const totalPayments = suppliers.reduce((acc, s) => acc + (s.totalPayments || 0), 0);
+  const totalBalance = suppliers.reduce((acc, s) => acc + (s.balance || 0), 0);
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">الموردين</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">إدارة حسابات الموردين وكشوف الحسابات</p>
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest px-3 py-1 bg-primary/10 rounded-full w-fit">
+            <Truck size={14} />
+            إدارة التوريد
+          </div>
+          <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900">الموردون وشركاء العمل</h2>
+          <p className="text-slate-500 font-bold text-lg max-w-lg mt-2">متابعة حسابات الموردين، حجم المشتريات، وجدولة المستحقات المالية</p>
         </div>
-        <div className="relative w-full md:w-96">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <div className="relative w-full md:w-96 group">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
+            <Search size={18} />
+          </div>
           <Input 
-            placeholder="بحث عن مورد بالاسم..." 
-            className="pr-12 h-10 md:h-14 rounded-xl md:rounded-2xl border-none bg-white shadow-lg md:shadow-xl shadow-slate-200/50 font-bold text-slate-900 placeholder:text-slate-400 text-sm md:text-base" 
+            placeholder="بحث بالاسم أو رقم الهاتف..." 
+            className="pr-14 h-14 rounded-2xl border-slate-100 bg-white shadow-xl shadow-slate-200/40 font-bold text-slate-700"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-              <ShoppingBag size={24} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="relative p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-500">
+          <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+              <ShoppingBag size={28} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">إجمالي المشتريات</p>
-              <p className="text-2xl font-black text-slate-900">{suppliers.reduce((acc, s) => acc + (s.totalPurchases || 0), 0).toLocaleString()} ج.م</p>
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">إجمالي المشتريات</p>
+              <div className="flex items-baseline gap-1">
+                <p className="text-3xl font-black text-slate-900 tracking-tighter">{totalPurchases.toLocaleString()}</p>
+                <span className="text-xs font-bold text-slate-400 uppercase">ج.م</span>
+              </div>
             </div>
           </div>
         </div>
-        <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-              <CreditCard size={24} />
+
+        <div className="relative p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-500">
+          <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-emerald-50 rounded-full blur-2xl group-hover:bg-emerald-100 transition-colors" />
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
+              <CreditCard size={28} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">إجمالي المدفوعات</p>
-              <p className="text-2xl font-black text-emerald-600">{suppliers.reduce((acc, s) => acc + (s.totalPayments || 0), 0).toLocaleString()} ج.م</p>
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">إجمالي المدفوعات</p>
+              <div className="flex items-baseline gap-1">
+                <p className="text-3xl font-black text-emerald-600 tracking-tighter">{totalPayments.toLocaleString()}</p>
+                <span className="text-xs font-bold text-slate-400 uppercase">ج.م</span>
+              </div>
             </div>
           </div>
         </div>
-        <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:shadow-md border-r-4 border-r-orange-500">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600">
-              <Scale size={24} />
+
+        <div className="relative p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group border-r-4 border-r-orange-500 hover:-translate-y-1 transition-all duration-500">
+          <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-orange-50 rounded-full blur-2xl group-hover:bg-orange-100 transition-colors" />
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 shadow-inner">
+              <Scale size={28} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-orange-600">إجمالي الديون (مطلوب سداده)</p>
-              <p className="text-2xl font-black text-orange-600">{suppliers.reduce((acc, s) => acc + (s.balance || 0), 0).toLocaleString()} ج.م</p>
+              <p className="text-[11px] font-black text-orange-600 uppercase tracking-[0.2em] mb-1">صافي المديونية للموردين</p>
+              <div className="flex items-baseline gap-1">
+                <p className="text-3xl font-black text-orange-600 tracking-tighter">{totalBalance.toLocaleString()}</p>
+                <span className="text-xs font-bold text-slate-400 uppercase">ج.م</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
       
-      <Card className="dribbble-card border-none text-right" dir="rtl">
-        <div className="overflow-x-auto">
+      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[2.5rem]">
+        <div className="overflow-x-auto custom-scrollbar">
           <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow className="hover:bg-transparent border-slate-100">
-              <TableHead className="text-right font-black text-slate-900 py-5">اسم المورد</TableHead>
-              <TableHead className="text-right font-black text-slate-900">إجمالي المشتريات</TableHead>
-              <TableHead className="text-right font-black text-slate-900">إجمالي المدفوعات</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الرصيد المتبقي</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الإجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map(s => (
-              <TableRow key={s.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-black text-slate-900">{s.name}</TableCell>
-                <TableCell className="font-bold text-slate-600">{s.totalPurchases.toLocaleString()} ج.م</TableCell>
-                <TableCell className="font-bold text-green-600">{s.totalPayments.toLocaleString()} ج.م</TableCell>
-                <TableCell className="font-black text-orange-600">{s.balance.toLocaleString()} ج.م</TableCell>
-                <TableCell>
-                  {s.balance > 0 ? (
-                    <Badge className="bg-orange-100 text-orange-700 border-none font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-lg">مطلوب السداد</Badge>
-                  ) : (
-                    <Badge className="bg-green-100 text-green-700 border-none font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-lg">خالص</Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => {
-                      setPaymentSupplierId(s.id);
-                      setShowPaymentModal(true);
-                    }} className="rounded-xl border-green-200 font-bold text-green-700 hover:bg-green-50">
-                      <DollarSign size={16} className="ml-1" />
-                      تسديد دفعة
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setSelectedSupplier(s)} className="rounded-xl border-slate-200 font-bold text-primary hover:bg-primary/5">
-                      <FileText size={16} className="ml-1" />
-                      كشف حساب
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setEditingSupplier(s)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
-                      <Edit2 size={16} />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'suppliers', id: s.id })} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </TableCell>
+            <TableHeader className="bg-slate-50/50 h-20">
+              <TableRow className="hover:bg-transparent border-slate-100">
+                <TableHead className="text-right font-black text-slate-900 px-8 text-xs uppercase tracking-[0.2em]">اسم الشركة / المورد</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">إجمالي التوريدات</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">المسدد نقداً / بنكياً</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">الرصيد المستحق</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">الحالة المالية</TableHead>
+                <TableHead className="text-left font-black text-slate-900 px-8 text-xs uppercase tracking-[0.2em]">الإجراءات</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(s => (
+                <TableRow key={s.id} className="h-24 border-slate-50 hover:bg-slate-50 transition-all group border-b last:border-0">
+                  <TableCell className="px-8 font-black text-slate-900 text-lg tracking-tight">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                        {s.name.charAt(0)}
+                      </div>
+                      {s.name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-bold text-slate-500 font-mono">
+                    {s.totalPurchases.toLocaleString()} 
+                    <span className="text-[10px] mr-1 opacity-50">ج.م</span>
+                  </TableCell>
+                  <TableCell className="font-bold text-emerald-600 font-mono">
+                    {s.totalPayments.toLocaleString()}
+                    <span className="text-[10px] mr-1 opacity-50">ج.م</span>
+                  </TableCell>
+                  <TableCell className="font-black text-orange-600 font-mono text-xl tracking-tighter">
+                    {s.balance.toLocaleString()}
+                    <span className="text-[10px] mr-1 opacity-50">ج.م</span>
+                  </TableCell>
+                  <TableCell>
+                    {s.balance > 0 ? (
+                      <Badge className="bg-orange-50 text-orange-600 border-none font-black text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-xl animate-pulse">مطلوب السداد</Badge>
+                    ) : (
+                      <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-xl">خالص تماماً</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-8">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setPaymentSupplierId(s.id);
+                        setShowPaymentModal(true);
+                      }} className="h-10 rounded-xl border-emerald-100 text-emerald-600 font-black text-xs hover:bg-emerald-50 shadow-sm">
+                        <DollarSign size={14} className="ml-1.5" />
+                        سداد دفعة
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedSupplier(s)} className="h-10 rounded-xl border-slate-100 text-primary font-black text-xs hover:bg-primary/5 shadow-sm">
+                        <FileText size={14} className="ml-1.5" />
+                        كشف حساب
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setEditingSupplier(s)} className="h-10 w-10 rounded-xl text-slate-400 hover:text-primary hover:bg-slate-100">
+                        <Edit2 size={16} />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'suppliers', id: s.id })} className="h-10 w-10 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50">
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-24">
+                     <div className="flex flex-col items-center justify-center gap-4">
+                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
+                          <Search size={40} />
+                        </div>
+                        <p className="text-slate-400 font-black text-lg tracking-tight">لا يوجد موردون يطابقون بحثك</p>
+                     </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Supplier Account Statement Dialog */}
       {selectedSupplier && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-4xl border-zinc-200 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <CardHeader className="border-b border-zinc-100 pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl">كشف حساب: {selectedSupplier.name}</CardTitle>
-                  <CardDescription>عرض كافة المعاملات المالية والمشتريات</CardDescription>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+          <Card className="dribbble-card w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[3rem]">
+            <CardHeader className="p-10 pb-6 shrink-0 relative overflow-hidden bg-white">
+              <div className="absolute right-0 top-0 w-48 h-48 bg-primary/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 bg-primary rounded-2.5xl flex items-center justify-center text-white shadow-2xl shadow-primary/30">
+                    <FileText size={32} />
+                  </div>
+                  <div>
+                    <CardTitle className="font-black text-3xl tracking-tight text-slate-900">كشف حساب: {selectedSupplier.name}</CardTitle>
+                    <CardDescription className="font-bold text-slate-500 text-lg">عرض تفصيلي لكافة التوريدات والمدفوعات والمستحقات المتبقية</CardDescription>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 print:hidden">
-                  <Button variant="outline" onClick={() => window.print()} className="rounded-xl border-slate-200 font-bold">
-                    <Printer size={16} className="ml-2" />
+                <div className="flex items-center gap-3 print:hidden">
+                  <Button variant="outline" onClick={() => window.print()} className="h-12 px-6 rounded-2xl border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
+                    <Printer size={18} className="ml-2" />
                     طباعة الكشف
                   </Button>
-                  <Button variant="ghost" onClick={() => setSelectedSupplier(null)}>إغلاق</Button>
+                  <Button variant="ghost" className="h-12 w-12 rounded-2xl text-slate-400 hover:bg-red-50 hover:text-red-500" onClick={() => setSelectedSupplier(null)}>
+                     <X size={24} />
+                  </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0 overflow-auto flex-1">
-              <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-zinc-50 border-b border-zinc-100 print:bg-white text-right" dir="rtl">
-                <div className="p-4 bg-white rounded-xl border border-zinc-200">
-                  <p className="text-xs text-zinc-500 mb-1">رصيد أول المدة</p>
-                  <p className="text-xl font-bold text-slate-700">{(selectedSupplier.openingBalance || 0).toLocaleString()} ج.م</p>
+            <CardContent className="p-0 overflow-hidden flex-1 flex flex-col">
+              <div className="px-10 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 bg-slate-50/50 border-y border-slate-100 print:bg-white relative">
+                <div className="p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">رصيد أول المدة</p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-xl font-black text-slate-900 tracking-tighter">{(selectedSupplier.openingBalance || 0).toLocaleString()}</p>
+                    <span className="text-[10px] font-bold text-slate-300">ج.م</span>
+                  </div>
                 </div>
-                <div className="p-4 bg-white rounded-xl border border-zinc-200">
-                  <p className="text-xs text-zinc-500 mb-1">إجمالي المشتريات</p>
-                  <p className="text-xl font-bold">{selectedSupplier.totalPurchases.toLocaleString()} ج.م</p>
+                <div className="p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي المشتريات</p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-xl font-black text-slate-900 tracking-tighter">{selectedSupplier.totalPurchases.toLocaleString()}</p>
+                    <span className="text-[10px] font-bold text-slate-300">ج.م</span>
+                  </div>
                 </div>
-                <div className="p-4 bg-white rounded-xl border border-zinc-200">
-                  <p className="text-xs text-zinc-500 mb-1">إجمالي المدفوعات</p>
-                  <p className="text-xl font-bold text-green-600">{selectedSupplier.totalPayments.toLocaleString()} ج.م</p>
+                <div className="p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all border-emerald-100">
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">إجمالي المسدد</p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-xl font-black text-emerald-600 tracking-tighter">{selectedSupplier.totalPayments.toLocaleString()}</p>
+                    <span className="text-[10px] font-bold text-emerald-200">ج.م</span>
+                  </div>
                 </div>
-                <div className="p-4 bg-white rounded-xl border border-zinc-200">
-                  <p className="text-xs text-zinc-500 mb-1">الرصيد المتبقي</p>
-                  <p className="text-xl font-bold text-orange-600">{selectedSupplier.balance.toLocaleString()} ج.م</p>
+                <div className="p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all border-orange-100">
+                  <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">الرصيد المتبقي</p>
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-xl font-black text-orange-600 tracking-tighter">{selectedSupplier.balance.toLocaleString()}</p>
+                    <span className="text-[10px] font-bold text-orange-200">ج.م</span>
+                  </div>
                 </div>
               </div>
               
-              <div className="overflow-x-auto">
-                <Table>
-                <TableHeader className="bg-zinc-50 sticky top-0 z-10">
-                  <TableRow>
-                    <TableHead className="text-right">التاريخ</TableHead>
-                    <TableHead className="text-right">النوع</TableHead>
-                    <TableHead className="text-right">البيان / الصنف</TableHead>
-                    <TableHead className="text-right">الكمية</TableHead>
-                    <TableHead className="text-right">سعر الوحدة</TableHead>
-                    <TableHead className="text-right">مدين (مشتريات)</TableHead>
-                    <TableHead className="text-right">دائن (مدفوعات)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[
-                    ...supplierPurchases.map(p => ({ ...p, _type: 'purchase', _date: new Date(p.date).getTime() })),
-                    ...supplierPaymentsList.map(p => ({ ...p, _type: 'payment', _date: new Date(p.date).getTime() }))
-                  ].sort((a, b) => b._date - a._date).map((item: any) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{format(new Date(item.date), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell>
-                        {item._type === 'purchase' ? (
-                          <Badge className="bg-blue-100 text-blue-700 border-none">فاتورة مشتريات</Badge>
-                        ) : (
-                          <Badge className="bg-green-100 text-green-700 border-none">دفعة {item.paymentMethod}</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {item._type === 'purchase' ? items.find(i => i.id === item.itemId)?.name : item.notes || `دفعة ${item.paymentMethod} ${item.referenceNumber ? `(${item.referenceNumber})` : ''}`}
-                      </TableCell>
-                      <TableCell>{item._type === 'purchase' ? `${item.quantity} ${item.unit}` : '-'}</TableCell>
-                      <TableCell>{item._type === 'purchase' ? (item.unitPrice || (item.total / item.quantity)).toLocaleString() : '-'}</TableCell>
-                      <TableCell className="font-bold text-orange-600">{item._type === 'purchase' ? item.total.toLocaleString() : '-'}</TableCell>
-                      <TableCell className="font-bold text-green-600">
-                        {item._type === 'purchase' ? (item.paidAmount > 0 ? item.paidAmount.toLocaleString() : '-') : item.amount.toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {supplierPurchases.length === 0 && supplierPaymentsList.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-10 text-zinc-500">لا توجد معاملات مسجلة لهذا المورد</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
+              <div className="overflow-auto flex-1 custom-scrollbar px-10 pt-6">
+                <div className="rounded-[2rem] border border-slate-100 overflow-hidden mb-10 shadow-sm">
+                  <Table>
+                    <TableHeader className="bg-slate-50/50 h-16">
+                      <TableRow className="hover:bg-transparent border-slate-100">
+                        <TableHead className="text-right font-black text-slate-900 px-6 text-[11px] uppercase tracking-widest">التاريخ</TableHead>
+                        <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">نوع العملية</TableHead>
+                        <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">البيان / تفصيل الحركة</TableHead>
+                        <TableHead className="text-center font-black text-slate-900 text-[11px] uppercase tracking-widest">الكمية</TableHead>
+                        <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">وحدة / سعر</TableHead>
+                        <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">مدين (+)</TableHead>
+                        <TableHead className="text-right font-black text-slate-900 px-6 text-[11px] uppercase tracking-widest">دائن (-)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[
+                        ...supplierPurchases.map(p => ({ ...p, _type: 'purchase', _date: new Date(p.date).getTime() })),
+                        ...supplierPaymentsList.map(p => ({ ...p, _type: 'payment', _date: new Date(p.date).getTime() }))
+                      ].sort((a, b) => b._date - a._date).map((item: any) => (
+                        <TableRow key={item.id} className="h-20 border-slate-50 group hover:bg-slate-50 transition-all">
+                          <TableCell className="px-6 font-bold text-slate-500 text-xs font-mono">{format(new Date(item.date), 'dd/MM/yyyy')}</TableCell>
+                          <TableCell>
+                            {item._type === 'purchase' ? (
+                              <Badge className="bg-blue-50 text-blue-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg italic">فاتورة مشتريات</Badge>
+                            ) : (
+                              <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg italic">دفعة {item.paymentMethod}</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-extrabold text-slate-800 text-sm tracking-tight">
+                            {item._type === 'purchase' ? items.find(i => i.id === item.itemId)?.name : item.notes || `دفعة ${item.paymentMethod} ${item.referenceNumber ? `(${item.referenceNumber})` : ''}`}
+                          </TableCell>
+                          <TableCell className="text-center font-black text-slate-400 text-xs">{item._type === 'purchase' ? `${item.quantity} ${item.unit}` : '-'}</TableCell>
+                          <TableCell className="font-bold text-slate-400 text-xs">{item._type === 'purchase' ? (item.unitPrice || (item.total / item.quantity)).toLocaleString() : '-'}</TableCell>
+                          <TableCell className="font-black text-slate-900 font-mono italic">{item._type === 'purchase' ? item.total.toLocaleString() : '-'}</TableCell>
+                          <TableCell className="px-6 font-black text-emerald-600 font-mono italic">
+                            {item._type === 'purchase' ? (item.paidAmount > 0 ? item.paidAmount.toLocaleString() : '-') : item.amount.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {supplierPurchases.length === 0 && supplierPaymentsList.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-20">
+                            <div className="flex flex-col items-center justify-center gap-3">
+                               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
+                                 <FileText size={32} />
+                               </div>
+                               <p className="text-slate-400 font-black text-sm tracking-tight italic">لا توجد معاملات مسجلة في كشف الحساب حالياً</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </CardContent>
           </Card>
         </div>
       )}
 
       {/* Payment Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="dribbble-card w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">تسديد دفعة للمورد</CardTitle>
-              <CardDescription>
-                {suppliers.find(s => s.id === paymentSupplierId)?.name}
-              </CardDescription>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-300">
+          <Card className="dribbble-card w-full max-w-xl border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[3rem] overflow-hidden">
+            <CardHeader className="p-10 pb-6 shrink-0 relative overflow-hidden bg-white">
+               <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
+               <div className="relative z-10">
+                 <div className="w-16 h-16 bg-emerald-600 rounded-2.5xl flex items-center justify-center text-white shadow-2xl shadow-emerald-600/30 mb-6">
+                    <DollarSign size={32} />
+                 </div>
+                 <CardTitle className="font-black text-3xl tracking-tight text-slate-900">تسجيل دفعة سداد</CardTitle>
+                 <CardDescription className="font-bold text-slate-500 text-lg mt-2 italic flex items-center gap-2">
+                    <Truck size={16} />
+                    للمورد: {suppliers.find(s => s.id === paymentSupplierId)?.name}
+                 </CardDescription>
+               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11" value={paymentData.date} onChange={e => setPaymentData({...paymentData, date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">المبلغ</label>
-                <Input type="number" step="any" className="rounded-xl h-11" value={paymentData.amount || ''} onChange={e => setPaymentData({...paymentData, amount: Number(e.target.value)})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">طريقة الدفع</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={paymentData.paymentMethod} onChange={e => setPaymentData({...paymentData, paymentMethod: e.target.value as any})}>
-                  <option value="نقدي">نقدي</option>
-                  <option value="شيك">شيك</option>
-                  <option value="تحويل بنكي">تحويل بنكي</option>
-                </select>
-              </div>
-              {(paymentData.paymentMethod === 'شيك' || paymentData.paymentMethod === 'تحويل بنكي') && (
+            <CardContent className="p-10 pt-4 space-y-8">
+              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">رقم المرجع (رقم الشيك / التحويل)</label>
-                  <Input className="rounded-xl h-11" value={paymentData.referenceNumber} onChange={e => setPaymentData({...paymentData, referenceNumber: e.target.value})} />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                     <Calendar size={12} /> التاريخ
+                  </label>
+                  <Input type="date" className="h-14 rounded-2xl bg-slate-50 border-none font-black text-xl px-5 focus:ring-4 focus:ring-primary/10 transition-all" value={paymentData.date} onChange={e => setPaymentData({...paymentData, date: e.target.value})} />
                 </div>
-              )}
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
-                <select 
-                  className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
-                  value={paymentData.safeId}
-                  onChange={e => setPaymentData({...paymentData, safeId: e.target.value})}
-                >
-                  <option value="">اختر الخزنة...</option>
-                  {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
-                </select>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                     <Wallet size={12} /> المبلغ الـمسدد
+                  </label>
+                  <Input 
+                    type="number" 
+                    className="h-14 rounded-2xl bg-slate-50 border-none font-black text-2xl tracking-tighter font-mono px-5 focus:ring-4 focus:ring-emerald-500/10 transition-all text-emerald-600 text-center" 
+                    value={paymentData.amount || ''} 
+                    onChange={e => setPaymentData({...paymentData, amount: Number(e.target.value)})} 
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">ملاحظات</label>
-                <Input className="rounded-xl h-11" value={paymentData.notes} onChange={e => setPaymentData({...paymentData, notes: e.target.value})} />
+              
+              <div className="space-y-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">طريقة الدفع</label>
+                    <select className="w-full h-14 rounded-2xl border-none bg-white px-5 font-black text-lg appearance-none shadow-sm focus:ring-4 focus:ring-primary/10 outline-none" value={paymentData.paymentMethod} onChange={e => setPaymentData({...paymentData, paymentMethod: e.target.value as any})}>
+                      <option value="نقدي">💵 نـقـدي</option>
+                      <option value="شيك">📝 شـيـك بـنـكـي</option>
+                      <option value="تحويل بنكي">🏛 تحـويـل بـنـكـي</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest font-mono">خصم المبلغ من خزينة:</label>
+                    <select 
+                      className="w-full h-14 rounded-2xl border-2 border-emerald-500/20 bg-white px-5 font-black text-lg text-emerald-600 shadow-sm focus:ring-4 focus:ring-emerald-500/10 outline-none"
+                      value={paymentData.safeId}
+                      onChange={e => setPaymentData({...paymentData, safeId: e.target.value})}
+                    >
+                      <option value="">اختر الخزنة المصدر...</option>
+                      {safes.map(s => <option key={s.id} value={s.id}>{s.name} (المتاح: {s.balance.toLocaleString()} ج.م)</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {(paymentData.paymentMethod === 'شيك' || paymentData.paymentMethod === 'تحويل بنكي') && (
+                  <div className="space-y-2 animate-in slide-in-from-top-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم المرجع (الشيك / التحويل)</label>
+                    <Input className="h-14 rounded-2xl border-none bg-white px-5 font-black text-lg shadow-sm focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-300" value={paymentData.referenceNumber} onChange={e => setPaymentData({...paymentData, referenceNumber: e.target.value})} placeholder="أدخل رقم العملية..." />
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">تفاصيل إضافية / ملاحظات</label>
+                  <Input className="h-14 rounded-2xl border-none bg-white px-5 font-black text-lg shadow-sm focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-300" value={paymentData.notes} onChange={e => setPaymentData({...paymentData, notes: e.target.value})} placeholder="أي تفاصيل عن الحركة..." />
+                </div>
               </div>
-              <div className="flex justify-end gap-3 pt-6">
-                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => {
+
+              <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
+                <Button variant="ghost" className="h-14 px-8 rounded-2xl font-black text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all" onClick={() => {
                   setShowPaymentModal(false);
                   setPaymentSupplierId(null);
-                }}>إلغاء</Button>
-                <Button onClick={handleAddPayment} className="bg-green-600 hover:bg-green-700 text-white px-10 h-12 font-black rounded-xl">حفظ الدفعة</Button>
+                }}>إلغاء وتراجع</Button>
+                <Button onClick={handleAddPayment} className="h-14 px-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-2xl shadow-emerald-600/30 transition-all hover:-translate-y-1">
+                   تأكيد واعتماد السند
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -8952,95 +9105,157 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-12 animate-in fade-in duration-500 pb-24">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div>
-          <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">جرد المخزن</h2>
-          <p className="text-slate-500 mt-2 font-bold text-lg">مطابقة الرصيد الفعلي مع رصيد النظام</p>
+          <div className="flex items-center gap-3 text-primary font-black text-xs uppercase tracking-widest px-4 py-1.5 bg-primary/10 rounded-full w-fit mb-4">
+            <ClipboardCheck size={14} />
+            ضبط المخزون
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">جرد المخازن</h2>
+          <p className="text-slate-500 mt-3 font-bold text-lg max-w-xl">عملية دورية لمطابقة الرصيد الفعلي في العنابر مع رصيد النظام وتصحيح الفروقات تلقائياً</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => setShowHistory(true)} variant="outline" className="h-10 md:h-12 px-6 rounded-xl md:rounded-2xl border-slate-200 font-bold">
+        <div className="flex items-center gap-4">
+          <Button onClick={() => setShowHistory(true)} variant="outline" className="h-14 px-8 rounded-2xl border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
             <History size={18} className="ml-2" />
-            سجل الجرد
+            سجل عمليات الجرد
           </Button>
           {!isAuditing && (
-            <Button onClick={startAudit} className="btn-primary h-10 md:h-12 px-8 rounded-xl md:rounded-2xl font-black">
-              ابدأ عملية جرد جديدة
+            <Button onClick={startAudit} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg shadow-2xl shadow-primary/30 transition-all hover:-translate-y-1">
+              <Plus size={20} className="ml-2" />
+              بدء جرد جديد
             </Button>
           )}
         </div>
       </div>
 
       {!isAuditing ? (
-        <Card className="dribbble-card border-none p-10 bg-white/50 backdrop-blur-xl">
-          <div className="max-w-2xl mx-auto space-y-10 text-center">
-            <div className="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto text-primary animate-pulse">
-              <ClipboardCheck size={48} />
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-2xl font-black text-slate-900">اختر المخزن لبدء الجرد</h3>
-              <p className="text-slate-500 font-medium">سيتم تحميل جميع الأصناف الموجودة في المخزن المختار لمقارنتها بالواقع</p>
-            </div>
-            
-            <div className="relative group">
-              <div className="absolute inset-0 bg-primary/5 rounded-3xl blur-xl group-hover:bg-primary/10 transition-all" />
-              <select 
-                value={selectedWarehouseId}
-                onChange={e => setSelectedWarehouseId(e.target.value)}
-                className="relative w-full h-16 rounded-[1.5rem] border-2 border-slate-100 bg-white px-8 font-black text-xl text-slate-700 shadow-xl shadow-slate-200/20 focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none appearance-none text-center"
-              >
-                <option value="">--- اختر المخزن من القائمة ---</option>
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </select>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <Card className="dribbble-card border-none p-12 bg-white shadow-2xl shadow-slate-200/40 rounded-[3rem] relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary/10 transition-colors" />
+              
+              <div className="relative z-10 space-y-10">
+                <div className="w-24 h-24 bg-primary rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-primary/30">
+                  <WarehouseIcon size={48} />
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">اختر المخزن المستهدف</h3>
+                  <p className="text-slate-500 font-bold text-lg leading-relaxed">سيتم سحب كافة الأصناف المندرجة تحت هذا المخزن لتبدأ عملية المراجعة الفعلية</p>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="relative group/select">
+                    <select 
+                      value={selectedWarehouseId}
+                      onChange={e => setSelectedWarehouseId(e.target.value)}
+                      className="w-full h-20 rounded-[2rem] border-2 border-slate-100 bg-slate-50/50 px-10 font-black text-2xl text-slate-800 shadow-inner focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">-- اضغط للاختيار --</option>
+                      {warehouses.map(w => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
+                    <div className="absolute left-8 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within/select:text-primary transition-colors">
+                      <ChevronDown size={24} />
+                    </div>
+                  </div>
 
-            <Button onClick={startAudit} disabled={!selectedWarehouseId} className="w-full h-16 rounded-3xl bg-primary hover:bg-primary/90 text-white font-black text-lg shadow-2xl shadow-primary/30 disabled:opacity-50 disabled:grayscale transition-all hover:scale-[1.02] active:scale-[0.98]">
-              تأكيد الاختيار والبدء
-            </Button>
-          </div>
-        </Card>
-      ) : (
-        <div className="space-y-8 pb-20">
-          <Card className="dribbble-card border-none p-6 shadow-2xl shadow-slate-200/50">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">تاريخ الجرد</label>
-                <Input type="date" value={auditDate} onChange={e => setAuditDate(e.target.value)} className="h-12 rounded-2xl border-slate-100 bg-slate-50 focus:ring-primary font-black text-slate-700" />
+                  <Button 
+                    onClick={startAudit} 
+                    disabled={!selectedWarehouseId} 
+                    className="w-full h-20 rounded-[2rem] bg-slate-900 hover:bg-black text-white font-black text-xl shadow-2xl shadow-slate-900/20 disabled:opacity-30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    بدء المراجعة الآن
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">ملاحظات العملية</label>
-                <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="مثال: جرد شهر أكتوبر - مخزن النزهة" className="h-12 rounded-2xl border-slate-100 bg-slate-50 focus:ring-primary font-bold text-slate-700" />
+            </Card>
+
+            <div className="space-y-8 hidden lg:block">
+               <div className="flex gap-6 items-start">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex shrink-0 items-center justify-center text-emerald-600">
+                     <CheckCircle2 size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xl text-slate-900 mb-1">تحديث آلي</h4>
+                    <p className="text-slate-500 font-medium">سيتم تصحيح أرصدة الأصناف تلقائياً فور اعتماد الجرد</p>
+                  </div>
+               </div>
+               <div className="flex gap-6 items-start">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-100 flex shrink-0 items-center justify-center text-orange-600">
+                     <AlertCircle size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xl text-slate-900 mb-1">تسوية الفوارق</h4>
+                    <p className="text-slate-500 font-medium">يتم تسجيل الفوارق كأذونات صرف أو مرتجعات للمحافظة على سجل الحركة</p>
+                  </div>
+               </div>
+               <div className="flex gap-6 items-start">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-100 flex shrink-0 items-center justify-center text-blue-600">
+                     <ShieldCheck size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xl text-slate-900 mb-1">أرشفة كاملة</h4>
+                    <p className="text-slate-500 font-medium">كل عملية جرد موثقة باسم المسؤول والتاريخ لضمان الشفافية</p>
+                  </div>
+               </div>
+            </div>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          <Card className="dribbble-card border-none p-10 shadow-2xl shadow-slate-200/40 rounded-[2.5rem] bg-white">
+            <div className="flex flex-col lg:flex-row gap-10 items-end">
+              <div className="space-y-3 flex-1">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mr-1">المخزن المفتوح للجرد</label>
+                <div className="h-16 px-8 rounded-2xl bg-slate-50 flex items-center gap-4 text-slate-900 font-black text-xl border border-slate-100">
+                   <WarehouseIcon size={24} className="text-primary" />
+                   {warehouses.find(w => w.id === selectedWarehouseId)?.name}
+                </div>
+              </div>
+              <div className="space-y-3 w-full lg:w-64">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mr-1">تاريخ اليوم</label>
+                <Input type="date" value={auditDate} onChange={e => setAuditDate(e.target.value)} className="h-16 rounded-2xl border-none bg-slate-50 focus:ring-4 focus:ring-primary/10 font-black text-xl text-slate-700 px-8" />
+              </div>
+              <div className="space-y-3 flex-[2]">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mr-1">بيان أو ملاحظات الجرد</label>
+                <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="مثال: جرد الربع السنوي الأول..." className="h-16 rounded-2xl border-none bg-slate-50 focus:ring-4 focus:ring-primary/10 font-bold text-lg text-slate-700 px-8" />
               </div>
             </div>
           </Card>
 
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-             <div className="relative w-full md:w-96">
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+             <div className="relative w-full md:w-[28rem] group">
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:text-primary transition-colors">
+                  <Search size={20} />
+                </div>
                 <Input 
-                  placeholder="بحث سريع عن صنف..." 
+                  placeholder="ابحث عن صنف لـمـراجعـتـه..." 
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="h-12 pr-12 rounded-2xl border-slate-200 shadow-sm font-bold"
+                  className="h-16 pr-16 bg-white rounded-[1.5rem] border-slate-100 shadow-xl shadow-slate-200/30 font-bold text-lg"
                 />
              </div>
-             <Badge className="bg-slate-900 text-white px-4 py-2 rounded-xl border-none font-black">
-                {warehouseItems.length} صنف قيد الجرد
-             </Badge>
+             <div className="flex items-center gap-4">
+                <div className="flex -space-x-3 overflow-hidden">
+                   {[1,2,3].map(i => <div key={i} className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-slate-100" />)}
+                </div>
+                <Badge className="bg-slate-900 text-white px-5 py-2.5 rounded-xl border-none font-black text-sm">
+                   {warehouseItems.length} صنف مستهدف
+                </Badge>
+             </div>
           </div>
 
-          <Card className="dribbble-card border-none overflow-hidden shadow-2xl shadow-slate-200/50">
-            <div className="overflow-x-auto">
+          <Card className="dribbble-card border-none overflow-hidden shadow-2xl shadow-slate-200/30 rounded-[2.5rem] bg-white">
+            <div className="overflow-x-auto custom-scrollbar">
               <Table>
-                <TableHeader className="bg-slate-900">
-                  <TableRow className="hover:bg-slate-900 border-none">
-                    <TableHead className="font-black text-white py-5">اسم الصنف</TableHead>
-                    <TableHead className="font-black text-white text-center">الوحدة</TableHead>
-                    <TableHead className="font-black text-white text-center">رصيد النظام</TableHead>
-                    <TableHead className="font-black text-white text-center w-40">الرصيد الفعلي</TableHead>
-                    <TableHead className="font-black text-white text-center">الفارق</TableHead>
+                <TableHeader className="bg-slate-50 h-20">
+                  <TableRow className="hover:bg-transparent border-slate-100">
+                    <TableHead className="font-black text-slate-900 text-xs uppercase tracking-[0.2em] px-10">الصنف والوصف</TableHead>
+                    <TableHead className="font-black text-slate-900 text-xs uppercase tracking-[0.2em] text-center">الوحدة</TableHead>
+                    <TableHead className="font-black text-slate-900 text-xs uppercase tracking-[0.2em] text-center">الرصيد الدفتري</TableHead>
+                    <TableHead className="font-black text-slate-900 text-xs uppercase tracking-[0.2em] text-center w-48">الرصيد الفعلي</TableHead>
+                    <TableHead className="font-black text-slate-900 text-xs uppercase tracking-[0.2em] text-center px-10">فارق الجرد</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -9048,36 +9263,64 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
                     const actualValue = auditData[item.id] ?? item.currentBalance;
                     const diff = actualValue - item.currentBalance;
                     return (
-                      <TableRow key={item.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100">
-                        <TableCell className="font-black text-slate-800">{item.name}</TableCell>
-                        <TableCell className="text-center font-bold text-slate-400">{item.unit}</TableCell>
-                        <TableCell className="text-center font-black text-blue-600 bg-blue-50/30">
-                          {item.currentBalance}
+                      <TableRow key={item.id} className="h-24 hover:bg-slate-50/50 transition-colors border-slate-50">
+                        <TableCell className="font-black text-slate-900 text-lg px-10 tracking-tight">
+                          <div className="flex items-center gap-4">
+                             <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                                <Box size={16} />
+                             </div>
+                             {item.name}
+                          </div>
                         </TableCell>
-                        <TableCell className="p-2">
-                           <Input 
-                             type="number"
-                             value={actualValue}
-                             onChange={e => handleAuditChange(item.id, e.target.value)}
-                             className="h-11 rounded-xl text-center font-black border-slate-200 bg-white focus:ring-4 focus:ring-primary/10 transition-all"
-                           />
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-slate-400 border-slate-200 px-3 py-1 font-bold rounded-lg">{item.unit}</Badge>
                         </TableCell>
-                        <TableCell className={`text-center font-black ${diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-600' : 'text-slate-300'}`}>
-                           {diff > 0 ? `+${diff}` : diff}
+                        <TableCell className="text-center">
+                           <div className="inline-flex items-center justify-center w-20 h-12 bg-slate-50 rounded-xl font-bold text-slate-500 text-lg">
+                              {item.currentBalance}
+                           </div>
+                        </TableCell>
+                        <TableCell className="p-4">
+                           <div className="relative group/input">
+                              <Input 
+                                type="number"
+                                value={actualValue}
+                                onChange={e => handleAuditChange(item.id, e.target.value)}
+                                className="h-14 rounded-2xl text-center font-black text-xl border-2 border-slate-100 bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-slate-900"
+                              />
+                           </div>
+                        </TableCell>
+                        <TableCell className="text-center px-10">
+                           <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black text-lg shadow-sm ${
+                             diff > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
+                             diff < 0 ? 'bg-rose-50 text-rose-600 border border-rose-100' : 
+                             'bg-slate-50 text-slate-300'
+                           }`}>
+                              {diff > 0 && <ChevronUp size={18} />}
+                              {diff < 0 && <ChevronDown size={18} />}
+                              {diff === 0 ? 'مطابق' : Math.abs(diff)}
+                           </div>
                         </TableCell>
                       </TableRow>
                     );
                   })}
+                  {filteredItems.length === 0 && (
+                    <TableRow>
+                       <TableCell colSpan={5} className="py-20 text-center">
+                          <p className="text-slate-400 font-bold italic">لا توجد نتائج مطابقة للبحث</p>
+                       </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
           </Card>
 
-          <div className="flex gap-4 justify-end">
-            <Button variant="ghost" onClick={() => setIsAuditing(false)} className="h-14 px-10 rounded-2xl font-bold text-slate-500 hover:bg-slate-100">إلغاء العملية</Button>
-            <Button onClick={submitAudit} className="h-14 px-16 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg shadow-xl shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
-              <CheckCircle2 size={24} className="ml-2" />
-              اعتماد الجرد وتحديث المخزون
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white z-40">
+            <Button variant="ghost" onClick={() => setIsAuditing(false)} className="h-16 px-10 rounded-3xl font-black text-slate-500 hover:bg-slate-100 transition-all">إلغاء العملية</Button>
+            <Button onClick={submitAudit} className="h-16 px-16 rounded-3xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xl shadow-2xl shadow-emerald-600/30 transition-all hover:scale-[1.05] active:scale-95">
+              <CheckCircle2 size={24} className="ml-3" />
+              تـأكـيـد واعـتـمـاد الـجـرد
             </Button>
           </div>
         </div>
@@ -9157,109 +9400,154 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
   };
 
   return (
-    <div className="space-y-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-12 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">المرتجع</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">إدارة المرتجعات من مراكز التكلفة أو إلى الموردين</p>
+          <div className="flex items-center gap-3 text-orange-600 font-black text-xs uppercase tracking-widest px-4 py-1.5 bg-orange-50 rounded-full w-fit mb-4">
+            <RotateCcw size={14} />
+            إدارة المرتجعات
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">قسم المرتجعات</h2>
+          <p className="text-slate-500 mt-3 font-bold text-lg max-w-xl">معالجة الخامات الـعـائـدة سواء من مراكز الإنتاج أو الـمُـصـدّرة للموردين مرة أخرى</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8 text-sm md:text-base">
-          <Plus size={18} className="ml-2" />
+        <Button onClick={() => setShowAdd(true)} className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1">
+          <Plus size={20} className="ml-2" />
           تسجيل مرتجع جديد
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         <Card 
-          className="dribbble-card p-10 text-center border-none hover:shadow-2xl hover:shadow-blue-500/10 transition-all cursor-pointer group" 
+          className="dribbble-card p-12 text-center border-none bg-white rounded-[3rem] shadow-2xl shadow-slate-200/40 hover:shadow-primary/10 transition-all cursor-pointer group" 
           onClick={() => { setReturnType('cost_center'); setShowAdd(true); }}
         >
-          <div className="mx-auto w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
-            <ArrowUpRight size={32} className="text-primary rotate-180" />
+          <div className="mx-auto w-24 h-24 bg-primary/10 rounded-[2rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 shadow-inner text-primary">
+            <ArrowDownToLine size={40} className="rotate-180" />
           </div>
-          <h3 className="font-black text-2xl text-slate-900 mb-2">مرتجع من مركز تكلفة</h3>
-          <p className="text-slate-500 font-medium max-w-xs mx-auto">خامات زائدة تعود من الورشة إلى المخزن لتحديث الرصيد المتاح</p>
+          <h3 className="font-black text-3xl text-slate-900 mb-4 tracking-tight">مرتجع من مركز إنتاج</h3>
+          <p className="text-slate-500 font-bold text-lg leading-relaxed max-w-xs mx-auto">خامات فائضة من عمليات التجميع أو التصنيع تعود لعهدة المخزن</p>
+          <div className="mt-8 flex items-center justify-center gap-2 text-primary font-black opacity-0 group-hover:opacity-100 transition-opacity">
+             ابدأ التسجيل الآن <ArrowRight size={18} />
+          </div>
         </Card>
 
         <Card 
-          className="dribbble-card p-10 text-center border-none hover:shadow-2xl hover:shadow-orange-500/10 transition-all cursor-pointer group" 
+          className="dribbble-card p-12 text-center border-none bg-white rounded-[3rem] shadow-2xl shadow-slate-200/40 hover:shadow-orange-500/10 transition-all cursor-pointer group" 
           onClick={() => { setReturnType('supplier'); setShowAdd(true); }}
         >
-          <div className="mx-auto w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
-            <ArrowUpRight size={32} className="text-orange-600" />
+          <div className="mx-auto w-24 h-24 bg-orange-50 rounded-[2rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 shadow-inner text-orange-600">
+            <ArrowUpToLine size={40} />
           </div>
-          <h3 className="font-black text-2xl text-slate-900 mb-2">مرتجع إلى مورد</h3>
-          <p className="text-slate-500 font-medium max-w-xs mx-auto">خامات معيبة أو زائدة تعود من المخزن للمورد لخصم قيمتها من المديونية</p>
+          <h3 className="font-black text-3xl text-slate-900 mb-4 tracking-tight">مرتجع إلى المورد</h3>
+          <p className="text-slate-500 font-bold text-lg leading-relaxed max-w-xs mx-auto">خامات غير مطابقة للـمواصفات أو تالفة يتم استرداد قيمتها من المورد</p>
+          <div className="mt-8 flex items-center justify-center gap-2 text-orange-600 font-black opacity-0 group-hover:opacity-100 transition-opacity">
+             ابدأ التسجيل الآن <ArrowRight size={18} />
+          </div>
         </Card>
       </div>
 
       {/* Add Return Dialog */}
       {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md max-h-[90vh] overflow-auto">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">{returnType === 'cost_center' ? 'مرتجع من مركز تكلفة' : 'مرتجع إلى مورد'}</CardTitle>
-              <CardDescription className="font-medium">سيتم تحديث أرصدة المخازن والحسابات تلقائياً</CardDescription>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-300">
+          <Card className="dribbble-card w-full max-w-xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[3rem]">
+            <CardHeader className="p-10 pb-6 shrink-0 relative overflow-hidden bg-white">
+               <div className={`absolute right-0 top-0 w-32 h-32 ${returnType === 'cost_center' ? 'bg-primary/5' : 'bg-orange-50'} rounded-bl-full -mr-10 -mt-10 pointer-events-none`} />
+               <div className="relative z-10">
+                 <div className={`w-16 h-16 ${returnType === 'cost_center' ? 'bg-primary' : 'bg-orange-600'} rounded-2.5xl flex items-center justify-center text-white shadow-2xl mb-6`}>
+                    {returnType === 'cost_center' ? <ArrowDownToLine size={32} /> : <ArrowUpToLine size={32} />}
+                 </div>
+                 <CardTitle className="font-black text-3xl tracking-tight text-slate-900">
+                   {returnType === 'cost_center' ? 'مرتجع من مركز تكلفة' : 'مرتجع إلى مورد'}
+                 </CardTitle>
+                 <CardDescription className="font-bold text-slate-500 text-lg mt-2 italic">
+                   تأكيد استلام الخامات وتحديث السجلات المالية آلياً
+                 </CardDescription>
+               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الصنف</label>
-                <select 
-                  className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold"
-                  value={formData.itemId}
-                  onChange={e => setFormData({...formData, itemId: e.target.value})}
-                >
-                  <option value="">اختر صنف...</option>
-                  {items.map(i => <option key={i.id} value={i.id}>{i.name} (الرصيد: {i.currentBalance} {i.unit})</option>)}
-                </select>
-              </div>
-
-              {returnType === 'cost_center' ? (
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">من مركز تكلفة (المرحلة)</label>
+            <CardContent className="p-10 pt-4 space-y-8 overflow-y-auto custom-scrollbar">
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Box size={14} /> اختيار الصنف الـمُـرتـجع
+                  </label>
                   <select 
-                    className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold"
-                    value={formData.costCenter}
-                    onChange={e => setFormData({...formData, costCenter: e.target.value})}
+                    className="w-full h-16 rounded-2xl border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
+                    value={formData.itemId}
+                    onChange={e => setFormData({...formData, itemId: e.target.value})}
                   >
-                    <option value="">اختر مركز التكلفة...</option>
-                    {costCenters.map(s => (
-                      <option key={s.id} value={s.name}>{s.name}</option>
-                    ))}
+                    <option value="">-- اضغط لاختيار الصنف --</option>
+                    {items.map(i => <option key={i.id} value={i.id}>{i.name} (المتاح بالمخزن: {i.currentBalance} {i.unit})</option>)}
                   </select>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">المورد</label>
-                  <select 
-                    className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold"
-                    value={formData.supplierId}
-                    onChange={e => setFormData({...formData, supplierId: e.target.value})}
-                  >
-                    <option value="">اختر المورد...</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-              )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الكمية</label>
-                <div className="relative">
-                  <Input className="rounded-xl h-11" type="number" value={formData.quantity} onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                    {items.find(i => i.id === formData.itemId)?.unit}
-                  </span>
+                {returnType === 'cost_center' ? (
+                  <div className="space-y-3 animate-in slide-in-from-right-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Target size={14} /> من مركز التكلفة (المرحلة)
+                    </label>
+                    <select 
+                      className="w-full h-16 rounded-2xl border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
+                      value={formData.costCenter}
+                      onChange={e => setFormData({...formData, costCenter: e.target.value})}
+                    >
+                      <option value="">-- اختر مركز التكلفة المصدر --</option>
+                      {costCenters.map(s => (
+                        <option key={s.id} value={s.name}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="space-y-3 animate-in slide-in-from-right-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Truck size={14} /> إلى المورد المعتمد
+                    </label>
+                    <select 
+                      className="w-full h-16 rounded-2xl border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-orange-500/10 transition-all outline-none appearance-none cursor-pointer"
+                      value={formData.supplierId}
+                      onChange={e => setFormData({...formData, supplierId: e.target.value})}
+                    >
+                      <option value="">-- اختر المورد الوجهة --</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Scale size={14} /> الكمية الـمُـرتـجـعـة
+                  </label>
+                  <div className="relative">
+                    <Input 
+                      className="h-16 rounded-2xl border-none bg-slate-50 px-8 font-black text-2xl tracking-tighter text-center focus:ring-4 focus:ring-primary/10 transition-all" 
+                      type="number" 
+                      value={formData.quantity || ''} 
+                      onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} 
+                      placeholder="0.00"
+                    />
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 bg-white px-4 py-1.5 rounded-xl border border-slate-100 font-bold text-slate-400 text-xs">
+                      {items.find(i => i.id === formData.itemId)?.unit || 'الوحدة'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <FileText size={14} /> ملاحظات الارتجاع
+                  </label>
+                  <Input 
+                    className="h-16 rounded-2xl border-none bg-slate-50 px-8 font-bold text-lg focus:ring-4 focus:ring-primary/10 transition-all" 
+                    value={formData.notes} 
+                    onChange={e => setFormData({...formData, notes: e.target.value})} 
+                    placeholder="اذكر سبب الارتجاع (تالف، فائض، إلغاء طلب...)" 
+                  />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">ملاحظات</label>
-                <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="سبب الارتجاع..." />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
-                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} className="btn-primary px-10 h-12 font-black">تأكيد الارتجاع</Button>
+              <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
+                <Button variant="ghost" className="h-16 px-8 rounded-2xl font-black text-slate-500 hover:text-slate-900 transition-all" onClick={() => setShowAdd(false)}>تراجع وإلغاء</Button>
+                <Button onClick={handleAdd} className={`h-16 px-12 rounded-2xl ${returnType === 'cost_center' ? 'bg-primary' : 'bg-orange-600'} hover:opacity-90 text-white font-black text-lg shadow-2xl shadow-primary/20 transition-all hover:-translate-y-1`}>
+                    اعتمد الـمـرتـجع الآن
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -9317,108 +9605,199 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-12 animate-in fade-in duration-700 pb-24">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">الهالك</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">تسجيل ومتابعة المواد التالفة أو الهالك</p>
+          <div className="flex items-center gap-3 text-rose-600 font-black text-xs uppercase tracking-widest px-4 py-1.5 bg-rose-50 rounded-full w-fit mb-4">
+            <Trash2 size={14} />
+            إدارة الهوالك
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">سجل الهوالك والتوالف</h2>
+          <p className="text-slate-500 mt-3 font-bold text-lg max-w-xl">توثيق الخامات التالفة أثناء الإنتاج أو المنتهية صلاحيتها لخصمها من الرصيد والـقـيـمة</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8 text-sm md:text-base">
-          <Plus size={18} className="ml-2" />
+        <Button onClick={() => setShowAdd(true)} className="h-14 px-10 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-lg shadow-2xl shadow-rose-600/20 transition-all hover:-translate-y-1">
+          <Plus size={20} className="ml-2" />
           تسجيل هالك جديد
         </Button>
       </div>
 
-      <Card className="dribbble-card overflow-hidden border-none">
-        <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow className="hover:bg-transparent border-slate-100">
-              <TableHead className="text-right font-black text-slate-900 py-5">التاريخ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الصنف</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الكمية</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الوحدة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">السبب</TableHead>
-              <TableHead className="text-right font-black text-slate-900">ملاحظات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {wasteRecords.slice().reverse().map(record => (
-              <TableRow key={record.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-bold text-slate-500">{format(new Date(record.date), 'dd/MM/yyyy HH:mm')}</TableCell>
-                <TableCell className="font-black text-slate-900">{items.find(i => i.id === record.itemId)?.name}</TableCell>
-                <TableCell className="font-bold text-red-600">{record.quantity}</TableCell>
-                <TableCell className="text-slate-500 font-medium">{record.unit}</TableCell>
-                <TableCell>
-                  <Badge className="bg-red-100 text-red-700 border-none font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-lg">
-                    {record.reason}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-slate-600 font-medium">{record.notes}</TableCell>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+         <div className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-inner">
+               <AlertTriangle size={28} />
+            </div>
+            <div>
+               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي الحركات</p>
+               <p className="text-3xl font-black text-slate-900 tracking-tighter">{wasteRecords.length}</p>
+            </div>
+         </div>
+         <div className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-inner">
+               <Scale size={28} />
+            </div>
+            <div>
+               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي الكميات</p>
+               <p className="text-3xl font-black text-slate-900 tracking-tighter">{wasteRecords.reduce((acc, r) => acc + r.quantity, 0).toLocaleString()}</p>
+            </div>
+         </div>
+         <div className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-5 border-r-4 border-r-rose-500">
+            <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-inner">
+               <DollarSign size={28} />
+            </div>
+            <div>
+               <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest mb-1">القيمة المحملة</p>
+               <p className="text-3xl font-black text-rose-600 tracking-tighter">
+                  {wasteRecords.reduce((acc, r) => {
+                    const itm = items.find(i => i.id === r.itemId);
+                    return acc + (r.quantity * (itm?.price || 0));
+                  }, 0).toLocaleString()} <span className="text-xs font-bold text-slate-300">ج.م</span>
+               </p>
+            </div>
+         </div>
+      </div>
+
+      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[2.5rem]">
+        <div className="overflow-x-auto custom-scrollbar">
+          <Table>
+            <TableHeader className="bg-slate-50/50 h-20">
+              <TableRow className="hover:bg-transparent border-slate-100">
+                <TableHead className="text-right font-black text-slate-900 px-10 text-[11px] uppercase tracking-[0.2em]">التاريخ والتوقيت</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-[0.2em]">الصنف الـتـالـف</TableHead>
+                <TableHead className="text-center font-black text-slate-900 text-[11px] uppercase tracking-[0.2em]">الكمية</TableHead>
+                <TableHead className="text-center font-black text-slate-900 text-[11px] uppercase tracking-[0.2em]">السبب</TableHead>
+                <TableHead className="text-right font-black text-slate-900 px-10 text-[11px] uppercase tracking-[0.2em]">ملاحظات وتفاصيل</TableHead>
               </TableRow>
-            ))}
-            {wasteRecords.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-slate-400 font-bold">لا توجد سجلات هالك حالياً</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {wasteRecords.slice().reverse().map(record => (
+                <TableRow key={record.id} className="h-24 border-slate-50 hover:bg-slate-50/50 transition-all group">
+                  <TableCell className="px-10 font-bold text-slate-400 text-xs font-mono">
+                     {format(new Date(record.date), 'dd/MM/yyyy')}
+                     <span className="block opacity-40">{format(new Date(record.date), 'HH:mm')}</span>
+                  </TableCell>
+                  <TableCell className="font-black text-slate-900 text-lg tracking-tight">
+                    {items.find(i => i.id === record.itemId)?.name}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="inline-flex items-center gap-1 font-black text-rose-600 text-xl font-mono">
+                       {record.quantity}
+                       <span className="text-[10px] text-slate-300 uppercase tracking-tighter">{record.unit}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge className={`border-none font-black text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-xl ${
+                      record.reason === 'تلف' ? 'bg-rose-100 text-rose-600' :
+                      record.reason === 'انتهاء صلاحية' ? 'bg-amber-100 text-amber-600' :
+                      'bg-slate-100 text-slate-600'
+                    }`}>
+                      {record.reason}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-10 font-bold text-slate-500 italic max-w-xs truncate">
+                    {record.notes || '-'}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {wasteRecords.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-24">
+                     <div className="flex flex-col items-center justify-center gap-4">
+                        <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200">
+                           <Trash2 size={40} />
+                        </div>
+                        <p className="text-slate-400 font-black text-lg">سجل الهوالك فارغ حالياً</p>
+                     </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
 
       {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md max-h-[90vh] overflow-auto">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">تسجيل هالك جديد</CardTitle>
-              <CardDescription className="font-medium">سيتم خصم الكمية من رصيد المخزن تلقائياً</CardDescription>
-              {error && <p className="text-red-500 font-bold text-sm mt-2">{error}</p>}
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-300">
+          <Card className="dribbble-card w-full max-w-xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[3rem]">
+            <CardHeader className="p-10 pb-6 shrink-0 relative overflow-hidden bg-white">
+               <div className="absolute right-0 top-0 w-32 h-32 bg-rose-50 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
+               <div className="relative z-10">
+                 <div className="w-16 h-16 bg-rose-600 rounded-2.5xl flex items-center justify-center text-white shadow-2xl shadow-rose-600/30 mb-6 font-inner">
+                    <Trash2 size={32} />
+                 </div>
+                 <CardTitle className="font-black text-3xl tracking-tight text-slate-900">تسجيل هالك جديد</CardTitle>
+                 <CardDescription className="font-bold text-slate-500 text-lg mt-2 italic">
+                   سيتم خصم الكمية الهالكة من رصيد المخزن وتحميل قيمتها كخسائر
+                 </CardDescription>
+                 {error && <Badge className="mt-4 bg-rose-100 text-rose-600 border-none font-bold py-1.5 px-4 rounded-lg">{error}</Badge>}
+               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الصنف</label>
-                <select 
-                  className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold"
-                  value={formData.itemId}
-                  onChange={e => setFormData({...formData, itemId: e.target.value})}
-                >
-                  <option value="">اختر صنف...</option>
-                  {items.map(i => <option key={i.id} value={i.id}>{i.name} (الرصيد: {i.currentBalance})</option>)}
-                </select>
-              </div>
+            <CardContent className="p-10 pt-4 space-y-8 overflow-y-auto custom-scrollbar">
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Box size={14} /> الصنف المتأثر
+                  </label>
+                  <select 
+                    className="w-full h-16 rounded-2xl border-none bg-slate-50 px-8 font-black text-lg focus:ring-4 focus:ring-rose-500/10 transition-all outline-none appearance-none cursor-pointer shadow-inner"
+                    value={formData.itemId}
+                    onChange={e => setFormData({...formData, itemId: e.target.value})}
+                  >
+                    <option value="">-- اضغط للاختيار من القائمة --</option>
+                    {items.map(i => <option key={i.id} value={i.id}>{i.name} (المتاح: {i.currentBalance} {i.unit})</option>)}
+                  </select>
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الكمية</label>
-                <div className="relative">
-                  <Input className="rounded-xl h-11" type="number" value={formData.quantity} onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                    {items.find(i => i.id === formData.itemId)?.unit}
-                  </span>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Scale size={14} /> الكمية الهالكة
+                    </label>
+                    <div className="relative">
+                      <Input 
+                        className="h-16 rounded-2xl border-none bg-slate-50 px-8 font-black text-2xl tracking-tighter text-center focus:ring-4 focus:ring-rose-500/10 transition-all shadow-inner" 
+                        type="number" 
+                        value={formData.quantity || ''} 
+                        onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} 
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <AlertTriangle size={14} /> سبب الهلاك
+                    </label>
+                    <select 
+                      className="w-full h-16 rounded-2xl border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-rose-500/10 transition-all outline-none appearance-none cursor-pointer shadow-inner"
+                      value={formData.reason}
+                      onChange={e => setFormData({...formData, reason: e.target.value})}
+                    >
+                      <option value="">-- اختر السبب --</option>
+                      <option value="تلف">⚠️ تـلـف إنـتـاجـي</option>
+                      <option value="كسر">💥 كــســر / تـحـطـم</option>
+                      <option value="انتهاء صلاحية">⏳ انـتـهـاء صـلاحـية</option>
+                      <option value="أخرى">📝 أسباب أخـرى</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <FileText size={14} /> ملاحظات وتفاصيل إضافية
+                  </label>
+                  <Input 
+                    className="h-16 rounded-2xl border-none bg-slate-50 px-8 font-bold text-lg focus:ring-4 focus:ring-rose-500/10 transition-all shadow-inner" 
+                    value={formData.notes} 
+                    onChange={e => setFormData({...formData, notes: e.target.value})} 
+                    placeholder="أي تـفـاصـيـل حـول واقـعـة الهـلاك..." 
+                  />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">السبب</label>
-                <select 
-                  className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold"
-                  value={formData.reason}
-                  onChange={e => setFormData({...formData, reason: e.target.value})}
-                >
-                  <option value="">اختر السبب...</option>
-                  <option value="تلف">تلف</option>
-                  <option value="كسر">كسر</option>
-                  <option value="انتهاء صلاحية">انتهاء صلاحية</option>
-                  <option value="أخرى">أخرى</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">ملاحظات إضافية</label>
-                <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="تفاصيل إضافية..." />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
-                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} className="btn-primary px-10 h-12 font-black">حفظ السجل</Button>
+              <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
+                <Button variant="ghost" className="h-16 px-8 rounded-2xl font-black text-slate-500 hover:text-slate-900 transition-all" onClick={() => setShowAdd(false)}>تراجع</Button>
+                <Button onClick={handleAdd} className="h-16 px-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-lg shadow-2xl shadow-rose-600/30 transition-all hover:-translate-y-1">
+                    تأكيد وتسجيل الهالك
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -9588,148 +9967,161 @@ function ReportsView({
   };
 
   return (
-    <div className="space-y-10 pb-20 print:p-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
+    <div className="space-y-12 pb-24 print:p-0 animate-in fade-in duration-1000">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 print:hidden">
         <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">التقارير التحليلية</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">نظرة شاملة على أداء المخازن والتدفقات المالية</p>
+          <div className="flex items-center gap-3 text-indigo-600 font-black text-xs uppercase tracking-[0.2em] px-4 py-1.5 bg-indigo-50 rounded-full w-fit mb-4">
+            <BarChart3 size={14} />
+            الذكاء التحليلي
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">مركز التقارير المتقدم</h2>
+          <p className="text-slate-500 mt-3 font-bold text-lg max-w-xl">تحليل كامل للتدفقات المخزنية، مديونيات الموردين، وهوامش ربحية الإنتاج</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl h-10 md:h-12 px-4 md:px-6 border-slate-200 font-bold text-sm md:text-base" onClick={() => exportToExcel(warehouseData, 'قيمة_المخازن')}>
-            تصدير إكسيل
+        <div className="flex items-center gap-4">
+          <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-200 bg-white hover:bg-slate-50 font-black text-slate-600 shadow-sm transition-all hover:-translate-y-1" onClick={() => exportToExcel(warehouseData, 'جرد_المخازن_الشامل')}>
+            <Download size={18} className="ml-2" />
+            تصدير XLSX
           </Button>
-          <Button onClick={() => window.print()} className="btn-primary h-10 md:h-12 px-6 md:px-8 font-black text-sm md:text-base">
-            <FileText size={18} className="ml-2" />
-            طباعة / PDF
+          <Button onClick={() => window.print()} className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1">
+            <Printer size={20} className="ml-2" />
+            طباعة PDF
           </Button>
         </div>
       </div>
 
-      <div className="hidden print:block text-center mb-12">
-        <h1 className="text-3xl font-black text-slate-900">تقرير {companySettings.name}</h1>
-        <p className="text-slate-500 font-bold mt-2">{format(new Date(), 'eeee, d MMMM yyyy', { locale: ar })}</p>
-        <div className="mt-4 w-20 h-1 bg-primary mx-auto rounded-full" />
+      <div className="hidden print:block text-center border-b-2 border-slate-100 pb-12 mb-12">
+        <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">{companySettings.name}</h1>
+        <p className="text-slate-400 font-bold mt-3 tracking-widest uppercase text-xs">نظام إدارة الموارد والإمداد المتكامل</p>
+        <div className="mt-6 text-sm font-black text-slate-600 bg-slate-50 inline-block px-6 py-2 rounded-xl">
+           رقم التقرير: #{Math.floor(Math.random() * 900000) + 100000} | بتاريخ: {format(new Date(), 'dd MMMM yyyy', { locale: ar })}
+        </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-black text-slate-900">تقارير النظام</h2>
-        <div className="flex bg-slate-100 p-1 rounded-2xl">
-          <button 
-            onClick={() => setActiveReportTab('dashboard')}
-            className={`px-6 py-2 rounded-xl font-black transition-all ${activeReportTab === 'dashboard' ? 'bg-white shadow-sm text-primary' : 'text-slate-500'}`}
-          >
-            لوحة المؤشرات
-          </button>
-          <button 
-            onClick={() => setActiveReportTab('warehouse')}
-            className={`px-6 py-2 rounded-xl font-black transition-all ${activeReportTab === 'warehouse' ? 'bg-white shadow-sm text-primary' : 'text-slate-500'}`}
-          >
-            جرد المخزن الشامل
-          </button>
-          <button 
-            onClick={() => setActiveReportTab('purchases')}
-            className={`px-6 py-2 rounded-xl font-black transition-all ${activeReportTab === 'purchases' ? 'bg-white shadow-sm text-primary' : 'text-slate-500'}`}
-          >
-            تحليل المشتريات
-          </button>
-          <button 
-            onClick={() => setActiveReportTab('suppliers')}
-            className={`px-6 py-2 rounded-xl font-black transition-all ${activeReportTab === 'suppliers' ? 'bg-white shadow-sm text-primary' : 'text-slate-500'}`}
-          >
-            تقرير الموردين
-          </button>
-        </div>
+      {/* Modern Tabs */}
+      <div className="flex overflow-x-auto pb-2 scrollbar-none gap-2 p-2 bg-slate-100/80 backdrop-blur-sm rounded-[2rem] w-fit border border-slate-200/50 print:hidden sticky top-4 z-40 shadow-xl shadow-slate-200/20">
+          {[
+            { id: 'dashboard', label: 'لوحة القيادة', icon: <Box size={18} /> },
+            { id: 'warehouse', label: 'الجرد التفصيلي', icon: <Package size={18} /> },
+            { id: 'purchases', label: 'تحليل المشتريات', icon: <ShoppingCart size={18} /> },
+            { id: 'suppliers', label: 'أرصدة الموردين', icon: <Users size={18} /> }
+          ].map((tab) => (
+            <button 
+              key={tab.id}
+              onClick={() => setActiveReportTab(tab.id as any)}
+              className={`flex items-center gap-3 px-8 py-4 rounded-[1.5rem] font-black transition-all duration-300 relative ${activeReportTab === tab.id ? 'bg-white shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] text-primary translate-y-0' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+            >
+              <span className={activeReportTab === tab.id ? 'text-primary' : 'text-slate-400'}>{tab.icon}</span>
+              {tab.label}
+              {activeReportTab === tab.id && <motion.div layoutId="activeTab" className="absolute inset-0 border-2 border-primary/10 rounded-[1.5rem]" />}
+            </button>
+          ))}
       </div>
 
       {activeReportTab === 'dashboard' && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="dribbble-card border-none bg-blue-50/50 shadow-sm">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                    <Package size={24} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-blue-600 uppercase tracking-widest mb-1">قيمة المخزون</p>
-                    <h3 className="text-2xl font-black text-slate-900">{totalInventoryValue.toLocaleString()} <small className="text-xs font-bold text-slate-400">ج.م</small></h3>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-blue-500/30 transition-all cursor-default overflow-hidden relative">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+               <div className="relative z-10">
+                 <div className="w-14 h-14 rounded-2xl bg-blue-500 flex items-center justify-center text-white shadow-2xl shadow-blue-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
+                   <Package size={28} />
+                 </div>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">القيمة الإجمالية للمخزون</p>
+                 <h3 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">
+                    {totalInventoryValue.toLocaleString()}
+                    <span className="text-sm text-slate-300 mr-2 font-bold uppercase tracking-widest">ج.م</span>
+                 </h3>
+               </div>
+            </div>
 
-            <Card className="dribbble-card border-none bg-red-50/50 shadow-sm">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/20">
-                    <Users size={24} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-red-600 uppercase tracking-widest mb-1">مديونيات الموردين</p>
-                    <h3 className="text-2xl font-black text-slate-900">{totalSupplierDebt.toLocaleString()} <small className="text-xs font-bold text-slate-400">ج.م</small></h3>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-rose-500/30 transition-all cursor-default overflow-hidden relative">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+               <div className="relative z-10">
+                 <div className="w-14 h-14 rounded-2xl bg-rose-500 flex items-center justify-center text-white shadow-2xl shadow-rose-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
+                   <Users size={28} />
+                 </div>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">إجمالي مديونيات الموردين</p>
+                 <h3 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">
+                    {totalSupplierDebt.toLocaleString()}
+                    <span className="text-sm text-slate-300 mr-2 font-bold uppercase tracking-widest">ج.م</span>
+                 </h3>
+               </div>
+            </div>
 
-            <Card className="dribbble-card border-none bg-emerald-50/50 shadow-sm">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                    <Layers size={24} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-1">تكلفة الإنتاج</p>
-                    <h3 className="text-2xl font-black text-slate-900">{totalProductionCost.toLocaleString()} <small className="text-xs font-bold text-slate-400">ج.م</small></h3>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-emerald-500/30 transition-all cursor-default overflow-hidden relative">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+               <div className="relative z-10">
+                 <div className="w-14 h-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-2xl shadow-emerald-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
+                   <Activity size={28} />
+                 </div>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">تكلفة عمليات الإنتاج</p>
+                 <h3 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">
+                    {totalProductionCost.toLocaleString()}
+                    <span className="text-sm text-slate-300 mr-2 font-bold uppercase tracking-widest">ج.م</span>
+                 </h3>
+               </div>
+            </div>
 
-            <Card className="dribbble-card border-none bg-orange-50/50 shadow-sm">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-                    <AlertTriangle size={24} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-orange-600 uppercase tracking-widest mb-1">قيمة الهالك</p>
-                    <h3 className="text-2xl font-black text-slate-900">{totalWasteValue.toLocaleString()} <small className="text-xs font-bold text-slate-400">ج.م</small></h3>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-amber-500/30 transition-all cursor-default overflow-hidden relative">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+               <div className="relative z-10">
+                 <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center text-white shadow-2xl shadow-amber-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
+                   <Trash2 size={28} />
+                 </div>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">قيمة الهالك والـفـاقـد</p>
+                 <h3 className="text-4xl font-black text-rose-600 tracking-tighter leading-none">
+                    {totalWasteValue.toLocaleString()}
+                    <span className="text-sm text-slate-300 mr-2 font-bold uppercase tracking-widest">ج.م</span>
+                 </h3>
+               </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50 overflow-hidden">
-              <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-                <CardTitle className="text-xl font-black text-slate-900">توزيع المخزون</CardTitle>
-                <CardDescription className="font-bold">القيمة المالية لكل مخزن حالياً</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[350px] pt-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">رصد المخازن</h3>
+                  <p className="text-slate-400 font-bold text-sm italic">القيمة السوقية لكل مستودع مـنـفـصـلاً</p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+                   <Database size={24} />
+                </div>
+              </div>
+              <div className="p-10 h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={warehouseData}>
+                    <defs>
+                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" />
+                        <stop offset="100%" stopColor="#1d4ed8" />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600, fill: '#64748b' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600, fill: '#64748b' }} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 900, fill: '#1e293b' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }} />
                     <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                      formatter={(value: number) => [`${value.toLocaleString()} ج.م`, 'القيمة']}
+                      cursor={{ fill: '#f8fafc' }}
+                      contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.15)', padding: '20px', fontFamily: 'Inter, sans-serif' }}
+                      formatter={(value: number) => [`${value.toLocaleString()} ج.م`, 'رصيد']}
                     />
-                    <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} barSize={40} />
+                    <Bar dataKey="value" fill="url(#barGradient)" radius={[12, 12, 0, 0]} barSize={50} />
                   </BarChart>
                 </ResponsiveContainer>
-              </CardContent>
+              </div>
             </Card>
 
-            <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50 overflow-hidden">
-              <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-                <CardTitle className="text-xl font-black text-slate-900">استهلاك مراحل الإنتاج</CardTitle>
-                <CardDescription className="font-bold">توزيع المنصرف من المواد الخام حسب المرحلة</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[350px] flex items-center justify-center pt-4">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">استهلاك القطاعات</h3>
+                  <p className="text-slate-400 font-bold text-sm italic">نسب تـوزيـع المـواد الخـام حـسـب المـصـنـع</p>
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+                   <Target size={24} />
+                </div>
+              </div>
+              <div className="p-10 h-[400px] flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -9737,357 +10129,500 @@ function ReportsView({
                       cx="50%"
                       cy="50%"
                       innerRadius={80}
-                      outerRadius={110}
-                      paddingAngle={8}
+                      outerRadius={120}
+                      paddingAngle={10}
                       dataKey="value"
+                      stroke="none"
                     >
                       {costCenterData.map((_entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                      contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.15)', padding: '20px' }}
                       formatter={(value: number) => `${value.toLocaleString()} ج.م`} 
                     />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '20px', fontWeight: 600 }} />
+                    <Legend verticalAlign="bottom" height={40} iconType="circle" wrapperStyle={{ paddingTop: '30px', fontWeight: 900, color: '#1e293b', fontSize: '13px' }} />
                   </PieChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50 overflow-hidden lg:col-span-1">
-              <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-                <CardTitle className="text-xl font-black text-slate-900">تكاليف الصيانة والسن</CardTitle>
-                <CardDescription className="font-bold">إجمالي المصاريف الخاصة بتجهيز الماكينات والعدد</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[350px] pt-10">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={maintenanceData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600, fill: '#64748b' }} width={100} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                      formatter={(value: number) => [`${value.toLocaleString()} ج.م`, 'التكلفة']}
-                    />
-                    <Bar dataKey="value" fill="#8b5cf6" radius={[0, 8, 8, 0]} barSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
+              </div>
             </Card>
           </div>
 
-      {/* Summary Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="dribbble-card border-none overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-xl font-black text-slate-900">حالة المخزون الحالي</CardTitle>
-            <CardDescription className="font-medium">الأصناف المتاحة وكمياتها ووحداتها</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+             <Card className="dribbble-card lg:col-span-2 border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+                <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">إحصائيات التدفق</h3>
+                    <p className="text-slate-400 font-bold text-sm italic">مقارنة بـيـن إجمالي المشتريات والـمـنـصـرف شـهـريـاً</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+                    <TrendingUp size={24} />
+                  </div>
+                </div>
+                <div className="p-10 h-[400px]">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={monthlyTrends}>
+                        <defs>
+                          <linearGradient id="colorPurchases" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorIssuances" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748b' }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: '#94a3b8' }} />
+                        <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.15)', padding: '20px' }} />
+                        <Area type="monotone" dataKey="purchases" name="مشتريات" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorPurchases)" />
+                        <Area type="monotone" dataKey="issuances" name="منصرف" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorIssuances)" />
+                      </AreaChart>
+                   </ResponsiveContainer>
+                </div>
+             </Card>
+
+             <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+                <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">الصيانة والسن</h3>
+                    <p className="text-slate-400 font-bold text-sm italic">توزيـع تكـالـيـف الـصـورمـة والـسـن</p>
+                  </div>
+                </div>
+                <div className="p-10 h-[400px]">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={maintenanceData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                        <XAxis type="number" hide />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 900, fill: '#1e293b' }} width={120} />
+                        <Tooltip 
+                           cursor={{ fill: '#f8fafc' }}
+                           contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px -8px rgba(0,0,0,0.1)', padding: '16px' }}
+                           formatter={(value: number) => [`${value.toLocaleString()} ج.م`, 'التكلفة']}
+                        />
+                        <Bar dataKey="value" fill="#8b5cf6" radius={[0, 16, 16, 0]} barSize={40} />
+                      </BarChart>
+                   </ResponsiveContainer>
+                </div>
+             </Card>
+          </div>
+
+      {/* Summary Tables for Dashboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+          <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">رصد حركة المخزون</h3>
+              <p className="text-slate-400 font-bold text-sm italic">الأصناف الأعلى قيمة المتاحة في المستودعات</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+               <Layers size={24} />
+            </div>
+          </div>
+          <div className="overflow-x-auto custom-scrollbar">
             <Table>
-              <TableHeader className="bg-slate-50/50">
-                <TableRow className="hover:bg-transparent border-slate-100">
-                  <TableHead className="text-right font-black text-slate-900 py-5">الصنف</TableHead>
-                  <TableHead className="text-right font-black text-slate-900">الرصيد</TableHead>
-                  <TableHead className="text-right font-black text-slate-900">الوحدة</TableHead>
-                  <TableHead className="text-right font-black text-slate-900">القيمة</TableHead>
+              <TableHeader className="bg-slate-50/50 h-16">
+                <TableRow className="hover:bg-transparent border-slate-100 uppercase tracking-widest text-[10px]">
+                  <TableHead className="text-right font-black text-slate-900 px-10">الصنف</TableHead>
+                  <TableHead className="text-center font-black text-slate-900">الرصيد</TableHead>
+                  <TableHead className="text-center font-black text-slate-900">الوحدة</TableHead>
+                  <TableHead className="text-right font-black text-slate-900 px-10">إجمالي القيمة</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {items.sort((a, b) => b.currentBalance - a.currentBalance).slice(0, 10).map(item => (
-                  <TableRow key={item.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
-                    <TableCell className="font-black text-slate-900">{item.name}</TableCell>
-                    <TableCell className={`font-bold ${item.currentBalance <= item.safetyLimit ? 'text-red-500' : 'text-slate-700'}`}>
-                      {item.currentBalance.toLocaleString()}
+                {items.sort((a, b) => (b.currentBalance * b.price) - (a.currentBalance * a.price)).slice(0, 8).map(item => (
+                  <TableRow key={item.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                    <TableCell className="px-10 font-black text-slate-900 text-lg">{item.name}</TableCell>
+                    <TableCell className="text-center">
+                       <div className={`font-black text-lg ${item.currentBalance <= item.safetyLimit ? 'text-rose-500' : 'text-slate-700'}`}>
+                          {item.currentBalance.toLocaleString()}
+                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-500 font-medium">{item.unit}</TableCell>
-                    <TableCell className="font-black text-emerald-600">{(item.currentBalance * item.price).toLocaleString()} ج.م</TableCell>
+                    <TableCell className="text-center text-slate-400 font-bold text-xs uppercase">{item.unit}</TableCell>
+                    <TableCell className="px-10 font-black text-emerald-600 text-xl tracking-tighter">{(item.currentBalance * item.price).toLocaleString()} <span className="text-[10px] text-slate-300">ج.م</span></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-      </Card>
+          </div>
+          <div className="p-8 bg-slate-50 text-center">
+             <Button variant="link" onClick={() => setActiveReportTab('warehouse')} className="text-primary font-black uppercase tracking-widest text-xs hover:no-underline">
+                عرض تقرير الجرد التفصيلي الكامل <ArrowLeft size={14} className="mr-2" />
+             </Button>
+          </div>
+       </Card>
 
-        <Card className="dribbble-card border-none overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-xl font-black text-slate-900">تقرير مديونيات الموردين</CardTitle>
-            <CardDescription className="font-medium">قائمة الموردين الذين لهم أرصدة مستحقة</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 overflow-x-auto">
+        <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+          <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">ديون الموردين الرئيسية</h3>
+              <p className="text-slate-400 font-bold text-sm italic">الأرصدة المستحقة للموردين ونسب السداد</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+               <Briefcase size={24} />
+            </div>
+          </div>
+          <div className="overflow-x-auto custom-scrollbar">
             <Table>
-              <TableHeader className="bg-slate-50/50">
-                <TableRow className="hover:bg-transparent border-slate-100">
-                  <TableHead className="text-right font-black text-slate-900 py-5">المورد</TableHead>
-                  <TableHead className="text-right font-black text-slate-900">المتبقي (دين)</TableHead>
-                  <TableHead className="text-right font-black text-slate-900">نسبة السداد</TableHead>
+              <TableHeader className="bg-slate-50/50 h-16">
+                <TableRow className="hover:bg-transparent border-slate-100 uppercase tracking-widest text-[10px]">
+                  <TableHead className="text-right font-black text-slate-900 px-10">المورد</TableHead>
+                  <TableHead className="text-right font-black text-slate-900">المبلغ المتبقي</TableHead>
+                  <TableHead className="text-right font-black text-slate-900 px-10">التقدم المالي</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {suppliers.filter(s => s.balance > 0).sort((a, b) => b.balance - a.balance).map(s => (
-                  <TableRow key={s.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
-                    <TableCell className="font-black text-slate-900">{s.name}</TableCell>
-                    <TableCell className="text-red-500 font-black">{s.balance.toLocaleString()} ج.م</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary shadow-[0_0_8px_var(--primary)]" 
-                            style={{ width: `${(s.totalPayments / s.totalPurchases) * 100}%` }}
+                {suppliers.filter(s => s.balance > 0).sort((a, b) => b.balance - a.balance).slice(0, 8).map(s => (
+                  <TableRow key={s.id} className="h-20 border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                    <TableCell className="px-10 font-black text-slate-900 text-lg">{s.name}</TableCell>
+                    <TableCell className="text-rose-600 font-black text-xl tracking-tighter">
+                       {s.balance.toLocaleString()} <span className="text-[10px] text-slate-300">ج.م</span>
+                    </TableCell>
+                    <TableCell className="px-10">
+                      <div className="flex items-center gap-4 min-w-[150px]">
+                        <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(s.totalPayments / s.totalPurchases) * 100}%` }}
+                            transition={{ duration: 1.5, ease: "easeOut" }}
+                            className="h-full bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.5)] rounded-full" 
                           />
                         </div>
-                        <span className="text-xs font-black text-slate-900">{Math.round((s.totalPayments / s.totalPurchases) * 100)}%</span>
+                        <span className="text-[11px] font-black text-slate-900 w-10 text-center font-mono">{Math.round((s.totalPayments / s.totalPurchases) * 100)}%</span>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-      </Card>
+          </div>
+          <div className="p-8 bg-slate-50 text-center">
+             <Button variant="link" onClick={() => setActiveReportTab('suppliers')} className="text-primary font-black uppercase tracking-widest text-xs hover:no-underline">
+                مراجعة أرصدة وكشوف حسابات الموردين <ArrowLeft size={14} className="mr-2" />
+             </Button>
+          </div>
+       </Card>
       </div>
       </div>
       )}
 
       {activeReportTab === 'warehouse' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <Card className="dribbble-card border-none">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-2xl font-black">تقرير جرد المخزن الشامل</CardTitle>
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+            <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50/30">
+              <div>
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">تقرير جرد المخزن الشامل</h3>
+                <p className="text-slate-400 font-bold text-lg italic mt-1">تـفاصيل الأرصدة والـقـيمة لمـجمل نـشـاط الشـركـة</p>
+              </div>
               <Button onClick={() => exportToExcel(items.map(i => ({
-                الاسم: i.name,
+                الصنف: i.name,
+                المخزن: warehouses.find(w => w.id === i.warehouseId)?.name || 'غير محدد',
                 الوحدة: i.unit,
-                المخزن: warehouses.find(w => w.id === i.warehouseId)?.name,
                 الرصيد: i.currentBalance,
-                السعر: i.price,
-                القيمة: i.currentBalance * i.price
-              })), 'تقرير_المخزن_الشامل')} className="rounded-xl font-bold">تصدير إكسيل</Button>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
+                سعر_الوحدة: i.price,
+                إجمالي_القيمة: i.currentBalance * i.price
+              })), 'تقرير_الجرد_التفصيلي')} className="h-14 px-10 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg shadow-2xl shadow-emerald-600/20 transition-all">
+                <Download size={20} className="ml-2" />
+                تصدير إكسيل
+              </Button>
+            </div>
+            <div className="overflow-x-auto custom-scrollbar">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-black">الصنف</TableHead>
-                    <TableHead className="font-black">المخزن</TableHead>
-                    <TableHead className="font-black">الوحدة</TableHead>
-                    <TableHead className="font-black">الرصيد</TableHead>
-                    <TableHead className="font-black">السعر</TableHead>
-                    <TableHead className="font-black">القيمة</TableHead>
+                <TableHeader className="bg-white h-20">
+                  <TableRow className="border-slate-100 hover:bg-transparent">
+                    <TableHead className="text-right font-black text-slate-900 px-10 text-[11px] uppercase tracking-[0.2em] w-[300px]">الصنف والوصف</TableHead>
+                    <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-[0.2em]">موقـع التـخـزين</TableHead>
+                    <TableHead className="text-center font-black text-slate-900 text-[11px] uppercase tracking-[0.2em]">الرصـيد الـحـالـي</TableHead>
+                    <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-[0.2em]">سـعر التـقـيـيـم</TableHead>
+                    <TableHead className="text-right font-black text-slate-900 px-10 text-[11px] uppercase tracking-[0.2em]">إجمالي القيمة</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-bold">{item.name}</TableCell>
-                      <TableCell className="font-bold">{warehouses.find(w => w.id === item.warehouseId)?.name}</TableCell>
-                      <TableCell className="font-bold">{item.unit}</TableCell>
-                      <TableCell className={`font-black ${item.currentBalance <= item.safetyLimit ? 'text-red-500' : 'text-slate-700'}`}>{item.currentBalance}</TableCell>
-                      <TableCell className="font-bold">{item.price.toLocaleString()} ج.م</TableCell>
-                      <TableCell className="font-black text-emerald-600">{(item.currentBalance * item.price).toLocaleString()} ج.م</TableCell>
+                  {items.sort((a, b) => a.name.localeCompare(b.name)).map(item => (
+                    <TableRow key={item.id} className="h-24 border-slate-50 hover:bg-slate-50/30 transition-all">
+                      <TableCell className="px-10">
+                         <p className="font-black text-slate-900 text-xl tracking-tight">{item.name}</p>
+                         <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">{item.category}</p>
+                      </TableCell>
+                      <TableCell>
+                         <div className="flex items-center gap-2 font-bold text-slate-600 bg-slate-100 w-fit px-4 py-2 rounded-xl border border-slate-200/50">
+                            <Home size={14} className="text-slate-400" />
+                            {warehouses.find(w => w.id === item.warehouseId)?.name || 'غير محدد'}
+                         </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className={`inline-flex flex-col items-center gap-1 font-black text-2xl tracking-tighter ${item.currentBalance <= item.safetyLimit ? 'text-rose-600' : 'text-slate-900'}`}>
+                           {item.currentBalance.toLocaleString()}
+                           <span className="text-[10px] text-slate-300 uppercase tracking-[0.2em]">{item.unit}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-bold text-slate-500 font-mono text-lg">
+                        {item.price.toLocaleString()} <span className="text-[10px]">ج.م</span>
+                      </TableCell>
+                      <TableCell className="px-10">
+                         <div className="font-black text-emerald-600 text-2xl tracking-tighter shadow-sm w-fit border-b-4 border-emerald-100">
+                            {(item.currentBalance * item.price).toLocaleString()}
+                            <span className="text-xs text-slate-300 mr-2">ج.م</span>
+                         </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-        </Card>
+            </div>
+            <div className="p-12 bg-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-8">
+               <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center border border-white/10">
+                     <PieChartIcon size={32} />
+                  </div>
+                  <div>
+                     <p className="text-slate-400 font-black text-xs uppercase tracking-widest mb-1">إجمالي قـيـمة بـضـاعة الحـاضـر</p>
+                     <p className="text-4xl font-black tracking-tighter">{totalInventoryValue.toLocaleString()} <span className="text-lg text-white/30">جـنـيـه مـصـري</span></p>
+                  </div>
+               </div>
+               <div className="h-12 w-px bg-white/10 hidden md:block" />
+               <div className="flex items-center gap-12">
+                  <div className="text-center">
+                     <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1">عـدد الأصـنـاف</p>
+                     <p className="text-3xl font-black tracking-tight">{items.length}</p>
+                  </div>
+                  <div className="text-center">
+                     <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1">مـخـازن نـشـطـة</p>
+                     <p className="text-3xl font-black tracking-tight">{warehouses.length}</p>
+                  </div>
+               </div>
+            </div>
+          </Card>
         </div>
       )}
 
       {activeReportTab === 'purchases' && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="dribbble-card border-none bg-blue-50/50 shadow-sm">
-              <CardContent className="pt-6">
-                <p className="text-xs font-black text-blue-600 uppercase tracking-widest mb-1">إجمالي المشتريات (6 أشهر)</p>
-                <h3 className="text-3xl font-black text-slate-900">
-                  {purchaseTrends.reduce((acc, t) => acc + t.amount, 0).toLocaleString()} 
-                  <small className="text-xs font-bold text-slate-400 mr-2">ج.م</small>
-                </h3>
-              </CardContent>
-            </Card>
-            <Card className="dribbble-card border-none bg-emerald-50/50 shadow-sm">
-              <CardContent className="pt-6">
-                <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-1">متوسط قيمة الفاتورة</p>
-                <h3 className="text-3xl font-black text-slate-900">
-                  {(purchases.length > 0 ? (purchases.reduce((acc, p) => acc + p.total, 0) / purchases.length) : 0).toLocaleString()} 
-                  <small className="text-xs font-bold text-slate-400 mr-2">ج.م</small>
-                </h3>
-              </CardContent>
-            </Card>
-            <Card className="dribbble-card border-none bg-purple-50/50 shadow-sm">
-              <CardContent className="pt-6">
-                <p className="text-xs font-black text-purple-600 uppercase tracking-widest mb-1">عدد حركات الشراء</p>
-                <h3 className="text-3xl font-black text-slate-900">{purchases.length} <small className="text-xs font-bold text-slate-400 mr-2">حركة</small></h3>
-              </CardContent>
-            </Card>
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden relative group">
+               <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+               <div className="relative z-10">
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">إنـفـاق الـ 6 أشـهـر الأخـيـرة</p>
+                 <div className="flex items-end gap-3 mb-2">
+                   <h3 className="text-5xl font-black text-slate-900 tracking-tighter">
+                     {purchaseTrends.reduce((acc, t) => acc + t.amount, 0).toLocaleString()} 
+                   </h3>
+                   <span className="text-lg font-black text-slate-300 mb-2">ج.م</span>
+                 </div>
+               </div>
+            </div>
+
+            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden relative group">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">مـتـوسط قـيـمـة الفاتـورة</p>
+               <div className="flex items-end gap-3 mb-2">
+                 <h3 className="text-5xl font-black text-slate-900 tracking-tighter">
+                   {(purchases.length > 0 ? (purchases.reduce((acc, p) => acc + p.total, 0) / purchases.length) : 0).toLocaleString()} 
+                 </h3>
+                 <span className="text-lg font-black text-slate-300 mb-2">ج.م</span>
+               </div>
+            </div>
+
+            <div className="p-10 bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-indigo-900/20 overflow-hidden relative text-white">
+               <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">كـثـافة حـركـات الـشـراء</p>
+               <div className="flex items-end gap-3 mb-2">
+                 <h3 className="text-7xl font-black tracking-tighter text-indigo-400">
+                   {purchases.length}
+                 </h3>
+                 <span className="text-2xl font-black text-white/20 mb-3 tracking-tighter">عـمـلـيـة نـاجـحـة</span>
+               </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50">
-              <CardHeader>
-                <CardTitle className="text-xl font-black">تطور المشتريات شهرياً</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[350px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">مـنـحـنى الـشـراء الـزمني</h3>
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                   <Activity size={20} />
+                </div>
+              </div>
+              <div className="p-10 h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={purchaseTrends}>
                     <defs>
-                      <linearGradient id="colorPurchases" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                      <linearGradient id="colorPurchasesDetail" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600, fill: '#64748b' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600, fill: '#64748b' }} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 900, fill: '#1e293b' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }} />
                     <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                      contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.15)', padding: '20px' }}
                       formatter={(value: number) => [`${value.toLocaleString()} ج.م`, 'المشتريات']}
                     />
-                    <Area type="monotone" dataKey="amount" stroke="#3b82f6" fillOpacity={1} fill="url(#colorPurchases)" strokeWidth={3} />
+                    <Area type="stepAfter" dataKey="amount" stroke="#3b82f6" strokeWidth={5} fillOpacity={1} fill="url(#colorPurchasesDetail)" />
                   </AreaChart>
                 </ResponsiveContainer>
-              </CardContent>
+              </div>
             </Card>
 
-            <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50">
-              <CardHeader>
-                <CardTitle className="text-xl font-black">أكثر الأصناف شراءً (كقيمة)</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[350px]">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">أكبر 7 بنود مشتريات</h3>
+                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+                   <Target size={20} />
+                </div>
+              </div>
+              <div className="p-10 h-[400px] flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={itemsByPurchaseValue}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
+                      innerRadius={80}
+                      outerRadius={120}
+                      paddingAngle={8}
                       dataKey="value"
+                      stroke="none"
                     >
                       {itemsByPurchaseValue.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                      contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.15)', padding: '20px' }}
                       formatter={(value: number) => `${value.toLocaleString()} ج.م`} 
                     />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '20px', fontWeight: 600 }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '30px', fontWeight: 900, color: '#1e293b' }} />
                   </PieChart>
                 </ResponsiveContainer>
-              </CardContent>
+              </div>
             </Card>
           </div>
 
-          <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50">
-            <CardHeader>
-              <CardTitle className="text-xl font-black">إجمالي المشتريات لكل مورد</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={purchasesBySupplier} layout="vertical">
+          <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+            <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">تـوزيـع المـشتـريـات حـسـب المـورد</h3>
+                <p className="text-slate-400 font-bold text-sm italic">إجمالي حجـم الـتـوريد النقـدي لأكـبر المـوردين</p>
+              </div>
+            </div>
+            <div className="p-12">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={purchasesBySupplier} layout="vertical" margin={{ left: 40, right: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                   <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#1e293b' }} width={120} />
+                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 13, fontWeight: 900, fill: '#1e293b' }} width={150} />
                   <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                    formatter={(value: number) => [`${value.toLocaleString()} ج.م`, 'إجمالي الشراء']}
+                    cursor={{ fill: '#f8fafc' }}
+                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.15)', padding: '20px' }}
+                    formatter={(value: number) => [`${value.toLocaleString()} ج.م`, 'إجمالي الـتـنـفيذ']}
                   />
-                  <Bar dataKey="amount" fill="#10b981" radius={[0, 8, 8, 0]} barSize={30} />
+                  <Bar dataKey="amount" fill="#6366f1" radius={[0, 16, 16, 0]} barSize={40} />
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
+            </div>
           </Card>
         </div>
       )}
 
       {activeReportTab === 'suppliers' && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="dribbble-card border-none bg-slate-900 shadow-sm text-white">
-              <CardContent className="pt-6">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي المديونية</p>
-                <h3 className="text-2xl font-black">{totalDebtAcrossSuppliers.toLocaleString()} <small className="text-xs font-bold text-slate-400">ج.م</small></h3>
-              </CardContent>
-            </Card>
-            <Card className="dribbble-card border-none bg-blue-600 shadow-sm text-white">
-              <CardContent className="pt-6">
-                <p className="text-xs font-black text-blue-200 uppercase tracking-widest mb-1">إجمالي المسدد</p>
-                <h3 className="text-2xl font-black">{totalPaymentsAcrossSuppliers.toLocaleString()} <small className="text-xs font-bold text-blue-200">ج.م</small></h3>
-              </CardContent>
-            </Card>
-            <Card className="dribbble-card border-none bg-emerald-600 shadow-sm text-white">
-              <CardContent className="pt-6">
-                <p className="text-xs font-black text-emerald-200 uppercase tracking-widest mb-1">نسبة السداد العامة</p>
-                <h3 className="text-2xl font-black">
-                  {totalPaymentsAcrossSuppliers + totalDebtAcrossSuppliers > 0 
-                    ? Math.round((totalPaymentsAcrossSuppliers / (totalPaymentsAcrossSuppliers + totalDebtAcrossSuppliers)) * 100) 
-                    : 0}%
-                </h3>
-              </CardContent>
-            </Card>
-            <Card className="dribbble-card border-none bg-amber-500 shadow-sm text-white">
-              <CardContent className="pt-6">
-                <p className="text-xs font-black text-amber-100 uppercase tracking-widest mb-1">عدد الموردين</p>
-                <h3 className="text-2xl font-black">{suppliers.length} <small className="text-xs font-bold text-amber-100">مورد</small></h3>
-              </CardContent>
-            </Card>
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="p-10 bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-slate-900/20 text-white relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full -mr-16 -mt-16" />
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">إجمالي مـديـونـيات السـوق</p>
+               <h3 className="text-4xl font-black tracking-tighter">{totalDebtAcrossSuppliers.toLocaleString()} <span className="text-lg text-slate-500">ج.م</span></h3>
+            </div>
+            
+            <div className="p-10 bg-indigo-600 rounded-[2.5rem] shadow-2xl shadow-indigo-600/20 text-white relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -mr-16 -mt-16" />
+               <p className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] mb-4">إجمالي المـبـالـغ الـمـسـددة</p>
+               <h3 className="text-4xl font-black tracking-tighter">{totalPaymentsAcrossSuppliers.toLocaleString()} <span className="text-lg text-indigo-300">ج.م</span></h3>
+            </div>
+
+            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">مـعـدل الـسـداد الـعـام</p>
+               <div className="flex items-center gap-6">
+                 <h3 className="text-6xl font-black text-slate-900 tracking-tighter leading-none">
+                    {totalPaymentsAcrossSuppliers + totalDebtAcrossSuppliers > 0 
+                      ? Math.round((totalPaymentsAcrossSuppliers / (totalPaymentsAcrossSuppliers + totalDebtAcrossSuppliers)) * 100) 
+                      : 0}%
+                 </h3>
+                 <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                       className="h-full bg-emerald-500" 
+                       style={{ width: `${totalPaymentsAcrossSuppliers + totalDebtAcrossSuppliers > 0 ? (totalPaymentsAcrossSuppliers / (totalPaymentsAcrossSuppliers + totalDebtAcrossSuppliers)) * 100 : 0}%` }}
+                    />
+                 </div>
+               </div>
+            </div>
+
+            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">عـدد المـوردين المسـجـلين</p>
+               <h3 className="text-6xl font-black text-slate-900 tracking-tighter leading-none">{suppliers.length}</h3>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50">
-              <CardHeader>
-                <CardTitle className="text-xl font-black">تحليل التعاملات لكل مورد</CardTitle>
-                <CardDescription className="font-bold">المقارنة بين إجمالي المشتريات والمدفوعات</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[400px] pt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">تحليل التعاملات لكل مورد</h3>
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                   <TrendingUp size={20} />
+                </div>
+              </div>
+              <div className="p-10 h-[450px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={supplierPurchasesData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#64748b' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 600, fill: '#64748b' }} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 900, fill: '#1e293b' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700, fill: '#94a3b8' }} />
                     <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                      cursor={{ fill: '#f8fafc' }}
+                      contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.15)', padding: '20px' }}
                     />
-                    <Legend iconType="circle" />
-                    <Bar dataKey="total" name="إجمالي المشتريات" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="paid" name="المسدد فعلياً" fill="#10b981" radius={[6, 6, 0, 0]} />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontWeight: 900 }} />
+                    <Bar dataKey="total" name="إجمالي المشتريات" fill="#6366f1" radius={[12, 12, 0, 0]} barSize={35} />
+                    <Bar dataKey="paid" name="المسدد فعلياً" fill="#10b981" radius={[12, 12, 0, 0]} barSize={35} />
                   </BarChart>
                 </ResponsiveContainer>
-              </CardContent>
+              </div>
             </Card>
 
-            <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50">
-              <CardHeader>
-                <CardTitle className="text-xl font-black">أكثر الموردين دائنية للمصنع</CardTitle>
-                <CardDescription className="font-bold">أعلى 10 موردين لهم مبالغ مستحقة</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[400px]">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
+              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">أكبر 7 موردين دائنية</h3>
+                <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-500">
+                   <AlertTriangle size={20} />
+                </div>
+              </div>
+              <div className="p-10 h-[450px] flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={supplierDebtData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={80}
-                      outerRadius={120}
+                      innerRadius={100}
+                      outerRadius={140}
                       paddingAngle={5}
                       dataKey="balance"
+                      stroke="none"
                     >
                       {supplierDebtData.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                      formatter={(value: number) => [`${value.toLocaleString()} ج.م`, 'المبلغ']}
+                      contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 32px 64px -12px rgba(0,0,0,0.15)', padding: '20px' }}
+                      formatter={(value: number) => [`${value.toLocaleString()} ج.م`, 'المبلغ المتبقي']}
                     />
-                    <Legend verticalAlign="bottom" align="center" iconType="circle" />
+                    <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ paddingTop: '30px', fontWeight: 900 }} />
                   </PieChart>
                 </ResponsiveContainer>
-              </CardContent>
+              </div>
             </Card>
           </div>
 
@@ -13164,6 +13699,7 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
                   </label>
                   <Input 
                     type="number" 
+                    step={editingPayroll.payMethod === 'production' ? "1" : "0.25"}
                     className="rounded-xl h-11" 
                     value={editingPayroll.payMethod === 'production' ? editingPayroll.baseSalary : editingPayroll.daysWorked} 
                     onChange={e => {
@@ -13176,6 +13712,24 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
                     }} 
                   />
                 </div>
+                {editingPayroll.payMethod !== 'production' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">اليومية</label>
+                    <Input 
+                      type="number" 
+                      className="rounded-xl h-11" 
+                      value={editingPayroll.dailyRate} 
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        setEditingPayroll({
+                          ...editingPayroll, 
+                          dailyRate: val,
+                          baseSalary: (editingPayroll.daysWorked || 0) * val
+                        });
+                      }} 
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">الأجر الأساسي الإجمالي</label>
                   <Input type="number" className="rounded-xl h-11" value={editingPayroll.baseSalary} onChange={e => setEditingPayroll({...editingPayroll, baseSalary: Number(e.target.value)})} />
@@ -13559,11 +14113,17 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">أيام العمل</label>
-                  <Input type="number" step="0.25" className="rounded-xl h-11" value={editingPayroll.daysWorked} onChange={e => setEditingPayroll({...editingPayroll, daysWorked: parseFloat(e.target.value) || 0})} />
+                  <Input type="number" step="0.25" className="rounded-xl h-11" value={editingPayroll.daysWorked} onChange={e => {
+                    const days = parseFloat(e.target.value) || 0;
+                    setEditingPayroll({...editingPayroll, daysWorked: days, baseSalary: days * (editingPayroll.dailyRate || 0)});
+                  }} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">اليومية</label>
-                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.dailyRate} onChange={e => setEditingPayroll({...editingPayroll, dailyRate: parseFloat(e.target.value) || 0})} />
+                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.dailyRate} onChange={e => {
+                    const rate = parseFloat(e.target.value) || 0;
+                    setEditingPayroll({...editingPayroll, dailyRate: rate, baseSalary: (editingPayroll.daysWorked || 0) * rate});
+                  }} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
