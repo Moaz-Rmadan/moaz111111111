@@ -18,6 +18,9 @@ export interface UserProfile {
     reports: boolean;
     suppliers: boolean;
     settings: boolean;
+    finance: boolean;
+    sales: boolean;
+    canDelete: boolean;
   };
 }
 
@@ -85,7 +88,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   hr: isMasterAdmin,
                   reports: isMasterAdmin,
                   suppliers: isMasterAdmin,
-                  settings: isMasterAdmin
+                  settings: isMasterAdmin,
+                  finance: isMasterAdmin,
+                  sales: isMasterAdmin,
+                  canDelete: isMasterAdmin
                 }
               };
               setDoc(userDocRef, defaultProfile);

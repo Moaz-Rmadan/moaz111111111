@@ -1,0 +1,134 @@
+src/components/ProductionCostsView.tsx:    date: new Date().toISOString().split('T')[0],
+src/components/ProductionCostsView.tsx:    date: new Date().toISOString().split('T')[0],
+src/components/ProductionCostsView.tsx:      const date = new Date().toISOString();
+src/components/ProductionCostsView.tsx:      setLaborForm({ employeeId: '', stage: '', date: new Date().toISOString().split('T')[0], hours: 0, notes: '' });
+src/components/ProductionCostsView.tsx:      setOtherForm({ stage: '', date: new Date().toISOString().split('T')[0], description: '', amount: 0, notes: '' });
+src/lib/firestore-utils.ts:  throw new Error(JSON.stringify(errInfo));
+src/App.tsx:    start: format(new Date(new Date().setDate(new Date().getDate() - 30)), 'yyyy-MM-dd'),
+src/App.tsx:    end: format(new Date(), 'yyyy-MM-dd')
+src/App.tsx:  const paidEmployeeCount = new Set(filteredPayrolls.map(p => p.employeeId)).size;
+src/App.tsx:        <p className="text-slate-500 font-bold mt-2">عن الفترة: {format(new Date(dateRange.start), 'dd/MM/yyyy')} إلى {format(new Date(dateRange.end), 'dd/MM/yyyy')}</p>
+src/App.tsx:                    'تاريخ الصرف': p.paymentDate ? format(new Date(p.paymentDate), 'dd/MM/yyyy') : 'غير محدد',
+src/App.tsx:    const reader = new FileReader();
+src/App.tsx:    const fortyFiveDaysAgo = new Date();
+src/App.tsx:      return new Date(a.date).getTime() - new Date(b.date).getTime();
+src/App.tsx:            <p className="text-slate-500 font-bold mt-2 tracking-widest text-xs">تاريخ التقرير المعتمد: {format(new Date(), 'dd/MM/yyyy · HH:mm')}</p>
+src/App.tsx:                        {m.date !== '---' ? format(new Date(m.date), 'dd/MM/yyyy · HH:mm', { locale: ar }) : '---'}
+src/App.tsx:    const d = new Date();
+src/App.tsx:    date: format(new Date(date), 'dd/MM', { locale: ar }),
+src/App.tsx:    const d = new Date();
+src/App.tsx:    month: format(new Date(m + "-01"), 'MMM', { locale: ar }),
+src/App.tsx:  const last30DaysDate = new Date();
+src/App.tsx:  const recentAttendance = attendance.filter(a => new Date(a.date) >= last30DaysDate);
+src/App.tsx:      date: format(new Date(date), 'dd/MM', { locale: ar }),
+src/App.tsx:    month: format(new Date(m + "-01"), 'MMM', { locale: ar }),
+src/App.tsx:              <span className="font-black text-slate-900 text-lg">{format(new Date(), 'eeee, d MMMM yyyy', { locale: ar })}</span>
+src/App.tsx:                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{format(new Date(iss.date), 'HH:mm')}</span>
+src/App.tsx:                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{format(new Date(trans.date), 'dd/MM')}</span>
+src/App.tsx:                                  {m.date !== '---' ? format(new Date(m.date), 'dd/MM/yyyy · HH:mm', { locale: ar }) : '---'}
+src/App.tsx:          <p className="text-sm font-bold text-slate-400 mt-1">{new Date().toLocaleDateString('ar-EG')}</p>
+src/App.tsx:              <p className="font-black text-lg">تحريراً في : <span className="text-slate-500">{new Date().toLocaleDateString('ar-EG')}</span></p>
+src/App.tsx:        طبع بواسطة نظام إدارة المصنع - {new Date().toLocaleString('ar-EG')}
+src/App.tsx:    contractDate: new Date().toISOString().split('T')[0],
+src/App.tsx:    startDate: new Date().toISOString().split('T')[0],
+src/App.tsx:        contractDate: new Date().toISOString().split('T')[0],
+src/App.tsx:        startDate: new Date().toISOString().split('T')[0],
+src/App.tsx:                                        <Calendar size={12} className={job.deadline && new Date(job.deadline) < new Date() ? "text-red-500 animate-pulse" : "text-primary"} />
+src/App.tsx:                                        <span className={job.deadline && new Date(job.deadline) < new Date() ? "text-red-500 font-black" : ""}>
+src/App.tsx:                                          {job.deadline ? format(new Date(job.deadline), 'dd/MM') : 'بدون موعد'}
+src/App.tsx:    date: new Date().toISOString().split('T')[0],
+src/App.tsx:        date: new Date().toISOString().split('T')[0],
+src/App.tsx:    date: new Date().toISOString().split('T')[0],
+src/App.tsx:        date: new Date().toISOString().split('T')[0],
+src/App.tsx:    const d = new Date();
+src/App.tsx:    date: format(new Date(date), 'dd/MM', { locale: ar }),
+src/App.tsx:    date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:    date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:    date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:        date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:        date: format(new Date(), 'yyyy-MM-dd HH:mm'),
+src/App.tsx:          date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:      setSettlementForm({ safeId: '', date: format(new Date(), 'yyyy-MM-dd'), notes: '', expenses: [] });
+src/App.tsx:                        setNewExpense({ description: '', category: 'مصروفات أخرى', amount: 0, date: format(new Date(), 'yyyy-MM-dd'), costCenterId: '', productionJobId: '', driverId: '', manifestId: '' });
+src/App.tsx:    const pDate = new Date(p.date);
+src/App.tsx:    const matchesStart = !dateFilter.start || pDate >= new Date(dateFilter.start);
+src/App.tsx:    const matchesEnd = !dateFilter.end || pDate <= new Date(dateFilter.end + 'T23:59:59');
+src/App.tsx:      'التاريخ': format(new Date(p.date), 'dd/MM/yyyy'),
+src/App.tsx:    XLSX.writeFile(wb, `المشتريات_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+src/App.tsx:    const date = new Date().toISOString();
+src/App.tsx:          date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:          <p className="text-slate-500 font-bold mt-1">بتاريخ: {format(new Date(), 'dd/MM/yyyy')}</p>
+src/App.tsx:                <TableCell className="font-bold text-slate-500">{format(new Date(p.date), 'dd/MM/yyyy')}</TableCell>
+src/App.tsx:    const issDate = new Date(iss.date);
+src/App.tsx:    const matchesStart = !dateFilter.start || issDate >= new Date(dateFilter.start);
+src/App.tsx:    const matchesEnd = !dateFilter.end || issDate <= new Date(dateFilter.end + 'T23:59:59');
+src/App.tsx:      'التاريخ': format(new Date(iss.date), 'dd/MM/yyyy HH:mm'),
+src/App.tsx:    XLSX.writeFile(wb, `أذونات_الصرف_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+src/App.tsx:      const date = new Date().toISOString();
+src/App.tsx:          <p className="text-slate-500 font-bold mt-2 text-lg">سجل حركات المخازن المعتمد لليوم: {format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+src/App.tsx:                    {format(new Date(iss.date), 'dd/MM/yyyy HH:mm')}
+src/App.tsx:    date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:        date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:                        ...supplierPurchases.map(p => ({ ...p, _type: 'purchase', _date: new Date(p.date).getTime() })),
+src/App.tsx:                        ...supplierPaymentsList.map(p => ({ ...p, _type: 'payment', _date: new Date(p.date).getTime() }))
+src/App.tsx:                          <TableCell className="px-6 font-bold text-slate-500 text-xs font-mono">{format(new Date(item.date), 'dd/MM/yyyy')}</TableCell>
+src/App.tsx:  const [auditDate, setAuditDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+src/App.tsx:                  <span className="text-xs font-bold text-slate-400">{format(new Date(a.date), 'dd/MM/yyyy')}</span>
+src/App.tsx:                  <h3 className="text-2xl font-black text-slate-900">تفاصيل الجرد: {format(new Date(selectedAudit.date), 'dd/MM/yyyy')}</h3>
+src/App.tsx:        date: new Date().toISOString(),
+src/App.tsx:      const date = new Date().toISOString();
+src/App.tsx:                     {format(new Date(record.date), 'dd/MM/yyyy')}
+src/App.tsx:                     <span className="block opacity-40">{format(new Date(record.date), 'HH:mm')}</span>
+src/App.tsx:    const date = new Date();
+src/App.tsx:      .filter(p => format(new Date(p.date), 'MMM yyyy') === monthStr)
+src/App.tsx:    const date = new Date();
+src/App.tsx:      .filter(p => format(new Date(p.date), 'MMM yyyy') === monthStr)
+src/App.tsx:      .filter(iss => format(new Date(iss.date), 'MMM yyyy') === monthStr)
+src/App.tsx:           رقم التقرير: #{Math.floor(Math.random() * 900000) + 100000} | بتاريخ: {format(new Date(), 'dd MMMM yyyy', { locale: ar })}
+src/App.tsx:    date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:        date: new Date(formData.date).toISOString(),
+src/App.tsx:      setFormData({ bladeName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
+src/App.tsx:            {records.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
+src/App.tsx:                <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
+src/App.tsx:    date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:        date: new Date(formData.date).toISOString(),
+src/App.tsx:      setFormData({ plateName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
+src/App.tsx:            {records.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
+src/App.tsx:                <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
+src/App.tsx:    date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:        date: new Date(formData.date).toISOString(),
+src/App.tsx:      setFormData({ machineName: '', maintenanceType: '', cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
+src/App.tsx:            {records.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
+src/App.tsx:                <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
+src/App.tsx:    hireDate: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
+src/App.tsx:      setFormData({ name: '', position: '', department: '', dailyRate: 0, payMethod: 'daily', pieceRate: 0, phone: '', hireDate: format(new Date(), 'yyyy-MM-dd'), status: 'نشط', shiftStart: '08:00', shiftEnd: '18:00' });
+src/App.tsx:  const [todayDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+src/App.tsx:        date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
+src/App.tsx:    date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:        date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
+src/App.tsx:    date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:        date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
+src/App.tsx:            {filteredTransactions.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tr => (
+src/App.tsx:  const [entryDate, setEntryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+src/App.tsx:    startDate: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:    endDate: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:    year: new Date().getFullYear()
+src/App.tsx:      if (!response.ok) throw new Error('Failed to generate payrolls from backend');
+src/App.tsx:            date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:            paymentDate: format(new Date(), 'yyyy-MM-dd')
+src/App.tsx:              paymentDate: format(new Date(), 'yyyy-MM-dd')
+src/App.tsx:              date: format(new Date(), 'yyyy-MM-dd'),
+src/App.tsx:  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
+src/App.tsx:    const reader = new FileReader();
+src/App.tsx:                    <span className="text-[10px] text-slate-400">{format(new Date(p.startDate), 'dd/MM/yyyy')} إلى {format(new Date(p.endDate), 'dd/MM/yyyy')}</span>
+src/App.tsx:  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
+src/App.tsx:    XLSX.writeFile(wb, `Archived_Payroll_${new Date().toLocaleDateString()}.xlsx`);
+src/App.tsx:                  <TableCell className="font-bold text-slate-500">{p.paymentDate ? format(new Date(p.paymentDate), 'dd/MM/yyyy') : '-'}</TableCell>
+src/App.tsx:                    {format(new Date(p.startDate), 'dd/MM/yyyy')} إلى {format(new Date(p.endDate), 'dd/MM/yyyy')}
+src/App.tsx:      lastUpdated: new Date().toISOString()
+src/App.tsx:                 <span>{recipe.lastUpdated ? format(new Date(recipe.lastUpdated), 'dd/MM/yyyy HH:mm') : '---'}</span>
+src/firebase.ts:export const getGoogleProvider = () => new GoogleAuthProvider();

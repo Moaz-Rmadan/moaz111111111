@@ -202,6 +202,36 @@
   .bento-item-large {
     @apply lg:col-span-8;
   }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.92 0.01 250) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
+
+  /* Prevent text selection on buttons for better touch feel */
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Responsive Table Adjustments */
+  @media (max-width: 768px) {
+    .overflow-x-auto {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
 }
 
 .print-only {

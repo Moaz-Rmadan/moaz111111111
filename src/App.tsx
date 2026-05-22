@@ -3,81 +3,39 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SalesModule } from './components/SalesModule';
-import { AuthProvider, useAuth } from './AuthContext';
-import { loginWithGoogle, logout } from './firebase';
-import React, { useState, useEffect } from 'react';
-import { 
-  Activity,
-  Zap,
-  ArrowDownLeft,
-  ArrowLeft,
-  Check,
-  LayoutDashboard, 
-  Package, 
-  PieChart as PieChartIcon, 
-  Wallet,
-  ShoppingCart,
-  ShoppingBag, 
-  ArrowUpRight, 
-  ArrowRight,
-  ClipboardCheck,
-  Users, 
-  Settings,
-  LogOut,
-  Plus,
-  Briefcase,
-  Search,
-  AlertTriangle,
-  FileText,
-  BarChart3,
-  Edit2,
-  Trash2,
-  Truck,
-  Calendar,
-  CheckCircle2,
-  PackageCheck,
-  RotateCcw,
-  Printer,
-  History,
-  ChevronRight,
-  ChevronLeft,
-  Menu,
-  X,
-  Download,
-  Upload,
-  AlertCircle,
-  LayoutGrid,
-  List,
-  Layers,
-  DollarSign,
-  Wrench,
-  ChevronDown,
-  ChevronUp,
-  Building2,
-  ShieldAlert,
-  ShieldCheck,
-  UserCircle,
-  Save,
-  MessageSquare,
-  FileCheck,
-  PlusCircle,
-  CreditCard,
-  Scale,
-  ReceiptText,
-  Code,
-  MoreHorizontal,
-  TrendingUp,
-  Filter,
-  Database,
-  Target,
-  Home,
-  Box,
-  ArrowUpToLine,
-  ArrowDownToLine,
-  Eye,
-  Warehouse as WarehouseIcon
+
+
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { db, auth, getGoogleProvider } from './firebase';
+import { collection, onSnapshot, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, writeBatch, startAfter, documentId, setDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { handleFirestoreError } from './lib/firestore-utils';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Cell as RechartsCell, AreaChart, Area, ComposedChart } from 'recharts';
+import {
+  AlertCircle, Package, DollarSign, Users, LayoutGrid, Plus, BarChart3, Search, Search as SearchIcon, Download, 
+  LayoutDashboard, ChevronDown, Layers, Wrench, Building2, ShoppingBag, ShieldAlert,
+  Settings, LogOut, UserCircle, ShieldCheck, Trash2, X, ShoppingCart, Truck, AlertTriangle,
+  Activity, Printer, ArrowDownLeft, ArrowUpRight, Menu, ChevronLeft, Calendar, PieChartIcon,
+  TrendingUp, Filter, Edit2, MessageSquare, FileText, CheckCircle2, PackageCheck, RotateCcw,
+  ReceiptText, ClipboardCheck, PlusCircle, FileCheck, CreditCard, Scale, Wallet, ArrowRight,
+  ChevronUp, Target, Database, Briefcase, Home, Code, Save, Upload, ArrowLeft,
+  ArrowUpToLine, ArrowDownToLine, Eye, Box, Clock, List, Zap, History, Warehouse as WarehouseIcon
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import type { 
+  Item, Supplier, Purchase, Issuance, Warehouse, Unit, CostCenter, 
+  ProductionJob, JobLabor, JobOtherCost, ProductionRecord, DeliveryReceipt, 
+  LostSale, StockAudit, BOM, WorkCenter, ManufacturingOperation, SalesOrder,
+  Safe, SafeTransaction, SafeAudit, SafeSettlement, SettledExpense, Employee,
+  Attendance, FinancialTransaction, Loan, Payroll, LoadingManifest, Waste,
+  BladeSharpening, PlateSharpening, MachineMaintenance, UserProfile,
+  CompanySettings, ProductRecipe, RecipeItem, DepartmentRecipe, SupplierPayment 
+} from './types';
+
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -98,34 +56,13 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell,
-  LineChart,
-  AreaChart,
-  Area,
-  ComposedChart,
-  Line,
-  Legend
-} from 'recharts';
-import { db, auth } from './firebase';
-import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, increment, serverTimestamp, writeBatch, setDoc } from 'firebase/firestore';
-import { Item, Supplier, Purchase, Issuance, Warehouse, Unit, CostCenter, ProductionJob, LoadingManifest, DeliveryReceipt, Waste, BladeSharpening, PlateSharpening, MachineMaintenance, Employee, Attendance, FinancialTransaction, Loan, Payroll, SupplierPayment, JobLabor, JobOtherCost, ProductionRecord, CompanySettings, UserProfile, StockAudit, BOM, WorkCenter, ManufacturingOperation, LostSale, SalesOrder, ProductRecipe, RecipeItem, DepartmentRecipe, Safe, SafeTransaction, SafeAudit, SafeSettlement, SettledExpense } from './types';
-import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
-import * as XLSX from 'xlsx';
-import { handleFirestoreError } from './lib/firestore-utils';
+
 import { ProductionCostsView } from './components/ProductionCostsView';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'motion/react';
+
+const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
+const logout = () => signOut(auth);
 
 // --- Components ---
 
@@ -628,7 +565,7 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
                     dataKey="value"
                   >
                     {compositionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <RechartsCell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip 
@@ -1201,30 +1138,38 @@ function MainApp({
       }, (err) => handleFirestoreError(err, 'list', 'employees'));
     }
 
+    const fortyFiveDaysAgo = new Date();
+    fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
+    const cutOffDate = format(fortyFiveDaysAgo, 'yyyy-MM-dd');
+
     let unsubAttendance = () => {};
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      unsubAttendance = onSnapshot(collection(db, 'attendance'), (snap) => {
+      const q = query(collection(db, 'attendance'), where('date', '>=', cutOffDate));
+      unsubAttendance = onSnapshot(q, (snap) => {
         setAttendance(snap.docs.map(d => ({ id: d.id, ...d.data() } as Attendance)));
       }, (err) => handleFirestoreError(err, 'list', 'attendance'));
     }
 
     let unsubHrTransactions = () => {};
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      unsubHrTransactions = onSnapshot(collection(db, 'hrTransactions'), (snap) => {
+      const q = query(collection(db, 'hrTransactions'), where('date', '>=', cutOffDate));
+      unsubHrTransactions = onSnapshot(q, (snap) => {
         setHrTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialTransaction)));
       }, (err) => handleFirestoreError(err, 'list', 'hrTransactions'));
     }
 
     let unsubLoans = () => {};
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      unsubLoans = onSnapshot(collection(db, 'loans'), (snap) => {
+      const q = query(collection(db, 'loans'), where('status', '==', 'نشط'));
+      unsubLoans = onSnapshot(q, (snap) => {
         setLoans(snap.docs.map(d => ({ id: d.id, ...d.data() } as Loan)));
       }, (err) => handleFirestoreError(err, 'list', 'loans'));
     }
 
     let unsubPayrolls = () => {};
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      unsubPayrolls = onSnapshot(collection(db, 'payrolls'), (snap) => {
+      const q = query(collection(db, 'payrolls'), where('status', '==', 'مسودة'));
+      unsubPayrolls = onSnapshot(q, (snap) => {
         setPayrolls(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payroll)));
       }, (err) => handleFirestoreError(err, 'list', 'payrolls'));
     }
@@ -1521,7 +1466,7 @@ function MainApp({
         {/* Quick Access Area */}
         <div className="px-10 py-4 mb-4">
           <div className="relative group/search">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300" size={16} />
+            <SearchIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300" size={16} />
             <input 
               type="text" 
               placeholder="البحث الذكي..."
@@ -1762,7 +1707,7 @@ function MainApp({
           )}
 
           <NavButton active={activeTab === 'suppliers'} onClick={() => handleNavClick('suppliers')} icon={<Users size={20} />} label="الموردين" permission="suppliers" profile={profile} />
-          <NavButton active={activeTab === 'sales'} onClick={() => handleNavClick('sales')} icon={<ShoppingBag size={20} />} label="المبيعات والمعارض" permission="reports" profile={profile} />                
+          <NavButton active={activeTab === 'sales'} onClick={() => handleNavClick('sales')} icon={<ShoppingBag size={20} />} label="المبيعات والمعارض" permission="sales" profile={profile} />                
           
           <div className="pt-8 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
             <span>النظام</span>
@@ -1838,7 +1783,15 @@ function MainApp({
           {['employees', 'attendance', 'loans', 'payroll', 'hrTransactions', 'hrProduction'].includes(activeTab) && (
             <HRWorkflowGuide activeTab={activeTab} onTabChange={setActiveTab} />
           )}
-        {activeTab === 'dashboard' && <Dashboard 
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              {activeTab === 'dashboard' && <Dashboard 
           items={items} 
           suppliers={suppliers} 
           purchases={purchases} 
@@ -1857,6 +1810,10 @@ function MainApp({
           wasteRecords={wasteRecords}
           jobLabors={jobLabors}
           jobOtherCosts={jobOtherCosts}
+          productionRecords={productionRecords}
+          safes={safes}
+          safeTransactions={safeTransactions}
+          profile={profile}
         />}
         {activeTab === 'safe' && <SafeModule safes={safes} safeTransactions={safeTransactions} safeAudits={safeAudits} safeSettlements={safeSettlements} profile={profile} purchases={purchases} items={items} suppliers={suppliers} costCenters={costCenters} productionJobs={productionJobs} employees={employees} loadingManifests={loadingManifests} />}
         {activeTab === 'inventory' && (
@@ -1870,6 +1827,7 @@ function MainApp({
             setShowItemAdd={setShowItemAdd}
             setShowCostCenterAdd={setShowCostCenterAdd}
             costCenters={costCenters}
+            profile={profile}
           />
         )}
         {activeTab === 'itemCard' && <ItemCardView items={items} suppliers={suppliers} purchases={purchases} issuances={issuances} getItemMovements={getItemMovements} />}
@@ -1891,6 +1849,7 @@ function MainApp({
             companyInfo={companySettings}
             items={items}
             productRecipes={productRecipes}
+            profile={profile}
           />
         )}
         {activeTab === 'productionCosts' && (
@@ -1907,8 +1866,8 @@ function MainApp({
             manufacturingOperations={manufacturingOperations}
           />
         )}
-        {activeTab === 'loading' && <LoadingManifests manifests={loadingManifests} companyInfo={companySettings} />}
-        {activeTab === 'deliveryReceipts' && <DeliveryReceipts receipts={deliveryReceipts} companyInfo={companySettings} />}
+        {activeTab === 'loading' && <LoadingManifests manifests={loadingManifests} companyInfo={companySettings} profile={profile} />}
+        {activeTab === 'deliveryReceipts' && <DeliveryReceipts receipts={deliveryReceipts} companyInfo={companySettings} profile={profile} />}
         {activeTab === 'issuances' && <Issuances items={items} issuances={issuances} costCenters={costCenters} />}
         {activeTab === 'stockAudit' && <StockAuditView items={items} warehouses={warehouses} audits={stockAudits} />}
         {activeTab === 'returns' && <Returns items={items} suppliers={suppliers} costCenters={costCenters} />}
@@ -1917,10 +1876,10 @@ function MainApp({
         {activeTab === 'plateSharpening' && <PlateSharpeningView records={plateSharpening} safes={safes} profile={profile} />}
         {activeTab === 'machineMaintenance' && <MachineMaintenanceView records={machineMaintenance} safes={safes} profile={profile} />}
         {activeTab === 'employees' && <EmployeesView employees={employees} />}
-        {activeTab === 'attendance' && <AttendanceView employees={employees} attendance={attendance} />}
+        {activeTab === 'attendance' && <AttendanceView employees={employees} />}
         {activeTab === 'hrProduction' && <ProductionView employees={employees} productionRecords={productionRecords} />}
         {activeTab === 'hrTransactions' && <HRTransactionsView employees={employees} transactions={hrTransactions} />}
-        {activeTab === 'loans' && <LoansView employees={employees} loans={loans} payrolls={payrolls} hrTransactions={hrTransactions} />}
+        {activeTab === 'loans' && <LoansView employees={employees} />}
         {activeTab === 'payroll' && (
           <PayrollView 
             employees={employees} 
@@ -1930,6 +1889,7 @@ function MainApp({
             payrolls={payrolls} 
             productionRecords={productionRecords} 
             companyInfo={companySettings}
+            safes={safes}
           />
         )}
         {activeTab === 'archive' && <ArchiveView employees={employees} payrolls={payrolls} transactions={hrTransactions} />}
@@ -2040,6 +2000,8 @@ function MainApp({
             handleImportExcel={handleImportExcel}
           />
         )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
 
@@ -2593,6 +2555,8 @@ function UserManagement() {
                            key === 'hr' ? 'الأجور' : 
                            key === 'reports' ? 'التقارير' : 
                            key === 'suppliers' ? 'الموردين' : 
+                           key === 'sales' ? 'المبيعات' :
+                           key === 'canDelete' ? 'صلاحية الحذف' :
                            key === 'finance' ? 'الخزنة' : 'الإعدادات'}
                         </Badge>
                       )
@@ -2628,7 +2592,7 @@ function UserManagement() {
       {filteredUsers.length === 0 && (
         <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
           <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-4">
-            <Search size={32} />
+            <SearchIcon size={32} />
           </div>
           <h3 className="text-xl font-black text-slate-900">لا يوجد مستخدمون</h3>
           <p className="text-slate-500 font-medium">لم يتم العثور على أي مستخدم يطابق بحثك</p>
@@ -2707,6 +2671,8 @@ function UserManagement() {
                          key === 'hr' ? <Users size={18} /> : 
                          key === 'reports' ? <BarChart3 size={18} /> : 
                          key === 'suppliers' ? <Truck size={18} /> : 
+                         key === 'sales' ? <ShoppingBag size={18} /> :
+                         key === 'canDelete' ? <ShieldAlert size={18} /> :
                          key === 'finance' ? <Building2 size={18} /> : <Settings size={18} />}
                       </div>
                       <span className={`font-black text-xs ${val ? 'text-primary' : 'text-slate-600'}`}>
@@ -2718,6 +2684,8 @@ function UserManagement() {
                          key === 'hr' ? 'الأجور' : 
                          key === 'reports' ? 'التقارير' : 
                          key === 'suppliers' ? 'الموردين' : 
+                         key === 'sales' ? 'المبيعات' :
+                         key === 'canDelete' ? 'صلاحية الحذف' :
                          key === 'finance' ? 'الخزنة' : 'الإعدادات'}
                       </span>
                     </div>
@@ -2808,7 +2776,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
         <div className="flex flex-col md:flex-row gap-6 items-end relative z-10">
           <div className="flex-1 space-y-3">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-               <Search size={14} className="text-primary" />
+               <SearchIcon size={14} className="text-primary" />
                البحث عن صنف لعرض كارت الحركة
             </label>
             <div className="relative">
@@ -3119,7 +3087,11 @@ function Dashboard({
   payrolls,
   wasteRecords,
   jobLabors,
-  jobOtherCosts
+  jobOtherCosts,
+  productionRecords,
+  safes,
+  safeTransactions,
+  profile
 }: { 
   items: Item[], 
   suppliers: Supplier[], 
@@ -3138,7 +3110,11 @@ function Dashboard({
   payrolls: Payroll[],
   wasteRecords: Waste[],
   jobLabors: JobLabor[],
-  jobOtherCosts: JobOtherCost[]
+  jobOtherCosts: JobOtherCost[],
+  productionRecords: ProductionRecord[],
+  safes: Safe[],
+  safeTransactions: SafeTransaction[],
+  profile: UserProfile | null
 }) {
   const totalInventoryValue = items.reduce((acc, item) => acc + (item.currentBalance * item.price), 0);
   const lowStockItems = items.filter(item => item.currentBalance <= item.safetyLimit);
@@ -3174,6 +3150,45 @@ function Dashboard({
     }, 0)
   }));
 
+  // --- Analytical Data Calculations ---
+  
+  // 1. Monthly Salaries
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    return format(d, 'yyyy-MM');
+  }).reverse();
+
+  const salaryChartData = months.map(m => ({
+    month: format(new Date(m + "-01"), 'MMM', { locale: ar }),
+    total: payrolls.filter(p => p.startDate.startsWith(m)).reduce((sum, p) => sum + p.netSalary, 0)
+  }));
+
+  // 2. Attendance Status Distribution (Last 30 days)
+  const last30DaysDate = new Date();
+  last30DaysDate.setDate(last30DaysDate.getDate() - 30);
+  const recentAttendance = attendance.filter(a => new Date(a.date) >= last30DaysDate);
+  const attendancePieData = [
+    { name: 'حضور', value: recentAttendance.filter(a => a.status === 'حضور').length, color: '#10b981' },
+    { name: 'تأخير', value: recentAttendance.filter(a => a.status === 'تأخير').length, color: '#f59e0b' },
+    { name: 'غياب', value: recentAttendance.filter(a => a.status === 'غياب').length, color: '#ef4444' }
+  ].filter(d => d.value > 0);
+
+  // 3. Production Statistics (Last 14 days output)
+  const productionStatData = last14Days.map(date => {
+    const dayRecords = productionRecords.filter(r => r.date === date);
+    return {
+      date: format(new Date(date), 'dd/MM', { locale: ar }),
+      output: dayRecords.reduce((sum, r) => sum + r.quantity, 0)
+    };
+  });
+
+  // 4. Safe Consumption (Last 6 months)
+  const safeOutgoingsData = months.map(m => ({
+    month: format(new Date(m + "-01"), 'MMM', { locale: ar }),
+    amount: safeTransactions.filter(t => t.date.startsWith(m) && (t.type === 'سحب' || t.type === 'مصروفات' || t.type === 'رواتب' || t.type === 'مشتريات')).reduce((sum, t) => sum + t.amount, 0)
+  }));
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
       {/* Premium Header */}
@@ -3204,35 +3219,46 @@ function Dashboard({
         </div>
       </div>
 
-      {/* Main Stats Bento Grid */}
-      <div className="bento-grid">
-        <StatCardBento 
-          title="قيمة المخزون" 
-          value={totalInventoryValue} 
-          unit="ج.م" 
-          icon={<Package size={28} />} 
-          className="lg:col-span-4"
-          trend="+4.2%"
-          color="primary"
-        />
-        <StatCardBento 
-          title="ديون الموردين" 
-          value={totalSupplierDebt} 
-          unit="ج.م" 
-          icon={<Users size={28} />} 
-          className="lg:col-span-4"
-          trend="-2.1%"
-          color="orange"
-        />
-        <StatCardBento 
-          title="تكلفة التصنيع" 
-          value={totalManufacturingCost} 
-          unit="ج.م" 
-          icon={<DollarSign size={28} />} 
-          className="lg:col-span-4"
-          trend="+12%"
-          color="emerald"
-        />
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="bento-grid"
+      >
+        {(profile?.isAdmin || profile?.permissions.inventory) && (
+          <StatCardBento 
+            title="قيمة المخزون" 
+            value={totalInventoryValue} 
+            unit="ج.م" 
+            icon={<Package size={28} />} 
+            className="lg:col-span-4"
+            trend="+4.2%"
+            color="primary"
+          />
+        )}
+        {(profile?.isAdmin || profile?.permissions.suppliers) && (
+          <StatCardBento 
+            title="ديون الموردين" 
+            value={totalSupplierDebt} 
+            unit="ج.م" 
+            icon={<Users size={28} />} 
+            className="lg:col-span-4"
+            trend="-2.1%"
+            color="orange"
+          />
+        )}
+        {(profile?.isAdmin || profile?.permissions.production) && (
+          <StatCardBento 
+            title="تكلفة التصنيع" 
+            value={totalManufacturingCost} 
+            unit="ج.م" 
+            icon={<DollarSign size={28} />} 
+            className="lg:col-span-4"
+            trend="+12%"
+            color="emerald"
+          />
+        )}
 
         <div className="lg:col-span-8 space-y-6">
            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
@@ -3330,6 +3356,133 @@ function Dashboard({
            </Card>
         </div>
 
+        {/* --- Section 2: Advanced Analytics --- */}
+        <div className="lg:col-span-12 space-y-6 pt-8 border-t border-slate-100">
+           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                 <h3 className="text-3xl font-black text-slate-900 flex items-center gap-4">
+                   <Activity size={32} className="text-primary" />
+                   التحليلات الذكية
+                 </h3>
+                 <p className="text-slate-500 font-bold">تقارير بيانية تفاعلية لدعم اتخاذ القرار الإداري</p>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+             <Card className="lg:col-span-12 xl:col-span-8 dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
+               <CardHeader className="bg-slate-50/50 p-8">
+                 <CardTitle className="text-xl font-black flex items-center gap-3">
+                   <DollarSign className="text-emerald-500" size={24} />
+                   تحليل الرواتب والمصاريف الشهرية
+                 </CardTitle>
+                 <CardDescription className="font-bold">مقارنة بين إجمالي الرواتب ومصاريف الخزينة (آخر 6 أشهر)</CardDescription>
+               </CardHeader>
+               <CardContent className="p-8">
+                 <div className="h-[350px] w-full">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <ComposedChart data={salaryChartData.map((s, i) => ({ ...s, safeOut: safeOutgoingsData[i]?.amount || 0 }))}>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                       <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 11 }} />
+                       <YAxis axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 11 }} />
+                       <Tooltip 
+                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 'bold' }} 
+                         formatter={(value: number) => `${value.toLocaleString()} ج.م`}
+                       />
+                       <Legend verticalAlign="top" height={36}/>
+                       <Bar name="إجمالي الرواتب" dataKey="total" fill="#10b981" radius={[8, 8, 0, 0]} barSize={40} />
+                       <Line name="مصاريف الخزينة" type="monotone" dataKey="safeOut" stroke="#6366f1" strokeWidth={4} dot={{ r: 4 }} />
+                     </ComposedChart>
+                   </ResponsiveContainer>
+                 </div>
+               </CardContent>
+             </Card>
+
+             <Card className="lg:col-span-12 xl:col-span-4 dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
+               <CardHeader className="bg-slate-50/50 p-8">
+                 <CardTitle className="text-xl font-black flex items-center gap-3">
+                   <ClipboardCheck className="text-blue-500" size={24} />
+                   انضباط العمل
+                 </CardTitle>
+                 <CardDescription className="font-bold">نسبة الحضور والالتزام (آخر 30 يوماً)</CardDescription>
+               </CardHeader>
+               <CardContent className="p-8 flex flex-col items-center justify-center">
+                 <div className="h-[250px] w-full">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <PieChart>
+                       <Pie
+                         data={attendancePieData}
+                         cx="50%"
+                         cy="50%"
+                         innerRadius={70}
+                         outerRadius={90}
+                         paddingAngle={8}
+                         dataKey="value"
+                       >
+                         {attendancePieData.map((entry, index) => (
+                           <RechartsCell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                         ))}
+                       </Pie>
+                       <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
+                     </PieChart>
+                   </ResponsiveContainer>
+                 </div>
+                 <div className="mt-6 grid grid-cols-3 gap-4 w-full">
+                   {attendancePieData.map((stat, i) => (
+                     <div key={i} className="text-center">
+                       <div className="text-lg font-black" style={{ color: stat.color }}>
+                          {((stat.value / (recentAttendance.length || 1)) * 100).toFixed(1)}%
+                       </div>
+                       <div className="text-[10px] font-bold text-slate-400 uppercase">{stat.name}</div>
+                     </div>
+                   ))}
+                 </div>
+               </CardContent>
+             </Card>
+
+             <Card className="lg:col-span-12 dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
+               <CardHeader className="bg-slate-50/50 p-8">
+                 <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-xl font-black flex items-center gap-3">
+                        <Zap className="text-orange-500" size={24} />
+                        تحليل كثافة الإنتاج
+                      </CardTitle>
+                      <CardDescription className="font-bold">تتبع إجمالي عدد القطع المنتجة يومياً (آخر 14 يوم)</CardDescription>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي إنتاج الفترة</div>
+                      <div className="text-2xl font-black text-orange-500">
+                        {productionStatData.reduce((s, d) => s + d.output, 0).toLocaleString()} <span className="text-sm font-bold text-slate-400">قطعة</span>
+                      </div>
+                    </div>
+                 </div>
+               </CardHeader>
+               <CardContent className="p-8">
+                 <div className="h-[300px] w-full">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <AreaChart data={productionStatData}>
+                       <defs>
+                         <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
+                           <stop offset="5%" stopColor="#f97316" stopOpacity={0.1}/>
+                           <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                         </linearGradient>
+                       </defs>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                       <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 11 }} />
+                       <YAxis axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 11 }} />
+                       <Tooltip 
+                         contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', fontWeight: 'black' }}
+                         formatter={(v: number) => `${v.toLocaleString()} قطعة`}
+                       />
+                       <Area type="monotone" dataKey="output" stroke="#f97316" strokeWidth={4} fillOpacity={1} fill="url(#colorProd)" />
+                     </AreaChart>
+                   </ResponsiveContainer>
+                 </div>
+               </CardContent>
+             </Card>
+           </div>
+        </div>
+
         {/* Recent Activities Section */}
         <div className="lg:col-span-12 mt-4">
            <div className="flex items-center gap-4 mb-8">
@@ -3408,7 +3561,7 @@ function Dashboard({
               />
            </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -3458,7 +3611,8 @@ function Inventory({
   getItemMovements,
   setShowItemAdd,
   setShowCostCenterAdd,
-  costCenters
+  costCenters,
+  profile
 }: { 
   items: Item[], 
   warehouses: Warehouse[], 
@@ -3468,7 +3622,8 @@ function Inventory({
   getItemMovements: (id: string) => any[],
   setShowItemAdd: (v: boolean) => void,
   setShowCostCenterAdd: (v: boolean) => void,
-  costCenters: CostCenter[]
+  costCenters: CostCenter[],
+  profile: UserProfile | null
 }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>('all');
@@ -3906,10 +4061,15 @@ function Inventory({
                       <Eye size={18} className="ml-2" />
                       التفاصيل
                     </Button>
-                    <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-black bg-indigo-50 text-primary hover:bg-primary hover:text-white transition-all duration-500" onClick={() => setEditingItem(item)}>
-                      <Edit2 size={18} className="ml-2" />
-                      تعديل
-                    </Button>
+                   <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-black bg-indigo-50 text-primary hover:bg-primary hover:text-white transition-all duration-500" onClick={() => setEditingItem(item)}>
+                     <Edit2 size={18} className="ml-2" />
+                     تعديل
+                   </Button>
+                   {(profile?.isAdmin || profile?.permissions.canDelete) && (
+                     <Button variant="ghost" className="rounded-2xl h-14 w-14 font-black bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-500" onClick={() => setShowDeleteConfirm(item.id)}>
+                       <Trash2 size={18} />
+                     </Button>
+                   )}
                   </CardFooter>
                </Card>
             </motion.div>
@@ -3992,9 +4152,11 @@ function Inventory({
                           <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all border border-transparent hover:border-primary/10" onClick={() => setEditingItem(item)}>
                             <Edit2 size={18} />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100" onClick={() => setShowDeleteConfirm(item.id)}>
-                            <Trash2 size={18} />
-                          </Button>
+                          {(profile?.isAdmin || profile?.permissions.canDelete) && (
+                            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100" onClick={() => setShowDeleteConfirm(item.id)}>
+                              <Trash2 size={18} />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200" onClick={() => setSelectedItemCard(item)}>
                             <History size={18} />
                           </Button>
@@ -4755,7 +4917,8 @@ function ProductionLine({
   jobOtherCosts,
   companyInfo,
   items,
-  productRecipes
+  productRecipes,
+  profile
 }: { 
   costCenters: CostCenter[], 
   productionJobs: ProductionJob[],
@@ -4765,7 +4928,8 @@ function ProductionLine({
   jobOtherCosts: JobOtherCost[],
   companyInfo: CompanySettings,
   items: Item[],
-  productRecipes: ProductRecipe[]
+  productRecipes: ProductRecipe[],
+  profile: UserProfile | null
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -5674,7 +5838,15 @@ function ProductionLine({
   );
 }
 
-function LoadingManifests({ manifests, companyInfo }: { manifests: LoadingManifest[], companyInfo: CompanySettings }) {
+function LoadingManifests({ 
+  manifests, 
+  companyInfo,
+  profile
+}: { 
+  manifests: LoadingManifest[], 
+  companyInfo: CompanySettings,
+  profile: UserProfile | null
+}) {
   const [showAdd, setShowAdd] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -5816,9 +5988,11 @@ function LoadingManifests({ manifests, companyInfo }: { manifests: LoadingManife
                   <Button variant="ghost" size="icon" onClick={() => handleEdit(m)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
                     <Edit2 size={16} />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(m.id)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
-                    <Trash2 size={16} />
-                  </Button>
+                  {(profile?.isAdmin || profile?.permissions.canDelete) && (
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(m.id)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
+                      <Trash2 size={16} />
+                    </Button>
+                  )}
                 </div>
               </div>
               <CardTitle className="mt-4 text-xl font-black text-slate-900">{m.clientName}</CardTitle>
@@ -6080,7 +6254,15 @@ function LoadingManifests({ manifests, companyInfo }: { manifests: LoadingManife
   );
 }
 
-function DeliveryReceipts({ receipts, companyInfo }: { receipts: DeliveryReceipt[], companyInfo: CompanySettings }) {
+function DeliveryReceipts({ 
+  receipts, 
+  companyInfo,
+  profile
+}: { 
+  receipts: DeliveryReceipt[], 
+  companyInfo: CompanySettings,
+  profile: UserProfile | null
+}) {
   const [showAdd, setShowAdd] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -6237,9 +6419,11 @@ function DeliveryReceipts({ receipts, companyInfo }: { receipts: DeliveryReceipt
                   <Button variant="ghost" size="icon" onClick={() => handleEdit(r)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
                     <Edit2 size={16} />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm(r.id)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
-                    <Trash2 size={16} />
-                  </Button>
+                  {(profile?.isAdmin || profile?.permissions.canDelete) && (
+                    <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm(r.id)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
+                      <Trash2 size={16} />
+                    </Button>
+                  )}
                 </div>
               </div>
               <CardTitle className="mt-4 text-xl font-black text-slate-900">{r.clientName}</CardTitle>
@@ -11530,7 +11714,7 @@ function HRWorkflowGuide({ activeTab, onTabChange }: { activeTab: string, onTabC
   );
 }
 
-function AttendanceView({ employees, attendance }: { employees: Employee[], attendance: Attendance[] }) {
+function AttendanceView({ employees }: { employees: Employee[] }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -11544,13 +11728,66 @@ function AttendanceView({ employees, attendance }: { employees: Employee[], atte
     status: 'حضور' as const
   });
 
-  const todayAttendance = attendance.filter(a => a.date === todayDate);
+  // Pagination Engine for History
+  const [attendanceHistory, setAttendanceHistory] = useState<Attendance[]>([]);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Today's attendance specific state
+  const [todayAttendance, setTodayAttendance] = useState<Attendance[]>([]);
+
+  // Fetch today's attendance accurately without pagination
+  const fetchTodayAttendance = async () => {
+    try {
+      const q = query(collection(db, 'attendance'), where('date', '==', todayDate));
+      const snap = await getDocs(q);
+      setTodayAttendance(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance)));
+    } catch (err) { handleFirestoreError(err, 'list', 'attendance'); }
+  };
+
+  const fetchAttendanceHistory = async (isInitial = false) => {
+    if (loading) return;
+    if (!isInitial && !hasMore) return;
+    setLoading(true);
+
+    try {
+      let q = query(
+        collection(db, 'attendance'), 
+        orderBy('date', 'desc'),
+        limit(50)
+      );
+
+      if (!isInitial && lastVisible) {
+        q = query(q, startAfter(lastVisible));
+      }
+
+      const snap = await getDocs(q);
+      const newDocs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance));
+      
+      if (snap.docs.length < 50) setHasMore(false);
+      setLastVisible(snap.docs[snap.docs.length - 1]);
+      
+      if (isInitial) {
+        setAttendanceHistory(newDocs);
+      } else {
+        setAttendanceHistory(prev => [...prev, ...newDocs]);
+      }
+    } catch (err) {
+      handleFirestoreError(err, 'list', 'attendance');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchTodayAttendance();
+    fetchAttendanceHistory(true);
+  }, []);
+
   const employeeStatus = employees.map(emp => {
     const att = todayAttendance.find(a => a.employeeId === emp.id);
-    return {
-      ...emp,
-      attendance: att
-    };
+    return { ...emp, attendance: att };
   });
 
   const missingAttendance = employeeStatus.filter(e => !e.attendance);
@@ -11570,12 +11807,13 @@ function AttendanceView({ employees, attendance }: { employees: Employee[], atte
       });
     });
     await batch.commit();
+    // Refresh today's attendance
+    fetchTodayAttendance();
   };
 
   const handleAdd = async () => {
     if (!formData.employeeId || !formData.date) return;
     try {
-      // Auto-determine status if "حضور" or "تأخير" is selected based on 8:15 grace period
       let finalStatus = formData.status;
       if (formData.status === 'حضور' || formData.status === 'تأخير') {
         const [hours, minutes] = formData.checkIn.split(':').map(Number);
@@ -11590,10 +11828,11 @@ function AttendanceView({ employees, attendance }: { employees: Employee[], atte
         }
       }
 
-      await addDoc(collection(db, 'attendance'), {
+      const newRef = await addDoc(collection(db, 'attendance'), {
         ...formData,
         status: finalStatus
       });
+      
       setShowAdd(false);
       setFormData({
         employeeId: '',
@@ -11602,6 +11841,9 @@ function AttendanceView({ employees, attendance }: { employees: Employee[], atte
         checkOut: '18:00',
         status: 'حضور'
       });
+      
+      if (formData.date === todayDate) fetchTodayAttendance();
+      fetchAttendanceHistory(true);
     } catch (err) { handleFirestoreError(err, 'write', 'attendance'); }
   };
 
@@ -11619,25 +11861,36 @@ function AttendanceView({ employees, attendance }: { employees: Employee[], atte
       const { id, ...data } = editingAttendance;
       await updateDoc(doc(db, 'attendance', id), { ...data, status: finalStatus });
       setEditingAttendance(null);
+      
+      if (editingAttendance.date === todayDate) fetchTodayAttendance();
+      
+      // Update local history directly to avoid full refetch
+      setAttendanceHistory(prev => prev.map(a => a.id === id ? { ...editingAttendance, status: finalStatus } as Attendance : a));
     } catch (err) { handleFirestoreError(err, 'update', 'attendance'); }
   };
 
   const handleDelete = async () => {
     if (!deletingId) return;
     try {
+      const att = attendanceHistory.find(a => a.id === deletingId) || todayAttendance.find(a => a.id === deletingId);
       await deleteDoc(doc(db, 'attendance', deletingId));
       setDeletingId(null);
+      
+      if (att?.date === todayDate) fetchTodayAttendance();
+      setAttendanceHistory(prev => prev.filter(a => a.id !== deletingId));
     } catch (err) { handleFirestoreError(err, 'delete', 'attendance'); }
   };
 
   const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
 
-  const filteredAttendance = selectedDept === 'الكل'
-    ? attendance
-    : attendance.filter(att => {
+  const filteredHistory = selectedDept === 'الكل'
+    ? attendanceHistory
+    : attendanceHistory.filter(att => {
         const emp = employees.find(e => e.id === att.employeeId);
         return emp?.department === selectedDept;
       });
+
+  const filteredEmployeeStatus = selectedDept === 'الكل' ? employeeStatus : employeeStatus.filter(e => e.department === selectedDept);
 
   return (
     <div className="space-y-8">
@@ -11656,293 +11909,313 @@ function AttendanceView({ employees, attendance }: { employees: Employee[], atte
               <option key={dept} value={dept}>{dept}</option>
             ))}
           </select>
-          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8">
-            <Plus size={18} className="ml-2" />
-            تسجيل حضور جديد
+          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-4 md:px-6 font-black rounded-2xl shadow-lg shadow-primary/20">
+            <Plus size={20} className="ml-2" />
+            <span className="hidden md:inline">تسجيل حركه</span>
           </Button>
         </div>
       </div>
 
-      {/* Today's Assistant */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="dribbble-card md:col-span-3 border-none shadow-xl shadow-slate-200/50 bg-white overflow-hidden">
-          <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg font-black text-slate-900">مساعد تسجيل الحضور لليوم</CardTitle>
-              <CardDescription className="font-bold">{format(new Date(), 'eeee, d MMMM yyyy', { locale: ar })}</CardDescription>
-            </div>
-            <Badge className="bg-primary/10 text-primary border-none font-black px-4 py-1.5 rounded-full">
-              {missingAttendance.length} موظف لم يسجل بعد
-            </Badge>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4 mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
-              <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                <MessageSquare size={20} />
+      {/* Overview Cards for Today */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="dribbble-card bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none shadow-xl shadow-blue-500/20">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <p className="text-blue-100 font-bold text-sm tracking-wide">غياب اليوم</p>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-4xl font-black">{absentCount}</h3>
+                  <span className="text-blue-100 text-sm">موظف</span>
+                </div>
               </div>
-              <div>
-                <h4 className="font-black text-slate-800 text-sm">مهمة اليوم:</h4>
-                <p className="text-xs font-bold text-slate-500">تأكد من تسجيل "حضور" لكل من حضر بصمة الصباح، والغياب لمن لم يحضر.</p>
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Clock className="text-white" size={24} />
               </div>
             </div>
-
-            {missingAttendance.length > 0 ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl">
-                  <div className="flex items-center gap-4 pr-2">
-                    <span className="text-primary font-black text-xs">إجراء سريع:</span>
-                    <Button variant="ghost" size="sm" onClick={quickMarkAllPresent} className="rounded-lg text-primary font-black hover:bg-primary/10 transition-all">
-                      <CheckCircle2 size={16} className="ml-2" />
-                      تسجيل "حضور" للجميع (08:00 ص)
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {missingAttendance.map(emp => (
-                    <div key={emp.id} className="p-3 bg-white border border-slate-100 rounded-xl flex flex-col items-center justify-center gap-2 group hover:border-primary/30 transition-all shadow-sm">
-                      <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
-                        <Users size={16} />
-                      </div>
-                      <span className="font-bold text-slate-700 text-xs text-center line-clamp-1">{emp.name}</span>
-                      <div className="flex gap-1 w-full mt-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="flex-1 h-7 text-[10px] bg-green-50 text-green-600 hover:bg-green-600 hover:text-white rounded-lg p-0"
-                          onClick={async () => {
-                            await addDoc(collection(db, 'attendance'), {
-                              employeeId: emp.id,
-                              date: todayDate,
-                              checkIn: '08:00',
-                              checkOut: '18:00',
-                              status: 'حضور'
-                            });
-                          }}
-                        >حضور</Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="flex-1 h-7 text-[10px] bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg p-0"
-                          onClick={async () => {
-                            await addDoc(collection(db, 'attendance'), {
-                              employeeId: emp.id,
-                              date: todayDate,
-                              status: 'غياب'
-                            });
-                          }}
-                        >غياب</Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-500 mb-3">
-                  <CheckCircle2 size={24} />
-                </div>
-                <h4 className="font-black text-slate-900">اكتمل تسجيل حضور الجميع!</h4>
-                <p className="text-sm text-slate-500 font-bold mt-1">تم تسجيل حالة حضور جميع الموظفين لهذا اليوم بنجاح.</p>
-              </div>
+            {missingAttendance.length > 0 && (
+              <Button 
+                onClick={quickMarkAllPresent}
+                variant="ghost" 
+                className="w-full mt-6 bg-white/10 hover:bg-white/20 border-white/20 text-white font-bold h-10"
+              >
+                تسجيل حضور للكل ({missingAttendance.length})
+              </Button>
             )}
           </CardContent>
         </Card>
 
-        <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50 bg-primary text-white">
-          <CardContent className="pt-8 flex flex-col items-center justify-center gap-4">
-            <div className="relative w-24 h-24 flex items-center justify-center">
-               <svg className="w-full h-full -rotate-90">
-                 <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/20" />
-                 <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={2 * Math.PI * 40} strokeDashoffset={2 * Math.PI * 40 * (1 - (presentCount / (employees.length || 1)))} className="text-white transition-all duration-1000" />
-               </svg>
-               <span className="absolute text-xl font-black">{Math.round((presentCount / (employees.length || 1)) * 100)}%</span>
-            </div>
-            <div className="text-center">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-80">نسبة الحضور اليوم</p>
-              <h3 className="text-xl font-black">{presentCount} من {employees.length}</h3>
+        {/* Similar cards logic below */}
+        <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40">
+           <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <p className="text-slate-500 font-bold text-sm tracking-wide">حضور اليوم</p>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-4xl font-black text-slate-900">{presentCount}</h3>
+                  <span className="text-slate-400 text-sm">موظف</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center">
+                <CheckCircle2 className="text-green-500" size={24} />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="dribbble-card overflow-hidden border-none">
-        <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow>
-              <TableHead className="text-right font-black text-slate-900 py-5">التاريخ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الحضور</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الانصراف</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الخصم</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الإجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredAttendance.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(att => (
-              <TableRow key={att.id} className="hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-bold text-slate-500">{att.date}</TableCell>
-                <TableCell className="font-black text-slate-900">{employees.find(e => e.id === att.employeeId)?.name}</TableCell>
-                <TableCell className="font-bold text-slate-600">{att.checkIn || '-'}</TableCell>
-                <TableCell className="font-bold text-slate-600">{att.checkOut || '-'}</TableCell>
-                <TableCell className="font-black text-red-600">
-                  {(() => {
-                    if (att.status === 'غياب' || att.status === 'إجازة') return '-';
-                    if (!att.checkIn || !att.checkOut) return '0.00 ج.م';
-                    const emp = employees.find(e => e.id === att.employeeId);
-                    if (!emp) return '-';
-                    
-                    const [inH, inM] = att.checkIn.split(':').map(Number);
-                    const [outH, outM] = att.checkOut.split(':').map(Number);
-                    const checkInMins = inH * 60 + inM;
-                    const checkOutMins = outH * 60 + outM;
-                    const officialStart = 8 * 60;
-                    const officialEnd = 18 * 60;
-                    const gracePeriod = 15;
-                    
-                    if (checkInMins <= officialStart + gracePeriod && att.checkOut === '12:00') return 'نصف يوم';
-                    
-                    let lateMins = 0;
-                    if (checkInMins > officialStart + gracePeriod) lateMins = checkInMins - officialStart;
-                    const earlyMins = Math.max(0, officialEnd - checkOutMins);
-                    
-                    const missedMins = lateMins + earlyMins;
-                    if (missedMins === 0) return '0.00 ج.م';
-                    
-                    const deduction = missedMins * (emp.dailyRate / 600);
-                    return `-${deduction.toFixed(2)} ج.م`;
-                  })()}
-                </TableCell>
-                <TableCell>
-                  <Badge className={`rounded-lg px-3 py-1 border-none font-black text-[10px] uppercase tracking-widest ${
-                    att.status === 'حضور' ? 'bg-green-100 text-green-700' : 
-                    att.status === 'غياب' ? 'bg-red-100 text-red-700' :
-                    att.status === 'تأخير' ? 'bg-orange-100 text-orange-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
-                    {att.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button onClick={() => setEditingAttendance(att)} variant="ghost" size="icon" className="text-blue-600 hover:bg-blue-50 rounded-xl">
-                      <Edit2 size={16} />
-                    </Button>
-                    <Button onClick={() => setDeletingId(att.id)} variant="ghost" size="icon" className="text-red-600 hover:bg-red-50 rounded-xl">
-                      <Trash2 size={16} />
-                    </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1 space-y-4">
+          <h3 className="font-black text-xl text-slate-900 mb-4 flex items-center gap-2">
+            <Calendar size={20} className="text-primary" />
+            حالة اليوم ({todayDate})
+          </h3>
+          <div className="bg-white rounded-3xl p-4 shadow-xl shadow-slate-200/40 border border-slate-100 divide-y divide-slate-50">
+            {filteredEmployeeStatus.map(emp => (
+              <div key={emp.id} className="py-4 first:pt-2 last:pb-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm">
+                    {emp.name.charAt(0)}
                   </div>
-                </TableCell>
-              </TableRow>
+                  <div>
+                    <p className="font-black text-sm text-slate-900">{emp.name}</p>
+                    <p className="text-xs font-bold text-slate-400 mt-0.5">{emp.position}</p>
+                  </div>
+                </div>
+                {emp.attendance ? (
+                  <Badge className={`border-none font-bold ${
+                    emp.attendance.status === 'حضور' ? 'bg-green-50 text-green-700' :
+                    emp.attendance.status === 'تأخير' ? 'bg-orange-50 text-orange-700' :
+                    'bg-red-50 text-red-700'
+                  }`}>
+                    {emp.attendance.status}
+                  </Badge>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-8 text-primary font-bold bg-primary/5 hover:bg-primary/10"
+                    onClick={() => {
+                      setFormData({ ...formData, employeeId: emp.id, date: todayDate });
+                      setShowAdd(true);
+                    }}
+                  >
+                    تسجيل
+                  </Button>
+                )}
+              </div>
             ))}
-          </TableBody>
-        </Table>
-      </Card>
+          </div>
+        </div>
 
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">تسجيل حضور</CardTitle>
+        <div className="lg:col-span-2 space-y-4">
+          <h3 className="font-black text-xl text-slate-900 mb-4 flex items-center gap-2">
+            <Clock size={20} className="text-primary" />
+            سجل الحركات (السابق)
+          </h3>
+          <Card className="dribbble-card overflow-hidden border-none shadow-xl shadow-slate-200/40">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-50/80 backdrop-blur-sm">
+                  <TableRow className="border-b-0">
+                    <TableHead className="text-right font-black text-slate-900 py-4">التاريخ</TableHead>
+                    <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
+                    <TableHead className="text-right font-black text-slate-900">حضور</TableHead>
+                    <TableHead className="text-right font-black text-slate-900">انصراف</TableHead>
+                    <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
+                    <TableHead className="text-left font-black text-slate-900">تفاصيل</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredHistory.map((record) => {
+                    const emp = employees.find(e => e.id === record.employeeId);
+                    return (
+                      <TableRow key={record.id} className="group hover:bg-slate-50 border-b border-slate-50/50">
+                         <TableCell className="font-bold text-slate-600">{record.date}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                              <Users size={14} className="text-slate-400" />
+                            </div>
+                            <div>
+                              <p className="font-black text-sm text-slate-900">{emp?.name}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-slate-500">{record.checkIn || '-'}</TableCell>
+                        <TableCell className="font-bold text-slate-500">{record.checkOut || '-'}</TableCell>
+                        <TableCell>
+                          <Badge className={`border-none font-bold ${
+                            record.status === 'حضور' ? 'bg-green-50 text-green-700' :
+                            record.status === 'تأخير' ? 'bg-orange-50 text-orange-700' :
+                            record.status === 'إجازة' ? 'bg-blue-50 text-blue-700' :
+                            'bg-red-50 text-red-700'
+                          }`}>
+                            {record.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="sm" onClick={() => setEditingAttendance(record)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 rounded-lg">
+                              <Edit2 size={14} />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setDeletingId(record.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg">
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filteredHistory.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-bold">لا يوجد حركات مسجلة</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            {hasMore && (
+              <div className="p-4 flex justify-center bg-slate-50 border-t border-slate-100">
+                 <Button 
+                    className="btn-secondary px-8 font-black rounded-xl h-10 text-sm"
+                    onClick={() => fetchAttendanceHistory()}
+                    disabled={loading}
+                  >
+                    {loading ? 'جاري التحميل...' : 'عرض المزيد...'}
+                  </Button>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+
+       {showAdd && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="dribbble-card w-full max-w-lg overflow-hidden border-none">
+            <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-6">
+              <CardTitle className="font-black text-2xl flex items-center gap-2">
+                <Plus size={24} className="text-primary" />
+                تسجيل حركة
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">الموظف</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={formData.employeeId} onChange={e => setFormData({...formData, employeeId: e.target.value})}>
-                  <option value="">اختر موظف...</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                <select 
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
+                  value={formData.employeeId} 
+                  onChange={e => setFormData({...formData, employeeId: e.target.value})}
+                >
+                  <option value="">-- اختر --</option>
+                  {employees.filter(e => e.status === 'نشط').map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
                 </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">وقت الحضور</label>
-                  <Input type="time" className="rounded-xl h-11" value={formData.checkIn} onChange={e => setFormData({...formData, checkIn: e.target.value})} />
+                  <label className="text-sm font-bold text-slate-700">التاريخ</label>
+                  <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">وقت الانصراف</label>
-                  <Input type="time" className="rounded-xl h-11" value={formData.checkOut} onChange={e => setFormData({...formData, checkOut: e.target.value})} />
+                  <label className="text-sm font-bold text-slate-700">الحالة</label>
+                  <select 
+                    className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
+                    value={formData.status} 
+                    onChange={e => setFormData({...formData, status: e.target.value as any})}
+                  >
+                    <option value="حضور">حضور</option>
+                    <option value="غياب">غياب</option>
+                    <option value="إجازة">إجازة</option>
+                  </select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الحالة</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
-                  <option value="حضور">حضور</option>
-                  <option value="غياب">غياب</option>
-                  <option value="تأخير">تأخير</option>
-                  <option value="إجازة">إجازة</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6">
-                <Button variant="ghost" className="btn-ghost" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} className="btn-primary px-10 h-12">حفظ السجل</Button>
-              </div>
+              {formData.status !== 'غياب' && formData.status !== 'إجازة' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">وقت الحضور</label>
+                    <Input type="time" value={formData.checkIn} onChange={e => setFormData({...formData, checkIn: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">وقت الانصراف</label>
+                    <Input type="time" value={formData.checkOut} onChange={e => setFormData({...formData, checkOut: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
+                  </div>
+                </div>
+              )}
             </CardContent>
+            <CardFooter className="flex justify-end gap-3 p-6 bg-slate-50/50 border-t border-slate-100">
+              <Button variant="ghost" onClick={() => setShowAdd(false)} className="rounded-xl font-bold">إلغاء</Button>
+              <Button onClick={handleAdd} className="btn-primary rounded-xl px-8 font-black">تسجيل</Button>
+            </CardFooter>
           </Card>
         </div>
       )}
 
       {editingAttendance && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">تعديل سجل حضور</CardTitle>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="dribbble-card w-full max-w-lg overflow-hidden border-none">
+            <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-6">
+              <CardTitle className="font-black text-2xl flex items-center gap-2">
+                <Edit2 size={24} className="text-blue-500" />
+                تعديل السجل
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الموظف</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={editingAttendance.employeeId} onChange={e => setEditingAttendance({...editingAttendance, employeeId: e.target.value})}>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11" value={editingAttendance.date} onChange={e => setEditingAttendance({...editingAttendance, date: e.target.value})} />
-              </div>
+            <CardContent className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">وقت الحضور</label>
-                  <Input type="time" className="rounded-xl h-11" value={editingAttendance.checkIn} onChange={e => setEditingAttendance({...editingAttendance, checkIn: e.target.value})} />
+                  <label className="text-sm font-bold text-slate-700">التاريخ</label>
+                  <Input type="date" value={editingAttendance.date} onChange={e => setEditingAttendance({...editingAttendance, date: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" disabled />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">وقت الانصراف</label>
-                  <Input type="time" className="rounded-xl h-11" value={editingAttendance.checkOut} onChange={e => setEditingAttendance({...editingAttendance, checkOut: e.target.value})} />
+                  <label className="text-sm font-bold text-slate-700">الحالة</label>
+                  <select 
+                    className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
+                    value={editingAttendance.status} 
+                    onChange={e => setEditingAttendance({...editingAttendance, status: e.target.value as any})}
+                  >
+                    <option value="حضور">حضور</option>
+                    <option value="تأخير">تأخير</option>
+                    <option value="غياب">غياب</option>
+                    <option value="إجازة">إجازة</option>
+                  </select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الحالة</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={editingAttendance.status} onChange={e => setEditingAttendance({...editingAttendance, status: e.target.value as any})}>
-                  <option value="حضور">حضور</option>
-                  <option value="غياب">غياب</option>
-                  <option value="تأخير">تأخير</option>
-                  <option value="إجازة">إجازة</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6">
-                <Button variant="ghost" className="btn-ghost" onClick={() => setEditingAttendance(null)}>إلغاء</Button>
-                <Button onClick={handleUpdate} className="btn-primary px-10 h-12">حفظ التعديلات</Button>
-              </div>
+              {editingAttendance.status !== 'غياب' && editingAttendance.status !== 'إجازة' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">وقت الحضور</label>
+                    <Input type="time" value={editingAttendance.checkIn} onChange={e => setEditingAttendance({...editingAttendance, checkIn: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">وقت الانصراف</label>
+                    <Input type="time" value={editingAttendance.checkOut} onChange={e => setEditingAttendance({...editingAttendance, checkOut: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
+                  </div>
+                </div>
+              )}
             </CardContent>
+            <CardFooter className="flex justify-end gap-3 p-6 bg-slate-50/50 border-t border-slate-100">
+              <Button variant="ghost" onClick={() => setEditingAttendance(null)} className="rounded-xl font-bold">إلغاء</Button>
+              <Button onClick={handleUpdate} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 font-black">حفظ التغييرات</Button>
+            </CardFooter>
           </Card>
         </div>
       )}
 
       {deletingId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="dribbble-card w-full max-w-sm">
-            <CardHeader>
-              <CardTitle className="font-black text-xl text-red-600">تأكيد الحذف</CardTitle>
-              <CardDescription className="font-bold">هل أنت متأكد من حذف هذا السجل؟ لا يمكن التراجع عن هذا الإجراء.</CardDescription>
+          <Card className="dribbble-card w-full max-w-sm overflow-hidden border-none">
+            <CardHeader className="bg-red-50/50 border-b border-red-100/50 pb-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <CardTitle className="font-black text-2xl text-red-700">حذف السجل</CardTitle>
             </CardHeader>
-            <CardFooter className="flex justify-end gap-3 pt-2">
-              <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setDeletingId(null)}>إلغاء</Button>
-              <Button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-8 font-black">حذف نهائي</Button>
+            <CardContent className="p-6 text-center">
+              <p className="font-bold text-slate-600">هل أنت متأكد من حذف هذا السجل المؤرشف؟ لا يمكن التراجع.</p>
+            </CardContent>
+            <CardFooter className="flex justify-center gap-3 p-6 pt-0">
+              <Button variant="ghost" className="rounded-xl font-bold px-6" onClick={() => setDeletingId(null)}>إلغاء</Button>
+              <Button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-8 font-black">نعم، احذف</Button>
             </CardFooter>
           </Card>
         </div>
@@ -11951,12 +12224,19 @@ function AttendanceView({ employees, attendance }: { employees: Employee[], atte
   );
 }
 
-function LoansView({ employees, loans, payrolls, hrTransactions }: { employees: Employee[], loans: Loan[], payrolls: Payroll[], hrTransactions: FinancialTransaction[] }) {
+
+function LoansView({ employees }: { employees: Employee[] }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
+  
+  // Pagination State
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   const [formData, setFormData] = useState({
     employeeId: '',
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -11966,6 +12246,44 @@ function LoansView({ employees, loans, payrolls, hrTransactions }: { employees: 
     notes: '',
     status: 'نشط' as const
   });
+
+  const fetchLoans = async (isInitial = false) => {
+    if (loading) return;
+    if (!isInitial && !hasMore) return;
+    setLoading(true);
+
+    try {
+      let q = query(
+        collection(db, 'loans'), 
+        orderBy('date', 'desc'),
+        limit(50)
+      );
+
+      if (!isInitial && lastVisible) {
+        q = query(q, startAfter(lastVisible));
+      }
+
+      const snap = await getDocs(q);
+      const newDocs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Loan));
+      
+      if (snap.docs.length < 50) setHasMore(false);
+      setLastVisible(snap.docs[snap.docs.length - 1]);
+      
+      if (isInitial) {
+        setLoans(newDocs);
+      } else {
+        setLoans(prev => [...prev, ...newDocs]);
+      }
+    } catch (err) {
+      handleFirestoreError(err, 'list', 'loans');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchLoans(true);
+  }, []);
 
   const handleAdd = async () => {
     if (!formData.employeeId || formData.amount <= 0) return;
@@ -11986,6 +12304,7 @@ function LoansView({ employees, loans, payrolls, hrTransactions }: { employees: 
         notes: '',
         status: 'نشط'
       });
+      fetchLoans(true);
     } catch (err) { handleFirestoreError(err, 'write', 'loans'); }
   };
 
@@ -11993,6 +12312,7 @@ function LoansView({ employees, loans, payrolls, hrTransactions }: { employees: 
     try {
       await deleteDoc(doc(db, 'loans', id));
       setShowDeleteConfirm(null);
+      setLoans(prev => prev.filter(l => l.id !== id));
     } catch (err) { handleFirestoreError(err, 'delete', 'loans'); }
   };
 
@@ -12001,422 +12321,273 @@ function LoansView({ employees, loans, payrolls, hrTransactions }: { employees: 
     try {
       const remainingAmount = editingLoan.amount - (editingLoan.paidAlready || 0);
       const { id, ...data } = editingLoan;
-      await updateDoc(doc(db, 'loans', id), {
+      
+      const updatedData = {
         ...data,
         remainingAmount: remainingAmount > 0 ? remainingAmount : 0,
         status: remainingAmount <= 0 ? 'مسدد' : 'نشط'
-      });
+      };
+
+      await updateDoc(doc(db, 'loans', id), updatedData);
       setEditingLoan(null);
+      setLoans(prev => prev.map(l => l.id === id ? { ...l, ...updatedData, id } as Loan : l));
     } catch (err) { handleFirestoreError(err, 'update', 'loans'); }
   };
+
+  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
+
+  const filteredLoans = selectedDept === 'الكل'
+    ? loans
+    : loans.filter(loan => {
+        const emp = employees.find(e => e.id === loan.employeeId);
+        return emp?.department === selectedDept;
+      });
+
+  const totalActiveLoans = loans.filter(l => l.status === 'نشط').reduce((acc, l) => acc + l.amount, 0);
+  const totalRemaining = loans.filter(l => l.status === 'نشط').reduce((acc, l) => acc + l.remainingAmount, 0);
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">إدارة السلف</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">متابعة سلف الموظفين والأرصدة المتبقية</p>
+          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">سجل السلف</h2>
+          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">إدارة ومتابعة سلف الموظفين</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-3">
           <select 
             className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm"
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
           >
-            {['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]].map(dept => (
+            {departments.map(dept => (
               <option key={dept} value={dept}>{dept}</option>
             ))}
           </select>
-          <select 
-            className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm"
-            onChange={(e) => setSelectedEmployeeId(e.target.value)}
-            value={selectedEmployeeId || ''}
-          >
-            <option value="">كشف حساب موظف...</option>
-            {employees
-              .filter(e => (selectedDept === 'الكل' || e.department === selectedDept) && loans.some(l => l.employeeId === e.id))
-              .map(e => (
-                <option key={e.id} value={e.id}>{e.name}</option>
-              ))
-            }
-          </select>
-          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8">
-            <Plus size={18} className="ml-2" />
-            تسجيل سلفة جديدة
+          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-4 md:px-6 font-black rounded-2xl shadow-lg shadow-primary/20">
+            <Plus size={20} className="ml-2" />
+            <span className="hidden md:inline">تسجيل سلفة جديدة</span>
           </Button>
         </div>
       </div>
 
-      <Card className="dribbble-card overflow-hidden border-none">
-        <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow>
-              <TableHead className="text-right font-black text-slate-900 py-5">التاريخ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
-              <TableHead className="text-right font-black text-slate-900">البيان</TableHead>
-              <TableHead className="text-right font-black text-slate-900">المبلغ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">المتبقي</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الإجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loans
-              .filter(l => {
-                if (selectedDept === 'الكل') return true;
-                const emp = employees.find(e => e.id === l.employeeId);
-                return emp?.department === selectedDept;
-              })
-              .map(loan => (
-              <TableRow key={loan.id} className="hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-bold text-slate-500">{loan.date}</TableCell>
-                <TableCell className="font-black text-slate-900">{employees.find(e => e.id === loan.employeeId)?.name}</TableCell>
-                <TableCell className="text-sm text-slate-600 font-medium">{loan.notes || '-'}</TableCell>
-                <TableCell className="font-black text-slate-900">{loan.amount.toLocaleString()} ج.م</TableCell>
-                <TableCell className="font-black text-red-600">{loan.remainingAmount.toLocaleString()} ج.م</TableCell>
-                <TableCell>
-                  <Badge className={`rounded-lg px-3 py-1 border-none font-black text-[10px] uppercase tracking-widest ${
-                    loan.status === 'نشط' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
-                  }`}>
-                    {loan.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 rounded-lg font-bold text-primary hover:bg-blue-50"
-                      onClick={() => setSelectedEmployeeId(loan.employeeId)}
-                    >
-                      <FileText size={14} className="ml-1" />
-                      كشف حساب
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50"
-                      onClick={() => setEditingLoan(loan)}
-                    >
-                      <Edit2 size={14} />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"
-                      onClick={() => setShowDeleteConfirm(loan.id)}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </TableCell>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40">
+           <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <p className="text-slate-500 font-bold text-sm tracking-wide">إجمالي السلف النشطة</p>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-4xl font-black text-slate-900">{totalActiveLoans.toLocaleString('en-US')}</h3>
+                  <span className="text-slate-400 text-sm">ج.م</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+                <DollarSign className="text-blue-500" size={24} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="dribbble-card bg-slate-900 text-white border-none shadow-xl shadow-slate-900/20">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <p className="text-slate-400 font-bold text-sm tracking-wide">المتبقي للتحصيل</p>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-4xl font-black">{totalRemaining.toLocaleString('en-US')}</h3>
+                  <span className="text-slate-400 text-sm">ج.م</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                <Users className="text-slate-300" size={24} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="dribbble-card overflow-hidden border-none shadow-xl shadow-slate-200/40">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-slate-50/80 backdrop-blur-sm">
+              <TableRow className="border-b-0">
+                <TableHead className="text-right font-black text-slate-900 py-4">التاريخ</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
+                <TableHead className="text-right font-black text-slate-900">المبلغ</TableHead>
+                <TableHead className="text-right font-black text-slate-900">المطبقي</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
+                <TableHead className="text-left font-black text-slate-900">إجراءات</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredLoans.map((loan) => {
+                const emp = employees.find(e => e.id === loan.employeeId);
+                return (
+                  <TableRow key={loan.id} className="group hover:bg-slate-50 border-b border-slate-50/50">
+                    <TableCell className="font-bold text-slate-600">{loan.date}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                          <Users size={14} className="text-slate-400" />
+                        </div>
+                        <div>
+                          <p className="font-black text-sm text-slate-900">{emp?.name}</p>
+                          {loan.notes && <p className="text-xs text-slate-500 mt-1 truncate max-w-[150px]">{loan.notes}</p>}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-black text-slate-900">{loan.amount.toLocaleString()} ج.م</TableCell>
+                    <TableCell className="font-black text-red-600">{loan.remainingAmount.toLocaleString()} ج.م</TableCell>
+                    <TableCell>
+                      <Badge className={`border-none font-bold ${
+                        loan.status === 'مسدد' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                      }`}>
+                        {loan.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="sm" onClick={() => setEditingLoan(loan)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 rounded-lg">
+                          <Edit2 size={14} />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(loan.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg">
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {filteredLoans.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-bold">لا يوجد سلف مسجلة</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {hasMore && (
+          <div className="p-4 flex justify-center bg-slate-50 border-t border-slate-100">
+             <Button 
+                className="btn-secondary px-8 font-black rounded-xl h-10 text-sm"
+                onClick={() => fetchLoans()}
+                disabled={loading}
+              >
+                {loading ? 'جاري التحميل...' : 'عرض المزيد...'}
+              </Button>
+          </div>
+        )}
       </Card>
 
+      {/* Adding Modal */}
       {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">تسجيل سلفة</CardTitle>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="dribbble-card w-full max-w-lg overflow-hidden border-none">
+            <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-6">
+              <CardTitle className="font-black text-2xl flex items-center gap-2">
+                <Plus size={24} className="text-primary" />
+                تسجيل سلفة
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">الموظف</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={formData.employeeId} onChange={e => setFormData({...formData, employeeId: e.target.value})}>
-                  <option value="">اختر موظف...</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                <select 
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
+                  value={formData.employeeId} 
+                  onChange={e => setFormData({...formData, employeeId: e.target.value})}
+                >
+                  <option value="">-- اختر --</option>
+                  {employees.filter(e => e.status === 'نشط').map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
                 </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">المبلغ</label>
-                <Input type="number" className="rounded-xl h-11" value={formData.amount} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">التقسيط (أسبوع)</label>
-                  <Input type="number" className="rounded-xl h-11" value={formData.installments} onChange={e => setFormData({...formData, installments: Number(e.target.value)})} />
+                  <label className="text-sm font-bold text-slate-700">التاريخ</label>
+                  <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">المسدد بالفعل</label>
-                  <Input type="number" className="rounded-xl h-11" value={formData.paidAlready} onChange={e => setFormData({...formData, paidAlready: Number(e.target.value)})} />
+                  <label className="text-sm font-bold text-slate-700">المبلغ</label>
+                  <Input type="number" min="0" step="100" value={formData.amount || ''} onChange={e => setFormData({...formData, amount: parseFloat(e.target.value) || 0})} className="h-12 rounded-xl bg-slate-50 font-bold" />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">البيان / ملاحظات</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {['رصيد أول مدة', 'سلفة أسبوعية', 'رصيد أول مدة (مديونية سابقة)'].map(note => (
-                    <button
-                      key={note}
-                      onClick={() => setFormData({...formData, notes: note})}
-                      className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors ${
-                        formData.notes === note ? 'bg-primary text-white border-primary' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
-                    >
-                      {note}
-                    </button>
-                  ))}
-                </div>
-                <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="أدخل البيان أو اختر من المقترحات..." />
-              </div>
-              <div className="flex justify-end gap-3 pt-6">
-                <Button variant="ghost" className="btn-ghost" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} className="btn-primary px-10 h-12">حفظ السلفة</Button>
+                <label className="text-sm font-bold text-slate-700">ملاحظات (اختياري)</label>
+                <Input value={formData.notes || ''} onChange={e => setFormData({...formData, notes: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
               </div>
             </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {selectedEmployeeId && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/50">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="font-black text-2xl">كشف حساب سلف</CardTitle>
-                  <CardDescription className="font-bold text-slate-600">
-                    الموظف: {employees.find(e => e.id === selectedEmployeeId)?.name}
-                  </CardDescription>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedEmployeeId(null)} className="rounded-xl">
-                  <X size={20} />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0 overflow-auto flex-1">
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">إجمالي السلف والمصروفات</p>
-                    <p className="text-2xl font-black text-blue-900">
-                      {(
-                        loans.filter(l => l.employeeId === selectedEmployeeId).reduce((sum, l) => sum + l.amount, 0) +
-                        hrTransactions.filter(t => t.employeeId === selectedEmployeeId && t.type === 'مصروف').reduce((sum, t) => sum + t.amount, 0)
-                      ).toLocaleString()} ج.م
-                    </p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
-                    <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1">إجمالي المسدد</p>
-                    <p className="text-2xl font-black text-green-900">
-                      {(() => {
-                        const loanPaid = loans.filter(l => l.employeeId === selectedEmployeeId).reduce((sum, l) => sum + (l.amount - l.remainingAmount), 0);
-                        const expensePaid = payrolls.filter(p => p.employeeId === selectedEmployeeId && p.status === 'مدفوع').reduce((sum, p) => {
-                          const expensesInPeriod = hrTransactions.filter(t => 
-                            t.employeeId === selectedEmployeeId && 
-                            t.type === 'مصروف' && 
-                            t.date >= p.startDate && 
-                            t.date <= p.endDate
-                          );
-                          return sum + expensesInPeriod.reduce((s, t) => s + t.amount, 0);
-                        }, 0);
-                        return (loanPaid + expensePaid).toLocaleString();
-                      })()} ج.م
-                    </p>
-                  </div>
-                  <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-                    <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">الرصيد المتبقي</p>
-                    <p className="text-2xl font-black text-red-900">
-                      {(() => {
-                        const loanRemaining = loans.filter(l => l.employeeId === selectedEmployeeId).reduce((sum, l) => sum + l.remainingAmount, 0);
-                        const totalExpenses = hrTransactions.filter(t => t.employeeId === selectedEmployeeId && t.type === 'مصروف').reduce((sum, t) => sum + t.amount, 0);
-                        const settledExpenses = payrolls.filter(p => p.employeeId === selectedEmployeeId && p.status === 'مدفوع').reduce((sum, p) => {
-                          const expensesInPeriod = hrTransactions.filter(t => 
-                            t.employeeId === selectedEmployeeId && 
-                            t.type === 'مصروف' && 
-                            t.date >= p.startDate && 
-                            t.date <= p.endDate
-                          );
-                          return sum + expensesInPeriod.reduce((s, t) => s + t.amount, 0);
-                        }, 0);
-                        return (loanRemaining + (totalExpenses - settledExpenses)).toLocaleString();
-                      })()} ج.م
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-black text-slate-900 flex items-center gap-2">
-                    <History size={18} className="text-primary" />
-                    سجل الحركات
-                  </h4>
-                  <div className="border border-slate-100 rounded-2xl overflow-hidden overflow-x-auto">
-                    <Table>
-                      <TableHeader className="bg-slate-50">
-                        <TableRow>
-                          <TableHead className="text-right font-bold text-slate-700">التاريخ</TableHead>
-                          <TableHead className="text-right font-bold text-slate-700">البيان</TableHead>
-                          <TableHead className="text-right font-bold text-slate-700">مدين (+)</TableHead>
-                          <TableHead className="text-right font-bold text-slate-700">دائن (-)</TableHead>
-                          <TableHead className="text-right font-bold text-slate-700">الرصيد</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(() => {
-                          const history: any[] = [];
-                          
-                          // Add Loans
-                          loans.filter(l => l.employeeId === selectedEmployeeId).forEach(l => {
-                            history.push({
-                              date: l.date,
-                              description: l.notes || 'سلفة جديدة',
-                              debit: l.amount,
-                              credit: 0,
-                              type: 'loan'
-                            });
-                            if (l.paidAlready && l.paidAlready > 0) {
-                              history.push({
-                                date: l.date,
-                                description: 'مسدد عند الاستلام',
-                                debit: 0,
-                                credit: l.paidAlready,
-                                type: 'payment'
-                              });
-                            }
-                          });
-
-                          // Add Payroll Deductions
-                          payrolls.filter(p => p.employeeId === selectedEmployeeId && p.status === 'مدفوع' && p.totalLoans > 0).forEach(p => {
-                            history.push({
-                              date: p.paymentDate || p.endDate,
-                              description: `خصم من راتب أسبوع ${p.weekNumber}`,
-                              debit: 0,
-                              credit: p.totalLoans,
-                              type: 'payroll'
-                            });
-                          });
-
-                          // Add Weekly Expenses (Advances)
-                          hrTransactions.filter(t => t.employeeId === selectedEmployeeId && t.type === 'مصروف').forEach(t => {
-                            history.push({
-                              date: t.date,
-                              description: t.description || 'مصروف أسبوعي',
-                              debit: t.amount,
-                              credit: 0,
-                              type: 'expense'
-                            });
-                          });
-
-                          // Add Payroll Deductions for Expenses (if we want to show them separately, but they are usually in totalDeductions)
-                          // Actually, the user said "يرحل في كشوف الرواتب", so it's already in the payroll.
-                          // If we show the expense as debit, we need a corresponding credit.
-                          // In PayrollView, I added 'مصروف' to manualDeductions.
-                          // So we should add a history item for the payroll deduction of 'مصروف'.
-                          payrolls.filter(p => p.employeeId === selectedEmployeeId && p.status === 'مدفوع').forEach(p => {
-                            // Find if this payroll period covers any 'مصروف'
-                            const expensesInPeriod = hrTransactions.filter(t => 
-                              t.employeeId === selectedEmployeeId && 
-                              t.type === 'مصروف' && 
-                              t.date >= p.startDate && 
-                              t.date <= p.endDate
-                            );
-                            const totalExp = expensesInPeriod.reduce((sum, t) => sum + t.amount, 0);
-                            if (totalExp > 0) {
-                              history.push({
-                                date: p.paymentDate || p.endDate,
-                                description: `تسوية مصروف أسبوع ${p.weekNumber}`,
-                                debit: 0,
-                                credit: totalExp,
-                                type: 'expense_settlement'
-                              });
-                            }
-                          });
-
-                          // Sort by date
-                          history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-                          let runningBalance = 0;
-                          return history.map((item, idx) => {
-                            runningBalance += (item.debit - item.credit);
-                            return (
-                              <TableRow key={idx} className="hover:bg-slate-50/50">
-                                <TableCell className="text-xs font-bold text-slate-500">{item.date}</TableCell>
-                                <TableCell className="text-xs font-black text-slate-900">{item.description}</TableCell>
-                                <TableCell className="text-xs font-black text-blue-600">{item.debit > 0 ? `+${item.debit.toLocaleString()}` : '-'}</TableCell>
-                                <TableCell className="text-xs font-black text-red-600">{item.credit > 0 ? `-${item.credit.toLocaleString()}` : '-'}</TableCell>
-                                <TableCell className="text-xs font-black text-slate-900">{runningBalance.toLocaleString()} ج.م</TableCell>
-                              </TableRow>
-                            );
-                          });
-                        })()}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t border-slate-100 bg-slate-50/50 p-4 flex justify-between print:hidden">
-              <Button variant="outline" className="rounded-xl font-bold" onClick={() => window.print()}>
-                <Printer size={16} className="ml-2" />
-                طباعة كشف الحساب
-              </Button>
-              <Button onClick={() => setSelectedEmployeeId(null)} className="btn-primary px-8 font-black">إغلاق</Button>
+            <CardFooter className="flex justify-end gap-3 p-6 bg-slate-50/50 border-t border-slate-100">
+              <Button variant="ghost" onClick={() => setShowAdd(false)} className="rounded-xl font-bold">إلغاء</Button>
+              <Button onClick={handleAdd} className="btn-primary rounded-xl px-8 font-black">تسجيل</Button>
             </CardFooter>
           </Card>
         </div>
       )}
 
+      {/* Editing Modal */}
       {editingLoan && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">تعديل سلفة</CardTitle>
+         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="dribbble-card w-full max-w-lg overflow-hidden border-none">
+            <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-6">
+              <CardTitle className="font-black text-2xl flex items-center gap-2">
+                <Edit2 size={24} className="text-blue-500" />
+                تعديل سلفة
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الموظف</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={editingLoan.employeeId} onChange={e => setEditingLoan({...editingLoan, employeeId: e.target.value})}>
-                  <option value="">اختر موظف...</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11" value={editingLoan.date} onChange={e => setEditingLoan({...editingLoan, date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">المبلغ</label>
-                <Input type="number" className="rounded-xl h-11" value={editingLoan.amount} onChange={e => setEditingLoan({...editingLoan, amount: Number(e.target.value)})} />
-              </div>
+            <CardContent className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">التقسيط (أسبوع)</label>
-                  <Input type="number" className="rounded-xl h-11" value={editingLoan.installments || 0} onChange={e => setEditingLoan({...editingLoan, installments: Number(e.target.value)})} />
+                  <label className="text-sm font-bold text-slate-700">التاريخ</label>
+                  <Input type="date" value={editingLoan.date} onChange={e => setEditingLoan({...editingLoan, date: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" disabled />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">المسدد بالفعل</label>
-                  <Input type="number" className="rounded-xl h-11" value={editingLoan.paidAlready || 0} onChange={e => setEditingLoan({...editingLoan, paidAlready: Number(e.target.value)})} />
+                  <label className="text-sm font-bold text-slate-700">المبلغ</label>
+                  <Input type="number" min="0" step="100" value={editingLoan.amount || ''} onChange={e => setEditingLoan({...editingLoan, amount: parseFloat(e.target.value) || 0})} className="h-12 rounded-xl bg-slate-50 font-bold" />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">البيان / ملاحظات</label>
-                <Input className="rounded-xl h-11" value={editingLoan.notes || ''} onChange={e => setEditingLoan({...editingLoan, notes: e.target.value})} />
+                  <label className="text-sm font-bold text-slate-700">تم سداده (ج.م)</label>
+                  <Input type="number" min="0" step="100" value={editingLoan.paidAlready || ''} onChange={e => setEditingLoan({...editingLoan, paidAlready: parseFloat(e.target.value) || 0})} className="h-12 rounded-xl bg-slate-50 font-bold" />
               </div>
-              <div className="flex justify-end gap-3 pt-6">
-                <Button variant="ghost" className="btn-ghost" onClick={() => setEditingLoan(null)}>إلغاء</Button>
-                <Button onClick={handleUpdate} className="btn-primary px-10 h-12">تحديث السلفة</Button>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">ملاحظات (اختياري)</label>
+                <Input value={editingLoan.notes || ''} onChange={e => setEditingLoan({...editingLoan, notes: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
               </div>
             </CardContent>
+            <CardFooter className="flex justify-end gap-3 p-6 bg-slate-50/50 border-t border-slate-100">
+              <Button variant="ghost" onClick={() => setEditingLoan(null)} className="rounded-xl font-bold">إلغاء</Button>
+              <Button onClick={handleUpdate} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 font-black">حفظ التغييرات</Button>
+            </CardFooter>
           </Card>
         </div>
       )}
 
-      <ConfirmDialog 
-        isOpen={!!showDeleteConfirm}
-        title="حذف السلفة"
-        message="هل أنت متأكد من حذف هذه السلفة؟ لا يمكن التراجع عن هذا الإجراء."
-        onConfirm={() => showDeleteConfirm && handleDelete(showDeleteConfirm)}
-        onCancel={() => setShowDeleteConfirm(null)}
-      />
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="dribbble-card w-full max-w-sm overflow-hidden border-none">
+            <CardHeader className="bg-red-50/50 border-b border-red-100/50 pb-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <CardTitle className="font-black text-2xl text-red-700">حذف السلفة</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 text-center">
+              <p className="font-bold text-slate-600">هل أنت متأكد من الحذف؟ لا يمكن التراجع.</p>
+            </CardContent>
+            <CardFooter className="flex justify-center gap-3 p-6 pt-0">
+              <Button variant="ghost" className="rounded-xl font-bold px-6" onClick={() => setShowDeleteConfirm(null)}>إلغاء</Button>
+              <Button onClick={() => handleDelete(showDeleteConfirm)} className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-8 font-black">نعم، احذف</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function HRTransactionsView({ employees, transactions }: { employees: Employee[], transactions: FinancialTransaction[] }) {
   const [showAdd, setShowAdd] = useState(false);
@@ -13017,7 +13188,7 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
   );
 }
 
-function PayrollView({ employees, attendance, transactions, loans, payrolls, productionRecords, companyInfo }: { employees: Employee[], attendance: Attendance[], transactions: FinancialTransaction[], loans: Loan[], payrolls: Payroll[], productionRecords: ProductionRecord[], companyInfo: CompanySettings }) {
+function PayrollView({ employees, attendance, transactions, loans, payrolls, productionRecords, companyInfo, safes }: { employees: Employee[], attendance: Attendance[], transactions: FinancialTransaction[], loans: Loan[], payrolls: Payroll[], productionRecords: ProductionRecord[], companyInfo: CompanySettings, safes: Safe[] }) {
   const [showGenerate, setShowGenerate] = useState(false);
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
   const [searchTerm, setSearchTerm] = useState('');
@@ -13033,138 +13204,35 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
 
   const handleGenerate = async () => {
     try {
-      for (const emp of employees) {
-        if (emp.status !== 'نشط') continue;
-        
-        // Calculate days worked and time-based deductions
-        const empAttendance = attendance.filter(a => {
-          if (a.employeeId !== emp.id || (a.status !== 'حضور' && a.status !== 'تأخير')) return false;
-          return a.date >= genData.startDate && a.date <= genData.endDate;
-        });
+      setIsImporting(true);
+      const response = await fetch('/api/payroll/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employees, attendance, transactions, loans, productionRecords, genData })
+      });
 
-        const attendanceStats = empAttendance.reduce((acc, a) => {
-          if (!a.checkIn || !a.checkOut) {
-            acc.daysWorked += 1;
-            return acc;
-          }
+      if (!response.ok) throw new Error('Failed to generate payrolls from backend');
+      const { processedPayrolls } = await response.json();
 
-          const [inH, inM] = a.checkIn.split(':').map(Number);
-          const [outH, outM] = a.checkOut.split(':').map(Number);
-          
-          const checkInMins = inH * 60 + inM;
-          const checkOutMins = outH * 60 + outM;
-          
-          // Parse dynamic shift times or fallback to 08:00 - 18:00
-          const shiftStartStr = emp.shiftStart || '08:00';
-          const shiftEndStr = emp.shiftEnd || '18:00';
-          
-          const [sH, sM] = shiftStartStr.split(':').map(Number);
-          const [eH, eM] = shiftEndStr.split(':').map(Number);
-          
-          const officialStart = sH * 60 + sM;
-          const officialEnd = eH * 60 + eM;
-          const shiftDurationMins = officialEnd - officialStart;
-          const gracePeriod = 15;
-          
-          // Special Rule: 12:00 PM half day if arrived on time (only if shift starts in morning)
-          if (checkInMins <= officialStart + gracePeriod && a.checkOut === '12:00' && officialStart <= 12 * 60) {
-            acc.daysWorked += 0.5;
-            return acc;
-          }
-          
-          // Late deduction: only if after grace period
-          let lateMins = 0;
-          if (checkInMins > officialStart + gracePeriod) {
-            lateMins = checkInMins - officialStart;
-          }
-          
-          // Early departure deduction
-          const earlyMins = Math.max(0, officialEnd - checkOutMins);
-          
-          acc.daysWorked += 1;
-          acc.timeDeduction += (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
-          
-          return acc;
-        }, { daysWorked: 0, timeDeduction: 0 });
+      let batch = writeBatch(db);
+      let opCount = 0;
 
-        const daysWorked = attendanceStats.daysWorked;
-        const timeDeduction = attendanceStats.timeDeduction;
-
-        // Calculate total overtime from transactions in the selected period
-        const empTransactions = transactions.filter(t => {
-          if (t.employeeId !== emp.id) return false;
-          return t.date >= genData.startDate && t.date <= genData.endDate;
-        });
-        const totalOvertime = empTransactions.filter(t => t.type === 'إضافي' || t.type === 'أوفرتايم').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        
-        // Basic logic for payroll calculation
-        const totalBonuses = empTransactions.filter(t => t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        const totalExpenses = empTransactions.filter(t => t.type === 'مصروف' || t.type === 'سلفة' || t.type === 'عهدة').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        const manualLoanDeductions = empTransactions.filter(t => t.type === 'خصم سلف' || t.type === 'سلفة مستردة').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        const manualDeductions = empTransactions.filter(t => t.type === 'خصم' || t.type === 'جزاء').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-        const totalDeductions = manualDeductions + Math.round(timeDeduction * 100) / 100;
-        
-        // Calculate Base Salary based on Pay Method
-        const empProduction = productionRecords.filter(r => 
-          r.employeeId === emp.id && 
-          r.date >= genData.startDate && 
-          r.date <= genData.endDate
-        );
-        const totalProduction = empProduction.reduce((sum, r) => sum + r.total, 0);
-
-        let baseSalary = 0;
-        if (emp.payMethod === 'production') {
-          baseSalary = totalProduction;
-        } else {
-          baseSalary = emp.dailyRate * daysWorked;
+      for (const p of processedPayrolls) {
+        const newRef = doc(collection(db, 'payrolls'));
+        batch.set(newRef, p);
+        opCount++;
+        if (opCount >= 450) {
+          await batch.commit();
+          batch = writeBatch(db);
+          opCount = 0;
         }
-
-        const earningsBeforeLoans = baseSalary + totalBonuses + totalOvertime - totalDeductions - totalExpenses + (emp.payMethod === 'daily' ? totalProduction : 0);
-        const availableForLoans = Math.max(0, earningsBeforeLoans);
-
-        // Calculate loan deduction based on installments, capped by available earnings
-        const empLoans = loans.filter(l => l.employeeId === emp.id && l.status === 'نشط');
-        let calculatedLoans = empLoans.reduce((sum, l) => {
-          let weeklyInstallment = 0;
-          if (l.installments && l.installments > 0) {
-            weeklyInstallment = l.amount / l.installments;
-          } else {
-            weeklyInstallment = (emp.dailyRate * daysWorked) * 0.1; // Fallback
-          }
-          return sum + Math.min(l.remainingAmount, weeklyInstallment);
-        }, 0) + manualLoanDeductions;
-
-        // Prevent negative salary by capping loan deductions
-        const totalLoans = Math.min(calculatedLoans, availableForLoans);
-        
-        // Final net salary (capped at 0 if deductions exceed earnings)
-        const netSalary = Math.max(0, earningsBeforeLoans - totalLoans);
-
-        await addDoc(collection(db, 'payrolls'), {
-          employeeId: emp.id,
-          weekNumber: genData.weekNumber,
-          year: genData.year,
-          startDate: genData.startDate,
-          endDate: genData.endDate,
-          dailyRate: emp.payMethod === 'daily' ? emp.dailyRate : (emp.pieceRate || 0),
-          daysWorked: emp.payMethod === 'daily' ? daysWorked : 0,
-          baseSalary,
-          totalBonuses,
-          totalOvertime,
-          totalExpenses,
-          totalProduction,
-          totalDeductions,
-          totalLoans,
-          netSalary,
-          status: 'مسودة',
-          payMethod: emp.payMethod || 'daily'
-        });
       }
+      await batch.commit();
       setShowGenerate(false);
-    } catch (err) { handleFirestoreError(err, 'write', 'payrolls'); }
+    } catch (err) { handleFirestoreError(err, 'write', 'payrolls'); } finally { setIsImporting(false); }
   };
 
-  const updateLoanBalances = async (payroll: Payroll) => {
+  const applyLoanDeductionsToBatch = (payroll: Payroll, batch: any) => {
     if (payroll.totalLoans <= 0) return;
     
     const empLoans = loans.filter(l => l.employeeId === payroll.employeeId && l.status === 'نشط');
@@ -13175,7 +13243,7 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
       const deduction = Math.min(loan.remainingAmount, remainingDeduction);
       const newRemaining = loan.remainingAmount - deduction;
       const newPaidAlready = (loan.paidAlready || 0) + deduction;
-      await updateDoc(doc(db, 'loans', loan.id), {
+      batch.update(doc(db, 'loans', loan.id), {
         remainingAmount: newRemaining,
         paidAlready: newPaidAlready,
         status: newRemaining <= 0 ? 'مسدد' : 'نشط'
@@ -13184,20 +13252,91 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
     }
   };
 
-  const handleArchive = async (id: string) => {
+  const [archiveConfig, setArchiveConfig] = useState<{ mode: 'single' | 'bulk'; id?: string; open: boolean }>({ mode: 'bulk', open: false });
+  const [selectedArchiveSafe, setSelectedArchiveSafe] = useState<string>('');
+
+  const handleArchive = (id: string) => setArchiveConfig({ mode: 'single', id, open: true });
+  const handleBulkArchive = () => setArchiveConfig({ mode: 'bulk', open: true });
+
+  const processArchive = async () => {
+    if (!selectedArchiveSafe) {
+      alert('يرجى اختيار الخزنة لدفع الرواتب منها');
+      return;
+    }
+    
     try {
-      const payroll = payrolls.find(p => p.id === id);
-      if (payroll) {
-        const livePayroll = getLivePayroll(payroll);
-        await updateLoanBalances(livePayroll);
-        const { id: _id, ...updateData } = livePayroll;
-        await updateDoc(doc(db, 'payrolls', id), {
-          ...updateData,
-          status: 'مدفوع',
-          paymentDate: format(new Date(), 'yyyy-MM-dd')
-        });
+      if (archiveConfig.mode === 'single' && archiveConfig.id) {
+        const payroll = payrolls.find(p => p.id === archiveConfig.id);
+        if (payroll) {
+          const livePayroll = getLivePayroll(payroll);
+          const batch = writeBatch(db);
+          applyLoanDeductionsToBatch(livePayroll, batch);
+          
+          // Transaction for payroll payment
+          const safeTxRef = doc(collection(db, 'safeTransactions'));
+          batch.set(safeTxRef, {
+            safeId: selectedArchiveSafe,
+            date: format(new Date(), 'yyyy-MM-dd'),
+            type: 'رواتب',
+            amount: livePayroll.netSalary,
+            description: `دفع راتب أسبوع ${livePayroll.weekNumber} / ${livePayroll.year} - الموظف: ${employees.find(e=>e.id === livePayroll.employeeId)?.name}`,
+          });
+          batch.update(doc(db, 'safes', selectedArchiveSafe), {
+            balance: increment(-livePayroll.netSalary)
+          });
+          
+          const { id: _id, ...updateData } = livePayroll;
+          batch.update(doc(db, 'payrolls', archiveConfig.id), {
+            ...updateData,
+            status: 'مدفوع',
+            paymentDate: format(new Date(), 'yyyy-MM-dd')
+          });
+          await batch.commit();
+        }
+      } else if (archiveConfig.mode === 'bulk') {
+          let batch = writeBatch(db);
+          let opCount = 0;
+          let totalNet = 0;
+          
+          for (const p of draftPayrolls) {
+            const liveP = getLivePayroll(p);
+            
+            applyLoanDeductionsToBatch(liveP, batch);
+            opCount += 3;
+            if (opCount >= 450) {
+              await batch.commit();
+              batch = writeBatch(db);
+              opCount = 0;
+            }
+            
+            totalNet += liveP.netSalary;
+            
+            const { id, ...updateData } = liveP;
+            batch.update(doc(db, 'payrolls', id), {
+              ...updateData,
+              status: 'مدفوع',
+              paymentDate: format(new Date(), 'yyyy-MM-dd')
+            });
+          }
+          
+          if (totalNet > 0) {
+            const batchSafeTxRef = doc(collection(db, 'safeTransactions'));
+            batch.set(batchSafeTxRef, {
+              safeId: selectedArchiveSafe,
+              date: format(new Date(), 'yyyy-MM-dd'),
+              type: 'رواتب',
+              amount: totalNet,
+              description: `دفع رواتب دورية مجمعة (عدد ${draftPayrolls.length} موظف)`
+            });
+            batch.update(doc(db, 'safes', selectedArchiveSafe), {
+              balance: increment(-totalNet)
+            });
+          }
+          
+          await batch.commit();
       }
-    } catch (err) { handleFirestoreError(err, 'update', 'payrolls'); }
+      setArchiveConfig({ ...archiveConfig, open: false });
+    } catch (err) { handleFirestoreError(err, 'write', 'payrolls'); }
   };
 
   const draftPayrolls = payrolls.filter(p => p.status === 'مسودة');
@@ -13211,7 +13350,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
     if (!editingPayroll) return;
     try {
       const { id, ...data } = editingPayroll;
-      // Recalculate net salary from all inputs
       const netSalary = (data.baseSalary || 0) + (data.totalBonuses || 0) + (data.totalOvertime || 0) - (data.totalDeductions || 0) - (data.totalExpenses || 0) - (data.totalLoans || 0);
       await updateDoc(doc(db, 'payrolls', id), { ...data, netSalary });
       setEditingPayroll(null);
@@ -13224,21 +13362,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
       await deleteDoc(doc(db, 'payrolls', deletingId));
       setDeletingId(null);
     } catch (err) { handleFirestoreError(err, 'delete', 'payrolls'); }
-  };
-
-  const handleBulkArchive = async () => {
-    try {
-      for (const p of draftPayrolls) {
-        const liveP = getLivePayroll(p);
-        await updateLoanBalances(liveP);
-        const { id, ...updateData } = liveP;
-        await updateDoc(doc(db, 'payrolls', id), {
-          ...updateData,
-          status: 'مدفوع',
-          paymentDate: format(new Date(), 'yyyy-MM-dd')
-        });
-      }
-    } catch (err) { handleFirestoreError(err, 'update', 'payrolls'); }
   };
 
   const handlePrint = () => {
@@ -13823,6 +13946,41 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
           </Card>
         </div>
       )}
+
+      {archiveConfig.open && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="dribbble-card w-full max-w-sm">
+            <CardHeader>
+              <CardTitle className="font-black text-xl text-orange-600">اختيار الخزنة للأرشفة والدفع</CardTitle>
+              <CardDescription className="font-bold text-slate-600">يرجى تحديد الخزنة التي سيتم الدفع منها لتحميل هذا المنصرف محاسبياً.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">اختر الخزنة</label>
+                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={selectedArchiveSafe} onChange={e => setSelectedArchiveSafe(e.target.value)}>
+                  <option value="">-- اختر الخزنة --</option>
+                  {safes.map(s => <option key={s.id} value={s.id}>{s.name} ({s.balance.toLocaleString()} ج.م)</option>)}
+                </select>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end gap-3">
+              <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setArchiveConfig({...archiveConfig, open: false})}>إلغاء</Button>
+              <Button onClick={processArchive} className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-black px-8">تأكيد الدفع</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function SalesModule(props: any) {
+  return (
+    <div className="p-8 text-center text-slate-500 font-bold border-2 border-dashed border-slate-200 rounded-3xl m-8">
+      <ShoppingCart size={48} className="mx-auto mb-4 text-slate-300" />
+      <h3 className="text-2xl text-slate-700">وحدة المبيعات والمعارض</h3>
+      <p className="mt-2 text-slate-400">جاري تطوير هذا القسم ليتم التعامل مع المبيعات وأوامر البيع بشكل مستقل.</p>
     </div>
   );
 }

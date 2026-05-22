@@ -460,6 +460,8 @@ export interface UserProfile {
     suppliers: boolean;
     settings: boolean;
     finance: boolean;
+    sales: boolean;
+    canDelete: boolean;
   };
 }
 
