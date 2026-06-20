@@ -281,6 +281,7 @@ export interface Employee {
   position: string;
   department?: string;
   dailyRate: number;
+  hourlyRate?: number;
   payMethod: 'daily' | 'production';
   pieceRate?: number;
   phone?: string;
@@ -288,6 +289,8 @@ export interface Employee {
   status: 'نشط' | 'موقوف' | 'مستقيل';
   shiftStart?: string;
   shiftEnd?: string;
+  baseSalary?: number;
+  productionGroup?: 'A' | 'B' | '';
 }
 
 export interface Attendance {

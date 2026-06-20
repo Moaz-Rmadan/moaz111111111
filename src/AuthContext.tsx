@@ -98,6 +98,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setProfile(defaultProfile);
             }
             setLoading(false);
+          }, (err) => {
+            console.error("Error in profile onSnapshot listener:", err);
+            setLoading(false);
           });
 
           return () => {

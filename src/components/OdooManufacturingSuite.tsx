@@ -122,16 +122,22 @@ export function OdooManufacturingSuite({
     // Sync Mrp Orders
     const unsubOrders = onSnapshot(collection(db, 'mrpOrders'), (snap) => {
       setMrpOrders(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as MRPOrder)));
+    }, (error) => {
+      console.error("Error in mrpOrders snapshot listener:", error);
     });
 
     // Sync Mrp Scrap
     const unsubScrap = onSnapshot(collection(db, 'mrpScrap'), (snap) => {
       setMrpScrap(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as MRPScrap)));
+    }, (error) => {
+      console.error("Error in mrpScrap snapshot listener:", error);
     });
 
     // Sync Work Centers directly so we can customize or fall back safely
     const unsubWCs = onSnapshot(collection(db, 'workCenters'), (snap) => {
       setMrpWorkCenters(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as WorkCenter)));
+    }, (error) => {
+      console.error("Error in workCenters snapshot listener:", error);
     });
 
     return () => {

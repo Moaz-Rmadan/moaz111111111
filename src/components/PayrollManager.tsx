@@ -12,8 +12,8 @@ import {
 } from 'firebase/firestore';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 // Assuming these are globally available, but in real project they might need imports
 // I will keep them as props for now.
 

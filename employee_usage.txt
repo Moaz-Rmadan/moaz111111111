@@ -1,0 +1,52 @@
+34:  BladeSharpening, PlateSharpening, MachineMaintenance, UserProfile, Safe, Employee, CompanySettings,
+278:  employees: Employee[], 
+362:  employees: Employee[], 
+380:  const paidEmployeeCount = new Set(filteredPayrolls.map(py => py.employeeId)).size;
+393:  const avgNetSalary = paidEmployeeCount > 0 ? totalWages / paidEmployeeCount : 0;
+512:              <h3 className="text-2xl font-black text-slate-900">{paidEmployeeCount} <small className="text-xs">فرد</small></h3>
+823:  const [employees, setEmployees] = useState<Employee[]>([]);
+1197:    let unsubEmployees = () => {};
+1199:      unsubEmployees = onSnapshot(collection(db, 'employees'), (snap) => {
+1200:        setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() } as Employee)));
+1353:      unsubEmployees();
+1942:        {activeTab === 'employees' && <EmployeesView employees={employees} />}
+3188:  employees: Employee[],
+3211:  const activeEmployees = employees.filter(emp => emp.status === 'نشط');
+3395:              <StatMiniCard title="الموظفين" value={activeEmployees.length} sub="موظف نشط" icon={<Users size={20} />} color="emerald" />
+5004:  employees: Employee[],
+7076:  employees: Employee[],
+11650:function EmployeesView({ employees }: { employees: Employee[] }) {
+11653:  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+11671:  const filteredEmployees = employees.filter(e => {
+11696:    if (!editingEmployee) return;
+11698:      const { id, ...data } = editingEmployee;
+11700:      setEditingEmployee(null);
+11744:        {filteredEmployees.map(emp => (
+11767:                  <Button onClick={() => setEditingEmployee(emp)} variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50 rounded-lg">
+11881:      {editingEmployee && (
+11890:                <Input className="rounded-xl h-11" value={editingEmployee.name} onChange={e => setEditingEmployee({...editingEmployee, name: e.target.value})} />
+11894:                <Input className="rounded-xl h-11" value={editingEmployee.phone || ''} onChange={e => setEditingEmployee({...editingEmployee, phone: e.target.value})} placeholder="01xxxxxxxxx" />
+11899:                  <Input className="rounded-xl h-11" value={editingEmployee.position} onChange={e => setEditingEmployee({...editingEmployee, position: e.target.value})} />
+11903:                  <Input className="rounded-xl h-11" value={editingEmployee.department || ''} onChange={e => setEditingEmployee({...editingEmployee, department: e.target.value})} placeholder="مثال: الإنتاج، المخازن..." />
+11909:                  <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={editingEmployee.payMethod} onChange={e => setEditingEmployee({...editingEmployee, payMethod: e.target.value as any})}>
+11914:                {editingEmployee.payMethod === 'daily' ? (
+11917:                    <Input type="number" className="rounded-xl h-11" value={editingEmployee.dailyRate} onChange={e => setEditingEmployee({...editingEmployee, dailyRate: Number(e.target.value)})} />
+11922:                    <Input type="number" className="rounded-xl h-11" value={editingEmployee.pieceRate} onChange={e => setEditingEmployee({...editingEmployee, pieceRate: Number(e.target.value)})} />
+11932:                  <Input type="time" className="rounded-xl h-11" value={editingEmployee.shiftStart || '08:00'} onChange={e => setEditingEmployee({...editingEmployee, shiftStart: e.target.value})} />
+11936:                  <Input type="time" className="rounded-xl h-11" value={editingEmployee.shiftEnd || '18:00'} onChange={e => setEditingEmployee({...editingEmployee, shiftEnd: e.target.value})} />
+11941:                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={editingEmployee.status} onChange={e => setEditingEmployee({...editingEmployee, status: e.target.value as any})}>
+11948:                <Button variant="ghost" className="btn-ghost" onClick={() => setEditingEmployee(null)}>إلغاء</Button>
+12032:function LoansView({ employees }: { employees: Employee[] }) {
+12391:function HRTransactionsView({ employees, transactions }: { employees: Employee[], transactions: FinancialTransaction[] }) {
+12720:function ProductionView({ employees, productionRecords }: { employees: Employee[], productionRecords: ProductionRecord[] }) {
+12722:  const [entryEmployeeId, setEntryEmployeeId] = useState('');
+12726:  const productionEmployees = employees.filter(e => e.payMethod === 'production');
+12756:    if (!entryEmployeeId) {
+12772:          employeeId: entryEmployeeId,
+12784:      setEntryEmployeeId('');
+12873:                    value={entryEmployeeId} 
+12876:                      const emp = productionEmployees.find(emp => emp.id === empId);
+12877:                      setEntryEmployeeId(empId);
+12885:                    {productionEmployees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+12993:  employees: Employee[],
+13778:function ArchiveView({ employees, payrolls, transactions }: { employees: Employee[], payrolls: Payroll[], transactions: FinancialTransaction[] }) {

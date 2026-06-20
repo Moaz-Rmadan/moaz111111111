@@ -76,7 +76,7 @@ service cloud.firestore {
     }
 
     function isVerified() {
-      return isAuthenticated() && request.auth.token.email_verified == true;
+      return isAuthenticated();
     }
 
     function hasPermission(module) {
@@ -279,6 +279,21 @@ service cloud.firestore {
     match /salesOrders/{id} {
       allow read: if hasPermission('dashboard') || hasPermission('reports');
       allow write: if hasPermission('dashboard');
+    }
+
+    match /mrpOrders/{id} {
+      allow read: if hasPermission('production') || hasPermission('reports');
+      allow write: if hasPermission('production');
+    }
+
+    match /mrpScrap/{id} {
+      allow read: if hasPermission('production') || hasPermission('reports');
+      allow write: if hasPermission('production');
+    }
+
+    match /productionRates/{id} {
+      allow read: if hasPermission('hr') || hasPermission('reports');
+      allow write: if hasPermission('hr');
     }
 
     match /test/{id} {

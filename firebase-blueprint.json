@@ -655,6 +655,55 @@
         "createdBy": { "type": "string" }
       },
       "required": ["safeId", "date", "type", "amount"]
+    },
+    "MRPOrder": {
+      "title": "MRPOrder",
+      "description": "A manufacturing order in the MRP system",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "bomId": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "confirmed", "progress", "done", "cancel"] },
+        "datePlanned": { "type": "string" },
+        "dateStarted": { "type": "string" },
+        "dateFinished": { "type": "string" },
+        "sourceWarehouseId": { "type": "string" },
+        "destinationWarehouseId": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["name", "productId", "quantity", "status", "datePlanned"]
+    },
+    "MRPScrap": {
+      "title": "MRPScrap",
+      "description": "A record of scrapped materials in production",
+      "type": "object",
+      "properties": {
+        "moId": { "type": "string" },
+        "moName": { "type": "string" },
+        "date": { "type": "string" },
+        "itemId": { "type": "string" },
+        "itemName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "reason": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["date", "itemId", "itemName", "quantity", "reason"]
+    },
+    "ProductionRate": {
+      "title": "ProductionRate",
+      "description": "Rate configuration for piece work",
+      "type": "object",
+      "properties": {
+        "itemName": { "type": "string" },
+        "rateA": { "type": "number" },
+        "rateB": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["itemName", "rateA", "rateB"]
     }
   },
   "firestore": {
@@ -695,6 +744,9 @@
     "/safes/{id}": { "schema": "Safe", "description": "Financial safes/treasury accounts" },
     "/safeTransactions/{id}": { "schema": "SafeTransaction", "description": "Transactions in the safes" },
     "/safeAudits/{id}": { "schema": "SafeAudit", "description": "Safe audit records" },
-    "/safeSettlements/{id}": { "schema": "SafeSettlement", "description": "Petty cash settlement records" }
+    "/safeSettlements/{id}": { "schema": "SafeSettlement", "description": "Petty cash settlement records" },
+    "/mrpOrders/{id}": { "schema": "MRPOrder", "description": "MRP Manufacturing orders" },
+    "/mrpScrap/{id}": { "schema": "MRPScrap", "description": "MRP Scrap records" },
+    "/productionRates/{id}": { "schema": "ProductionRate", "description": "Rate configuration for piece work" }
   }
 }
