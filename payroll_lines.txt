@@ -1,0 +1,133 @@
+33:  Attendance, FinancialTransaction, Loan, Payroll, LoadingManifest, Waste,
+276:const calculateLivePayroll = (
+277:  p: Payroll, 
+353:function PayrollMasterReport({ 
+361:  payrolls: Payroll[], 
+375:  const filteredPayrolls = payrolls.filter(p => {
+378:  }).map(p => calculateLivePayroll(p, employees, attendance, hrTransactions, loans, productionRecords));
+380:  const paidEmployeeCount = new Set(filteredPayrolls.map(py => py.employeeId)).size;
+381:  const sortedPayrolls = [...filteredPayrolls].sort((a, b) => {
+386:  const totalWages = filteredPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+387:  const totalBonuses = filteredPayrolls.reduce((sum, p) => sum + (p.totalBonuses || 0), 0);
+388:  const totalOvertime = filteredPayrolls.reduce((sum, p) => sum + (p.totalOvertime || 0), 0);
+389:  const totalDeductions = filteredPayrolls.reduce((sum, p) => sum + (p.totalDeductions || 0), 0);
+390:  const totalExpenses = filteredPayrolls.reduce((sum, p) => sum + (p.totalExpenses || 0), 0);
+391:  const totalLoansRecovered = filteredPayrolls.reduce((sum, p) => sum + (p.totalLoans || 0), 0);
+397:    const deptPayrolls = filteredPayrolls.filter(p => p.employeeId === emp.id);
+398:    const amount = deptPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+412:  const trendData = sortedPayrolls.reduce((acc: any[], p) => {
+425:  const tableData = filteredPayrolls.filter(p => {
+437:  const totalBase = filteredPayrolls.reduce((sum, p) => sum + p.baseSalary, 0);
+700:                XLSX.utils.book_append_sheet(wb, ws, "Detailed Payroll Report");
+701:                XLSX.writeFile(wb, `Payroll_Analysis_${dateRange.start}_to_${dateRange.end}.xlsx`);
+827:  const [payrolls, setPayrolls] = useState<Payroll[]>([]);
+1226:    let unsubPayrolls = () => {};
+1229:      unsubPayrolls = onSnapshot(q, (snap) => {
+1230:        setPayrolls(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payroll)));
+1357:      unsubPayrolls();
+1948:          <PayrollView 
+1996:          <PayrollMasterReport 
+3197:  payrolls: Payroll[],
+12982:function PayrollView({
+12995:  payrolls: Payroll[],
+13017:      const { processedPayrolls } = await response.json();
+13022:      for (const p of processedPayrolls) {
+13036:  const applyLoanDeductionsToBatch = (payroll: Payroll, batch: any) => {
+13072:          const livePayroll = getLivePayroll(payroll);
+13074:          applyLoanDeductionsToBatch(livePayroll, batch);
+13081:            amount: livePayroll.netSalary,
+13082:            description: `دفع راتب أسبوع ${livePayroll.weekNumber} / ${livePayroll.year} - الموظف: ${employees.find(e=>e.id === livePayroll.employeeId)?.name}`,
+13085:            balance: increment(-livePayroll.netSalary)
+13088:          const { id: _id, ...updateData } = livePayroll;
+13100:          for (const p of draftPayrolls) {
+13101:            const liveP = getLivePayroll(p);
+13126:              description: `دفع رواتب دورية مجمعة (عدد ${draftPayrolls.length} موظف)`
+13138:  const draftPayrolls = payrolls.filter(p => p.status === 'مسودة');
+13139:  const totalWeekly = draftPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+13142:  const [editingPayroll, setEditingPayroll] = useState<Payroll | null>(null);
+13145:  const handleUpdatePayroll = async () => {
+13146:    if (!editingPayroll) return;
+13148:      const { id, ...data } = editingPayroll;
+13151:      setEditingPayroll(null);
+13154:  const handleDeletePayroll = async () => {
+13165:  const handleWhatsApp = (p: Payroll) => {
+13196:  const filteredDraftPayrolls = draftPayrolls.filter(p => {
+13203:  const getLivePayroll = (p: Payroll) => calculateLivePayroll(p, employees, attendance, transactions, loans, productionRecords);
+13205:  const processedPayrolls = filteredDraftPayrolls.map(getLivePayroll);
+13206:  const filteredTotalWeekly = processedPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+13209:    const dataToExport = processedPayrolls.map(p => ({
+13226:    XLSX.utils.book_append_sheet(wb, ws, "Payroll");
+13343:          {draftPayrolls.length > 0 && (
+13374:            {processedPayrolls.slice().sort((a, b) => b.year - a.year || b.weekNumber - a.weekNumber).map(p => (
+13440:                    <Button onClick={() => setEditingPayroll(p)} variant="ghost" size="icon" className="text-blue-600 hover:bg-blue-50">
+13473:              {processedPayrolls.length === 0 ? (
+13480:                    processedPayrolls.map((p, idx) => {
+13599:      {editingPayroll && (
+13610:                    {editingPayroll.payMethod === 'production' ? 'استحقاق الإنتاج' : 'أيام العمل'}
+13614:                    step={editingPayroll.payMethod === 'production' ? "1" : "0.25"}
+13616:                    value={editingPayroll.payMethod === 'production' ? editingPayroll.baseSalary : editingPayroll.daysWorked} 
+13619:                      if (editingPayroll.payMethod === 'production') {
+13620:                        setEditingPayroll({...editingPayroll, baseSalary: val});
+13622:                        setEditingPayroll({...editingPayroll, daysWorked: val, baseSalary: val * (editingPayroll.dailyRate || 0)});
+13627:                {editingPayroll.payMethod !== 'production' && (
+13633:                      value={editingPayroll.dailyRate} 
+13636:                        setEditingPayroll({
+13637:                          ...editingPayroll, 
+13639:                          baseSalary: (editingPayroll.daysWorked || 0) * val
+13647:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.baseSalary} onChange={e => setEditingPayroll({...editingPayroll, baseSalary: Number(e.target.value)})} />
+13651:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalOvertime} onChange={e => setEditingPayroll({...editingPayroll, totalOvertime: Number(e.target.value)})} />
+13655:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalBonuses} onChange={e => setEditingPayroll({...editingPayroll, totalBonuses: Number(e.target.value)})} />
+13659:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalDeductions} onChange={e => setEditingPayroll({...editingPayroll, totalDeductions: Number(e.target.value)})} />
+13663:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalExpenses} onChange={e => setEditingPayroll({...editingPayroll, totalExpenses: Number(e.target.value)})} />
+13667:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalLoans} onChange={e => setEditingPayroll({...editingPayroll, totalLoans: Number(e.target.value)})} />
+13673:                  {(editingPayroll.baseSalary + editingPayroll.totalBonuses + editingPayroll.totalOvertime - editingPayroll.totalDeductions - (editingPayroll.totalExpenses || 0) - editingPayroll.totalLoans).toLocaleString()} ج.م
+13677:                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setEditingPayroll(null)}>إلغاء</Button>
+13678:                <Button onClick={handleUpdatePayroll} className="btn-primary px-10 h-12 font-black">حفظ التعديلات</Button>
+13694:              <Button onClick={handleDeletePayroll} className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-black px-8">حذف نهائي</Button>
+13775:function ArchiveView({ employees, payrolls, transactions }: { employees: Employee[], payrolls: Payroll[], transactions: FinancialTransaction[] }) {
+13778:  const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
+13779:  const [editingPayroll, setEditingPayroll] = useState<Payroll | null>(null);
+13783:  const archivedPayrolls = payrolls.filter(p => p.status === 'مدفوع');
+13784:  const totalArchived = archivedPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+13787:  const filtered = archivedPayrolls.filter(p => {
+13794:  const handleUpdatePayroll = async () => {
+13795:    if (!editingPayroll) return;
+13797:      const { id, ...data } = editingPayroll;
+13801:      setEditingPayroll(null);
+13807:  const handleDeletePayroll = async () => {
+13835:    XLSX.utils.book_append_sheet(wb, ws, "Archived_Payroll");
+13918:                      <Button onClick={() => setSelectedPayroll(p)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
+13921:                      <Button onClick={() => setEditingPayroll(p)} variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
+13942:      {selectedPayroll && (
+13948:                <Button variant="ghost" size="icon" onClick={() => setSelectedPayroll(null)} className="rounded-full hover:bg-slate-100">
+13956:                  {employees.find(e => e.id === selectedPayroll.employeeId)?.name.charAt(0)}
+13959:                  <h3 className="font-black text-lg text-slate-900">{employees.find(e => e.id === selectedPayroll.employeeId)?.name}</h3>
+13960:                  <p className="text-sm font-bold text-slate-500">أسبوع {selectedPayroll.weekNumber} - {selectedPayroll.year}</p>
+13967:                  <span className="font-black text-slate-900">{(selectedPayroll.daysWorked || 0).toFixed(2)} يوم</span>
+13971:                  <span className="font-black">{(selectedPayroll.totalBonuses || 0).toLocaleString()} ج.م</span>
+13975:                  <span className="font-black">{(selectedPayroll.totalOvertime || 0).toLocaleString()} ج.م</span>
+13979:                  <span className="font-black">{(selectedPayroll.totalDeductions || 0).toLocaleString()} ج.م</span>
+13983:                  <span className="font-black">{(selectedPayroll.totalExpenses || 0).toLocaleString()} ج.م</span>
+13987:                  <span className="font-black">{(selectedPayroll.totalLoans || 0).toLocaleString()} ج.م</span>
+13991:                  <span className="font-black text-slate-900">{selectedPayroll.baseSalary.toLocaleString()} ج.م</span>
+13996:                    <span className="font-black text-green-700">+{selectedPayroll.totalBonuses.toLocaleString()} ج.م</span>
+13999:                    .filter(t => t.employeeId === selectedPayroll.employeeId && t.date >= selectedPayroll.startDate && t.date <= selectedPayroll.endDate && (t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل'))
+14010:                    <span className="font-black text-blue-700">+{selectedPayroll.totalOvertime.toLocaleString()} ج.م</span>
+14013:                    .filter(t => t.employeeId === selectedPayroll.employeeId && t.date >= selectedPayroll.startDate && t.date <= selectedPayroll.endDate && (t.type === 'إضافي' || t.type === 'أوفرتايم'))
+14024:                    <span className="font-black text-red-700">-{selectedPayroll.totalDeductions.toLocaleString()} ج.م</span>
+14030:                    <span className="font-black text-orange-700">-{selectedPayroll.totalExpenses?.toLocaleString() || 0} ج.م</span>
+14033:                    .filter(t => t.employeeId === selectedPayroll.employeeId && t.date >= selectedPayroll.startDate && t.date <= selectedPayroll.endDate && (t.type === 'مصروف' || t.type === 'سلفة' || t.type === 'عهدة'))
+14043:                  <span className="font-black text-orange-700">-{selectedPayroll.totalLoans.toLocaleString()} ج.م</span>
+14049:                <span className="font-black text-2xl text-primary">{selectedPayroll.netSalary.toLocaleString()} ج.م</span>
+14056:      {editingPayroll && (
+14066:                  <Input type="number" step="0.25" className="rounded-xl h-11" value={editingPayroll.daysWorked} onChange={e => {
+14068:                    setEditingPayroll({...editingPayroll, daysWorked: days, baseSalary: days * (editingPayroll.dailyRate || 0)});
+14073:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.dailyRate} onChange={e => {
+14075:                    setEditingPayroll({...editingPayroll, dailyRate: rate, baseSalary: (editingPayroll.daysWorked || 0) * rate});
+14082:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalBonuses} onChange={e => setEditingPayroll({...editingPayroll, totalBonuses: parseFloat(e.target.value) || 0})} />
+14086:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalOvertime} onChange={e => setEditingPayroll({...editingPayroll, totalOvertime: parseFloat(e.target.value) || 0})} />
+14092:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalDeductions} onChange={e => setEditingPayroll({...editingPayroll, totalDeductions: parseFloat(e.target.value) || 0})} />
+14096:                  <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalLoans} onChange={e => setEditingPayroll({...editingPayroll, totalLoans: parseFloat(e.target.value) || 0})} />
+14100:                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setEditingPayroll(null)}>إلغاء</Button>
+14101:                <Button onClick={handleUpdatePayroll} className="btn-primary px-10 h-12 font-black">حفظ التعديلات</Button>
+14112:        onConfirm={handleDeletePayroll}

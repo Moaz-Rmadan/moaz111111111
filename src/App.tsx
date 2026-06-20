@@ -8,32 +8,31 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { handleFirestoreError } from './lib/firestore-utils';
+import { signInWithPopup, signOut } from 'firebase/auth';
 import { db, auth, getGoogleProvider } from './firebase';
 import { collection, onSnapshot, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, writeBatch, startAfter, documentId, setDoc, increment, serverTimestamp } from 'firebase/firestore';
-import { handleFirestoreError } from './lib/firestore-utils';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Cell as RechartsCell, AreaChart, Area, ComposedChart } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell as RechartsCell, AreaChart, Area, ComposedChart } from 'recharts';
 import {
-  AlertCircle, Package, DollarSign, Users, LayoutGrid, Plus, BarChart3, Search, Search as SearchIcon, Download, 
+  AlertCircle, Package, DollarSign, Users, LayoutGrid, Plus, BarChart3, Search, Download, ShoppingCart, Truck, Settings as SettingsIcon,
   LayoutDashboard, ChevronDown, Layers, Wrench, Building2, ShoppingBag, ShieldAlert,
-  Settings, LogOut, UserCircle, ShieldCheck, Trash2, X, ShoppingCart, Truck, AlertTriangle,
   Activity, Printer, ArrowDownLeft, ArrowUpRight, Menu, ChevronLeft, Calendar, PieChartIcon,
   TrendingUp, Filter, Edit2, MessageSquare, FileText, CheckCircle2, PackageCheck, RotateCcw,
   ReceiptText, ClipboardCheck, PlusCircle, FileCheck, CreditCard, Scale, Wallet, ArrowRight,
   ChevronUp, Target, Database, Briefcase, Home, Code, Save, Upload, ArrowLeft,
-  ArrowUpToLine, ArrowDownToLine, Eye, Box, Clock, List, Zap, History, Warehouse as WarehouseIcon
+  ArrowUpToLine, ArrowDownToLine, Eye, Box, Clock, List, Zap, Warehouse as WarehouseIcon, X, Image as ImageIcon,
+  Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { 
   Item, Supplier, Purchase, Issuance, Warehouse, Unit, CostCenter, 
   ProductionJob, JobLabor, JobOtherCost, ProductionRecord, DeliveryReceipt, 
   LostSale, StockAudit, BOM, WorkCenter, ManufacturingOperation, SalesOrder,
-  Safe, SafeTransaction, SafeAudit, SafeSettlement, SettledExpense, Employee,
   Attendance, FinancialTransaction, Loan, Payroll, LoadingManifest, Waste,
-  BladeSharpening, PlateSharpening, MachineMaintenance, UserProfile,
-  CompanySettings, ProductRecipe, RecipeItem, DepartmentRecipe, SupplierPayment 
+  BladeSharpening, PlateSharpening, MachineMaintenance, UserProfile, Safe, Employee, CompanySettings,
+  SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense
 } from './types';
 
 import { cn } from '@/lib/utils';
@@ -58,8 +57,11 @@ import {
 } from '@/components/ui/table';
 
 import { ProductionCostsView } from './components/ProductionCostsView';
+import { ProductRecipesView } from './components/ProductRecipesView';
+import { OdooManufacturingSuite } from './components/OdooManufacturingSuite';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'motion/react';
+import { AttendanceView } from './components/AttendanceView';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
 const logout = () => signOut(auth);
@@ -103,25 +105,25 @@ function ConfirmDialog({
   );
 }
 
-function LoginPage({ companySettings }: { companySettings: CompanySettings }) {
-  const [error, setError] = useState<string | null>(null);
+const matchesStart = (dateStr: string, startDate: string) => !startDate || dateStr >= startDate;
+const matchesEnd = (dateStr: string, endDate: string) => !endDate || dateStr <= endDate;
+const applyDateFilter = (records: any[], startDate: string, endDate: string) => 
+  records.filter((r: any) => matchesStart(r.date, startDate) && matchesEnd(r.date, endDate));
+
+function LoginView({ error }: { error?: string }) {
+
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     try {
       setIsLoading(true);
-      setError(null);
       await loginWithGoogle();
     } catch (err: any) {
       console.error("Login error:", err);
       if (err.code === 'auth/unauthorized-domain') {
-        setError('هذا النطاق (Domain) غير مصرح له بتسجيل الدخول. يرجى إضافته في إعدادات Firebase Authentication.');
       } else if (err.code === 'auth/popup-closed-by-user') {
-        setError('تم إغلاق نافذة تسجيل الدخول قبل الاكتمال.');
       } else if (err.code === 'auth/popup-blocked') {
-        setError('تم حظر نافذة تسجيل الدخول المنبثقة. يرجى السماح بالنوافذ المنبثقة (Pop-ups) في متصفحك.');
       } else {
-        setError(err.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.');
       }
     } finally {
       setIsLoading(false);
@@ -140,7 +142,6 @@ function LoginPage({ companySettings }: { companySettings: CompanySettings }) {
             <Package className="text-white w-10 h-10" />
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-4xl font-black tracking-tight text-slate-900">{companySettings.name}</CardTitle>
             <CardDescription className="text-slate-500 font-bold text-lg">نظام إدارة المخازن والإنتاج الذكي</CardDescription>
           </div>
         </CardHeader>
@@ -192,9 +193,19 @@ function LoginPage({ companySettings }: { companySettings: CompanySettings }) {
   );
 }
 
+export const companyInfo = {
+  name: 'مصنع النجار للأثاث',
+  address: 'دمياط - المنطقة الصناعية',
+  phone: '01000000000',
+  taxId: '123-456-789',
+  email: 'info@naggar-furniture.com',
+  logoUrl: '',
+  managerName: 'أ. محمد النجار'
+};
+
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
-  const [companySettings, setCompanySettings] = useState<CompanySettings>({
+  const [settings, setSettings] = useState<CompanySettings>({
     name: 'مصنع النجار للأثاث',
     address: 'دمياط - المنطقة الصناعية',
     phone: '01000000000',
@@ -204,18 +215,28 @@ function AppContent() {
     managerName: 'أ. محمد النجار'
   });
 
+  const [error] = useState<string>('');
+
   useEffect(() => {
     const unsubSettings = onSnapshot(doc(db, 'settings', 'company'), (docSnap) => {
       if (docSnap.exists()) {
-        setCompanySettings(docSnap.data() as CompanySettings);
+        const data = docSnap.data() as CompanySettings;
+        setSettings(data);
+        if (data.name) companyInfo.name = data.name;
+        if (data.address) companyInfo.address = data.address;
+        if (data.phone) companyInfo.phone = data.phone;
+        if (data.taxId) companyInfo.taxId = data.taxId;
+        if (data.email) companyInfo.email = data.email;
+        if (data.logoUrl) companyInfo.logoUrl = data.logoUrl;
+        if (data.managerName) companyInfo.managerName = data.managerName;
       }
     }, (err) => {
-      console.warn("Settings listener failed (likely not logged in yet):", err);
+      handleFirestoreError(err, 'get', 'settings');
     });
     return () => unsubSettings();
   }, []);
 
-  const handleSaveCompanySettings = async (settings: CompanySettings) => {
+  const handleSaveSettings = async () => {
     try {
       const settingsRef = doc(db, 'settings', 'company');
       await updateDoc(settingsRef, {
@@ -233,7 +254,7 @@ function AppContent() {
       });
       alert('تم حفظ إعدادات الشركة بنجاح');
     } catch (err) {
-      handleFirestoreError(err, 'write', 'settings');
+      console.error(err);
     }
   };
 
@@ -241,17 +262,13 @@ function AppContent() {
 
   return user ? (
     <MainApp 
-      companySettings={companySettings} 
-      setCompanySettings={setCompanySettings} 
-      handleSaveCompanySettings={() => handleSaveCompanySettings(companySettings)} 
+      settings={settings} 
+      setSettings={setSettings} 
+      handleSaveSettings={handleSaveSettings} 
     />
   ) : (
-    <LoginPage companySettings={companySettings} />
+    <LoginView error={error} />
   );
-}
-
-export default function App() {
-  return <AppContent />;
 }
 
 // --- Calculations ---
@@ -269,10 +286,9 @@ const calculateLivePayroll = (
   const emp = employees.find(e => e.id === p.employeeId);
   if (!emp) return p;
 
-  const empAttendance = attendance.filter(a => {
-    if (a.employeeId !== emp.id || (a.status !== 'حضور' && a.status !== 'تأخير')) return false;
-    return a.date >= p.startDate && a.date <= p.endDate;
-  });
+  const empAttendance = attendance.filter(a => a.employeeId === emp.id && a.date >= p.startDate && a.date <= p.endDate);
+  const empTransactions = transactions.filter(t => t.employeeId === emp.id && t.date >= p.startDate && t.date <= p.endDate);
+  const empProduction = productionRecords.filter(r => r.employeeId === emp.id && r.date >= p.startDate && r.date <= p.endDate);
 
   const attendanceStats = empAttendance.reduce((acc, a) => {
     if (!a.checkIn || !a.checkOut) {
@@ -304,7 +320,6 @@ const calculateLivePayroll = (
     return acc;
   }, { daysWorked: 0, timeDeduction: 0 });
 
-  const empTransactions = transactions.filter(t => t.employeeId === emp.id && t.date >= p.startDate && t.date <= p.endDate);
   const totalOvertime = empTransactions.filter(t => t.type === 'إضافي' || t.type === 'أوفرتايم').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const totalBonuses = empTransactions.filter(t => t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const totalExpenses = empTransactions.filter(t => t.type === 'مصروف' || t.type === 'سلفة' || t.type === 'عهدة').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -312,7 +327,6 @@ const calculateLivePayroll = (
   const manualDeductions = empTransactions.filter(t => t.type === 'خصم' || t.type === 'جزاء').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const totalDeductions = manualDeductions + Math.round(attendanceStats.timeDeduction * 100) / 100;
 
-  const empProduction = productionRecords.filter(r => r.employeeId === emp.id && r.date >= p.startDate && r.date <= p.endDate);
   const totalProduction = empProduction.reduce((sum, r) => sum + r.total, 0);
 
   let baseSalary = 0;
@@ -336,24 +350,38 @@ const calculateLivePayroll = (
   return { ...p, daysWorked: attendanceStats.daysWorked, baseSalary, totalBonuses, totalOvertime, totalProduction, totalDeductions, totalExpenses, totalLoans, netSalary };
 };
 
-function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, loans, productionRecords, companyInfo }: { payrolls: Payroll[], employees: Employee[], hrTransactions: FinancialTransaction[], attendance: Attendance[], loans: Loan[], productionRecords: ProductionRecord[], companyInfo: CompanySettings }) {
-  const [dateRange, setDateRange] = useState({
-    start: format(new Date(new Date().setDate(new Date().getDate() - 30)), 'yyyy-MM-dd'),
-    end: format(new Date(), 'yyyy-MM-dd')
-  });
+function PayrollMasterReport({ 
+  payrolls, 
+  employees, 
+  attendance, 
+  hrTransactions, 
+  loans, 
+  productionRecords 
+}: { 
+  payrolls: Payroll[], 
+  employees: Employee[], 
+  attendance: Attendance[], 
+  hrTransactions: FinancialTransaction[], 
+  loans: Loan[], 
+  productionRecords: ProductionRecord[] 
+}) {
   const [includeDrafts, setIncludeDrafts] = useState(false);
   const [reportSearch, setReportSearch] = useState('');
+  const [dateRange, setDateRange] = useState({
+    start: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+    end: format(new Date(), 'yyyy-MM-dd')
+  });
 
   const filteredPayrolls = payrolls.filter(p => {
-    const isDateMatch = p.paymentDate 
-      ? (p.paymentDate >= dateRange.start && p.paymentDate <= dateRange.end)
-      : (p.startDate >= dateRange.start && p.endDate <= dateRange.end);
-    
-    if (includeDrafts) {
-      return isDateMatch && (p.status === 'مدفوع' || p.status === 'مسودة');
-    }
-    return p.status === 'مدفوع' && isDateMatch;
+    if (includeDrafts) return true;
+    return p.status === 'مدفوع';
   }).map(p => calculateLivePayroll(p, employees, attendance, hrTransactions, loans, productionRecords));
+
+  const paidEmployeeCount = new Set(filteredPayrolls.map(py => py.employeeId)).size;
+  const sortedPayrolls = [...filteredPayrolls].sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    return a.weekNumber - b.weekNumber;
+  });
   
   const totalWages = filteredPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
   const totalBonuses = filteredPayrolls.reduce((sum, p) => sum + (p.totalBonuses || 0), 0);
@@ -362,7 +390,6 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
   const totalExpenses = filteredPayrolls.reduce((sum, p) => sum + (p.totalExpenses || 0), 0);
   const totalLoansRecovered = filteredPayrolls.reduce((sum, p) => sum + (p.totalLoans || 0), 0);
   
-  const paidEmployeeCount = new Set(filteredPayrolls.map(p => p.employeeId)).size;
   const avgNetSalary = paidEmployeeCount > 0 ? totalWages / paidEmployeeCount : 0;
 
   const deptData = employees.reduce((acc: any[], emp) => {
@@ -382,7 +409,6 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
   }, []);
 
   // Trend Data (Weekly)
-  const sortedPayrolls = [...filteredPayrolls].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const trendData = sortedPayrolls.reduce((acc: any[], p) => {
     const weekLabel = `${p.weekNumber}/${p.year}`;
     const existing = acc.find(a => a.name === weekLabel);
@@ -426,13 +452,23 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
         <div className="flex flex-col gap-3">
           <div className="flex bg-white p-2 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 items-center gap-3">
             <div className="flex items-center gap-2 px-3">
-              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">من</span>
-              <Input type="date" value={dateRange.start} onChange={e => setDateRange({...dateRange, start: e.target.value})} className="border-none bg-transparent font-black text-slate-900 h-8 p-0 w-32 focus-visible:ring-0 cursor-pointer" />
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">من</span>
+              <Input 
+                type="date" 
+                value={dateRange.start} 
+                onChange={e => setDateRange({ ...dateRange, start: e.target.value })}
+                className="border-none bg-transparent font-bold h-8 text-slate-800 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-28 text-right"
+              />
             </div>
             <div className="w-px h-6 bg-slate-200" />
             <div className="flex items-center gap-2 px-3">
-              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">إلى</span>
-              <Input type="date" value={dateRange.end} onChange={e => setDateRange({...dateRange, end: e.target.value})} className="border-none bg-transparent font-black text-slate-900 h-8 p-0 w-32 focus-visible:ring-0 cursor-pointer" />
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">إلى</span>
+              <Input 
+                type="date" 
+                value={dateRange.end} 
+                onChange={e => setDateRange({ ...dateRange, end: e.target.value })}
+                className="border-none bg-transparent font-bold h-8 text-slate-800 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-28 text-right"
+              />
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 px-2">
@@ -449,7 +485,7 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
 
       <div className="hidden print:block text-center mb-12 border-b-2 border-slate-100 pb-8">
         <h1 className="text-4xl font-black text-slate-900">كشف الأجور والمرتبات لكافة العاملين - {companyInfo.name}</h1>
-        <p className="text-slate-500 font-bold mt-2">عن الفترة: {format(new Date(dateRange.start), 'dd/MM/yyyy')} إلى {format(new Date(dateRange.end), 'dd/MM/yyyy')}</p>
+        <p className="text-slate-500 font-bold mt-2">عن الفترة من {dateRange.start} إلى {dateRange.end}</p>
         <div className="mt-6 w-32 h-1.5 bg-primary mx-auto rounded-full" />
       </div>
 
@@ -648,7 +684,6 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
                     'الموظف': emp?.name,
                     'القسم': emp?.department,
                     'الحالة': p.status === 'مدفوع' ? 'تم الصرف' : 'مسودة',
-                    'تاريخ الصرف': p.paymentDate ? format(new Date(p.paymentDate), 'dd/MM/yyyy') : 'غير محدد',
                     'أيام العمل': p.daysWorked,
                     'الراتب الأساسي': p.baseSalary,
                     'حوافز إنتاج': p.totalProduction,
@@ -688,6 +723,9 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
             <TableBody>
               {tableData.map(p => {
                 const emp = employees.find(e => e.id === p.employeeId);
+                const empTransactions = hrTransactions.filter(t => t.employeeId === p.employeeId);
+                const empBonuses = empTransactions.filter(t => t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل');
+                const empOvertimes = empTransactions.filter(t => t.type === 'إضافي' || t.type === 'أوفرتايم');
                 return (
                   <TableRow key={p.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell>
@@ -713,7 +751,7 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-black text-green-600">+{ (p.totalBonuses || 0).toLocaleString() }</span>
-                        {hrTransactions.filter(t => t.employeeId === p.employeeId && t.date >= p.startDate && t.date <= p.endDate && (t.type === 'مكافأة' || t.type === 'بدل') && t.amount > 0).map((t, i) => (
+                        {empBonuses.map((t, i) => (
                            <span key={i} className="text-[8px] text-green-400 font-bold truncate max-w-[80px]" title={t.description}>{t.description}</span>
                         ))}
                       </div>
@@ -721,7 +759,7 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-black text-blue-600">+{ (p.totalOvertime || 0).toLocaleString() }</span>
-                        {hrTransactions.filter(t => t.employeeId === p.employeeId && t.date >= p.startDate && t.date <= p.endDate && t.type === 'إضافي' && t.amount > 0).map((t, i) => (
+                        {empOvertimes.map((t, i) => (
                            <span key={i} className="text-[8px] text-blue-400 font-bold truncate max-w-[80px]" title={t.description}>{t.description}</span>
                         ))}
                       </div>
@@ -754,13 +792,13 @@ function PayrollMasterReport({ payrolls, employees, hrTransactions, attendance, 
 }
 
 function MainApp({ 
-  companySettings, 
-  setCompanySettings, 
-  handleSaveCompanySettings 
+  settings,
+  setSettings,
+  handleSaveSettings
 }: { 
-  companySettings: CompanySettings, 
-  setCompanySettings: (info: CompanySettings) => void, 
-  handleSaveCompanySettings: () => Promise<void> 
+  settings: CompanySettings,
+  setSettings: (v: CompanySettings) => void,
+  handleSaveSettings: () => Promise<void>
 }) {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -802,7 +840,6 @@ function MainApp({
   const [safes, setSafes] = useState<Safe[]>([]);
   const [safeTransactions, setSafeTransactions] = useState<SafeTransaction[]>([]);
   const [safeAudits, setSafeAudits] = useState<SafeAudit[]>([]);
-  const [safeSettlements, setSafeSettlements] = useState<SafeSettlement[]>([]);
   const [hrMenuOpen, setHrMenuOpen] = useState(false);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
 
@@ -867,7 +904,9 @@ function MainApp({
         openingBalance: 0,
         safetyLimit: 5
       });
-    } catch (err) { handleFirestoreError(err, 'write', 'items'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAddSupplier = async () => {
@@ -881,7 +920,9 @@ function MainApp({
       });
       setShowSupplierAdd(false);
       setSupplierForm({ name: '', openingBalance: 0 });
-    } catch (err) { handleFirestoreError(err, 'write', 'suppliers'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAddWarehouse = async () => {
@@ -890,7 +931,9 @@ function MainApp({
       await addDoc(collection(db, 'warehouses'), { ...warehouseForm });
       setShowWarehouseAdd(false);
       setWarehouseForm({ name: '' });
-    } catch (err) { handleFirestoreError(err, 'write', 'warehouses'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAddUnit = async () => {
@@ -899,7 +942,9 @@ function MainApp({
       await addDoc(collection(db, 'units'), { ...unitForm });
       setShowUnitAdd(false);
       setUnitForm({ name: '' });
-    } catch (err) { handleFirestoreError(err, 'write', 'units'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAddCostCenter = async () => {
@@ -908,7 +953,9 @@ function MainApp({
       await addDoc(collection(db, 'costCenters'), { ...costCenterForm });
       setShowCostCenterAdd(false);
       setCostCenterForm({ name: '' });
-    } catch (err) { handleFirestoreError(err, 'write', 'costCenters'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleDeleteEntity = async () => {
@@ -916,7 +963,9 @@ function MainApp({
     try {
       await deleteDoc(doc(db, showDeleteConfirmBase.collection, showDeleteConfirmBase.id));
       setShowDeleteConfirmBase(null);
-    } catch (err) { handleFirestoreError(err, 'delete', showDeleteConfirmBase.collection); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleResetAllData = async () => {
@@ -947,7 +996,11 @@ function MainApp({
       await itemBatch.commit();
       setShowResetConfirm(false);
       alert('تم تصفير كافة بيانات العمليات بنجاح، مع الاحتفاظ ببيانات الموظفين والأصناف والموردين');
-    } catch (err) { handleFirestoreError(err, 'delete', 'all'); } finally { setIsResetting(false); }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const handleUpdateItem = async () => {
@@ -961,7 +1014,9 @@ function MainApp({
       };
       await updateDoc(doc(db, 'items', id), updatedData);
       setEditingItem(null);
-    } catch (err) { handleFirestoreError(err, 'write', 'items'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleUpdateSupplier = async () => {
@@ -976,7 +1031,9 @@ function MainApp({
         balance: increment(openingBalanceDiff)
       });
       setEditingSupplier(null);
-    } catch (err) { handleFirestoreError(err, 'write', 'suppliers'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleUpdateWarehouse = async () => {
@@ -984,7 +1041,9 @@ function MainApp({
     try {
       await updateDoc(doc(db, 'warehouses', editingWarehouse.id), { name: editingWarehouse.name });
       setEditingWarehouse(null);
-    } catch (err) { handleFirestoreError(err, 'write', 'warehouses'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleUpdateUnit = async () => {
@@ -992,7 +1051,9 @@ function MainApp({
     try {
       await updateDoc(doc(db, 'units', editingUnit.id), { name: editingUnit.name });
       setEditingUnit(null);
-    } catch (err) { handleFirestoreError(err, 'write', 'units'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleUpdateCostCenter = async () => {
@@ -1000,7 +1061,9 @@ function MainApp({
     try {
       await updateDoc(doc(db, 'costCenters', editingCostCenter.id), { name: editingCostCenter.name });
       setEditingCostCenter(null);
-    } catch (err) { handleFirestoreError(err, 'write', 'costCenters'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1044,118 +1107,112 @@ function MainApp({
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
       unsubWarehouses = onSnapshot(collection(db, 'warehouses'), (snap) => {
         setWarehouses(snap.docs.map(d => ({ id: d.id, ...d.data() } as Warehouse)));
-      }, (err) => handleFirestoreError(err, 'list', 'warehouses'));
+      });
     }
 
     let unsubUnits = () => {};
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
       unsubUnits = onSnapshot(collection(db, 'units'), (snap) => {
         setUnits(snap.docs.map(d => ({ id: d.id, ...d.data() } as Unit)));
-      }, (err) => handleFirestoreError(err, 'list', 'units'));
+      });
     }
 
     let unsubCostCenters = () => {};
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.production || profile.permissions.reports) {
       unsubCostCenters = onSnapshot(collection(db, 'costCenters'), (snap) => {
         setCostCenters(snap.docs.map(d => ({ id: d.id, ...d.data() } as CostCenter)));
-      }, (err) => handleFirestoreError(err, 'list', 'costCenters'));
+      });
     }
 
     let unsubItems = () => {};
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
       unsubItems = onSnapshot(collection(db, 'items'), (snap) => {
         setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as Item)));
-      }, (err) => handleFirestoreError(err, 'list', 'items'));
+      });
     }
 
     let unsubSuppliers = () => {};
     if (profile.isAdmin || profile.permissions.suppliers || profile.permissions.reports) {
       unsubSuppliers = onSnapshot(collection(db, 'suppliers'), (snap) => {
         setSuppliers(snap.docs.map(d => ({ id: d.id, ...d.data() } as Supplier)));
-      }, (err) => handleFirestoreError(err, 'list', 'suppliers'));
+      });
     }
 
     let unsubPurchases = () => {};
     if (profile.isAdmin || profile.permissions.purchases || profile.permissions.reports) {
       unsubPurchases = onSnapshot(collection(db, 'purchases'), (snap) => {
         setPurchases(snap.docs.map(d => ({ id: d.id, ...d.data() } as Purchase)));
-      }, (err) => handleFirestoreError(err, 'list', 'purchases'));
+      });
     }
 
     let unsubIssuances = () => {};
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
       unsubIssuances = onSnapshot(collection(db, 'issuances'), (snap) => {
         setIssuances(snap.docs.map(d => ({ id: d.id, ...d.data() } as Issuance)));
-      }, (err) => handleFirestoreError(err, 'list', 'issuances'));
+      });
     }
 
     let unsubProductionJobs = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubProductionJobs = onSnapshot(collection(db, 'productionJobs'), (snap) => {
         setProductionJobs(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionJob)));
-      }, (err) => handleFirestoreError(err, 'list', 'productionJobs'));
+      });
     }
 
     let unsubLoadingManifests = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubLoadingManifests = onSnapshot(collection(db, 'loadingManifests'), (snap) => {
         setLoadingManifests(snap.docs.map(d => ({ id: d.id, ...d.data() } as LoadingManifest)));
-      }, (err) => handleFirestoreError(err, 'list', 'loadingManifests'));
+      });
     }
 
     let unsubWaste = () => {};
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
       unsubWaste = onSnapshot(collection(db, 'waste'), (snap) => {
         setWasteRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as Waste)));
-      }, (err) => handleFirestoreError(err, 'list', 'waste'));
+      });
     }
 
     let unsubBladeSharpening = () => {};
     if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
       unsubBladeSharpening = onSnapshot(collection(db, 'bladeSharpening'), (snap) => {
         setBladeSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as BladeSharpening)));
-      }, (err) => handleFirestoreError(err, 'list', 'bladeSharpening'));
+      });
     }
 
     let unsubPlateSharpening = () => {};
     if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
       unsubPlateSharpening = onSnapshot(collection(db, 'plateSharpening'), (snap) => {
         setPlateSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as PlateSharpening)));
-      }, (err) => handleFirestoreError(err, 'list', 'plateSharpening'));
+      });
     }
 
     let unsubMachineMaintenance = () => {};
     if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
       unsubMachineMaintenance = onSnapshot(collection(db, 'machineMaintenance'), (snap) => {
         setMachineMaintenance(snap.docs.map(d => ({ id: d.id, ...d.data() } as MachineMaintenance)));
-      }, (err) => handleFirestoreError(err, 'list', 'machineMaintenance'));
+      });
     }
 
     let unsubEmployees = () => {};
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
       unsubEmployees = onSnapshot(collection(db, 'employees'), (snap) => {
         setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() } as Employee)));
-      }, (err) => handleFirestoreError(err, 'list', 'employees'));
+      });
     }
-
-    const fortyFiveDaysAgo = new Date();
-    fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
-    const cutOffDate = format(fortyFiveDaysAgo, 'yyyy-MM-dd');
 
     let unsubAttendance = () => {};
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      const q = query(collection(db, 'attendance'), where('date', '>=', cutOffDate));
-      unsubAttendance = onSnapshot(q, (snap) => {
+      unsubAttendance = onSnapshot(collection(db, 'attendance'), (snap) => {
         setAttendance(snap.docs.map(d => ({ id: d.id, ...d.data() } as Attendance)));
-      }, (err) => handleFirestoreError(err, 'list', 'attendance'));
+      });
     }
 
     let unsubHrTransactions = () => {};
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      const q = query(collection(db, 'hrTransactions'), where('date', '>=', cutOffDate));
-      unsubHrTransactions = onSnapshot(q, (snap) => {
+      unsubHrTransactions = onSnapshot(collection(db, 'hrTransactions'), (snap) => {
         setHrTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialTransaction)));
-      }, (err) => handleFirestoreError(err, 'list', 'hrTransactions'));
+      });
     }
 
     let unsubLoans = () => {};
@@ -1163,7 +1220,7 @@ function MainApp({
       const q = query(collection(db, 'loans'), where('status', '==', 'نشط'));
       unsubLoans = onSnapshot(q, (snap) => {
         setLoans(snap.docs.map(d => ({ id: d.id, ...d.data() } as Loan)));
-      }, (err) => handleFirestoreError(err, 'list', 'loans'));
+      });
     }
 
     let unsubPayrolls = () => {};
@@ -1171,117 +1228,112 @@ function MainApp({
       const q = query(collection(db, 'payrolls'), where('status', '==', 'مسودة'));
       unsubPayrolls = onSnapshot(q, (snap) => {
         setPayrolls(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payroll)));
-      }, (err) => handleFirestoreError(err, 'list', 'payrolls'));
+      });
     }
 
     let unsubProductionRecords = () => {};
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
       unsubProductionRecords = onSnapshot(collection(db, 'productionRecords'), (snap) => {
         setProductionRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionRecord)));
-      }, (err) => handleFirestoreError(err, 'list', 'productionRecords'));
+      });
     }
 
     let unsubSupplierPayments = () => {};
     if (profile.isAdmin || profile.permissions.suppliers || profile.permissions.reports) {
       unsubSupplierPayments = onSnapshot(collection(db, 'supplierPayments'), (snap) => {
         setSupplierPayments(snap.docs.map(d => ({ id: d.id, ...d.data() } as SupplierPayment)));
-      }, (err) => handleFirestoreError(err, 'list', 'supplierPayments'));
+      });
     }
 
     let unsubJobLabors = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubJobLabors = onSnapshot(collection(db, 'jobLabors'), (snap) => {
         setJobLabors(snap.docs.map(d => ({ id: d.id, ...d.data() } as JobLabor)));
-      }, (err) => handleFirestoreError(err, 'list', 'jobLabors'));
+      });
     }
 
     let unsubJobOtherCosts = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubJobOtherCosts = onSnapshot(collection(db, 'jobOtherCosts'), (snap) => {
         setJobOtherCosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as JobOtherCost)));
-      }, (err) => handleFirestoreError(err, 'list', 'jobOtherCosts'));
+      });
     }
 
     let unsubDeliveryReceipts = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubDeliveryReceipts = onSnapshot(collection(db, 'deliveryReceipts'), (snap) => {
         setDeliveryReceipts(snap.docs.map(d => ({ id: d.id, ...d.data() } as DeliveryReceipt)));
-      }, (err) => handleFirestoreError(err, 'list', 'deliveryReceipts'));
+      });
     }
 
     let unsubStockAudits = () => {};
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
       unsubStockAudits = onSnapshot(collection(db, 'stockAudits'), (snap) => {
         setStockAudits(snap.docs.map(d => ({ id: d.id, ...d.data() } as StockAudit)));
-      }, (err) => handleFirestoreError(err, 'list', 'stockAudits'));
+      });
     }
 
     let unsubBoms = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubBoms = onSnapshot(collection(db, 'boms'), (snap) => {
         setBoms(snap.docs.map(d => ({ id: d.id, ...d.data() } as BOM)));
-      }, (err) => handleFirestoreError(err, 'list', 'boms'));
+      });
     }
 
     let unsubWorkCenters = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubWorkCenters = onSnapshot(collection(db, 'workCenters'), (snap) => {
         setWorkCenters(snap.docs.map(d => ({ id: d.id, ...d.data() } as WorkCenter)));
-      }, (err) => handleFirestoreError(err, 'list', 'workCenters'));
+      });
     }
 
     let unsubManufacturingOperations = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubManufacturingOperations = onSnapshot(collection(db, 'manufacturingOperations'), (snap) => {
         setManufacturingOperations(snap.docs.map(d => ({ id: d.id, ...d.data() } as ManufacturingOperation)));
-      }, (err) => handleFirestoreError(err, 'list', 'manufacturingOperations'));
+      });
     }
 
     let unsubLostSales = () => {};
     if (profile.isAdmin || profile.permissions.dashboard || profile.permissions.reports) {
       unsubLostSales = onSnapshot(collection(db, 'lostSales'), (snap) => {
         setLostSales(snap.docs.map(d => ({ id: d.id, ...d.data() } as LostSale)));
-      }, (err) => handleFirestoreError(err, 'list', 'lostSales'));
+      });
     }
 
     let unsubSalesOrders = () => {};
     if (profile.isAdmin || profile.permissions.dashboard || profile.permissions.reports) {
       unsubSalesOrders = onSnapshot(collection(db, 'salesOrders'), (snap) => {
         setSalesOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as SalesOrder)));
-      }, (err) => handleFirestoreError(err, 'list', 'salesOrders'));
+      });
     }
 
     let unsubSafeAudits = () => {};
-    let unsubSafeSettlements = () => {};
     if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
       unsubSafeAudits = onSnapshot(collection(db, 'safeAudits'), (snap) => {
         setSafeAudits(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeAudit)));
-      }, (err) => handleFirestoreError(err, 'list', 'safeAudits'));
-
-      unsubSafeSettlements = onSnapshot(collection(db, 'safeSettlements'), (snap) => {
-        setSafeSettlements(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeSettlement)));
-      }, (err) => handleFirestoreError(err, 'list', 'safeSettlements'));
+      });
     }
 
     let unsubProductRecipes = () => {};
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
       unsubProductRecipes = onSnapshot(collection(db, 'productRecipes'), (snap) => {
         setProductRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductRecipe)));
-      }, (err) => handleFirestoreError(err, 'list', 'productRecipes'));
+      });
     }
 
     let unsubSafes = () => {};
     if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
       unsubSafes = onSnapshot(collection(db, 'safes'), (snap) => {
         setSafes(snap.docs.map(d => ({ id: d.id, ...d.data() } as Safe)));
-      }, (err) => handleFirestoreError(err, 'list', 'safes'));
+      });
     }
 
     let unsubSafeTransactions = () => {};
     if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
       unsubSafeTransactions = onSnapshot(collection(db, 'safeTransactions'), (snap) => {
         setSafeTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeTransaction)));
-      }, (err) => handleFirestoreError(err, 'list', 'safeTransactions'));
+      });
     }
 
     return () => {
@@ -1315,14 +1367,12 @@ function MainApp({
       unsubLostSales();
       unsubSalesOrders();
       unsubSafeAudits();
-      unsubSafeSettlements();
       unsubProductRecipes();
       unsubSafes();
       unsubSafeTransactions();
     };
   }, [user, profile]);
 
-  if (!user) return <LoginPage companySettings={companySettings} />;
 
   const handleNavClick = (tab: string) => {
     setActiveTab(tab);
@@ -1399,7 +1449,6 @@ function MainApp({
     const sorted = movements.sort((a, b) => {
       if (a.date === '---') return -1;
       if (b.date === '---') return 1;
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
     return sorted;
   };
@@ -1449,7 +1498,6 @@ function MainApp({
             </motion.div>
             <div className="flex flex-col">
               <h1 className="font-black text-2xl tracking-tighter text-slate-900 leading-none">
-                {companySettings.name || 'النجار للأثاث'}
               </h1>
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex gap-1">
@@ -1466,7 +1514,7 @@ function MainApp({
         {/* Quick Access Area */}
         <div className="px-10 py-4 mb-4">
           <div className="relative group/search">
-            <SearchIcon className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300" size={16} />
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300" size={16} />
             <input 
               type="text" 
               placeholder="البحث الذكي..."
@@ -1718,7 +1766,6 @@ function MainApp({
             <NavButton active={activeTab === 'userManagement'} onClick={() => handleNavClick('userManagement')} icon={<ShieldAlert size={20} />} label="المستخدمين" />
           )}
           
-          <NavButton active={activeTab === 'settings'} onClick={() => handleNavClick('settings')} icon={<Settings size={20} />} label="الإعدادات" permission="settings" profile={profile} />
         </nav>
 
         {/* User Profile Footer */}
@@ -1764,7 +1811,7 @@ function MainApp({
               </div>
               <div className="flex flex-col">
                 <h1 className="font-black text-lg tracking-tight text-slate-900 leading-none">
-                  {companySettings.name || 'النجار للأثاث'}
+                  {settings.name}
                 </h1>
                 <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1">المنظومة الذكية</p>
               </div>
@@ -1792,30 +1839,32 @@ function MainApp({
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               {activeTab === 'dashboard' && <Dashboard 
-          items={items} 
-          suppliers={suppliers} 
-          purchases={purchases} 
-          issuances={issuances} 
-          employees={employees}
-          productionJobs={productionJobs}
-          loadingManifests={loadingManifests}
-          machineMaintenance={machineMaintenance}
-          bladeSharpening={bladeSharpening}
-          plateSharpening={plateSharpening}
-          hrTransactions={hrTransactions}
-          supplierPayments={supplierPayments}
-          attendance={attendance}
-          loans={loans}
-          payrolls={payrolls}
-          wasteRecords={wasteRecords}
-          jobLabors={jobLabors}
-          jobOtherCosts={jobOtherCosts}
-          productionRecords={productionRecords}
-          safes={safes}
-          safeTransactions={safeTransactions}
-          profile={profile}
-        />}
-        {activeTab === 'safe' && <SafeModule safes={safes} safeTransactions={safeTransactions} safeAudits={safeAudits} safeSettlements={safeSettlements} profile={profile} purchases={purchases} items={items} suppliers={suppliers} costCenters={costCenters} productionJobs={productionJobs} employees={employees} loadingManifests={loadingManifests} />}
+                settings={settings}
+                setSettings={setSettings}
+                handleSaveSettings={handleSaveSettings}
+                items={items} 
+                suppliers={suppliers} 
+                purchases={purchases} 
+                issuances={issuances} 
+                employees={employees}
+                productionJobs={productionJobs}
+                loadingManifests={loadingManifests}
+                machineMaintenance={machineMaintenance}
+                bladeSharpening={bladeSharpening}
+                plateSharpening={plateSharpening}
+                hrTransactions={hrTransactions}
+                supplierPayments={supplierPayments}
+                attendance={attendance}
+                loans={loans}
+                payrolls={payrolls}
+                wasteRecords={wasteRecords}
+                jobLabors={jobLabors}
+                jobOtherCosts={jobOtherCosts}
+                productionRecords={productionRecords}
+                safes={safes}
+                safeTransactions={safeTransactions}
+                profile={profile}
+              />}
         {activeTab === 'inventory' && (
           <Inventory 
             items={items} 
@@ -1836,20 +1885,37 @@ function MainApp({
             recipes={productRecipes}
             costCenters={costCenters}
             items={items}
+            purchases={purchases}
           />
         )}
         {activeTab === 'production' && (
-          <ProductionLine 
+          <OdooManufacturingSuite 
             costCenters={costCenters} 
             productionJobs={productionJobs} 
             issuances={issuances} 
             employees={employees}
             jobLabors={jobLabors}
             jobOtherCosts={jobOtherCosts}
-            companyInfo={companySettings}
+            companyInfo={settings}
             items={items}
             productRecipes={productRecipes}
             profile={profile}
+            boms={boms}
+            workCenters={workCenters}
+            renderCustomJobsList={() => (
+              <ProductionLine 
+                costCenters={costCenters} 
+                productionJobs={productionJobs} 
+                issuances={issuances} 
+                employees={employees}
+                jobLabors={jobLabors}
+                jobOtherCosts={jobOtherCosts}
+                companyInfo={settings}
+                items={items}
+                productRecipes={productRecipes}
+                profile={profile}
+              />
+            )}
           />
         )}
         {activeTab === 'productionCosts' && (
@@ -1866,14 +1932,12 @@ function MainApp({
             manufacturingOperations={manufacturingOperations}
           />
         )}
-        {activeTab === 'loading' && <LoadingManifests manifests={loadingManifests} companyInfo={companySettings} profile={profile} />}
-        {activeTab === 'deliveryReceipts' && <DeliveryReceipts receipts={deliveryReceipts} companyInfo={companySettings} profile={profile} />}
         {activeTab === 'issuances' && <Issuances items={items} issuances={issuances} costCenters={costCenters} />}
         {activeTab === 'stockAudit' && <StockAuditView items={items} warehouses={warehouses} audits={stockAudits} />}
         {activeTab === 'returns' && <Returns items={items} suppliers={suppliers} costCenters={costCenters} />}
         {activeTab === 'waste' && <WastedItemsView items={items} wasteRecords={wasteRecords} />}
-        {activeTab === 'bladeSharpening' && <BladeSharpeningView records={bladeSharpening} safes={safes} profile={profile} />}
-        {activeTab === 'plateSharpening' && <PlateSharpeningView records={plateSharpening} safes={safes} profile={profile} />}
+        {activeTab === 'bladeSharpening' && <BladeSharpeningView bladeRecords={bladeSharpening} plateRecords={plateSharpening} safes={safes} profile={profile} initialTab="blades" />}
+        {activeTab === 'plateSharpening' && <BladeSharpeningView bladeRecords={bladeSharpening} plateRecords={plateSharpening} safes={safes} profile={profile} initialTab="plates" />}
         {activeTab === 'machineMaintenance' && <MachineMaintenanceView records={machineMaintenance} safes={safes} profile={profile} />}
         {activeTab === 'employees' && <EmployeesView employees={employees} />}
         {activeTab === 'attendance' && <AttendanceView employees={employees} />}
@@ -1888,8 +1952,8 @@ function MainApp({
             loans={loans} 
             payrolls={payrolls} 
             productionRecords={productionRecords} 
-            companyInfo={companySettings}
             safes={safes}
+            companyInfo={settings}
           />
         )}
         {activeTab === 'archive' && <ArchiveView employees={employees} payrolls={payrolls} transactions={hrTransactions} />}
@@ -1927,7 +1991,6 @@ function MainApp({
             bladeSharpening={bladeSharpening}
             plateSharpening={plateSharpening}
             machineMaintenance={machineMaintenance}
-            companySettings={companySettings}
           />
         )}
         {activeTab === 'payrollMasterReport' && (
@@ -1938,20 +2001,34 @@ function MainApp({
             attendance={attendance}
             loans={loans}
             productionRecords={productionRecords}
-            companyInfo={companySettings}
           />
         )}
         {activeTab === 'userManagement' && <UserManagement />}
+        {activeTab === 'safe' && (
+          <Finance 
+            safes={safes} 
+            safeTransactions={safeTransactions} 
+            safeAudits={safeAudits} 
+            profile={profile} 
+            purchases={purchases} 
+            items={items} 
+            suppliers={suppliers} 
+            costCenters={costCenters} 
+            productionJobs={productionJobs} 
+            employees={employees} 
+            loadingManifests={loadingManifests} 
+          />
+        )}
         {activeTab === 'settings' && (
-          <SettingsView 
+          <Settings 
+            settings={settings}
+            setSettings={setSettings}
+            handleSaveSettings={handleSaveSettings}
             items={items} 
             suppliers={suppliers} 
             warehouses={warehouses} 
             units={units} 
             costCenters={costCenters} 
-            companySettings={companySettings} 
-            setCompanySettings={setCompanySettings} 
-            handleSaveCompanySettings={handleSaveCompanySettings}
             showItemAdd={showItemAdd}
             setShowItemAdd={setShowItemAdd}
             showSupplierAdd={showSupplierAdd}
@@ -2021,7 +2098,9 @@ function MainApp({
                   try {
                     await updateDoc(doc(db, 'warehouses', editingWarehouse.id), { name: editingWarehouse.name });
                     setEditingWarehouse(null);
-                  } catch (err) { handleFirestoreError(err, 'write', 'warehouses'); }
+                  } catch (err) {
+                    console.error(err);
+                  }
                 }} className="btn-primary px-8 h-11 font-black">حفظ</Button>
               </div>
             </CardContent>
@@ -2044,7 +2123,9 @@ function MainApp({
                   try {
                     await updateDoc(doc(db, 'units', editingUnit.id), { name: editingUnit.name });
                     setEditingUnit(null);
-                  } catch (err) { handleFirestoreError(err, 'write', 'units'); }
+                  } catch (err) {
+                    console.error(err);
+                  }
                 }} className="btn-primary px-8 h-11 font-black">حفظ</Button>
               </div>
             </CardContent>
@@ -2067,7 +2148,9 @@ function MainApp({
                   try {
                     await updateDoc(doc(db, 'costCenters', editingCostCenter.id), { name: editingCostCenter.name });
                     setEditingCostCenter(null);
-                  } catch (err) { handleFirestoreError(err, 'write', 'costCenters'); }
+                  } catch (err) {
+                    console.error(err);
+                  }
                 }} className="btn-primary px-8 h-11 font-black">حفظ</Button>
               </div>
             </CardContent>
@@ -2444,6 +2527,9 @@ function SubNavButton({ active, onClick, label, permission, profile }: { active:
   );
 }
 
+function PlateSharpeningView(props: any) {
+  return null;
+}
 function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
@@ -2459,7 +2545,7 @@ function UserManagement() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const usersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
       setUsers(usersData);
-    }, (err) => handleFirestoreError(err, 'list', 'users'));
+    });
     return () => unsubscribe();
   }, [profile]);
 
@@ -2469,7 +2555,6 @@ function UserManagement() {
       setEditingUser(null);
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Error updating permissions:", error);
     }
   };
 
@@ -2478,7 +2563,6 @@ function UserManagement() {
       await deleteDoc(doc(db, 'users', uid));
       setDeleteConfirm(null);
     } catch (error) {
-      handleFirestoreError(error, 'delete', 'users');
     }
   };
 
@@ -2592,7 +2676,7 @@ function UserManagement() {
       {filteredUsers.length === 0 && (
         <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
           <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-4">
-            <SearchIcon size={32} />
+            <Search size={32} />
           </div>
           <h3 className="text-xl font-black text-slate-900">لا يوجد مستخدمون</h3>
           <p className="text-slate-500 font-medium">لم يتم العثور على أي مستخدم يطابق بحثك</p>
@@ -2673,7 +2757,7 @@ function UserManagement() {
                          key === 'suppliers' ? <Truck size={18} /> : 
                          key === 'sales' ? <ShoppingBag size={18} /> :
                          key === 'canDelete' ? <ShieldAlert size={18} /> :
-                         key === 'finance' ? <Building2 size={18} /> : <Settings size={18} />}
+                         key === 'finance' ? <Wallet size={18} /> : <SettingsIcon size={18} />}
                       </div>
                       <span className={`font-black text-xs ${val ? 'text-primary' : 'text-slate-600'}`}>
                         {key === 'dashboard' ? 'لوحة التحكم' : 
@@ -2776,7 +2860,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
         <div className="flex flex-col md:flex-row gap-6 items-end relative z-10">
           <div className="flex-1 space-y-3">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-               <SearchIcon size={14} className="text-primary" />
+               <Search size={14} className="text-primary" />
                البحث عن صنف لعرض كارت الحركة
             </label>
             <div className="relative">
@@ -2802,7 +2886,6 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
           <div className="hidden print:block text-center mb-12 border-b-2 border-slate-100 pb-8 relative">
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter">سجل حركة صنف: {selectedItem.name}</h1>
-            <p className="text-slate-500 font-bold mt-2 tracking-widest text-xs">تاريخ التقرير المعتمد: {format(new Date(), 'dd/MM/yyyy · HH:mm')}</p>
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-900 rounded-full" />
           </div>
 
@@ -2877,7 +2960,6 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
                   {movements.slice().reverse().map((m, idx) => (
                     <TableRow key={idx} className="h-20 hover:bg-slate-50/50 transition-all group/row border-slate-50">
                       <TableCell className="px-8 font-bold font-mono text-xs text-slate-500 group-hover/row:text-slate-900 transition-colors">
-                        {m.date !== '---' ? format(new Date(m.date), 'dd/MM/yyyy · HH:mm', { locale: ar }) : '---'}
                       </TableCell>
                       <TableCell>
                          <div className="flex items-center gap-3">
@@ -3070,6 +3152,9 @@ function DashboardList({ title, icon, data, renderItem }: {
 }
 
 function Dashboard({ 
+  settings,
+  setSettings,
+  handleSaveSettings,
   items, 
   suppliers, 
   purchases, 
@@ -3093,6 +3178,9 @@ function Dashboard({
   safeTransactions,
   profile
 }: { 
+  settings: CompanySettings,
+  setSettings: (v: CompanySettings) => void,
+  handleSaveSettings: () => Promise<void>,
   items: Item[], 
   suppliers: Supplier[], 
   purchases: Purchase[], 
@@ -3114,7 +3202,7 @@ function Dashboard({
   productionRecords: ProductionRecord[],
   safes: Safe[],
   safeTransactions: SafeTransaction[],
-  profile: UserProfile | null
+  profile: UserProfile
 }) {
   const totalInventoryValue = items.reduce((acc, item) => acc + (item.currentBalance * item.price), 0);
   const lowStockItems = items.filter(item => item.currentBalance <= item.safetyLimit);
@@ -3135,16 +3223,16 @@ function Dashboard({
 
   // Daily trend for the last 14 days
   const last14Days = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return format(d, 'yyyy-MM-dd');
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    return format(date, 'yyyy-MM-dd');
   }).reverse();
 
   const chartData = last14Days.map(date => ({
-    date: format(new Date(date), 'dd/MM', { locale: ar }),
-    purchases: purchases.filter(p => p.date === date).reduce((sum, p) => sum + p.total, 0),
-    issuances: issuances.filter(is => is.date === date).reduce((sum, is) => sum + is.total, 0),
-    waste: wasteRecords.filter(w => w.date === date).reduce((sum, w) => {
+    date,
+    purchases: (purchases || []).filter(p => p.date === date).reduce((sum, p) => sum + p.total, 0),
+    issuances: (issuances || []).filter(is => is.date === date).reduce((sum, is) => sum + is.total, 0),
+    waste: (wasteRecords || []).filter(w => w.date === date).reduce((sum, w) => {
       const item = items.find(i => i.id === w.itemId);
       return sum + (w.quantity * (item?.price || 0));
     }, 0)
@@ -3154,20 +3242,19 @@ function Dashboard({
   
   // 1. Monthly Salaries
   const months = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    return format(d, 'yyyy-MM');
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    return format(date, 'yyyy-MM');
   }).reverse();
 
   const salaryChartData = months.map(m => ({
-    month: format(new Date(m + "-01"), 'MMM', { locale: ar }),
-    total: payrolls.filter(p => p.startDate.startsWith(m)).reduce((sum, p) => sum + p.netSalary, 0)
   }));
 
   // 2. Attendance Status Distribution (Last 30 days)
-  const last30DaysDate = new Date();
-  last30DaysDate.setDate(last30DaysDate.getDate() - 30);
-  const recentAttendance = attendance.filter(a => new Date(a.date) >= last30DaysDate);
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentAttendance = (attendance || []).filter(a => a.date && new Date(a.date) >= thirtyDaysAgo);
+
   const attendancePieData = [
     { name: 'حضور', value: recentAttendance.filter(a => a.status === 'حضور').length, color: '#10b981' },
     { name: 'تأخير', value: recentAttendance.filter(a => a.status === 'تأخير').length, color: '#f59e0b' },
@@ -3178,14 +3265,12 @@ function Dashboard({
   const productionStatData = last14Days.map(date => {
     const dayRecords = productionRecords.filter(r => r.date === date);
     return {
-      date: format(new Date(date), 'dd/MM', { locale: ar }),
       output: dayRecords.reduce((sum, r) => sum + r.quantity, 0)
     };
   });
 
   // 4. Safe Consumption (Last 6 months)
   const safeOutgoingsData = months.map(m => ({
-    month: format(new Date(m + "-01"), 'MMM', { locale: ar }),
     amount: safeTransactions.filter(t => t.date.startsWith(m) && (t.type === 'سحب' || t.type === 'مصروفات' || t.type === 'رواتب' || t.type === 'مشتريات')).reduce((sum, t) => sum + t.amount, 0)
   }));
 
@@ -3213,7 +3298,6 @@ function Dashboard({
             </div>
             <div className="flex flex-col pr-1">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">تاريخ اليوم</p>
-              <span className="font-black text-slate-900 text-lg">{format(new Date(), 'eeee, d MMMM yyyy', { locale: ar })}</span>
             </div>
           </div>
         </div>
@@ -3529,7 +3613,6 @@ function Dashboard({
                     </div>
                     <div className="text-left flex flex-col">
                        <span className="text-sm font-black text-slate-900">{iss.quantity}</span>
-                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{format(new Date(iss.date), 'HH:mm')}</span>
                     </div>
                   </div>
                 )}
@@ -3554,7 +3637,6 @@ function Dashboard({
                        <span className={`text-sm font-black ${trans.type === 'خصم' ? 'text-red-500' : 'text-blue-600'}`}>
                           {trans.type === 'خصم' ? '-' : '+'}{trans.amount.toLocaleString()} 
                        </span>
-                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{format(new Date(trans.date), 'dd/MM')}</span>
                     </div>
                   </div>
                 )}
@@ -3625,6 +3707,7 @@ function Inventory({
   costCenters: CostCenter[],
   profile: UserProfile | null
 }) {
+  const departments = Array.from(new Set(items.map(i => i.department || 'غير محدد'))).filter(Boolean);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string>('all');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
@@ -3646,8 +3729,7 @@ function Inventory({
     try {
       await deleteDoc(doc(db, 'items', showDeleteConfirm));
       setShowDeleteConfirm(null);
-    } catch (err) { handleFirestoreError(err, 'delete', 'items'); }
-  };
+  } catch (err) { console.error(err); } };
 
   const exportExcel = () => {
     const data = filtered.map(i => ({
@@ -3717,7 +3799,6 @@ function Inventory({
           
           <DropdownMenu>
             <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "h-16 w-16 rounded-2xl p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-sm flex items-center justify-center transition-all hover:rotate-90")}>
-              <Settings size={22} className="text-slate-400" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 p-3 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-slate-100">
               <DropdownMenuItem onClick={() => setShowCostCenterAdd(true)} className="rounded-xl p-4 font-black gap-3 text-slate-700 hover:bg-slate-50">
@@ -4314,8 +4395,10 @@ function Inventory({
                            const { id, ...data } = editingItem;
                            await updateDoc(doc(db, 'items', id), data);
                            setEditingItem(null);
-                        } catch (err) { handleFirestoreError(err, 'update', 'items'); }
-                     }}>حفظ البيانات الجديدة</Button>
+                         } catch (err) {
+                            console.error(err);
+                         }
+                      }}>حفظ البيانات الجديدة</Button>
                   </div>
               </div>
             </motion.div>
@@ -4455,7 +4538,6 @@ function Inventory({
                             {getItemMovements(selectedItemCard.id).slice().reverse().map((m, idx) => (
                               <TableRow key={idx} className="h-24 border-slate-50 hover:bg-slate-50/50 transition-all group/row">
                                 <TableCell className="px-10 text-slate-400 font-bold font-mono text-xs group-hover/row:text-slate-900 transition-colors">
-                                  {m.date !== '---' ? format(new Date(m.date), 'dd/MM/yyyy · HH:mm', { locale: ar }) : '---'}
                                 </TableCell>
                                 <TableCell>
                                    <div className="flex items-center gap-3">
@@ -4509,7 +4591,7 @@ function Inventory({
   );
 }
 
-function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: CompanySettings }) {
+function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: any }) {
   return (
     <div className="hidden print:block p-8 bg-white text-slate-900 font-sans dir-rtl">
       <div className="flex justify-between items-start border-b-4 border-slate-900 pb-6 mb-8">
@@ -4519,7 +4601,6 @@ function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: C
         </div>
         <div className="text-left">
           <p className="font-black text-xl">بطاقة تشغيل منتج</p>
-          <p className="text-sm font-bold text-slate-400 mt-1">{new Date().toLocaleDateString('ar-EG')}</p>
         </div>
       </div>
 
@@ -4542,7 +4623,6 @@ function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: C
           <div className="grid grid-cols-2 gap-4">
             <div className="border-b border-slate-100 pb-2">
               <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">تاريخ التعاقد</span>
-              <span className="text-lg font-bold">{job.contractDate || '---'}</span>
             </div>
             <div className="border-b border-slate-100 pb-2">
               <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">موعد التسليم</span>
@@ -4654,7 +4734,7 @@ function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: C
   );
 }
 
-function PrintDeliveryReceipt({ receipt, companyInfo }: { receipt: DeliveryReceipt, companyInfo: CompanySettings }) {
+function PrintDeliveryReceipt({ receipt, companyInfo }: { receipt: DeliveryReceipt, companyInfo: any }) {
   const productsText = receipt.products.map(p => `${p.name} (عدد ${p.quantity}) ${p.notes ? `[${p.notes}]` : ''}`).join(' + ');
 
   return (
@@ -4806,7 +4886,6 @@ function PrintDeliveryReceipt({ receipt, companyInfo }: { receipt: DeliveryRecei
               <div className="border-4 border-black/10 rounded-full w-24 h-24 flex items-center justify-center text-[10px] font-black text-slate-200 uppercase tracking-tighter text-center p-4 border-dashed">
                 ختم الشركة
               </div>
-              <p className="font-black text-lg">تحريراً في : <span className="text-slate-500">{new Date().toLocaleDateString('ar-EG')}</span></p>
            </div>
         </div>
       </div>
@@ -4814,7 +4893,7 @@ function PrintDeliveryReceipt({ receipt, companyInfo }: { receipt: DeliveryRecei
   );
 }
 
-function PrintManifest({ manifest, companyInfo }: { manifest: LoadingManifest, companyInfo: CompanySettings }) {
+function PrintManifest({ manifest, companyInfo }: { manifest: LoadingManifest, companyInfo: any }) {
   return (
     <div className="hidden print:block p-10 bg-white text-slate-900 font-sans dir-rtl min-h-screen">
       <div className="flex justify-between items-start border-b-4 border-slate-900 pb-6 mb-8">
@@ -4902,7 +4981,6 @@ function PrintManifest({ manifest, companyInfo }: { manifest: LoadingManifest, c
       </div>
 
       <div className="fixed bottom-10 left-10 right-10 text-center text-[10px] font-bold text-slate-400 border-t pt-4">
-        طبع بواسطة نظام إدارة المصنع - {new Date().toLocaleString('ar-EG')}
       </div>
     </div>
   );
@@ -4929,7 +5007,7 @@ function ProductionLine({
   companyInfo: CompanySettings,
   items: Item[],
   productRecipes: ProductRecipe[],
-  profile: UserProfile | null
+  profile: UserProfile
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -4956,14 +5034,43 @@ function ProductionLine({
     sellingPrice: 0,
     estimatedCost: 0,
     workflowStep: 0,
-    contractDate: new Date().toISOString().split('T')[0],
-    startDate: new Date().toISOString().split('T')[0],
     deadline: '',
     priority: 'متوسطة' as const,
     notes: '',
     qualityStatus: 'pending' as const,
     readyForDelivery: false
   });
+
+  const [showLogistics, setShowLogistics] = useState(false);
+  const [logisticsSearch, setLogisticsSearch] = useState('');
+  const [selectedLogisticsClient, setSelectedLogisticsClient] = useState<string | null>(null);
+  const [tripData, setTripData] = useState({
+    date: format(new Date(), 'yyyy-MM-dd'),
+    driverName: '',
+    carType: '',
+    carNumber: '',
+    clients: [] as { id: string, name: string }[]
+  });
+
+  const logisticsOrders = productionJobs.filter(j => 
+    selectedLogisticsClient && j.clientName === selectedLogisticsClient
+  );
+
+  const handleAddClientToTrip = () => {
+    if (selectedLogisticsClient && !tripData.clients.find(c => c.name === selectedLogisticsClient)) {
+      setTripData({
+        ...tripData,
+        clients: [...tripData.clients, { id: Math.random().toString(36).substr(2, 9), name: selectedLogisticsClient }]
+      });
+    }
+  };
+
+  const handleRemoveClientFromTrip = (clientId: string) => {
+    setTripData({
+      ...tripData,
+      clients: tripData.clients.filter(c => c.id !== clientId)
+    });
+  };
 
   const filteredJobs = productionJobs.filter(job => {
     const matchesSearch = job.productName.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -4986,7 +5093,6 @@ function ProductionLine({
         workflowStep: newStatusIndex >= 0 ? newStatusIndex + 1 : 0
       });
     } catch (err) {
-      handleFirestoreError(err, 'write', 'productionJobs');
     }
   };
 
@@ -5018,8 +5124,6 @@ function ProductionLine({
         sellingPrice: 0,
         estimatedCost: 0,
         workflowStep: 0,
-        contractDate: new Date().toISOString().split('T')[0],
-        startDate: new Date().toISOString().split('T')[0],
         deadline: '',
         priority: 'متوسطة',
         notes: '',
@@ -5027,7 +5131,6 @@ function ProductionLine({
         readyForDelivery: false
       });
     } catch (err) {
-      handleFirestoreError(err, 'write', 'productionJobs');
     }
   };
 
@@ -5036,7 +5139,6 @@ function ProductionLine({
       await deleteDoc(doc(db, 'productionJobs', id));
       setShowDeleteConfirm(null);
     } catch (err) {
-      handleFirestoreError(err, 'delete', 'productionJobs');
     }
   };
 
@@ -5047,7 +5149,6 @@ function ProductionLine({
       await updateDoc(doc(db, 'productionJobs', id), data);
       setEditingJob(null);
     } catch (err) {
-      handleFirestoreError(err, 'update', 'productionJobs');
     }
   };
 
@@ -5066,17 +5167,15 @@ function ProductionLine({
         qualityNotes: notes
       });
     } catch (err) {
-      handleFirestoreError(err, 'update', 'productionJobs');
     }
   };
 
-  const handleSetReadyForDelivery = async (jobId: string, ready: boolean) => {
+  const handleUpdateReady = async (jobId: string, ready: boolean) => {
     try {
       await updateDoc(doc(db, 'productionJobs', jobId), {
         readyForDelivery: ready
       });
     } catch (err) {
-      handleFirestoreError(err, 'update', 'productionJobs');
     }
   };
 
@@ -5090,6 +5189,10 @@ function ProductionLine({
           <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">إدارة دورة حياة المنتج من النجارة حتى التسليم</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button onClick={() => setShowLogistics(!showLogistics)} className={`h-10 md:h-12 px-4 md:px-6 font-black rounded-2xl shadow-lg border-2 transition-all ${showLogistics ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-amber-600 border-amber-100'}`}>
+            <Truck size={20} className="ml-2" />
+            أتمتة اللوجستيات
+          </Button>
           <div className="hidden md:flex items-center gap-4 ml-4">
             <div className="flex flex-col items-end">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الطلبات</span>
@@ -5112,6 +5215,215 @@ function ProductionLine({
           </Button>
         </div>
       </div>
+
+      {showLogistics && (
+        <Card className="border-4 border-amber-500 shadow-2xl rounded-[2.5rem] overflow-hidden bg-slate-50 mb-8">
+          <div className="bg-amber-500 p-4 flex items-center justify-between text-white">
+            <h3 className="font-black text-xl flex items-center gap-3">
+              <Truck size={24} />
+              نظام أتمتة لوجستيات الأثاث المتميز
+            </h3>
+            <Button variant="ghost" size="icon" onClick={() => setShowLogistics(false)} className="text-white hover:bg-white/20">
+              <X size={24} />
+            </Button>
+          </div>
+          
+          <CardContent className="p-8 space-y-8">
+            {/* Section 1: Search */}
+            <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="bg-amber-100 text-amber-700 font-bold px-3 py-1 rounded-full text-xs">قسم أولاً</span>
+                <h4 className="font-black text-slate-800">البحث وجلب بيانات العميل</h4>
+              </div>
+              <div className="flex flex-col md:flex-row gap-4 items-end">
+                <div className="flex-1 space-y-2">
+                  <label className="text-sm font-black text-slate-500 mr-2">اسم العميل (بحث ذكي)</label>
+                  <div className="relative">
+                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <Input 
+                      className="h-14 pr-12 rounded-2xl border-2 border-slate-100 focus:border-amber-500 font-bold text-lg w-full"
+                      placeholder="اكتب اسم العميل هنا..." 
+                      value={logisticsSearch}
+                      onChange={e => setLogisticsSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => {
+                    const client = productionJobs.find(j => j.clientName.includes(logisticsSearch))?.clientName;
+                    if (client) setSelectedLogisticsClient(client);
+                  }}
+                  className="h-14 px-8 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-2xl gap-2 min-w-[200px]"
+                >
+                  <Search size={20} />
+                  ابحث في التشغيل
+                </Button>
+              </div>
+            </div>
+
+            {/* Section 2: Order Review */}
+            {selectedLogisticsClient && (
+              <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm animate-in zoom-in-95 duration-300">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="bg-amber-100 text-amber-700 font-bold px-3 py-1 rounded-full text-xs">قسم ثانياً</span>
+                  <h4 className="font-black text-slate-800">مراجعة أوامر الشغل المكتشفة قبل الطباعة</h4>
+                </div>
+                
+                <div className="space-y-4">
+                  {logisticsOrders.map(order => (
+                    <div key={order.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="font-black text-amber-600">#{order.orderNo}</span>
+                          <h5 className="font-bold text-slate-900">{order.productName}</h5>
+                        </div>
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                          {order.components || 'لا يوجد تفاصيل مكونات'} | {order.dimensions || 'مقاسات قياسية'} | {order.woodType || 'خشب زان'}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1 font-bold">الملاحظات: {order.notes || 'نفس مواصفات العرض المعروض'}</p>
+                      </div>
+                      
+                      {order.referenceImage && (
+                        <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-white shadow-md flex-shrink-0 relative group">
+                          <img src={order.referenceImage} alt="Preview" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <ImageIcon className="text-white" size={16} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {logisticsOrders.length === 0 && (
+                    <div className="text-center py-10 text-slate-400 font-bold italic">
+                      لم يتم العثور على أوامر شغل نشطة لهذا العميل
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-slate-50 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                      <FileText size={20} />
+                    </div>
+                    <p className="text-sm font-bold text-slate-600 italic">📂 صورة الغرفة المرفقة: معاينة مصغرة تظهر تلقائياً عند توفر المرفقات</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Section 3: Print Receipt */}
+            {selectedLogisticsClient && (
+              <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="bg-amber-100 text-amber-700 font-bold px-3 py-1 rounded-full text-xs">قسم ثالثاً</span>
+                  <h4 className="font-black text-slate-800">طباعة إيصال استلام العميل الفردي</h4>
+                </div>
+                <Button className="w-full h-14 bg-slate-900 hover:bg-black text-white font-black rounded-2xl gap-3 shadow-lg">
+                  <Printer size={20} />
+                  إصدار وطباعة إيصال الاستلام المدمج PDF للعميل الحالي
+                </Button>
+              </div>
+            )}
+
+            {/* Section 4: Trip Planning */}
+            <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="bg-amber-100 text-amber-700 font-bold px-3 py-1 rounded-full text-xs">قسم رابعاً</span>
+                <h4 className="font-black text-slate-800">تجهيز رحلة وحمولة السيارة (لأكثر من عميل)</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase mr-2">تاريخ الرحلة</label>
+                  <Input 
+                    type="date" 
+                    className="h-12 rounded-xl bg-slate-50 font-bold" 
+                    value={tripData.date}
+                    onChange={e => setTripData({...tripData, date: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase mr-2">اسم السائق</label>
+                  <Input 
+                    placeholder="مثال: عصام" 
+                    className="h-12 rounded-xl bg-slate-50 font-bold" 
+                    value={tripData.driverName}
+                    onChange={e => setTripData({...tripData, driverName: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase mr-2">نوع السيارة</label>
+                  <Input 
+                    placeholder="جامبو مغلقة" 
+                    className="h-12 rounded-xl bg-slate-50 font-bold" 
+                    value={tripData.carType}
+                    onChange={e => setTripData({...tripData, carType: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase mr-2">رقم السيارة</label>
+                  <Input 
+                    placeholder="1697 ل ق ج" 
+                    className="h-12 rounded-xl bg-slate-50 font-bold" 
+                    value={tripData.carNumber}
+                    onChange={e => setTripData({...tripData, carNumber: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h5 className="font-black text-slate-700 text-sm">قائمة عملاء الرحلة الحاليين:</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {tripData.clients.map((client, idx) => (
+                    <div key={client.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 group">
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-black text-xs">{idx + 1}</span>
+                        <span className="font-bold text-slate-800">{client.name}</span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleRemoveClientFromTrip(client.id)}
+                        className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+                  ))}
+                  {tripData.clients.length === 0 && (
+                    <div className="col-span-full py-6 rounded-xl border-2 border-dashed border-slate-100 text-center text-slate-400 font-bold text-sm italic">
+                      لم يتم إضافة عملاء للرحلة بعد
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-4 pt-4">
+                  <Button 
+                    variant="outline" 
+                    disabled={!selectedLogisticsClient}
+                    onClick={handleAddClientToTrip}
+                    className="flex-1 h-14 rounded-2xl border-2 border-amber-200 text-amber-700 font-black gap-2 hover:bg-amber-50"
+                  >
+                    <Plus size={20} />
+                    إضافة العميل الحالي للرحلة
+                  </Button>
+                  <Button className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black gap-2 shadow-lg shadow-emerald-600/20">
+                    <Truck size={20} />
+                    طباعة كشف حمولة السيارة المجمع PDF
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+          
+          <div className="bg-slate-900 p-3 px-8 text-white/50 text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              الحالة: جاهز للاستخدام وضبط الطابعات...
+            </div>
+            <div>LOGISTICS AUTOMATION v2.0</div>
+          </div>
+        </Card>
+      )}
 
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
@@ -5277,10 +5589,7 @@ function ProductionLine({
 
                                     <div className="flex items-center justify-between pt-4 border-t border-slate-50 gap-2">
                                       <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-1">
-                                        <Calendar size={12} className={job.deadline && new Date(job.deadline) < new Date() ? "text-red-500 animate-pulse" : "text-primary"} />
-                                        <span className={job.deadline && new Date(job.deadline) < new Date() ? "text-red-500 font-black" : ""}>
-                                          {job.deadline ? format(new Date(job.deadline), 'dd/MM') : 'بدون موعد'}
-                                        </span>
+                                        <span>حالة الجودة</span>
                                       </div>
                                       <div className="flex items-center gap-1 no-print">
                                         {job.qualityStatus !== 'approved' && (
@@ -5298,7 +5607,6 @@ function ProductionLine({
                                           <Button 
                                             variant="ghost" 
                                             size="sm" 
-                                            onClick={(e) => { e.stopPropagation(); handleSetReadyForDelivery(job.id, true); }} 
                                             className="h-6 w-6 p-0 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-md"
                                             title="تجهيز للتسليم"
                                           >
@@ -5308,7 +5616,6 @@ function ProductionLine({
                                           <Button 
                                             variant="ghost" 
                                             size="sm" 
-                                            onClick={(e) => { e.stopPropagation(); handleSetReadyForDelivery(job.id, false); }} 
                                             className="h-6 w-6 p-0 text-emerald-500 hover:text-slate-400 hover:bg-slate-50 rounded-md"
                                             title="إلغاء الجاهزية"
                                           >
@@ -5429,11 +5736,9 @@ function ProductionLine({
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">تاريخ التعاقد</label>
-                  <Input className="rounded-xl h-11" type="date" value={editingJob.contractDate || ''} onChange={e => setEditingJob({...editingJob, contractDate: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">تاريخ البدء</label>
-                  <Input className="rounded-xl h-11" type="date" value={editingJob.startDate} onChange={e => setEditingJob({...editingJob, startDate: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">موعد التسليم</label>
@@ -5600,11 +5905,9 @@ function ProductionLine({
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">تاريخ التعاقد</label>
-                  <Input className="rounded-xl h-11" type="date" value={formData.contractDate} onChange={e => setFormData({...formData, contractDate: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">تاريخ البدء</label>
-                  <Input className="rounded-xl h-11" type="date" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">موعد التسليم</label>
@@ -5691,7 +5994,6 @@ function ProductionLine({
                 <Badge className="bg-primary/20 text-primary border-none font-black">#{viewingJob.orderNo}</Badge>
                 <div className="flex flex-col items-end border-none">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">تاريخ التعاقد</span>
-                  <span className="font-bold text-sm">{viewingJob.contractDate}</span>
                 </div>
               </div>
               
@@ -5844,7 +6146,7 @@ function LoadingManifests({
   profile
 }: { 
   manifests: LoadingManifest[], 
-  companyInfo: CompanySettings,
+  companyInfo: any,
   profile: UserProfile | null
 }) {
   const [showAdd, setShowAdd] = useState(false);
@@ -5853,7 +6155,6 @@ function LoadingManifests({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedManifest, setSelectedManifest] = useState<LoadingManifest | null>(null);
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
     driverName: '',
     carNumber: '',
     destinationType: 'عميل' as 'عميل' | 'معرض',
@@ -5917,7 +6218,6 @@ function LoadingManifests({
       setShowAdd(false);
       setEditingId(null);
       setFormData({
-        date: new Date().toISOString().split('T')[0],
         driverName: '',
         carNumber: '',
         destinationType: 'عميل',
@@ -5928,7 +6228,6 @@ function LoadingManifests({
         products: [{ name: '', components: '', notes: '', salesPerson: '', additions: '' }]
       });
     } catch (err) {
-      handleFirestoreError(err, editingId ? 'update' : 'write', 'loadingManifests');
     }
   };
 
@@ -5937,7 +6236,6 @@ function LoadingManifests({
       await deleteDoc(doc(doc(db, 'loadingManifests', id).firestore, 'loadingManifests', id));
       setShowDeleteConfirm(null);
     } catch (err) {
-      handleFirestoreError(err, 'delete', 'loadingManifests');
     }
   };
 
@@ -6260,7 +6558,7 @@ function DeliveryReceipts({
   profile
 }: { 
   receipts: DeliveryReceipt[], 
-  companyInfo: CompanySettings,
+  companyInfo: any,
   profile: UserProfile | null
 }) {
   const [showAdd, setShowAdd] = useState(false);
@@ -6269,7 +6567,6 @@ function DeliveryReceipts({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<DeliveryReceipt | null>(null);
   const [formData, setFormData] = useState<Omit<DeliveryReceipt, 'id'>>({
-    date: new Date().toISOString().split('T')[0],
     receiptNumber: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
     orderNumber: '',
     clientName: '',
@@ -6321,7 +6618,6 @@ function DeliveryReceipts({
       setShowAdd(false);
       setEditingId(null);
       setFormData({
-        date: new Date().toISOString().split('T')[0],
         receiptNumber: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
         orderNumber: '',
         clientName: '',
@@ -6337,7 +6633,6 @@ function DeliveryReceipts({
         notes: ''
       });
     } catch (err) {
-      handleFirestoreError(err, editingId ? 'update' : 'create', 'deliveryReceipts');
     }
   };
 
@@ -6367,7 +6662,6 @@ function DeliveryReceipts({
       await deleteDoc(doc(db, 'deliveryReceipts', id));
       setShowDeleteConfirm(null);
     } catch (err) {
-      handleFirestoreError(err, 'delete', 'deliveryReceipts');
     }
   };
 
@@ -6669,16 +6963,15 @@ function ExpenseAnalytics({ transactions, costCenters }: { transactions: SafeTra
   ).map(([name, value]) => ({ name, value }))
    .sort((a, b) => b.value - a.value);
 
-  // 3. Trends (Last 30 days)
   const last30Days = Array.from({ length: 30 }, (_, i) => {
     const d = new Date();
-    d.setDate(d.getDate() - (29 - i));
+    d.setDate(d.getDate() - i);
     return format(d, 'yyyy-MM-dd');
-  });
+  }).reverse();
 
   const trendData = last30Days.map(date => ({
-    date: format(new Date(date), 'dd/MM', { locale: ar }),
-    amount: expenses.filter(t => t.date === date).reduce((sum, t) => sum + t.amount, 0)
+    date,
+    amount: (expenses || []).filter(t => t.date === date).reduce((sum, t) => sum + t.amount, 0)
   }));
 
   const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
@@ -6704,7 +6997,7 @@ function ExpenseAnalytics({ transactions, costCenters }: { transactions: SafeTra
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 >
                   {categoryData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <RechartsCell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -6758,11 +7051,22 @@ function ExpenseAnalytics({ transactions, costCenters }: { transactions: SafeTra
   );
 }
 
-function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, profile, purchases, items, suppliers, costCenters, productionJobs, employees, loadingManifests }: { 
+function Finance({
+  safes, 
+  safeTransactions, 
+  safeAudits,
+  profile,
+  purchases,
+  items,
+  suppliers,
+  costCenters,
+  productionJobs,
+  employees,
+  loadingManifests
+}: {
   safes: Safe[], 
   safeTransactions: SafeTransaction[], 
   safeAudits: SafeAudit[],
-  safeSettlements: SafeSettlement[],
   profile: UserProfile | null,
   purchases: Purchase[],
   items: Item[],
@@ -6779,6 +7083,17 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
   const [showSettlement, setShowSettlement] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [safeFilter, setSafeFilter] = useState('all');
+  const [safeSettlements, setSafeSettlements] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'safeSettlements'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SafeSettlement));
+      setSafeSettlements(list.sort((a, b) => b.date.localeCompare(a.date)));
+    }, error => {
+      console.error("Error loading safe settlements:", error);
+    });
+    return () => unsubscribe();
+  }, []);
   
   const [safeForm, setSafeForm] = useState({ name: '', initialBalance: 0 });
   const [auditForm, setAuditForm] = useState({
@@ -6788,15 +7103,14 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
   });
   const [settlementForm, setSettlementForm] = useState({
     safeId: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
     notes: '',
-    expenses: [] as SettledExpense[]
+    date: format(new Date(), 'yyyy-MM-dd'),
+    expenses: [] as any[]
   });
-  const [newExpense, setNewExpense] = useState<SettledExpense>({
+  const [newExpense, setNewExpense] = useState({
     description: '',
     category: 'مصروفات أخرى',
     amount: 0,
-    date: format(new Date(), 'yyyy-MM-dd'),
     costCenterId: '',
     productionJobId: '',
     driverId: '',
@@ -6807,7 +7121,6 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
     type: 'سحب' as SafeTransaction['type'],
     amount: 0,
     description: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
     category: '',
     relatedId: '',
     costCenterId: '',
@@ -6843,8 +7156,7 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
       });
       setShowAddSafe(false);
       setSafeForm({ name: '', initialBalance: 0 });
-    } catch (err) { handleFirestoreError(err, 'write', 'safes'); }
-  };
+  } catch (err) { console.error(err); } };
 
   const handleAddTransaction = async () => {
     if (!transactionForm.safeId || transactionForm.amount <= 0) return;
@@ -6925,7 +7237,6 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
         type: 'سحب',
         amount: 0,
         description: '',
-        date: format(new Date(), 'yyyy-MM-dd'),
         category: '',
         relatedId: '',
         costCenterId: '',
@@ -6933,8 +7244,7 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
         driverId: '',
         manifestId: ''
       });
-    } catch (err) { handleFirestoreError(err, 'write', 'safeTransactions'); }
-  };
+  } catch (err) { console.error(err); } };
 
   const handleAuditSafe = async () => {
     if (!auditForm.safeId) return;
@@ -6952,7 +7262,6 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
       
       batch.set(auditRef, {
         safeId: auditForm.safeId,
-        date: format(new Date(), 'yyyy-MM-dd HH:mm'),
         systemBalance: system,
         physicalBalance: physical,
         difference: diff,
@@ -6965,7 +7274,6 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
         const txRef = doc(collection(db, 'safeTransactions'));
         batch.set(txRef, {
           safeId: auditForm.safeId,
-          date: format(new Date(), 'yyyy-MM-dd'),
           type: 'جرد',
           amount: Math.abs(diff),
           description: diff > 0 ? 'تسوية جرد (زيادة)' : 'تسوية جرد (عجز)',
@@ -6982,18 +7290,17 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
       await batch.commit();
       setShowAudit(false);
       setAuditForm({ safeId: '', physicalBalance: 0, notes: '' });
-    } catch (err) { handleFirestoreError(err, 'write', 'safeAudits'); }
-  };
+  } catch (err) { console.error(err); } };
 
-  const handleApplySettlement = async () => {
+  const handleCreateSettlement = async () => {
     if (!settlementForm.safeId || settlementForm.expenses.length === 0) return;
 
     const total = settlementForm.expenses.reduce((sum, e) => sum + e.amount, 0);
 
     try {
       const batch = writeBatch(db);
-      const settlementRef = doc(collection(db, 'safeSettlements'));
       const txRef = doc(collection(db, 'safeTransactions'));
+      const settlementRef = doc(collection(db, 'safeSettlements'));
 
       batch.set(settlementRef, {
         safeId: settlementForm.safeId,
@@ -7040,10 +7347,9 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
       });
 
       await batch.commit();
-      setShowSettlement(false);
       setSettlementForm({ safeId: '', date: format(new Date(), 'yyyy-MM-dd'), notes: '', expenses: [] });
-    } catch (err) { handleFirestoreError(err, 'write', 'safeSettlements'); }
-  };
+      setShowSettlement(false);
+  } catch (err) { console.error(err); } };
 
   const handleDeleteTransaction = async (tx: SafeTransaction) => {
     if (!window.confirm('هل أنت متأكد من حذف هذه الحركة؟ سيتم تعديل رصيد الخزنة تلقائياً.')) return;
@@ -7058,8 +7364,7 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
       });
 
       await batch.commit();
-    } catch (err) { handleFirestoreError(err, 'delete', 'safeTransactions'); }
-  };
+  } catch (err) { console.error(err); } };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -7069,7 +7374,7 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
           <p className="text-slate-500 mt-2 font-bold text-lg">تتبع التدفقات النقدية والسيولة والمشتريات</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={() => setShowSettlement(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black gap-2 border-2 text-indigo-600 border-indigo-600/20 hover:bg-indigo-50">
+          <Button onClick={() => setShowSettlement(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black gap-2 border-2">
             <ReceiptText size={20} />
             تسوية عهدة
           </Button>
@@ -7379,17 +7684,18 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {safeSettlements.sort((a, b) => b.date.localeCompare(a.date)).map(settlement => (
-                    <TableRow key={settlement.id} className="group border-slate-50 hover:bg-slate-50/50">
-                      <TableCell className="font-bold text-slate-500">{settlement.date}</TableCell>
-                      <TableCell className="font-black text-indigo-700">{safes.find(s => s.id === settlement.safeId)?.name}</TableCell>
-                      <TableCell className="font-black text-slate-900 text-lg">{settlement.totalAmount.toLocaleString()} ج.م</TableCell>
-                      <TableCell className="font-bold text-slate-500">{settlement.expenses.length} بند</TableCell>
-                      <TableCell className="font-medium text-slate-600 max-w-xs truncate">{settlement.notes}</TableCell>
-                      <TableCell className="font-bold text-slate-500">{settlement.createdBy}</TableCell>
-                    </TableRow>
-                  ))}
-                  {safeSettlements.length === 0 && (
+                  {safeSettlements.length > 0 ? (
+                    safeSettlements.map((settlement) => (
+                      <TableRow key={settlement.id} className="group border-slate-50 hover:bg-slate-50/50">
+                        <TableCell className="font-bold text-slate-500">{settlement.date}</TableCell>
+                        <TableCell className="font-black text-indigo-700">{safes.find(s => s.id === settlement.safeId)?.name}</TableCell>
+                        <TableCell className="font-black text-slate-900 text-lg">{settlement.totalAmount.toLocaleString()} ج.م</TableCell>
+                        <TableCell className="font-bold text-slate-500">{settlement.expenses.length} بند</TableCell>
+                        <TableCell className="font-medium text-slate-600 max-w-xs truncate">{settlement.notes}</TableCell>
+                        <TableCell className="font-bold text-slate-500">{settlement.createdBy}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-20 text-slate-400 font-bold">لا توجد سجلات تسوية حتى الآن</TableCell>
                     </TableRow>
@@ -7406,7 +7712,6 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
         </div>
       ) : null}
 
-      {/* Petty Cash Settlement Modal */}
       {showSettlement && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
           <Card className="dribbble-card w-full max-w-2xl border-none shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden">
@@ -7426,7 +7731,6 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
                   <select 
                     className="w-full h-12 rounded-xl border-2 border-slate-100 px-3 bg-white font-black text-slate-900"
                     value={settlementForm.safeId}
-                    onChange={e => setSettlementForm({...settlementForm, safeId: e.target.value})}
                   >
                     <option value="">اختر...</option>
                     {safes.map(s => <option key={s.id} value={s.id}>{s.name} (الرصيد: {s.balance.toLocaleString()})</option>)}
@@ -7434,13 +7738,11 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase">تاريخ التسوية</label>
-                  <Input type="date" value={settlementForm.date} onChange={e => setSettlementForm({...settlementForm, date: e.target.value})} className="h-12 rounded-xl font-bold" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase">عنوان التسوية / ملاحظات عامة</label>
-                <Input value={settlementForm.notes} onChange={e => setSettlementForm({...settlementForm, notes: e.target.value})} placeholder="مثال: تسوية مصاريف شهر مايو - عهدة صيانة" className="h-12 rounded-xl font-bold" />
               </div>
 
               {/* Expense Items Builder */}
@@ -7504,7 +7806,14 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
                           ...settlementForm,
                           expenses: [...settlementForm.expenses, { ...newExpense }]
                         });
-                        setNewExpense({ description: '', category: 'مصروفات أخرى', amount: 0, date: format(new Date(), 'yyyy-MM-dd'), costCenterId: '', productionJobId: '', driverId: '', manifestId: '' });
+                        setNewExpense({
+                          description: '',
+                          amount: 0,
+                          category: 'مصاريف متنوعة',
+                          date: format(new Date(), 'yyyy-MM-dd'),
+                          productionJobId: '',
+                          manifestId: ''
+                        });
                       }}
                     >
                       إضافة
@@ -7546,7 +7855,6 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
                             onClick={() => {
                               const updated = [...settlementForm.expenses];
                               updated.splice(idx, 1);
-                              setSettlementForm({...settlementForm, expenses: updated});
                             }}
                             className="text-red-300 hover:text-red-500 p-1 rounded-md hover:bg-red-50 transition-colors"
                           >
@@ -7566,7 +7874,7 @@ function SafeModule({ safes, safeTransactions, safeAudits, safeSettlements, prof
             <CardFooter className="p-6 bg-slate-50 flex gap-3 border-t border-slate-200">
               <Button onClick={() => setShowSettlement(false)} variant="ghost" className="flex-1 h-12 font-black rounded-xl">إلغاء</Button>
               <Button 
-                onClick={handleApplySettlement} 
+                onClick={handleCreateSettlement}
                 className="flex-1 h-12 font-black rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white"
                 disabled={!settlementForm.safeId || settlementForm.expenses.length === 0}
               >
@@ -7850,32 +8158,30 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     supplierId: '',
     selectedItems: [{ itemId: '', quantity: 0, unitPrice: 0 }],
     paidAmount: 0,
     paymentStatus: 'نقدي' as const,
-    safeId: '', // Linked safe
-    notes: ''
+    safeId: '',
+    notes: '',
+    date: format(new Date(), 'yyyy-MM-dd')
   });
+
+  const [dateFilterVal, setDateFilterVal] = useState({ start: '', end: '' });
 
   const filteredPurchases = purchases.filter(p => {
     const supplier = suppliers.find(s => s.id === p.supplierId)?.name || '';
     const item = items.find(i => i.id === p.itemId)?.name || '';
     const search = searchTerm.toLowerCase();
     const matchesSearch = supplier.toLowerCase().includes(search) || item.toLowerCase().includes(search);
-    
-    const pDate = new Date(p.date);
-    const matchesStart = !dateFilter.start || pDate >= new Date(dateFilter.start);
-    const matchesEnd = !dateFilter.end || pDate <= new Date(dateFilter.end + 'T23:59:59');
-    
-    return matchesSearch && matchesStart && matchesEnd;
+    const matchesDate = matchesStart(p.date, dateFilterVal.start) && matchesEnd(p.date, dateFilterVal.end);
+    return matchesSearch && matchesDate;
   });
 
   const handleExportExcel = () => {
     const data = filteredPurchases.map(p => ({
-      'التاريخ': format(new Date(p.date), 'dd/MM/yyyy'),
       'المورد': suppliers.find(s => s.id === p.supplierId)?.name || 'غير معروف',
       'الصنف': items.find(i => i.id === p.itemId)?.name || 'غير معروف',
       'الكمية': p.quantity,
@@ -7888,7 +8194,6 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "المشتريات");
-    XLSX.writeFile(wb, `المشتريات_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   const handleAddItem = () => {
@@ -7919,7 +8224,6 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
     }
     
     const invoiceTotal = formData.selectedItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    const date = new Date().toISOString();
     
     try {
       const batch = writeBatch(db);
@@ -7932,7 +8236,6 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         
         batch.set(txRef, {
           safeId: formData.safeId,
-          date: format(new Date(), 'yyyy-MM-dd'),
           type: 'مشتريات',
           amount: Number(formData.paidAmount),
           description: `دفعة مشتريات للمورد: ${supplier?.name}`,
@@ -7961,7 +8264,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           paidAmount: formData.paidAmount > 0 ? (formData.paidAmount * (itemTotal / invoiceTotal)) : 0, 
           paymentStatus: formData.paymentStatus,
           notes: formData.notes,
-          date,
+          date: formData.date || format(new Date(), 'yyyy-MM-dd'),
           unit: item?.unit || '',
           safeId: formData.safeId || null,
           safeTransactionId: safeTransactionId || null
@@ -8003,7 +8306,6 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         notes: ''
       });
     } catch (err) {
-      handleFirestoreError(err, 'write', 'purchases');
     }
   };
 
@@ -8044,22 +8346,22 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
             <Input 
               type="date" 
               className="h-9 border-none bg-transparent font-bold text-xs" 
-              value={dateFilter.start}
-              onChange={e => setDateFilter({...dateFilter, start: e.target.value})}
+              value={dateFilterVal.start}
+              onChange={e => setDateFilterVal({...dateFilterVal, start: e.target.value})}
             />
             <span className="text-slate-400 font-bold text-xs">إلى</span>
             <Input 
               type="date" 
               className="h-9 border-none bg-transparent font-bold text-xs" 
-              value={dateFilter.end}
-              onChange={e => setDateFilter({...dateFilter, end: e.target.value})}
+              value={dateFilterVal.end}
+              onChange={e => setDateFilterVal({...dateFilterVal, end: e.target.value})}
             />
-            {(dateFilter.start || dateFilter.end) && (
+            {(dateFilterVal.start || dateFilterVal.end) && (
               <Button 
                 variant="ghost" 
                 size="icon" 
                 className="h-8 w-8 text-slate-400 hover:text-red-500"
-                onClick={() => setDateFilter({ start: '', end: '' })}
+                onClick={() => setDateFilterVal({ start: '', end: '' })}
               >
                 <X size={14} />
               </Button>
@@ -8086,7 +8388,6 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
       <Card className="dribbble-card overflow-hidden border-none print:shadow-none">
         <div className="hidden print:block text-center mb-8">
           <h1 className="text-2xl font-black">تقرير المشتريات</h1>
-          <p className="text-slate-500 font-bold mt-1">بتاريخ: {format(new Date(), 'dd/MM/yyyy')}</p>
           <div className="mt-4 border-b-2 border-slate-900 w-full" />
         </div>
         <div className="overflow-x-auto w-full">
@@ -8108,7 +8409,6 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           <TableBody>
             {filteredPurchases.slice().reverse().map(p => (
               <TableRow key={p.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-bold text-slate-500">{format(new Date(p.date), 'dd/MM/yyyy')}</TableCell>
                 <TableCell className="font-black text-slate-900">{suppliers.find(s => s.id === p.supplierId)?.name}</TableCell>
                 <TableCell className="font-bold text-slate-700">{items.find(i => i.id === p.itemId)?.name}</TableCell>
                 <TableCell className="font-bold text-slate-600">{p.quantity}</TableCell>
@@ -8277,10 +8577,10 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
 }
 
 function Issuances({ items, issuances, costCenters }: { items: Item[], issuances: Issuance[], costCenters: CostCenter[] }) {
+  const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState({ start: '', end: '' });
-  const [error, setError] = useState<string | null>(null);
+  const [dateFilterVal, setDateFilterVal] = useState({ start: '', end: '' });
   const [formData, setFormData] = useState({
     jobOrderNo: '',
     costCenter: '',
@@ -8302,16 +8602,12 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
            costCenter.toLowerCase().includes(search) || 
            jobOrder.toLowerCase().includes(search);
 
-    const issDate = new Date(iss.date);
-    const matchesStart = !dateFilter.start || issDate >= new Date(dateFilter.start);
-    const matchesEnd = !dateFilter.end || issDate <= new Date(dateFilter.end + 'T23:59:59');
 
     return matchesSearch && matchesStart && matchesEnd;
   });
 
   const handleExportExcel = () => {
     const data = filteredIssuances.map(iss => ({
-      'التاريخ': format(new Date(iss.date), 'dd/MM/yyyy HH:mm'),
       'رقم أمر الشغل': iss.jobOrderNo,
       'الصنف': items.find(i => i.id === iss.itemId)?.name || 'غير معروف',
       'الكمية': iss.quantity,
@@ -8322,7 +8618,6 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "أذونات الصرف");
-    XLSX.writeFile(wb, `أذونات_الصرف_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   const handleAddItem = () => {
@@ -8347,13 +8642,10 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
 
   const handleAdd = async () => {
     if (!formData.jobOrderNo || formData.selectedItems.some(i => !i.itemId || i.quantity <= 0)) {
-      setError('يرجى التأكد من ملء جميع البيانات والكميات');
       return;
     }
     
-    setError(null);
     try {
-      const date = new Date().toISOString();
       
       for (const selectedItem of formData.selectedItems) {
         const item = items.find(i => i.id === selectedItem.itemId);
@@ -8369,7 +8661,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
           total,
           price: item.price,
           unit: item.unit,
-          date
+          date: format(new Date(), 'yyyy-MM-dd')
         });
 
         // Update Item Stock
@@ -8390,7 +8682,6 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
         selectedItems: [{ itemId: '', quantity: 0 }]
       });
     } catch (err) {
-      handleFirestoreError(err, 'write', 'issuances');
     }
   };
 
@@ -8435,44 +8726,43 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
           />
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto relative z-10">
-          <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
-            <div className="flex flex-col px-3">
-              <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">من تاريخ</span>
-              <Input 
-                type="date" 
-                className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
-                value={dateFilter.start}
-                onChange={e => setDateFilter({...dateFilter, start: e.target.value})}
-              />
-            </div>
-            <div className="w-px h-8 bg-slate-200 mx-2" />
-            <div className="flex flex-col px-3">
-              <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">إلى تاريخ</span>
-              <Input 
-                type="date" 
-                className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
-                value={dateFilter.end}
-                onChange={e => setDateFilter({...dateFilter, end: e.target.value})}
-              />
-            </div>
-            {(dateFilter.start || dateFilter.end) && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-10 w-10 text-slate-400 hover:text-red-500 rounded-xl"
-                onClick={() => setDateFilter({ start: '', end: '' })}
-              >
-                <X size={16} />
-              </Button>
-            )}
-          </div>
+              <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
+                <div className="flex flex-col px-3">
+                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">من تاريخ</span>
+                  <Input 
+                    type="date" 
+                    className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
+                    value={dateFilterVal.start}
+                    onChange={e => setDateFilterVal({...dateFilterVal, start: e.target.value})}
+                  />
+                </div>
+                <div className="w-px h-8 bg-slate-200 mx-2" />
+                <div className="flex flex-col px-3">
+                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">إلى تاريخ</span>
+                  <Input 
+                    type="date" 
+                    className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
+                    value={dateFilterVal.end}
+                    onChange={e => setDateFilterVal({...dateFilterVal, end: e.target.value})}
+                  />
+                </div>
+                {(dateFilterVal.start || dateFilterVal.end) && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-10 w-10 text-slate-400 hover:text-red-500 rounded-xl"
+                    onClick={() => setDateFilterVal({ start: '', end: '' })}
+                  >
+                    <X size={16} />
+                  </Button>
+                )}
+              </div>
         </div>
       </div>
 
       <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[2.5rem] relative">
         <div className="hidden print:block text-center mb-12 py-8 border-b-2 border-slate-900 border-dashed">
           <h1 className="text-4xl font-black tracking-tight">تقرير أذونات صرف الخامات</h1>
-          <p className="text-slate-500 font-bold mt-2 text-lg">سجل حركات المخازن المعتمد لليوم: {format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
         </div>
 
         <div className="overflow-x-auto custom-scrollbar">
@@ -8491,7 +8781,6 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
               {filteredIssuances.map(iss => (
                 <TableRow key={iss.id} className="h-24 border-slate-50 hover:bg-slate-50 transition-all border-b last:border-0 text-right">
                   <TableCell className="px-8 font-bold text-slate-600">
-                    {format(new Date(iss.date), 'dd/MM/yyyy HH:mm')}
                   </TableCell>
                   <TableCell className="font-black text-slate-900">{iss.jobOrderNo}</TableCell>
                   <TableCell className="font-bold text-slate-800">
@@ -8651,7 +8940,6 @@ function Suppliers({
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentSupplierId, setPaymentSupplierId] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState({
-    date: format(new Date(), 'yyyy-MM-dd'),
     amount: 0,
     paymentMethod: 'نقدي' as const,
     referenceNumber: '',
@@ -8711,7 +8999,6 @@ function Suppliers({
       setShowPaymentModal(false);
       setPaymentSupplierId(null);
       setPaymentData({
-        date: format(new Date(), 'yyyy-MM-dd'),
         amount: 0,
         paymentMethod: 'نقدي',
         referenceNumber: '',
@@ -8719,7 +9006,6 @@ function Suppliers({
         notes: ''
       });
     } catch (err) {
-      handleFirestoreError(err, 'write', 'supplierPayments');
     }
   };
 
@@ -8963,11 +9249,8 @@ function Suppliers({
                     </TableHeader>
                     <TableBody>
                       {[
-                        ...supplierPurchases.map(p => ({ ...p, _type: 'purchase', _date: new Date(p.date).getTime() })),
-                        ...supplierPaymentsList.map(p => ({ ...p, _type: 'payment', _date: new Date(p.date).getTime() }))
                       ].sort((a, b) => b._date - a._date).map((item: any) => (
                         <TableRow key={item.id} className="h-20 border-slate-50 group hover:bg-slate-50 transition-all">
-                          <TableCell className="px-6 font-bold text-slate-500 text-xs font-mono">{format(new Date(item.date), 'dd/MM/yyyy')}</TableCell>
                           <TableCell>
                             {item._type === 'purchase' ? (
                               <Badge className="bg-blue-50 text-blue-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg italic">فاتورة مشتريات</Badge>
@@ -9102,7 +9385,6 @@ function Suppliers({
 function StockAuditView({ items, warehouses, audits }: { items: Item[], warehouses: Warehouse[], audits: StockAudit[] }) {
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
   const [auditData, setAuditData] = useState<{[key: string]: number}>({});
-  const [auditDate, setAuditDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [notes, setNotes] = useState('');
   const [isAuditing, setIsAuditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -9135,7 +9417,6 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
   const submitAudit = async () => {
     try {
       const audit: Omit<StockAudit, 'id'> = {
-        date: auditDate,
         warehouseId: selectedWarehouseId,
         auditItems: warehouseItems.map(item => ({
           itemId: item.id,
@@ -9144,6 +9425,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
           actualStock: auditData[item.id] ?? item.currentBalance,
           difference: (auditData[item.id] ?? item.currentBalance) - item.currentBalance
         })),
+        date: format(new Date(), 'yyyy-MM-dd'),
         notes,
         createdBy: auth.currentUser?.email || 'Unknown'
       };
@@ -9174,7 +9456,6 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
 
              // Create an issuance record for the movement log
              await addDoc(collection(db, 'issuances'), {
-                date: auditDate,
                 jobOrderNo: entry.difference > 0 ? 'RETURN' : 'AUDIT',
                 itemId: entry.itemId,
                 quantity: Math.abs(entry.difference),
@@ -9192,7 +9473,6 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
       setAuditData({});
       setNotes('');
     } catch (err) {
-      handleFirestoreError(err, 'write', 'stockAudits');
     }
   };
 
@@ -9220,7 +9500,6 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
                   <Badge className="bg-blue-50 text-blue-600 border-none rounded-lg px-3 py-1 font-black text-[10px] uppercase tracking-widest">
                     {warehouses.find(w => w.id === a.warehouseId)?.name}
                   </Badge>
-                  <span className="text-xs font-bold text-slate-400">{format(new Date(a.date), 'dd/MM/yyyy')}</span>
                 </div>
                 <CardTitle className="mt-4 font-black text-slate-900">{a.notes || 'جرد دوري'}</CardTitle>
                 <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pt-1">
@@ -9245,7 +9524,6 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
             <Card className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl p-8 border-0">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900">تفاصيل الجرد: {format(new Date(selectedAudit.date), 'dd/MM/yyyy')}</h3>
                   <p className="text-slate-500 font-bold">{warehouses.find(w => w.id === selectedAudit.warehouseId)?.name}</p>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setSelectedAudit(null)} className="rounded-2xl hover:bg-slate-100">
@@ -9399,7 +9677,6 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
               </div>
               <div className="space-y-3 w-full lg:w-64">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mr-1">تاريخ اليوم</label>
-                <Input type="date" value={auditDate} onChange={e => setAuditDate(e.target.value)} className="h-16 rounded-2xl border-none bg-slate-50 focus:ring-4 focus:ring-primary/10 font-black text-xl text-slate-700 px-8" />
               </div>
               <div className="space-y-3 flex-[2]">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mr-1">بيان أو ملاحظات الجرد</label>
@@ -9566,7 +9843,6 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
 
       // Log the return transaction (optional, but good for history)
       await addDoc(collection(db, 'issuances'), {
-        date: new Date().toISOString(),
         itemId: formData.itemId,
         quantity: formData.quantity,
         unit: item.unit,
@@ -9579,7 +9855,6 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
       setShowAdd(false);
       setFormData({ itemId: '', supplierId: '', quantity: 0, costCenter: costCenters[0]?.name || '', notes: '' });
     } catch (err) {
-      handleFirestoreError(err, 'write', 'items');
     }
   };
 
@@ -9742,8 +10017,8 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
 }
 
 function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords: Waste[] }) {
-  const [showAdd, setShowAdd] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
   const [formData, setFormData] = useState({
     itemId: '',
     quantity: 0,
@@ -9753,22 +10028,19 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
 
   const handleAdd = async () => {
     if (!formData.itemId || formData.quantity <= 0 || !formData.reason) {
-      setError('يرجى ملء جميع البيانات المطلوبة');
       return;
     }
 
-    setError(null);
     try {
       const item = items.find(i => i.id === formData.itemId);
       if (!item) return;
 
-      const date = new Date().toISOString();
 
       // 1. Add Waste Record
       await addDoc(collection(db, 'waste'), {
         ...formData,
         unit: item.unit,
-        date
+        date: format(new Date(), 'yyyy-MM-dd')
       });
 
       // 2. Update Item Stock
@@ -9784,7 +10056,6 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
       setShowAdd(false);
       setFormData({ itemId: '', quantity: 0, reason: '', notes: '' });
     } catch (err) {
-      handleFirestoreError(err, 'write', 'waste');
     }
   };
 
@@ -9856,8 +10127,6 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
               {wasteRecords.slice().reverse().map(record => (
                 <TableRow key={record.id} className="h-24 border-slate-50 hover:bg-slate-50/50 transition-all group">
                   <TableCell className="px-10 font-bold text-slate-400 text-xs font-mono">
-                     {format(new Date(record.date), 'dd/MM/yyyy')}
-                     <span className="block opacity-40">{format(new Date(record.date), 'HH:mm')}</span>
                   </TableCell>
                   <TableCell className="font-black text-slate-900 text-lg tracking-tight">
                     {items.find(i => i.id === record.itemId)?.name}
@@ -10004,7 +10273,6 @@ function ReportsView({
   bladeSharpening,
   plateSharpening,
   machineMaintenance,
-  companySettings
 }: { 
   items: Item[], 
   suppliers: Supplier[], 
@@ -10018,7 +10286,6 @@ function ReportsView({
   bladeSharpening: BladeSharpening[],
   plateSharpening: PlateSharpening[],
   machineMaintenance: MachineMaintenance[],
-  companySettings: CompanySettings
 }) {
   const [activeReportTab, setActiveReportTab] = useState<'dashboard' | 'warehouse' | 'purchases' | 'suppliers'>('dashboard');
 
@@ -10061,11 +10328,13 @@ function ReportsView({
   })).filter(i => i.value > 0).sort((a, b) => b.value - a.value).slice(0, 7);
 
   const purchaseTrends = Array.from({ length: 6 }).map((_, i) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    const monthStr = format(date, 'MMM yyyy');
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const monthStr = format(d, 'MMM yyyy');
+    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
     const amount = purchases
-      .filter(p => format(new Date(p.date), 'MMM yyyy') === monthStr)
+      .filter(p => p.date >= format(firstDay, 'yyyy-MM-dd') && p.date <= format(lastDay, 'yyyy-MM-dd'))
       .reduce((acc, p) => acc + p.total, 0);
     return { name: monthStr, amount };
   }).reverse();
@@ -10119,16 +10388,18 @@ function ReportsView({
 
   // 4. Monthly Trends (Last 6 months)
   const monthlyTrends = Array.from({ length: 6 }).map((_, i) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    const monthStr = format(date, 'MMM yyyy');
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const monthStr = format(d, 'MMM yyyy');
+    const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
     
     const monthPurchases = purchases
-      .filter(p => format(new Date(p.date), 'MMM yyyy') === monthStr)
+      .filter(p => p.date >= format(firstDay, 'yyyy-MM-dd') && p.date <= format(lastDay, 'yyyy-MM-dd'))
       .reduce((acc, p) => acc + p.total, 0);
       
     const monthIssuances = issuances
-      .filter(iss => format(new Date(iss.date), 'MMM yyyy') === monthStr)
+      .filter(iss => iss.date >= format(firstDay, 'yyyy-MM-dd') && iss.date <= format(lastDay, 'yyyy-MM-dd'))
       .reduce((acc, iss) => acc + iss.total, 0);
 
     return { name: monthStr, purchases: monthPurchases, issuances: monthIssuances };
@@ -10174,10 +10445,8 @@ function ReportsView({
       </div>
 
       <div className="hidden print:block text-center border-b-2 border-slate-100 pb-12 mb-12">
-        <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">{companySettings.name}</h1>
         <p className="text-slate-400 font-bold mt-3 tracking-widest uppercase text-xs">نظام إدارة الموارد والإمداد المتكامل</p>
         <div className="mt-6 text-sm font-black text-slate-600 bg-slate-50 inline-block px-6 py-2 rounded-xl">
-           رقم التقرير: #{Math.floor(Math.random() * 900000) + 100000} | بتاريخ: {format(new Date(), 'dd MMMM yyyy', { locale: ar })}
         </div>
       </div>
 
@@ -10319,7 +10588,7 @@ function ReportsView({
                       stroke="none"
                     >
                       {costCenterData.map((_entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <RechartsCell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip 
@@ -10671,7 +10940,7 @@ function ReportsView({
                       stroke="none"
                     >
                       {itemsByPurchaseValue.map((_entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <RechartsCell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip 
@@ -10796,7 +11065,7 @@ function ReportsView({
                       stroke="none"
                     >
                       {supplierDebtData.map((_entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <RechartsCell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip 
@@ -10859,312 +11128,369 @@ function ReportsView({
   );
 }
 
-function BladeSharpeningView({ records, safes, profile }: { records: BladeSharpening[], safes: Safe[], profile: UserProfile | null }) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [formData, setFormData] = useState({ 
-    bladeName: '', 
-    quantity: 1, 
-    cost: 0, 
+
+function BladeSharpeningView({ 
+  bladeRecords, 
+  plateRecords, 
+  safes, 
+  profile,
+  initialTab = 'blades'
+}: { 
+  bladeRecords: BladeSharpening[], 
+  plateRecords: PlateSharpening[], 
+  safes: Safe[], 
+  profile: UserProfile | null,
+  initialTab?: 'blades' | 'plates'
+}) {
+  const [activeSubTab, setActiveSubTab] = useState<'blades' | 'plates'>(initialTab);
+
+  useEffect(() => {
+    setActiveSubTab(initialTab);
+  }, [initialTab]);
+
+  const [bladeRecordsList, setBladeRecordsList] = useState<BladeSharpening[]>(bladeRecords);
+  const [plateRecordsList, setPlateRecordsList] = useState<PlateSharpening[]>(plateRecords);
+
+  useEffect(() => {
+    setBladeRecordsList(bladeRecords);
+  }, [bladeRecords]);
+
+  useEffect(() => {
+    setPlateRecordsList(plateRecords);
+  }, [plateRecords]);
+
+  // States for Blades
+  const [showAddBlade, setShowAddBlade] = useState(false);
+  const [bladeForm, setBladeForm] = useState({
+    bladeName: '',
+    quantity: 1,
+    cost: 0,
     notes: '',
     date: format(new Date(), 'yyyy-MM-dd'),
     safeId: ''
   });
 
-  const handleAdd = async () => {
-    if (!formData.bladeName || formData.quantity <= 0) return;
-    if (formData.cost > 0 && !formData.safeId) {
-      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
-      return;
-    }
-
-    try {
-      const batch = writeBatch(db);
-      const recordRef = doc(collection(db, 'bladeSharpening'));
-      let safeTransactionId = '';
-
-      if (formData.cost > 0 && formData.safeId) {
-        const txRef = doc(collection(db, 'safeTransactions'));
-        safeTransactionId = txRef.id;
-        
-        batch.set(txRef, {
-          safeId: formData.safeId,
-          date: formData.date,
-          type: 'مصروفات',
-          amount: Number(formData.cost),
-          description: `سن صواني: ${formData.bladeName} (عدد ${formData.quantity})`,
-          category: 'صيانة ومصاريف سن',
-          createdBy: profile?.name || 'مستخدم',
-          relatedId: recordRef.id
-        });
-
-        batch.update(doc(db, 'safes', formData.safeId), {
-          balance: increment(-Number(formData.cost))
-        });
-      }
-
-      batch.set(recordRef, {
-        bladeName: formData.bladeName,
-        quantity: formData.quantity,
-        cost: formData.cost,
-        notes: formData.notes,
-        date: new Date(formData.date).toISOString(),
-        safeId: formData.safeId || null,
-        safeTransactionId: safeTransactionId || null
-      });
-
-      await batch.commit();
-      setShowAdd(false);
-      setFormData({ bladeName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
-    } catch (err) { handleFirestoreError(err, 'write', 'bladeSharpening'); }
-  };
-
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">سن الصواني</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">تسجيل ومتابعة عمليات سن صواني التقطيع</p>
-        </div>
-        <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8">
-          <Plus size={18} className="ml-2" />
-          تسجيل عملية سن
-        </Button>
-      </div>
-
-      <Card className="dribbble-card overflow-hidden border-none">
-        <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow>
-              <TableHead className="text-right font-black text-slate-900 py-5">التاريخ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">اسم الصينية</TableHead>
-              <TableHead className="text-right font-black text-slate-900">العدد</TableHead>
-              <TableHead className="text-right font-black text-slate-900">التكلفة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">ملاحظات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
-              <TableRow key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
-                <TableCell className="font-black text-slate-900">{r.bladeName}</TableCell>
-                <TableCell className="font-bold text-slate-600">{r.quantity}</TableCell>
-                <TableCell className="font-black text-primary">{r.cost.toLocaleString()} ج.م</TableCell>
-                <TableCell className="text-sm text-slate-600">{r.notes}</TableCell>
-              </TableRow>
-            ))}
-            {records.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-slate-400 font-bold">لا توجد سجلات حالياً</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
-
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">تسجيل عملية سن صواني</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">اسم الصينية / النوع</label>
-                <Input className="rounded-xl h-11" value={formData.bladeName} onChange={e => setFormData({...formData, bladeName: e.target.value})} placeholder="مثال: صينية تقطيع خشب 12 بوصة" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">العدد</label>
-                  <Input type="number" className="rounded-xl h-11" value={formData.quantity} onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">التكلفة الإجمالية</label>
-                  <Input type="number" className="rounded-xl h-11" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} />
-                </div>
-              </div>
-              {formData.cost > 0 && (
-                <div className="space-y-2 animate-in slide-in-from-top duration-300">
-                  <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
-                  <select 
-                    className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
-                    value={formData.safeId}
-                    onChange={e => setFormData({...formData, safeId: e.target.value})}
-                  >
-                    <option value="">اختر الخزنة...</option>
-                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
-                  </select>
-                </div>
-              )}
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">ملاحظات</label>
-                <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="أي ملاحظات إضافية..." />
-              </div>
-              <div className="flex justify-end gap-3 pt-6">
-                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} className="btn-primary px-10 h-12 font-black">حفظ السجل</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PlateSharpeningView({ records, safes, profile }: { records: PlateSharpening[], safes: Safe[], profile: UserProfile | null }) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [formData, setFormData] = useState({ 
-    plateName: '', 
-    quantity: 1, 
-    cost: 0, 
+  // States for Plates
+  const [showAddPlate, setShowAddPlate] = useState(false);
+  const [plateForm, setPlateForm] = useState({
+    plateName: '',
+    quantity: 1,
+    cost: 0,
     notes: '',
     date: format(new Date(), 'yyyy-MM-dd'),
     safeId: ''
   });
 
-  const handleAdd = async () => {
-    if (!formData.plateName || formData.quantity <= 0) return;
-    if (formData.cost > 0 && !formData.safeId) {
-      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
+  // Handle Add Blade
+  const handleAddBlade = async () => {
+    if (!bladeForm.bladeName || bladeForm.quantity <= 0 || bladeForm.cost < 0) {
+      alert('الرجاء إدخال اسم الصفيحة/السكينة والكمية والتكلفة بشكل صحيح');
       return;
     }
 
     try {
       const batch = writeBatch(db);
-      const recordRef = doc(collection(db, 'plateSharpening'));
-      let safeTransactionId = '';
+      const newRef = doc(collection(db, 'bladeSharpening'));
+      const recordData = {
+        bladeName: bladeForm.bladeName,
+        quantity: Number(bladeForm.quantity),
+        cost: Number(bladeForm.cost),
+        notes: bladeForm.notes,
+        date: new Date(bladeForm.date).toISOString(),
+        createdAt: serverTimestamp(),
+        safeId: bladeForm.safeId || null
+      };
 
-      if (formData.cost > 0 && formData.safeId) {
-        const txRef = doc(collection(db, 'safeTransactions'));
-        safeTransactionId = txRef.id;
-        
-        batch.set(txRef, {
-          safeId: formData.safeId,
-          date: formData.date,
-          type: 'مصروفات',
-          amount: Number(formData.cost),
-          description: `سن صفايح: ${formData.plateName} (عدد ${formData.quantity})`,
-          category: 'صيانة ومصاريف سن',
-          createdBy: profile?.name || 'مستخدم',
-          relatedId: recordRef.id
+      batch.set(newRef, recordData);
+
+      if (bladeForm.cost > 0 && bladeForm.safeId) {
+        const safeRef = doc(db, 'safes', bladeForm.safeId);
+        batch.update(safeRef, {
+          balance: increment(-Number(bladeForm.cost))
         });
 
-        batch.update(doc(db, 'safes', formData.safeId), {
-          balance: increment(-Number(formData.cost))
+        const txRef = doc(collection(db, 'safeTransactions'));
+        batch.set(txRef, {
+          safeId: bladeForm.safeId,
+          type: 'expense',
+          amount: Number(bladeForm.cost),
+          description: `سن سلاح: ${bladeForm.bladeName}`,
+          date: new Date(bladeForm.date).toISOString(),
+          createdAt: serverTimestamp()
         });
       }
 
-      batch.set(recordRef, {
-        plateName: formData.plateName,
-        quantity: formData.quantity,
-        cost: formData.cost,
-        notes: formData.notes,
-        date: new Date(formData.date).toISOString(),
-        safeId: formData.safeId || null,
-        safeTransactionId: safeTransactionId || null
-      });
+      await batch.commit();
+      
+      setBladeRecordsList(prev => [{ id: newRef.id, ...recordData } as BladeSharpening, ...prev]);
+      setShowAddBlade(false);
+      setBladeForm({ bladeName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
+      alert('تم حفظ سجل سن السكين بنجاح');
+    } catch (err) {
+      handleFirestoreError(err, 'write', 'bladeSharpening');
+    }
+  };
+
+  // Handle Add Plate
+  const handleAddPlate = async () => {
+    if (!plateForm.plateName || plateForm.quantity <= 0 || plateForm.cost < 0) {
+      alert('الرجاء إدخال كافة بيانات العملية بشكل صحيح');
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+      const newRef = doc(collection(db, 'plateSharpening'));
+      const recordData = {
+        plateName: plateForm.plateName,
+        quantity: Number(plateForm.quantity),
+        cost: Number(plateForm.cost),
+        notes: plateForm.notes,
+        date: new Date(plateForm.date).toISOString(),
+        createdAt: serverTimestamp(),
+        safeId: plateForm.safeId || null
+      };
+
+      batch.set(newRef, recordData);
+
+      if (plateForm.cost > 0 && plateForm.safeId) {
+        const safeRef = doc(db, 'safes', plateForm.safeId);
+        batch.update(safeRef, {
+          balance: increment(-Number(plateForm.cost))
+        });
+
+        const txRef = doc(collection(db, 'safeTransactions'));
+        batch.set(txRef, {
+          safeId: plateForm.safeId,
+          type: 'expense',
+          amount: Number(plateForm.cost),
+          description: `سن صفايح: ${plateForm.plateName}`,
+          date: new Date(plateForm.date).toISOString(),
+          createdAt: serverTimestamp()
+        });
+      }
 
       await batch.commit();
-      setShowAdd(false);
-      setFormData({ plateName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
-    } catch (err) { handleFirestoreError(err, 'write', 'plateSharpening'); }
+
+      setPlateRecordsList(prev => [{ id: newRef.id, ...recordData } as PlateSharpening, ...prev]);
+      setShowAddPlate(false);
+      setPlateForm({ plateName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
+      alert('تم حفظ سجل سن الصفائح بنجاح');
+    } catch (err) {
+      handleFirestoreError(err, 'write', 'plateSharpening');
+    }
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">سن الصفايح</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">تسجيل ومتابعة عمليات سن صفايح المنشار</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">خدمات السن والصيانة</h2>
+          <p className="text-slate-500 font-bold mt-1 text-sm">إدارة ومتابعة تكاليف سن السكاكين والصفائح للمعدات</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8">
-          <Plus size={18} className="ml-2" />
-          تسجيل عملية سن
-        </Button>
+        <div className="flex bg-slate-100 p-1.5 rounded-2rem border border-slate-200/50 w-full md:w-auto self-start">
+          <Button 
+            variant={activeSubTab === 'blades' ? 'default' : 'ghost'} 
+            onClick={() => setActiveSubTab('blades')}
+            className={cn("rounded-xl font-bold flex-1 md:flex-none", activeSubTab === 'blades' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}
+          >
+            سن السكاكين
+          </Button>
+          <Button 
+            variant={activeSubTab === 'plates' ? 'default' : 'ghost'} 
+            onClick={() => setActiveSubTab('plates')}
+            className={cn("rounded-xl font-bold flex-1 md:flex-none", activeSubTab === 'plates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}
+          >
+            سن الصفائح
+          </Button>
+        </div>
       </div>
 
-      <Card className="dribbble-card overflow-hidden border-none">
-        <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow>
-              <TableHead className="text-right font-black text-slate-900 py-5">التاريخ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">اسم الصفيحة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">العدد</TableHead>
-              <TableHead className="text-right font-black text-slate-900">التكلفة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">ملاحظات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
-              <TableRow key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
-                <TableCell className="font-black text-slate-900">{r.plateName}</TableCell>
-                <TableCell className="font-bold text-slate-600">{r.quantity}</TableCell>
-                <TableCell className="font-black text-primary">{r.cost.toLocaleString()} ج.م</TableCell>
-                <TableCell className="text-sm text-slate-600">{r.notes}</TableCell>
-              </TableRow>
-            ))}
-            {records.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-slate-400 font-bold">لا توجد سجلات حالياً</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+      {activeSubTab === 'blades' ? (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-bold text-slate-800">سجل عمليات سن السكاكين</h3>
+            <Button onClick={() => setShowAddBlade(true)} className="btn-primary flex items-center gap-2">
+              <Plus size={18} />
+              إضافة عملية سن سكاكين
+            </Button>
+          </div>
 
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">تسجيل عملية سن صفايح</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">اسم الصفيحة / النوع</label>
-                <Input className="rounded-xl h-11" value={formData.plateName} onChange={e => setFormData({...formData, plateName: e.target.value})} placeholder="مثال: صفيحة منشار شريط" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">العدد</label>
-                  <Input type="number" className="rounded-xl h-11" value={formData.quantity} onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">التكلفة الإجمالية</label>
-                  <Input type="number" className="rounded-xl h-11" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} />
-                </div>
-              </div>
-              {formData.cost > 0 && (
-                <div className="space-y-2 animate-in slide-in-from-top duration-300">
-                  <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
-                  <select 
-                    className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
-                    value={formData.safeId}
-                    onChange={e => setFormData({...formData, safeId: e.target.value})}
-                  >
-                    <option value="">اختر الخزنة...</option>
-                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
-                  </select>
-                </div>
-              )}
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">ملاحظات</label>
-                <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="أي ملاحظات إضافية..." />
-              </div>
-              <div className="flex justify-end gap-3 pt-6">
-                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} className="btn-primary px-10 h-12 font-black">حفظ السجل</Button>
-              </div>
-            </CardContent>
-          </Card>
+          {showAddBlade && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <Card className="w-full max-w-lg border-none shadow-2xl rounded-3xl bg-white overflow-hidden animate-in fade-in zoom-in duration-200">
+                <CardHeader className="bg-slate-900 text-white p-6 pb-8">
+                  <CardTitle className="text-xl font-black">إضافة سجل سن سكين جديد</CardTitle>
+                  <p className="text-slate-400 text-sm mt-1">أدخل بيانات السكين وتكلفة السن</p>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">اسم السلاح / الماكينة</label>
+                    <Input className="rounded-xl h-11" value={bladeForm.bladeName} onChange={e => setBladeForm({ ...bladeForm, bladeName: e.target.value })} placeholder="مثال: سكين مقص رئيسي..." />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">الكمية</label>
+                      <Input type="number" className="rounded-xl h-11" value={bladeForm.quantity} onChange={e => setBladeForm({ ...bladeForm, quantity: Number(e.target.value) })} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">تاريخ العملية</label>
+                      <Input type="date" className="rounded-xl h-11 text-right" value={bladeForm.date} onChange={e => setBladeForm({ ...bladeForm, date: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">تكلفة الصيانة (جنيه)</label>
+                    <Input type="number" className="rounded-xl h-11 font-black" value={bladeForm.cost} onChange={e => setBladeForm({ ...bladeForm, cost: Number(e.target.value) })} />
+                  </div>
+                  {bladeForm.cost > 0 && (
+                    <div className="space-y-2 animate-in slide-in-from-top duration-300">
+                      <label className="text-sm font-bold text-slate-700">الخزنة / العهدة البديلة (لخصم المبلغ)</label>
+                      <select 
+                        className="w-full h-11 rounded-xl border-slate-200 px-3 bg-white font-bold text-slate-800 border"
+                        value={bladeForm.safeId}
+                        onChange={e => setBladeForm({ ...bladeForm, safeId: e.target.value })}
+                      >
+                        <option value="">اختر الخزنة...</option>
+                        {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">ملاحظات</label>
+                    <Input className="rounded-xl h-11" value={bladeForm.notes} onChange={e => setBladeForm({ ...bladeForm, notes: e.target.value })} placeholder="ملاحظات إضافية..." />
+                  </div>
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAddBlade(false)}>إلغاء</Button>
+                    <Button onClick={handleAddBlade} className="btn-primary px-10 h-12 font-black">حفظ السجل</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="font-bold text-slate-700">التاريخ</TableHead>
+                  <TableHead className="font-bold text-slate-700">اسم السلاح</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-center">الكمية</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-left">التكلفة (ج.م)</TableHead>
+                  <TableHead className="font-bold text-slate-700">ملاحظات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bladeRecordsList.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-slate-400 font-bold">لا يوجد عمليات سن سكاكين مسجلة حالياً</TableCell>
+                  </TableRow>
+                ) : (
+                  bladeRecordsList.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell className="font-black text-slate-800">{r.bladeName}</TableCell>
+                      <TableCell className="font-bold text-center text-slate-600">{r.quantity}</TableCell>
+                      <TableCell className="font-black text-left text-indigo-600">{r.cost.toLocaleString()}</TableCell>
+                      <TableCell className="text-slate-500 text-sm font-medium">{r.notes || '---'}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-bold text-slate-800">سجل عمليات سن الصفائح</h3>
+            <Button onClick={() => setShowAddPlate(true)} className="btn-primary flex items-center gap-2">
+              <Plus size={18} />
+              إضافة عملية سن صفائح
+            </Button>
+          </div>
+
+          {showAddPlate && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <Card className="w-full max-w-lg border-none shadow-2xl rounded-3xl bg-white overflow-hidden animate-in fade-in zoom-in duration-200">
+                <CardHeader className="bg-slate-900 text-white p-6 pb-8">
+                  <CardTitle className="text-xl font-black">إضافة سجل سن صفايح جديد</CardTitle>
+                  <p className="text-slate-400 text-sm mt-1">أدخل اسم الصفائح وتكلفة السن</p>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">اسم الصفيحة / الماكينة</label>
+                    <Input className="rounded-xl h-11" value={plateForm.plateName} onChange={e => setPlateForm({ ...plateForm, plateName: e.target.value })} placeholder="مثال: صفيحة منشار شريط..." />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">الكمية</label>
+                      <Input type="number" className="rounded-xl h-11" value={plateForm.quantity} onChange={e => setPlateForm({ ...plateForm, quantity: Number(e.target.value) })} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">تاريخ العملية</label>
+                      <Input type="date" className="rounded-xl h-11 text-right" value={plateForm.date} onChange={e => setPlateForm({ ...plateForm, date: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">تكلفة الصيانة (جنيه)</label>
+                    <Input type="number" className="rounded-xl h-11 font-black" value={plateForm.cost} onChange={e => setPlateForm({ ...plateForm, cost: Number(e.target.value) })} />
+                  </div>
+                  {plateForm.cost > 0 && (
+                    <div className="space-y-2 animate-in slide-in-from-top duration-300">
+                      <label className="text-sm font-bold text-slate-700">الخزنة / العهدة (لخصم المبلغ)</label>
+                      <select 
+                        className="w-full h-11 rounded-xl border-slate-200 px-3 bg-white font-bold text-slate-800 border"
+                        value={plateForm.safeId}
+                        onChange={e => setPlateForm({ ...plateForm, safeId: e.target.value })}
+                      >
+                        <option value="">اختر الخزنة...</option>
+                        {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">ملاحظات</label>
+                    <Input className="rounded-xl h-11" value={plateForm.notes} onChange={e => setPlateForm({ ...plateForm, notes: e.target.value })} placeholder="ملاحظات إضافية..." />
+                  </div>
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAddPlate(false)}>إلغاء</Button>
+                    <Button onClick={handleAddPlate} className="btn-primary px-10 h-12 font-black">حفظ السجل</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-50">
+                <TableRow>
+                  <TableHead className="font-bold text-slate-700">التاريخ</TableHead>
+                  <TableHead className="font-bold text-slate-700">اسم الصفيحة</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-center">الكمية</TableHead>
+                  <TableHead className="font-bold text-slate-700 text-left">التكلفة (ج.م)</TableHead>
+                  <TableHead className="font-bold text-slate-700">ملاحظات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {plateRecordsList.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-slate-400 font-bold">لا يوجد عمليات سن صفائح مسجلة حالياً</TableCell>
+                  </TableRow>
+                ) : (
+                  plateRecordsList.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell className="font-black text-slate-800">{r.plateName}</TableCell>
+                      <TableCell className="font-bold text-center text-slate-600">{r.quantity}</TableCell>
+                      <TableCell className="font-black text-left text-emerald-600">{r.cost.toLocaleString()}</TableCell>
+                      <TableCell className="text-slate-500 text-sm font-medium">{r.notes || '---'}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>
@@ -11178,7 +11504,6 @@ function MachineMaintenanceView({ records, safes, profile }: { records: MachineM
     maintenanceType: '', 
     cost: 0, 
     notes: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
     safeId: ''
   });
 
@@ -11219,16 +11544,13 @@ function MachineMaintenanceView({ records, safes, profile }: { records: MachineM
         maintenanceType: formData.maintenanceType,
         cost: formData.cost,
         notes: formData.notes,
-        date: new Date(formData.date).toISOString(),
         safeId: formData.safeId || null,
         safeTransactionId: safeTransactionId || null
       });
 
       await batch.commit();
       setShowAdd(false);
-      setFormData({ machineName: '', maintenanceType: '', cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
-    } catch (err) { handleFirestoreError(err, 'write', 'machineMaintenance'); }
-  };
+  } catch (err) { console.error(err); } };
 
   return (
     <div className="space-y-8">
@@ -11326,6 +11648,7 @@ function MachineMaintenanceView({ records, safes, profile }: { records: MachineM
 }
 
 function EmployeesView({ employees }: { employees: Employee[] }) {
+  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
   const [showAdd, setShowAdd] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -11339,13 +11662,11 @@ function EmployeesView({ employees }: { employees: Employee[] }) {
     payMethod: 'daily' as 'daily' | 'production',
     pieceRate: 0,
     phone: '',
-    hireDate: format(new Date(), 'yyyy-MM-dd'),
     status: 'نشط' as const,
     shiftStart: '08:00',
     shiftEnd: '18:00'
   });
 
-  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
 
   const filteredEmployees = employees.filter(e => {
     const matchesDept = selectedDept === 'الكل' || e.department === selectedDept;
@@ -11369,9 +11690,7 @@ function EmployeesView({ employees }: { employees: Employee[] }) {
     try {
       await addDoc(collection(db, 'employees'), formData);
       setShowAdd(false);
-      setFormData({ name: '', position: '', department: '', dailyRate: 0, payMethod: 'daily', pieceRate: 0, phone: '', hireDate: format(new Date(), 'yyyy-MM-dd'), status: 'نشط', shiftStart: '08:00', shiftEnd: '18:00' });
-    } catch (err) { handleFirestoreError(err, 'write', 'employees'); }
-  };
+    } catch (err) { console.error(err); } };
 
   const handleUpdate = async () => {
     if (!editingEmployee) return;
@@ -11379,16 +11698,14 @@ function EmployeesView({ employees }: { employees: Employee[] }) {
       const { id, ...data } = editingEmployee;
       await updateDoc(doc(db, 'employees', id), data);
       setEditingEmployee(null);
-    } catch (err) { handleFirestoreError(err, 'update', 'employees'); }
-  };
+    } catch (err) { console.error(err); } };
 
   const handleDelete = async () => {
     if (!deletingId) return;
     try {
       await deleteDoc(doc(db, 'employees', deletingId));
       setDeletingId(null);
-    } catch (err) { handleFirestoreError(err, 'delete', 'employees'); }
-  };
+  } catch (err) { console.error(err); } };
 
   return (
     <div className="space-y-8">
@@ -11477,7 +11794,6 @@ function EmployeesView({ employees }: { employees: Employee[] }) {
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">تاريخ التعيين</span>
-                    <span className="font-bold text-slate-500 text-xs">{emp.hireDate}</span>
                   </div>
                   <div className="flex flex-col items-end">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">مواعيد العمل</span>
@@ -11609,7 +11925,6 @@ function EmployeesView({ employees }: { employees: Employee[] }) {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">تاريخ التعيين</label>
-                <Input type="date" className="rounded-xl h-11" value={editingEmployee.hireDate} onChange={e => setEditingEmployee({...editingEmployee, hireDate: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -11714,518 +12029,8 @@ function HRWorkflowGuide({ activeTab, onTabChange }: { activeTab: string, onTabC
   );
 }
 
-function AttendanceView({ employees }: { employees: Employee[] }) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [selectedDept, setSelectedDept] = useState<string>('الكل');
-  const [todayDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [formData, setFormData] = useState({
-    employeeId: '',
-    date: todayDate,
-    checkIn: '08:00',
-    checkOut: '18:00',
-    status: 'حضور' as const
-  });
-
-  // Pagination Engine for History
-  const [attendanceHistory, setAttendanceHistory] = useState<Attendance[]>([]);
-  const [lastVisible, setLastVisible] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-
-  // Today's attendance specific state
-  const [todayAttendance, setTodayAttendance] = useState<Attendance[]>([]);
-
-  // Fetch today's attendance accurately without pagination
-  const fetchTodayAttendance = async () => {
-    try {
-      const q = query(collection(db, 'attendance'), where('date', '==', todayDate));
-      const snap = await getDocs(q);
-      setTodayAttendance(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance)));
-    } catch (err) { handleFirestoreError(err, 'list', 'attendance'); }
-  };
-
-  const fetchAttendanceHistory = async (isInitial = false) => {
-    if (loading) return;
-    if (!isInitial && !hasMore) return;
-    setLoading(true);
-
-    try {
-      let q = query(
-        collection(db, 'attendance'), 
-        orderBy('date', 'desc'),
-        limit(50)
-      );
-
-      if (!isInitial && lastVisible) {
-        q = query(q, startAfter(lastVisible));
-      }
-
-      const snap = await getDocs(q);
-      const newDocs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance));
-      
-      if (snap.docs.length < 50) setHasMore(false);
-      setLastVisible(snap.docs[snap.docs.length - 1]);
-      
-      if (isInitial) {
-        setAttendanceHistory(newDocs);
-      } else {
-        setAttendanceHistory(prev => [...prev, ...newDocs]);
-      }
-    } catch (err) {
-      handleFirestoreError(err, 'list', 'attendance');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    fetchTodayAttendance();
-    fetchAttendanceHistory(true);
-  }, []);
-
-  const employeeStatus = employees.map(emp => {
-    const att = todayAttendance.find(a => a.employeeId === emp.id);
-    return { ...emp, attendance: att };
-  });
-
-  const missingAttendance = employeeStatus.filter(e => !e.attendance);
-  const presentCount = employeeStatus.filter(e => e.attendance?.status === 'حضور' || e.attendance?.status === 'تأخير').length;
-  const absentCount = employeeStatus.filter(e => e.attendance?.status === 'غياب').length;
-
-  const quickMarkAllPresent = async () => {
-    const batch = writeBatch(db);
-    missingAttendance.forEach(emp => {
-      const newRef = doc(collection(db, 'attendance'));
-      batch.set(newRef, {
-        employeeId: emp.id,
-        date: todayDate,
-        checkIn: '08:00',
-        checkOut: '18:00',
-        status: 'حضور'
-      });
-    });
-    await batch.commit();
-    // Refresh today's attendance
-    fetchTodayAttendance();
-  };
-
-  const handleAdd = async () => {
-    if (!formData.employeeId || !formData.date) return;
-    try {
-      let finalStatus = formData.status;
-      if (formData.status === 'حضور' || formData.status === 'تأخير') {
-        const [hours, minutes] = formData.checkIn.split(':').map(Number);
-        const checkInTime = hours * 60 + minutes;
-        const officialTime = 8 * 60; // 08:00
-        const gracePeriod = 15;
-        
-        if (checkInTime > officialTime + gracePeriod) {
-          finalStatus = 'تأخير';
-        } else {
-          finalStatus = 'حضور';
-        }
-      }
-
-      const newRef = await addDoc(collection(db, 'attendance'), {
-        ...formData,
-        status: finalStatus
-      });
-      
-      setShowAdd(false);
-      setFormData({
-        employeeId: '',
-        date: format(new Date(), 'yyyy-MM-dd'),
-        checkIn: '08:00',
-        checkOut: '18:00',
-        status: 'حضور'
-      });
-      
-      if (formData.date === todayDate) fetchTodayAttendance();
-      fetchAttendanceHistory(true);
-    } catch (err) { handleFirestoreError(err, 'write', 'attendance'); }
-  };
-
-  const handleUpdate = async () => {
-    if (!editingAttendance) return;
-    try {
-      let finalStatus = editingAttendance.status;
-      if (editingAttendance.status === 'حضور' || editingAttendance.status === 'تأخير') {
-        const [hours, minutes] = editingAttendance.checkIn.split(':').map(Number);
-        const checkInTime = hours * 60 + minutes;
-        const officialTime = 8 * 60;
-        const gracePeriod = 15;
-        finalStatus = checkInTime > officialTime + gracePeriod ? 'تأخير' : 'حضور';
-      }
-      const { id, ...data } = editingAttendance;
-      await updateDoc(doc(db, 'attendance', id), { ...data, status: finalStatus });
-      setEditingAttendance(null);
-      
-      if (editingAttendance.date === todayDate) fetchTodayAttendance();
-      
-      // Update local history directly to avoid full refetch
-      setAttendanceHistory(prev => prev.map(a => a.id === id ? { ...editingAttendance, status: finalStatus } as Attendance : a));
-    } catch (err) { handleFirestoreError(err, 'update', 'attendance'); }
-  };
-
-  const handleDelete = async () => {
-    if (!deletingId) return;
-    try {
-      const att = attendanceHistory.find(a => a.id === deletingId) || todayAttendance.find(a => a.id === deletingId);
-      await deleteDoc(doc(db, 'attendance', deletingId));
-      setDeletingId(null);
-      
-      if (att?.date === todayDate) fetchTodayAttendance();
-      setAttendanceHistory(prev => prev.filter(a => a.id !== deletingId));
-    } catch (err) { handleFirestoreError(err, 'delete', 'attendance'); }
-  };
-
-  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
-
-  const filteredHistory = selectedDept === 'الكل'
-    ? attendanceHistory
-    : attendanceHistory.filter(att => {
-        const emp = employees.find(e => e.id === att.employeeId);
-        return emp?.department === selectedDept;
-      });
-
-  const filteredEmployeeStatus = selectedDept === 'الكل' ? employeeStatus : employeeStatus.filter(e => e.department === selectedDept);
-
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">الحضور والانصراف</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">المواعيد الرسمية: 08:00 ص - 06:00 م (فترة سماح 15 دقيقة)</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select 
-            className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm"
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
-          >
-            {departments.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
-          </select>
-          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-4 md:px-6 font-black rounded-2xl shadow-lg shadow-primary/20">
-            <Plus size={20} className="ml-2" />
-            <span className="hidden md:inline">تسجيل حركه</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Overview Cards for Today */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="dribbble-card bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none shadow-xl shadow-blue-500/20">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div className="space-y-2">
-                <p className="text-blue-100 font-bold text-sm tracking-wide">غياب اليوم</p>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="text-4xl font-black">{absentCount}</h3>
-                  <span className="text-blue-100 text-sm">موظف</span>
-                </div>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Clock className="text-white" size={24} />
-              </div>
-            </div>
-            {missingAttendance.length > 0 && (
-              <Button 
-                onClick={quickMarkAllPresent}
-                variant="ghost" 
-                className="w-full mt-6 bg-white/10 hover:bg-white/20 border-white/20 text-white font-bold h-10"
-              >
-                تسجيل حضور للكل ({missingAttendance.length})
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Similar cards logic below */}
-        <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40">
-           <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div className="space-y-2">
-                <p className="text-slate-500 font-bold text-sm tracking-wide">حضور اليوم</p>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="text-4xl font-black text-slate-900">{presentCount}</h3>
-                  <span className="text-slate-400 text-sm">موظف</span>
-                </div>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center">
-                <CheckCircle2 className="text-green-500" size={24} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-4">
-          <h3 className="font-black text-xl text-slate-900 mb-4 flex items-center gap-2">
-            <Calendar size={20} className="text-primary" />
-            حالة اليوم ({todayDate})
-          </h3>
-          <div className="bg-white rounded-3xl p-4 shadow-xl shadow-slate-200/40 border border-slate-100 divide-y divide-slate-50">
-            {filteredEmployeeStatus.map(emp => (
-              <div key={emp.id} className="py-4 first:pt-2 last:pb-2 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm">
-                    {emp.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-black text-sm text-slate-900">{emp.name}</p>
-                    <p className="text-xs font-bold text-slate-400 mt-0.5">{emp.position}</p>
-                  </div>
-                </div>
-                {emp.attendance ? (
-                  <Badge className={`border-none font-bold ${
-                    emp.attendance.status === 'حضور' ? 'bg-green-50 text-green-700' :
-                    emp.attendance.status === 'تأخير' ? 'bg-orange-50 text-orange-700' :
-                    'bg-red-50 text-red-700'
-                  }`}>
-                    {emp.attendance.status}
-                  </Badge>
-                ) : (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 text-primary font-bold bg-primary/5 hover:bg-primary/10"
-                    onClick={() => {
-                      setFormData({ ...formData, employeeId: emp.id, date: todayDate });
-                      setShowAdd(true);
-                    }}
-                  >
-                    تسجيل
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="lg:col-span-2 space-y-4">
-          <h3 className="font-black text-xl text-slate-900 mb-4 flex items-center gap-2">
-            <Clock size={20} className="text-primary" />
-            سجل الحركات (السابق)
-          </h3>
-          <Card className="dribbble-card overflow-hidden border-none shadow-xl shadow-slate-200/40">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-slate-50/80 backdrop-blur-sm">
-                  <TableRow className="border-b-0">
-                    <TableHead className="text-right font-black text-slate-900 py-4">التاريخ</TableHead>
-                    <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
-                    <TableHead className="text-right font-black text-slate-900">حضور</TableHead>
-                    <TableHead className="text-right font-black text-slate-900">انصراف</TableHead>
-                    <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
-                    <TableHead className="text-left font-black text-slate-900">تفاصيل</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredHistory.map((record) => {
-                    const emp = employees.find(e => e.id === record.employeeId);
-                    return (
-                      <TableRow key={record.id} className="group hover:bg-slate-50 border-b border-slate-50/50">
-                         <TableCell className="font-bold text-slate-600">{record.date}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                              <Users size={14} className="text-slate-400" />
-                            </div>
-                            <div>
-                              <p className="font-black text-sm text-slate-900">{emp?.name}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-bold text-slate-500">{record.checkIn || '-'}</TableCell>
-                        <TableCell className="font-bold text-slate-500">{record.checkOut || '-'}</TableCell>
-                        <TableCell>
-                          <Badge className={`border-none font-bold ${
-                            record.status === 'حضور' ? 'bg-green-50 text-green-700' :
-                            record.status === 'تأخير' ? 'bg-orange-50 text-orange-700' :
-                            record.status === 'إجازة' ? 'bg-blue-50 text-blue-700' :
-                            'bg-red-50 text-red-700'
-                          }`}>
-                            {record.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="sm" onClick={() => setEditingAttendance(record)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 rounded-lg">
-                              <Edit2 size={14} />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setDeletingId(record.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg">
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  {filteredHistory.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-bold">لا يوجد حركات مسجلة</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            {hasMore && (
-              <div className="p-4 flex justify-center bg-slate-50 border-t border-slate-100">
-                 <Button 
-                    className="btn-secondary px-8 font-black rounded-xl h-10 text-sm"
-                    onClick={() => fetchAttendanceHistory()}
-                    disabled={loading}
-                  >
-                    {loading ? 'جاري التحميل...' : 'عرض المزيد...'}
-                  </Button>
-              </div>
-            )}
-          </Card>
-        </div>
-      </div>
-
-       {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="dribbble-card w-full max-w-lg overflow-hidden border-none">
-            <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-6">
-              <CardTitle className="font-black text-2xl flex items-center gap-2">
-                <Plus size={24} className="text-primary" />
-                تسجيل حركة
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">الموظف</label>
-                <select 
-                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
-                  value={formData.employeeId} 
-                  onChange={e => setFormData({...formData, employeeId: e.target.value})}
-                >
-                  <option value="">-- اختر --</option>
-                  {employees.filter(e => e.status === 'نشط').map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                  <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">الحالة</label>
-                  <select 
-                    className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
-                    value={formData.status} 
-                    onChange={e => setFormData({...formData, status: e.target.value as any})}
-                  >
-                    <option value="حضور">حضور</option>
-                    <option value="غياب">غياب</option>
-                    <option value="إجازة">إجازة</option>
-                  </select>
-                </div>
-              </div>
-              {formData.status !== 'غياب' && formData.status !== 'إجازة' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">وقت الحضور</label>
-                    <Input type="time" value={formData.checkIn} onChange={e => setFormData({...formData, checkIn: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">وقت الانصراف</label>
-                    <Input type="time" value={formData.checkOut} onChange={e => setFormData({...formData, checkOut: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-end gap-3 p-6 bg-slate-50/50 border-t border-slate-100">
-              <Button variant="ghost" onClick={() => setShowAdd(false)} className="rounded-xl font-bold">إلغاء</Button>
-              <Button onClick={handleAdd} className="btn-primary rounded-xl px-8 font-black">تسجيل</Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
-
-      {editingAttendance && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="dribbble-card w-full max-w-lg overflow-hidden border-none">
-            <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-6">
-              <CardTitle className="font-black text-2xl flex items-center gap-2">
-                <Edit2 size={24} className="text-blue-500" />
-                تعديل السجل
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                  <Input type="date" value={editingAttendance.date} onChange={e => setEditingAttendance({...editingAttendance, date: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" disabled />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">الحالة</label>
-                  <select 
-                    className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
-                    value={editingAttendance.status} 
-                    onChange={e => setEditingAttendance({...editingAttendance, status: e.target.value as any})}
-                  >
-                    <option value="حضور">حضور</option>
-                    <option value="تأخير">تأخير</option>
-                    <option value="غياب">غياب</option>
-                    <option value="إجازة">إجازة</option>
-                  </select>
-                </div>
-              </div>
-              {editingAttendance.status !== 'غياب' && editingAttendance.status !== 'إجازة' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">وقت الحضور</label>
-                    <Input type="time" value={editingAttendance.checkIn} onChange={e => setEditingAttendance({...editingAttendance, checkIn: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">وقت الانصراف</label>
-                    <Input type="time" value={editingAttendance.checkOut} onChange={e => setEditingAttendance({...editingAttendance, checkOut: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-end gap-3 p-6 bg-slate-50/50 border-t border-slate-100">
-              <Button variant="ghost" onClick={() => setEditingAttendance(null)} className="rounded-xl font-bold">إلغاء</Button>
-              <Button onClick={handleUpdate} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 font-black">حفظ التغييرات</Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
-
-      {deletingId && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="dribbble-card w-full max-w-sm overflow-hidden border-none">
-            <CardHeader className="bg-red-50/50 border-b border-red-100/50 pb-6 text-center">
-              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 size={32} />
-              </div>
-              <CardTitle className="font-black text-2xl text-red-700">حذف السجل</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 text-center">
-              <p className="font-bold text-slate-600">هل أنت متأكد من حذف هذا السجل المؤرشف؟ لا يمكن التراجع.</p>
-            </CardContent>
-            <CardFooter className="flex justify-center gap-3 p-6 pt-0">
-              <Button variant="ghost" className="rounded-xl font-bold px-6" onClick={() => setDeletingId(null)}>إلغاء</Button>
-              <Button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-8 font-black">نعم، احذف</Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
 function LoansView({ employees }: { employees: Employee[] }) {
+  const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
   const [showAdd, setShowAdd] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -12239,7 +12044,6 @@ function LoansView({ employees }: { employees: Employee[] }) {
 
   const [formData, setFormData] = useState({
     employeeId: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
     amount: 0,
     installments: 0,
     paidAlready: 0,
@@ -12275,7 +12079,6 @@ function LoansView({ employees }: { employees: Employee[] }) {
         setLoans(prev => [...prev, ...newDocs]);
       }
     } catch (err) {
-      handleFirestoreError(err, 'list', 'loans');
     } finally {
       setLoading(false);
     }
@@ -12297,7 +12100,6 @@ function LoansView({ employees }: { employees: Employee[] }) {
       setShowAdd(false);
       setFormData({
         employeeId: '',
-        date: format(new Date(), 'yyyy-MM-dd'),
         amount: 0,
         installments: 0,
         paidAlready: 0,
@@ -12305,16 +12107,14 @@ function LoansView({ employees }: { employees: Employee[] }) {
         status: 'نشط'
       });
       fetchLoans(true);
-    } catch (err) { handleFirestoreError(err, 'write', 'loans'); }
-  };
+  } catch (err) { console.error(err); } };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'loans', id));
       setShowDeleteConfirm(null);
       setLoans(prev => prev.filter(l => l.id !== id));
-    } catch (err) { handleFirestoreError(err, 'delete', 'loans'); }
-  };
+  } catch (err) { console.error(err); } };
 
   const handleUpdate = async () => {
     if (!editingLoan) return;
@@ -12331,10 +12131,8 @@ function LoansView({ employees }: { employees: Employee[] }) {
       await updateDoc(doc(db, 'loans', id), updatedData);
       setEditingLoan(null);
       setLoans(prev => prev.map(l => l.id === id ? { ...l, ...updatedData, id } as Loan : l));
-    } catch (err) { handleFirestoreError(err, 'update', 'loans'); }
-  };
+  } catch (err) { console.error(err); } };
 
-  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
 
   const filteredLoans = selectedDept === 'الكل'
     ? loans
@@ -12589,7 +12387,9 @@ function LoansView({ employees }: { employees: Employee[] }) {
 }
 
 
+// Duplicate HRTransactionsView block removed
 function HRTransactionsView({ employees, transactions }: { employees: Employee[], transactions: FinancialTransaction[] }) {
+  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
   const [showAdd, setShowAdd] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<FinancialTransaction | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -12628,14 +12428,15 @@ function HRTransactionsView({ employees, transactions }: { employees: Employee[]
       setShowAdd(false);
       setFormData({
         employeeId: '',
-        date: format(new Date(), 'yyyy-MM-dd'),
         type: 'مكافأة',
         amount: 0,
         description: '',
         overtimeHours: 0,
         overtimeRate: 1.5
       });
-    } catch (err) { handleFirestoreError(err, 'write', 'hrTransactions'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleUpdate = async () => {
@@ -12657,7 +12458,9 @@ function HRTransactionsView({ employees, transactions }: { employees: Employee[]
       const { id, ...data } = finalData;
       await updateDoc(doc(db, 'hrTransactions', id), data);
       setEditingTransaction(null);
-    } catch (err) { handleFirestoreError(err, 'update', 'hrTransactions'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleDelete = async () => {
@@ -12665,10 +12468,11 @@ function HRTransactionsView({ employees, transactions }: { employees: Employee[]
     try {
       await deleteDoc(doc(db, 'hrTransactions', deletingId));
       setDeletingId(null);
-    } catch (err) { handleFirestoreError(err, 'delete', 'hrTransactions'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
 
   const filteredTransactions = selectedDept === 'الكل'
     ? transactions
@@ -12715,7 +12519,7 @@ function HRTransactionsView({ employees, transactions }: { employees: Employee[]
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTransactions.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(tr => (
+            {filteredTransactions.map(tr => (
               <TableRow key={tr.id} className="hover:bg-slate-50/50 transition-colors">
                 <TableCell className="font-bold text-slate-500">{tr.date}</TableCell>
                 <TableCell className="font-black text-slate-900">{employees.find(e => e.id === tr.employeeId)?.name}</TableCell>
@@ -12916,11 +12720,8 @@ function HRTransactionsView({ employees, transactions }: { employees: Employee[]
 function ProductionView({ employees, productionRecords }: { employees: Employee[], productionRecords: ProductionRecord[] }) {
   const [showAdd, setShowAdd] = useState(false);
   const [entryEmployeeId, setEntryEmployeeId] = useState('');
-  const [entryDate, setEntryDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [items, setItems] = useState([{ id: Math.random().toString(36).substr(2, 9), itemName: '', quantity: 0, rate: 0 }]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStartDate, setFilterStartDate] = useState('');
-  const [filterEndDate, setFilterEndDate] = useState('');
 
   const productionEmployees = employees.filter(e => e.payMethod === 'production');
 
@@ -12933,9 +12734,6 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
       return false;
     }
     
-    // Date range
-    if (filterStartDate && r.date < filterStartDate) return false;
-    if (filterEndDate && r.date > filterEndDate) return false;
     
     return true;
   });
@@ -12972,7 +12770,6 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
         const docRef = doc(collection(db, 'productionRecords'));
         batch.set(docRef, {
           employeeId: entryEmployeeId,
-          date: entryDate,
           itemName: item.itemName,
           quantity: item.quantity,
           rate: item.rate,
@@ -12985,14 +12782,12 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
       setShowAdd(false);
       setItems([{ id: Math.random().toString(36).substr(2, 9), itemName: '', quantity: 0, rate: 0 }]);
       setEntryEmployeeId('');
-    } catch (err) { handleFirestoreError(err, 'write', 'productionRecords'); }
-  };
+  } catch (err) { console.error(err); } };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'productionRecords', id));
-    } catch (err) { handleFirestoreError(err, 'delete', 'productionRecords'); }
-  };
+  } catch (err) { console.error(err); } };
 
   return (
     <div className="space-y-8">
@@ -13013,9 +12808,7 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
           </div>
           <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-2xl border border-slate-200 h-10 md:h-12">
             <span className="text-[10px] font-bold text-slate-400 uppercase">من:</span>
-            <input type="date" className="border-none p-0 text-sm font-bold focus:ring-0" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} />
             <span className="text-[10px] font-bold text-slate-400 uppercase">إلى:</span>
-            <input type="date" className="border-none p-0 text-sm font-bold focus:ring-0" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} />
           </div>
           <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8">
             <Plus size={18} className="ml-2" />
@@ -13094,7 +12887,6 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                  <Input type="date" className="rounded-xl h-11" value={entryDate} onChange={e => setEntryDate(e.target.value)} />
                 </div>
               </div>
 
@@ -13188,18 +12980,32 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
   );
 }
 
-function PayrollView({ employees, attendance, transactions, loans, payrolls, productionRecords, companyInfo, safes }: { employees: Employee[], attendance: Attendance[], transactions: FinancialTransaction[], loans: Loan[], payrolls: Payroll[], productionRecords: ProductionRecord[], companyInfo: CompanySettings, safes: Safe[] }) {
+function PayrollView({
+  employees,
+  attendance,
+  transactions,
+  loans,
+  payrolls,
+  productionRecords,
+  safes,
+  companyInfo
+}: {
+  employees: Employee[],
+  attendance: Attendance[],
+  transactions: FinancialTransaction[],
+  loans: Loan[],
+  payrolls: Payroll[],
+  productionRecords: ProductionRecord[],
+  safes: Safe[],
+  companyInfo: CompanySettings
+}) {
+  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
   const [showGenerate, setShowGenerate] = useState(false);
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStartDate, setFilterStartDate] = useState('');
-  const [filterEndDate, setFilterEndDate] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [genData, setGenData] = useState({
-    startDate: format(new Date(), 'yyyy-MM-dd'),
-    endDate: format(new Date(), 'yyyy-MM-dd'),
     weekNumber: 1,
-    year: new Date().getFullYear()
   });
 
   const handleGenerate = async () => {
@@ -13211,7 +13017,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
         body: JSON.stringify({ employees, attendance, transactions, loans, productionRecords, genData })
       });
 
-      if (!response.ok) throw new Error('Failed to generate payrolls from backend');
       const { processedPayrolls } = await response.json();
 
       let batch = writeBatch(db);
@@ -13229,8 +13034,7 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
       }
       await batch.commit();
       setShowGenerate(false);
-    } catch (err) { handleFirestoreError(err, 'write', 'payrolls'); } finally { setIsImporting(false); }
-  };
+  } catch (err) { console.error(err); } };
 
   const applyLoanDeductionsToBatch = (payroll: Payroll, batch: any) => {
     if (payroll.totalLoans <= 0) return;
@@ -13276,7 +13080,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
           const safeTxRef = doc(collection(db, 'safeTransactions'));
           batch.set(safeTxRef, {
             safeId: selectedArchiveSafe,
-            date: format(new Date(), 'yyyy-MM-dd'),
             type: 'رواتب',
             amount: livePayroll.netSalary,
             description: `دفع راتب أسبوع ${livePayroll.weekNumber} / ${livePayroll.year} - الموظف: ${employees.find(e=>e.id === livePayroll.employeeId)?.name}`,
@@ -13289,7 +13092,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
           batch.update(doc(db, 'payrolls', archiveConfig.id), {
             ...updateData,
             status: 'مدفوع',
-            paymentDate: format(new Date(), 'yyyy-MM-dd')
           });
           await batch.commit();
         }
@@ -13315,7 +13117,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
             batch.update(doc(db, 'payrolls', id), {
               ...updateData,
               status: 'مدفوع',
-              paymentDate: format(new Date(), 'yyyy-MM-dd')
             });
           }
           
@@ -13323,7 +13124,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
             const batchSafeTxRef = doc(collection(db, 'safeTransactions'));
             batch.set(batchSafeTxRef, {
               safeId: selectedArchiveSafe,
-              date: format(new Date(), 'yyyy-MM-dd'),
               type: 'رواتب',
               amount: totalNet,
               description: `دفع رواتب دورية مجمعة (عدد ${draftPayrolls.length} موظف)`
@@ -13336,8 +13136,7 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
           await batch.commit();
       }
       setArchiveConfig({ ...archiveConfig, open: false });
-    } catch (err) { handleFirestoreError(err, 'write', 'payrolls'); }
-  };
+  } catch (err) { console.error(err); } };
 
   const draftPayrolls = payrolls.filter(p => p.status === 'مسودة');
   const totalWeekly = draftPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
@@ -13353,16 +13152,14 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
       const netSalary = (data.baseSalary || 0) + (data.totalBonuses || 0) + (data.totalOvertime || 0) - (data.totalDeductions || 0) - (data.totalExpenses || 0) - (data.totalLoans || 0);
       await updateDoc(doc(db, 'payrolls', id), { ...data, netSalary });
       setEditingPayroll(null);
-    } catch (err) { handleFirestoreError(err, 'update', 'payrolls'); }
-  };
+  } catch (err) { console.error(err); } };
 
   const handleDeletePayroll = async () => {
     if (!deletingId) return;
     try {
       await deleteDoc(doc(db, 'payrolls', deletingId));
       setDeletingId(null);
-    } catch (err) { handleFirestoreError(err, 'delete', 'payrolls'); }
-  };
+  } catch (err) { console.error(err); } };
 
   const handlePrint = () => {
     window.print();
@@ -13380,7 +13177,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
 --------------------------
 *الاسم:* ${emp.name}
 *الأسبوع:* ${p.weekNumber} / ${p.year}
-*الفترة:* ${p.startDate} إلى ${p.endDate}
 --------------------------
 *أيام العمل:* ${(p.daysWorked || 0).toFixed(2)}
 *الأجر الأساسي:* ${p.baseSalary.toLocaleString()}
@@ -13399,16 +13195,12 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
     window.open(whatsappUrl, '_blank');
   };
 
-  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
 
   const filteredDraftPayrolls = draftPayrolls.filter(p => {
     const emp = employees.find(e => e.id === p.employeeId);
     const matchesDept = selectedDept === 'الكل' || emp?.department === selectedDept;
     const matchesSearch = emp?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDate = (!filterStartDate || p.startDate >= filterStartDate) && 
-                       (!filterEndDate || p.endDate <= filterEndDate);
-    
-    return matchesDept && matchesSearch && matchesDate;
+    return matchesDept && matchesSearch;
   });
 
   const getLivePayroll = (p: Payroll) => calculateLivePayroll(p, employees, attendance, transactions, loans, productionRecords);
@@ -13419,7 +13211,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
   const handleExportExcel = () => {
     const dataToExport = processedPayrolls.map(p => ({
       'الأسبوع': `أسبوع ${p.weekNumber}`,
-      'الفترة': `${p.startDate} - ${p.endDate}`,
       'اسم الموظف': employees.find(e => e.id === p.employeeId)?.name || 'غير معروف',
       'أيام العمل': p.daysWorked,
       'إجمالي الأجر الأساسي': p.baseSalary,
@@ -13436,7 +13227,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Payroll");
-    XLSX.writeFile(wb, `Payroll_Summary_${genData.startDate}_to_${genData.endDate}.xlsx`);
   };
 
   const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -13462,8 +13252,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
             employeeId: emp.id,
             weekNumber: genData.weekNumber,
             year: genData.year,
-            startDate: genData.startDate,
-            endDate: genData.endDate,
             dailyRate: Number(row['اليومية']) || emp.dailyRate,
             daysWorked: Number(row['أيام العمل']) || 0,
             baseSalary: Number(row['إجمالي اليوميات']) || 0,
@@ -13476,8 +13264,11 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
             payMethod: emp.payMethod || 'daily'
           });
         }
-      } catch (err) { handleFirestoreError(err, 'write', 'payrolls'); }
-      finally { setIsImporting(false); }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsImporting(false);
+      }
     };
     reader.readAsBinaryString(file);
   };
@@ -13501,9 +13292,7 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
           </div>
           <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-2xl border border-slate-200 h-10 md:h-12">
             <span className="text-[10px] font-bold text-slate-400 uppercase">من:</span>
-            <input type="date" className="border-none p-0 text-sm font-bold focus:ring-0" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} />
             <span className="text-[10px] font-bold text-slate-400 uppercase">إلى:</span>
-            <input type="date" className="border-none p-0 text-sm font-bold focus:ring-0" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} />
           </div>
           <select 
             className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm"
@@ -13590,7 +13379,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
                 <TableCell className="font-bold text-slate-500">
                   <div className="flex flex-col">
                     <span>أسبوع {p.weekNumber}</span>
-                    <span className="text-[10px] text-slate-400">{format(new Date(p.startDate), 'dd/MM/yyyy')} إلى {format(new Date(p.endDate), 'dd/MM/yyyy')}</span>
                   </div>
                 </TableCell>
                 <TableCell className="font-black text-slate-900">{employees.find(e => e.id === p.employeeId)?.name}</TableCell>
@@ -13605,17 +13393,21 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-bold text-blue-600">+{p.totalOvertime?.toLocaleString() || 0}</span>
-                    {transactions.filter(t => t.employeeId === p.employeeId && t.date >= p.startDate && t.date <= p.endDate && t.type === 'إضافي' && t.amount > 0).map((t, i) => (
-                      <span key={i} className="text-[9px] text-blue-400 font-medium truncate max-w-[100px]" title={t.description}>{t.description}</span>
-                    ))}
+                    {transactions
+                      .filter(t => t.employeeId === p.employeeId && t.date >= p.startDate && t.date <= p.endDate && (t.type === 'إضافي' || t.type === 'أوفرتايم'))
+                      .map((t, i) => (
+                        <span key={i} className="text-[9px] text-blue-400 font-medium truncate max-w-[100px]" title={t.description}>{t.description}</span>
+                      ))}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-bold text-green-600">+{p.totalBonuses.toLocaleString()}</span>
-                    {transactions.filter(t => t.employeeId === p.employeeId && t.date >= p.startDate && t.date <= p.endDate && (t.type === 'مكافأة' || t.type === 'بدل') && t.amount > 0).map((t, i) => (
-                      <span key={i} className="text-[9px] text-green-400 font-medium truncate max-w-[100px]" title={t.description}>{t.description}</span>
-                    ))}
+                    {transactions
+                      .filter(t => t.employeeId === p.employeeId && t.date >= p.startDate && t.date <= p.endDate && (t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل'))
+                      .map((t, i) => (
+                        <span key={i} className="text-[9px] text-green-400 font-medium truncate max-w-[100px]" title={t.description}>{t.description}</span>
+                      ))}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -13626,9 +13418,11 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-bold text-orange-600">-{p.totalExpenses?.toLocaleString() || 0}</span>
-                    {transactions.filter(t => t.employeeId === p.employeeId && t.date >= p.startDate && t.date <= p.endDate && t.type === 'مصروف' && t.amount > 0).map((t, i) => (
-                      <span key={i} className="text-[9px] text-orange-400 font-medium truncate max-w-[100px]" title={t.description}>{t.description}</span>
-                    ))}
+                    {transactions
+                      .filter(t => t.employeeId === p.employeeId && t.date >= p.startDate && t.date <= p.endDate && (t.type === 'مصروف' || t.type === 'سلفة' || t.type === 'عهدة'))
+                      .map((t, i) => (
+                        <span key={i} className="text-[9px] text-orange-400 font-medium truncate max-w-[100px]" title={t.description}>{t.description}</span>
+                      ))}
                   </div>
                 </TableCell>
                 <TableCell className="font-bold text-orange-600">-{p.totalLoans.toLocaleString()}</TableCell>
@@ -13690,8 +13484,6 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
                       const emp = employees.find(e => e.id === p.employeeId);
                       const bonusDetails = transactions.filter(t => 
                         t.employeeId === p.employeeId && 
-                        t.date >= p.startDate && 
-                        t.date <= p.endDate && 
                         (t.type === 'مكافأة' || t.type === 'بدل' || t.type === 'إضافي' || t.type === 'مصروف' || t.type === 'خصم سلف') &&
                         t.amount > 0
                       );
@@ -13919,11 +13711,9 @@ function PayrollView({ employees, attendance, transactions, loans, payrolls, pro
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">من تاريخ</label>
-                  <Input type="date" className="rounded-xl h-11" value={genData.startDate} onChange={e => setGenData({...genData, startDate: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">إلى تاريخ</label>
-                  <Input type="date" className="rounded-xl h-11" value={genData.endDate} onChange={e => setGenData({...genData, endDate: e.target.value})} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -13986,6 +13776,7 @@ function SalesModule(props: any) {
 }
 
 function ArchiveView({ employees, payrolls, transactions }: { employees: Employee[], payrolls: Payroll[], transactions: FinancialTransaction[] }) {
+  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
   const [editingPayroll, setEditingPayroll] = useState<Payroll | null>(null);
@@ -13995,7 +13786,6 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
   const archivedPayrolls = payrolls.filter(p => p.status === 'مدفوع');
   const totalArchived = archivedPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
 
-  const departments = ['الكل', ...Array.from(new Set(employees.map(e => e.department).filter(Boolean))) as string[]];
   
   const filtered = archivedPayrolls.filter(p => {
     const emp = employees.find(e => e.id === p.employeeId);
@@ -14012,7 +13802,9 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
       const netSalary = (data.baseSalary || 0) + (data.totalBonuses || 0) + (data.totalOvertime || 0) - (data.totalDeductions || 0) - (data.totalExpenses || 0) - (data.totalLoans || 0);
       await updateDoc(doc(db, 'payrolls', id), { ...data, netSalary });
       setEditingPayroll(null);
-    } catch (err) { handleFirestoreError(err, 'update', 'payrolls'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleDeletePayroll = async () => {
@@ -14020,14 +13812,14 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
     try {
       await deleteDoc(doc(db, 'payrolls', deletingId));
       setDeletingId(null);
-    } catch (err) { handleFirestoreError(err, 'delete', 'payrolls'); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleExportExcel = () => {
     const dataToExport = filtered.map(p => ({
       'الأسبوع': `أسبوع ${p.weekNumber}`,
-      'الفترة': `${p.startDate} - ${p.endDate}`,
-      'التاريخ': p.paymentDate || 'غير محدد',
       'اسم الموظف': employees.find(e => e.id === p.employeeId)?.name || 'غير معروف',
       'اليومية': p.dailyRate,
       'أيام العمل': p.daysWorked,
@@ -14044,7 +13836,6 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Archived_Payroll");
-    XLSX.writeFile(wb, `Archived_Payroll_${new Date().toLocaleDateString()}.xlsx`);
   };
 
   return (
@@ -14117,9 +13908,7 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
                       <span className="text-xs font-bold text-slate-400">{emp?.position}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="font-bold text-slate-500">{p.paymentDate ? format(new Date(p.paymentDate), 'dd/MM/yyyy') : '-'}</TableCell>
                   <TableCell className="font-bold text-slate-600">
-                    {format(new Date(p.startDate), 'dd/MM/yyyy')} إلى {format(new Date(p.endDate), 'dd/MM/yyyy')}
                   </TableCell>
                   <TableCell className="font-bold text-green-600">+{p.totalBonuses.toLocaleString()}</TableCell>
                   <TableCell className="font-bold text-blue-600">+{p.totalOvertime.toLocaleString()}</TableCell>
@@ -14209,24 +13998,28 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
                     <span className="font-bold text-green-700">مكافآت وبدلات</span>
                     <span className="font-black text-green-700">+{selectedPayroll.totalBonuses.toLocaleString()} ج.م</span>
                   </div>
-                  {transactions.filter(t => t.employeeId === selectedPayroll.employeeId && t.date >= selectedPayroll.startDate && t.date <= selectedPayroll.endDate && (t.type === 'مكافأة' || t.type === 'بدل') && t.amount > 0).map((t, i) => (
-                    <div key={i} className="flex justify-between text-[10px] font-bold text-green-600 border-t border-green-100 pt-1">
-                      <span>{t.description || 'بدون وصف'}</span>
-                      <span>{t.amount.toLocaleString()}</span>
-                    </div>
-                  ))}
+                  {transactions
+                    .filter(t => t.employeeId === selectedPayroll.employeeId && t.date >= selectedPayroll.startDate && t.date <= selectedPayroll.endDate && (t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل'))
+                    .map((t, i) => (
+                      <div key={i} className="flex justify-between text-[10px] font-bold text-green-600 border-t border-green-100 pt-1">
+                        <span>{t.description || 'بدون وصف'}</span>
+                        <span>{t.amount.toLocaleString()}</span>
+                      </div>
+                    ))}
                 </div>
                 <div className="flex flex-col gap-2 p-3 bg-blue-50 rounded-xl">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-blue-700">وقت إضافي</span>
                     <span className="font-black text-blue-700">+{selectedPayroll.totalOvertime.toLocaleString()} ج.م</span>
                   </div>
-                  {transactions.filter(t => t.employeeId === selectedPayroll.employeeId && t.date >= selectedPayroll.startDate && t.date <= selectedPayroll.endDate && t.type === 'إضافي' && t.amount > 0).map((t, i) => (
-                    <div key={i} className="flex justify-between text-[10px] font-bold text-blue-600 border-t border-blue-100 pt-1">
-                      <span>{t.description || 'بدون وصف'}</span>
-                      <span>{t.amount.toLocaleString()}</span>
-                    </div>
-                  ))}
+                  {transactions
+                    .filter(t => t.employeeId === selectedPayroll.employeeId && t.date >= selectedPayroll.startDate && t.date <= selectedPayroll.endDate && (t.type === 'إضافي' || t.type === 'أوفرتايم'))
+                    .map((t, i) => (
+                      <div key={i} className="flex justify-between text-[10px] font-bold text-blue-600 border-t border-blue-100 pt-1">
+                        <span>{t.description || 'بدون وصف'}</span>
+                        <span>{t.amount.toLocaleString()}</span>
+                      </div>
+                    ))}
                 </div>
                 <div className="flex flex-col gap-2 p-3 bg-red-50 rounded-xl">
                   <div className="flex justify-between items-center">
@@ -14239,12 +14032,14 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
                     <span className="font-bold text-orange-700">مصاريف شخصية</span>
                     <span className="font-black text-orange-700">-{selectedPayroll.totalExpenses?.toLocaleString() || 0} ج.م</span>
                   </div>
-                  {transactions.filter(t => t.employeeId === selectedPayroll.employeeId && t.date >= selectedPayroll.startDate && t.date <= selectedPayroll.endDate && t.type === 'مصروف' && t.amount > 0).map((t, i) => (
-                    <div key={i} className="flex justify-between text-[10px] font-bold text-orange-600 border-t border-orange-200 pt-1">
-                      <span>{t.description || 'بدون وصف'}</span>
-                      <span>{t.amount.toLocaleString()}</span>
-                    </div>
-                  ))}
+                  {transactions
+                    .filter(t => t.employeeId === selectedPayroll.employeeId && t.date >= selectedPayroll.startDate && t.date <= selectedPayroll.endDate && (t.type === 'مصروف' || t.type === 'سلفة' || t.type === 'عهدة'))
+                    .map((t, i) => (
+                      <div key={i} className="flex justify-between text-[10px] font-bold text-orange-600 border-t border-orange-200 pt-1">
+                        <span>{t.description || 'بدون وصف'}</span>
+                        <span>{t.amount.toLocaleString()}</span>
+                      </div>
+                    ))}
                 </div>
                 <div className="flex justify-between items-center p-3 bg-orange-50 rounded-xl">
                   <span className="font-bold text-orange-700">سداد سلف</span>
@@ -14324,15 +14119,15 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
   );
 }
 
-function SettingsView({ 
+function Settings({
+  settings,
+  setSettings,
+  handleSaveSettings,
   items, 
   suppliers, 
   warehouses, 
   units, 
   costCenters,
-  companySettings,
-  setCompanySettings,
-  handleSaveCompanySettings,
   showItemAdd,
   setShowItemAdd,
   showSupplierAdd,
@@ -14380,14 +14175,14 @@ function SettingsView({
   handleResetAllData,
   handleImportExcel
 }: { 
+  settings: CompanySettings,
+  setSettings: (v: CompanySettings) => void,
+  handleSaveSettings: () => Promise<void>,
   items: Item[], 
   suppliers: Supplier[], 
   warehouses: Warehouse[], 
   units: Unit[], 
   costCenters: CostCenter[],
-  companySettings: CompanySettings,
-  setCompanySettings: (info: CompanySettings) => void,
-  handleSaveCompanySettings: () => Promise<void>,
   showItemAdd: boolean,
   setShowItemAdd: (v: boolean) => void,
   showSupplierAdd: boolean,
@@ -14435,7 +14230,7 @@ function SettingsView({
   handleResetAllData: () => Promise<void>,
   handleImportExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>
 }) {
-  const [activeSettingTab, setActiveSettingTab] = useState('general');
+  const [settingsTab, setSettingsTab] = useState<'general' | 'company' | 'baseData' | 'items' | 'suppliers' | 'about' | 'security'>('general');
 
   return (
     <div className="space-y-8">
@@ -14449,41 +14244,76 @@ function SettingsView({
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
         <div className="w-full md:w-64 shrink-0">
-           <div className="flex flex-col gap-2 sticky top-6">
-              <button onClick={() => setActiveSettingTab('general')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${activeSettingTab === 'general' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:bg-slate-100'}`}>
-                 <Settings size={18} />
-                 إعدادات عامة
-              </button>
-              <button onClick={() => setActiveSettingTab('company')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${activeSettingTab === 'company' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:bg-slate-100'}`}>
-                 <Building2 size={18} />
-                 بيانات الشركة
-              </button>
-              <button onClick={() => setActiveSettingTab('infrastructure')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${activeSettingTab === 'infrastructure' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:bg-slate-100'}`}>
-                 <Layers size={18} />
-                 البيانات الأساسية
-              </button>
-              <button onClick={() => setActiveSettingTab('items')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${activeSettingTab === 'items' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:bg-slate-100'}`}>
-                 <Package size={18} />
-                 إدارة الأصناف
-              </button>
-              <button onClick={() => setActiveSettingTab('suppliers')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${activeSettingTab === 'suppliers' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:bg-slate-100'}`}>
-                 <Users size={18} />
-                 إدارة الموردين
-              </button>
-              <button onClick={() => setActiveSettingTab('about')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${activeSettingTab === 'about' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:bg-slate-100'}`}>
-                 <Code size={18} />
-                 عن النظام
-              </button>
-              <button onClick={() => setActiveSettingTab('security')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${activeSettingTab === 'security' ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'text-red-500 hover:bg-red-50'}`}>
-                 <ShieldAlert size={18} />
-                 الأمان والبيانات
-              </button>
-           </div>
+          <div className="flex flex-col gap-2 sticky top-6">
+            <button
+              onClick={() => setSettingsTab('general')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
+                settingsTab === 'general' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Layers size={18} />
+              إعدادات عامة
+            </button>
+            <button
+              onClick={() => setSettingsTab('company')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
+                settingsTab === 'company' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Building2 size={18} />
+              بيانات الشركة
+            </button>
+            <button
+              onClick={() => setSettingsTab('baseData')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
+                settingsTab === 'baseData' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Layers size={18} />
+              البيانات الأساسية
+            </button>
+            <button
+              onClick={() => setSettingsTab('items')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
+                settingsTab === 'items' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Package size={18} />
+              إدارة الأصناف
+            </button>
+            <button
+              onClick={() => setSettingsTab('suppliers')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
+                settingsTab === 'suppliers' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Users size={18} />
+              إدارة الموردين
+            </button>
+            <button
+              onClick={() => setSettingsTab('about')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
+                settingsTab === 'about' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Code size={18} />
+              عن النظام
+            </button>
+            <button
+              onClick={() => setSettingsTab('security')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
+                settingsTab === 'security' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <ShieldAlert size={18} />
+              الأمان والبيانات
+            </button>
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          {activeSettingTab === 'general' && (
+            {settingsTab === 'general' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <Card className="dribbble-card border-none bg-slate-900 text-white overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent pointer-events-none" />
@@ -14497,297 +14327,34 @@ function SettingsView({
                 <CardContent>
                   <div className="flex flex-col gap-6">
                     <div className="relative group">
-                      <Input 
-                        type="file" 
-                        accept=".xlsx, .xls" 
-                        onChange={handleImportExcel} 
-                        className="bg-white/10 border-white/20 text-white h-14 rounded-2xl cursor-pointer file:bg-primary file:text-white file:border-none file:h-full file:px-6 file:ml-4 file:font-black hover:bg-white/15 transition-all"
+                      <input
+                        type="file"
+                        accept=".xlsx, .xls"
+                        onChange={handleImportExcel}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         disabled={isImporting}
                       />
-                    </div>
-                    {isImporting && (
-                      <div className="flex items-center gap-3 text-primary animate-pulse font-black bg-white/5 p-4 rounded-2xl border border-white/10">
-                        <div className="w-3 h-3 bg-primary rounded-full animate-bounce" />
-                        جاري معالجة البيانات واستيرادها...
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="text-xs text-slate-400 font-medium bg-white/5 p-4 rounded-2xl border border-white/10 flex items-start gap-3">
-                        <AlertCircle size={16} className="text-primary shrink-0" />
-                        <div>
-                          <p className="text-primary font-black mb-1">تنبيه الهيكل:</p>
-                          يجب أن يحتوي الملف على أعمدة: (الاسم، الوحدة، السعر، المخزن، رصيد أول، حد الأمان)
-                        </div>
-                      </div>
-                      <div className="text-xs text-slate-400 font-medium bg-white/5 p-4 rounded-2xl border border-white/10 flex items-start gap-3">
-                        <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                        <div>
-                          <p className="text-emerald-500 font-black mb-1">نصيحة:</p>
-                          تأكد من تعريف المخازن أولاً قبل عملية الاستيراد لضمان ربط الأصناف بشكل صحيح.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="dribbble-card border-none bg-white shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-xl font-black text-slate-900">إحصائيات النظام</CardTitle>
-                  <CardDescription className="font-medium">نظرة سريعة على حجم البيانات</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-                        <Package size={20} />
-                      </div>
-                      <span className="font-bold text-slate-600">الأصناف</span>
-                    </div>
-                    <span className="text-xl font-black text-slate-900">{items.length}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-                        <Users size={20} />
-                      </div>
-                      <span className="font-bold text-slate-600">الموردين</span>
-                    </div>
-                    <span className="text-xl font-black text-slate-900">{suppliers.length}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
-                        <Layers size={20} />
-                      </div>
-                      <span className="font-bold text-slate-600">المخازن</span>
-                    </div>
-                    <span className="text-xl font-black text-slate-900">{warehouses.length}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeSettingTab === 'about' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <Card className="dribbble-card border-none">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-black text-slate-900">عن النظام</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100">
-                    <h3 className="font-black text-xl text-blue-900 mb-2">تطوير النظام</h3>
-                    <p className="font-bold text-blue-700">تم تطوير هذا النظام بواسطة الديفيلوبر: <span className="text-blue-950 font-black">معاذ رمضان</span></p>
-                  </div>
-                  <div className="text-slate-500 font-medium">
-                    <p>هذا النظام مخصص لإدارة العمليات والإنتاج بكفاءة.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          
-          {activeSettingTab === 'company' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <Card className="dribbble-card border-none">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-black text-slate-900">بيانات الشركة</CardTitle>
-                  <CardDescription className="font-medium">إعدادات وبيانات الشركة التي تظهر في التقارير والفواتير</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">اسم الشركة</label>
-                    <Input className="rounded-xl h-12" value={companySettings.name} onChange={e => setCompanySettings({...companySettings, name: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">العنوان</label>
-                    <Input className="rounded-xl h-12" value={companySettings.address} onChange={e => setCompanySettings({...companySettings, address: e.target.value})} />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">رقم الهاتف</label>
-                      <Input className="rounded-xl h-12" value={companySettings.phone} onChange={e => setCompanySettings({...companySettings, phone: e.target.value})} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">الرقم الضريبي</label>
-                      <Input className="rounded-xl h-12" value={companySettings.taxId} onChange={e => setCompanySettings({...companySettings, taxId: e.target.value})} />
-                    </div>
-                  </div>
-                  <div className="flex justify-end pt-4">
-                    <Button onClick={handleSaveCompanySettings} className="btn-primary h-12 px-8 rounded-2xl font-black flex items-center gap-2">
-                      <Save size={18} />
-                      حفظ التغييرات
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeSettingTab === 'items' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <Card className="dribbble-card border-none">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
-              <div>
-                <CardTitle className="text-2xl font-black text-slate-900">إدارة الأصناف</CardTitle>
-                <CardDescription className="font-medium">إضافة وتعديل الخامات المتوفرة في النظام</CardDescription>
-              </div>
-              <Button onClick={() => setShowItemAdd(true)} className="btn-primary h-12 px-6 rounded-2xl font-black flex items-center gap-2">
-                <Plus size={20} />
-                إضافة صنف جديد
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map(i => (
-                  <div key={i.id} className="flex flex-col p-5 bg-slate-50/50 hover:bg-white rounded-3xl border border-transparent hover:border-slate-100 hover:shadow-xl transition-all group relative">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="font-black text-lg text-slate-900 group-hover:text-primary transition-colors">{i.name}</p>
-                        <Badge variant="outline" className="mt-1 text-[10px] font-black uppercase tracking-widest border-slate-200 text-slate-400">
-                          {warehouses.find(w => w.id === i.warehouseId)?.name}
-                        </Badge>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <Button variant="ghost" size="icon" onClick={() => setEditingItem(i)} className="h-9 w-9 rounded-xl text-slate-400 hover:text-primary hover:bg-blue-50">
-                          <Edit2 size={16} />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'items', id: i.id })} className="h-9 w-9 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all">
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mt-auto pt-4 border-t border-slate-100">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">السعر</span>
-                        <span className="font-black text-primary text-sm">{i.price.toLocaleString()} ج.م</span>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">الرصيد</span>
-                        <span className="font-black text-slate-700 text-sm">{i.currentBalance} {i.unit}</span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">الوحدة</span>
-                        <span className="font-black text-slate-700 text-sm">{i.unit}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {items.length === 0 && (
-                  <div className="col-span-full py-20 text-center space-y-4">
-                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300">
-                      <Package size={40} />
-                    </div>
-                    <p className="text-slate-400 font-black text-xl">لا يوجد أصناف معرفة حالياً</p>
-                    <Button onClick={() => setShowItemAdd(true)} variant="outline" className="rounded-xl font-bold">ابدأ بإضافة أول صنف</Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {activeSettingTab === 'suppliers' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <Card className="dribbble-card border-none">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
-              <div>
-                <CardTitle className="text-2xl font-black text-slate-900">الموردين</CardTitle>
-                <CardDescription className="font-medium">إدارة قائمة الموردين والتعاملات المالية</CardDescription>
-              </div>
-              <Button onClick={() => setShowSupplierAdd(true)} className="btn-primary h-12 px-6 rounded-2xl font-black flex items-center gap-2">
-                <Plus size={20} />
-                إضافة مورد
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {suppliers.map(s => (
-                  <div key={s.id} className="flex items-center justify-between p-5 bg-slate-50/50 hover:bg-white rounded-3xl border border-transparent hover:border-slate-100 hover:shadow-xl transition-all group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
-                        <Users size={24} />
-                      </div>
-                      <span className="font-black text-slate-700">{s.name}</span>
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <Button variant="ghost" size="icon" onClick={() => setEditingSupplier(s)} className="h-9 w-9 rounded-xl text-slate-400 hover:text-primary hover:bg-blue-50">
-                        <Edit2 size={16} />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'suppliers', id: s.id })} className="h-9 w-9 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50">
-                        <Trash2 size={16} />
+                      <Button variant="outline" className="h-14 w-full rounded-2xl border-white/10 hover:bg-white/5 font-black text-white hover:border-white/20 transition-all bg-white/5 flex items-center justify-center gap-2" disabled={isImporting}>
+                        {isImporting ? <RotateCcw className="animate-spin" size={20} /> : <Upload size={20} />}
+                        {isImporting ? 'جاري الاستيراد...' : 'اختر ملف إكسيل'}
                       </Button>
                     </div>
                   </div>
-                ))}
-                {suppliers.length === 0 && (
-                  <div className="col-span-full py-20 text-center space-y-4">
-                    <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300">
-                      <Users size={40} />
-                    </div>
-                    <p className="text-slate-400 font-black text-xl">لا يوجد موردين معرفين</p>
+                </CardContent>
+              </Card>
+
+              <Card className="dribbble-card border-none">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
+                  <div>
+                    <CardTitle className="text-xl font-black text-slate-900">الوحدات والمعايير</CardTitle>
+                    <CardDescription className="font-medium">إدارة وحدات قياس المواد والمنتجات</CardDescription>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {activeSettingTab === 'infrastructure' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Warehouse Management */}
-            <Card className="dribbble-card border-none">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
-                <div>
-                  <CardTitle className="text-xl font-black text-slate-900">المخازن</CardTitle>
-                  <CardDescription className="font-medium">تعريف المخازن المختلفة</CardDescription>
-                </div>
-                <Button size="icon" onClick={() => setShowWarehouseAdd(true)} className="btn-primary h-10 w-10 rounded-xl">
-                  <Plus size={20} />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {warehouses.map(w => (
-                    <div key={w.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
-                          <Layers size={16} />
-                        </div>
-                        <span className="font-black text-slate-700">{w.name}</span>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" onClick={() => setEditingWarehouse(w)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'warehouses', id: w.id })} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {warehouses.length === 0 && <p className="text-center text-slate-400 py-8 font-medium">لا يوجد مخازن معرفة</p>}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Units Management */}
-            <Card className="dribbble-card border-none">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
-                <div>
-                  <CardTitle className="text-xl font-black text-slate-900">الوحدات</CardTitle>
-                  <CardDescription className="font-medium">تعريف وحدات القياس</CardDescription>
-                </div>
-                <Button size="icon" onClick={() => setShowUnitAdd(true)} className="btn-primary h-10 w-10 rounded-xl">
-                  <Plus size={20} />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+                  <Button size="icon" onClick={() => setShowUnitAdd(true)} className="btn-primary h-10 w-10 rounded-xl">
+                    <Plus size={20} />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
                   {units.map(u => (
                     <div key={u.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
                       <div className="flex items-center gap-3">
@@ -14841,7 +14408,6 @@ function SettingsView({
                         }
                         alert('تم إضافة مراحل الإنتاج الافتراضية بنجاح');
                       } catch (err) {
-                        handleFirestoreError(err, 'write', 'costCenters');
                       }
                     }} 
                     className="h-10 rounded-xl font-bold text-xs border-primary/20 text-primary hover:bg-primary/5"
@@ -14878,10 +14444,9 @@ function SettingsView({
               </CardContent>
             </Card>
           </div>
-        </div>
-      )}
+        )}
 
-      {activeSettingTab === 'security' && (
+            {settingsTab === 'security' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <Card className="dribbble-card border-red-100 bg-red-50/30">
                 <CardHeader>
@@ -14916,356 +14481,5 @@ function SettingsView({
   );
 }
 
-function ProductRecipesView({ recipes, costCenters, items: stockItems }: { recipes: ProductRecipe[], costCenters: CostCenter[], items: Item[] }) {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingRecipe, setEditingRecipe] = useState<ProductRecipe | null>(null);
-  const [search, setSearch] = useState('');
-  const [recipeForm, setRecipeForm] = useState<Partial<ProductRecipe>>({
-    name: '',
-    category: 'أخرى',
-    departments: []
-  });
 
-  useEffect(() => {
-    if (showAddForm && !editingRecipe) {
-      setRecipeForm({
-        name: '',
-        category: 'أخرى',
-        departments: costCenters.map(cc => ({
-          departmentId: cc.id,
-          departmentName: cc.name,
-          items: [],
-          totalCost: 0,
-          notes: ''
-        }))
-      });
-    }
-  }, [showAddForm, editingRecipe, costCenters]);
-
-  useEffect(() => {
-    if (editingRecipe) {
-      setRecipeForm(editingRecipe);
-    }
-  }, [editingRecipe]);
-
-  const handleAddItem = (deptIdx: number) => {
-    const newDepts = [...(recipeForm.departments || [])];
-    const newItem: RecipeItem = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: '',
-      quantity: 1,
-      unit: 'قطعة',
-      unitPrice: 0,
-      total: 0
-    };
-    newDepts[deptIdx].items.push(newItem);
-    setRecipeForm({ ...recipeForm, departments: newDepts });
-  };
-
-  const handleUpdateItem = (deptIdx: number, itemIdx: number, updates: Partial<RecipeItem>) => {
-    const newDepts = [...(recipeForm.departments || [])];
-    const item = { ...newDepts[deptIdx].items[itemIdx], ...updates };
-    
-    // Auto-fill from stockItems if name matches exactly and price/unit not provided in updates
-    if (updates.name && !updates.unit && !updates.unitPrice) {
-      const stockItem = stockItems.find(si => si.name === updates.name);
-      if (stockItem) {
-        item.unit = stockItem.unit;
-        item.unitPrice = stockItem.price;
-      }
-    }
-
-    item.total = item.quantity * item.unitPrice;
-    newDepts[deptIdx].items[itemIdx] = item;
-    
-    // Recalculate department total
-    newDepts[deptIdx].totalCost = newDepts[deptIdx].items.reduce((sum, it) => sum + it.total, 0);
-    
-    setRecipeForm({ ...recipeForm, departments: newDepts });
-  };
-
-  const handleRemoveItem = (deptIdx: number, itemIdx: number) => {
-    const newDepts = [...(recipeForm.departments || [])];
-    newDepts[deptIdx].items.splice(itemIdx, 1);
-    newDepts[deptIdx].totalCost = newDepts[deptIdx].items.reduce((sum, it) => sum + it.total, 0);
-    setRecipeForm({ ...recipeForm, departments: newDepts });
-  };
-
-  const handleSave = async () => {
-    if (!recipeForm.name) return;
-    const total = (recipeForm.departments || []).reduce((sum, d) => sum + Number(d.totalCost || 0), 0);
-    
-    const data = {
-      ...recipeForm,
-      totalEstimatedCost: total,
-      lastUpdated: new Date().toISOString()
-    };
-
-    try {
-      if (editingRecipe) {
-        await updateDoc(doc(db, 'productRecipes', editingRecipe.id), data);
-      } else {
-        await addDoc(collection(db, 'productRecipes'), data);
-      }
-      setShowAddForm(false);
-      setEditingRecipe(null);
-    } catch (err) {
-      handleFirestoreError(err, 'write', 'productRecipes');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا النموذج؟')) return;
-    try {
-      await deleteDoc(doc(db, 'productRecipes', id));
-    } catch (err) {
-      handleFirestoreError(err, 'delete', 'productRecipes');
-    }
-  };
-
-  const filtered = recipes.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.category.toLowerCase().includes(search.toLowerCase()));
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">نماذج التكاليف التحليلية</h2>
-          <p className="text-slate-500 mt-2 font-bold text-lg text-right">تعريف المواد والمصنعيات المعيارية لكل قسم</p>
-        </div>
-        <div className="flex items-center gap-3">
-           <div className="relative w-full md:w-64">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <Input 
-              placeholder="بحث في النماذج..." 
-              className="pr-10 h-11 rounded-xl border-slate-200 text-right" 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
-          <Button onClick={() => setShowAddForm(true)} className="btn-primary h-12 px-8 rounded-2xl">
-            <Plus size={20} className="ml-2" />
-            نموذج جديد
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" dir="rtl">
-        {filtered.map(recipe => (
-          <Card key={recipe.id} className="dribbble-card border-none hover:shadow-2xl transition-all group overflow-hidden">
-            <CardHeader className="bg-slate-50/50 pb-4">
-              <div className="flex items-center justify-between mb-4">
-                <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] uppercase tracking-widest px-3 py-1 rounded-lg">
-                  {recipe.category}
-                </Badge>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" onClick={() => setEditingRecipe(recipe)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
-                    <Edit2 size={16} />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(recipe.id)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-              </div>
-              <CardTitle className="text-2xl font-black text-slate-900">{recipe.name}</CardTitle>
-              <CardDescription asChild>
-                <div className="font-bold text-primary flex items-center gap-2 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  إجمالي التكلفة: {recipe.totalEstimatedCost.toLocaleString()} ج.م
-                </div>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                {recipe.departments.filter(d => (d.items?.length || 0) > 0 || (d.totalCost || 0) > 0).map((dept, i) => (
-                  <div key={i} className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 group/item hover:bg-white hover:border-primary/20 transition-all">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-black text-slate-900 py-1 px-3 bg-white rounded-lg shadow-sm border border-slate-100">{dept.departmentName}</span>
-                      <span className="text-sm font-black text-primary font-mono">{dept.totalCost.toLocaleString()} ج.م</span>
-                    </div>
-                    <div className="space-y-1 mt-3">
-                       {dept.items.slice(0, 3).map((item, idx) => (
-                          <div key={idx} className="flex justify-between text-[11px] text-slate-500 font-bold">
-                            <span>{item.name} <small className="text-slate-400 font-normal">({item.quantity} {item.unit})</small></span>
-                            <span className="text-slate-700">{item.total.toLocaleString()}</span>
-                          </div>
-                       ))}
-                       {dept.items.length > 3 && (
-                         <div className="text-[10px] text-primary font-black pt-1">+{dept.items.length - 3} بنود أخرى...</div>
-                       )}
-                    </div>
-                  </div>
-                ))}
-                {recipe.departments.every(d => (d.items?.length || 0) === 0) && (
-                   <p className="text-center text-slate-400 text-xs py-4">لم يتم تحديد تفاصيل بعد</p>
-                )}
-              </div>
-              <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400">
-                 <span>آخر تحديث</span>
-                 <span>{recipe.lastUpdated ? format(new Date(recipe.lastUpdated), 'dd/MM/yyyy HH:mm') : '---'}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {(showAddForm || editingRecipe) && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-auto" dir="rtl">
-          <Card className="dribbble-card w-full max-w-5xl max-h-[92vh] overflow-hidden my-8 border-none shadow-2xl flex flex-col">
-            <CardHeader className="bg-white z-20 border-b border-slate-100 pb-6 shrink-0">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-3xl font-black text-slate-900 tracking-tight">{editingRecipe ? 'تعديل نموذج تحليلي' : 'إنشاء نموذج تكاليف تحليلي'}</CardTitle>
-                  <CardDescription className="font-bold text-lg text-slate-500">فَصّل تكاليف الخامات والمصنعيات لكل قسم من أقسام الإنتاج</CardDescription>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => { setShowAddForm(false); setEditingRecipe(null); }} className="rounded-xl h-12 w-12 hover:bg-slate-100 transition-colors">
-                  <X size={28} className="text-slate-400" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto space-y-8 p-8 bg-slate-50/30">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-3">
-                    <label className="text-sm font-black text-slate-700 flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                      اسم المنتج / الموديل
-                    </label>
-                    <Input 
-                      placeholder="مثل: غرفة نوم ملكي، طقم انتريه مودرن..." 
-                      className="h-14 rounded-2xl bg-white border-slate-100 font-extrabold text-xl focus:ring-2 focus:ring-primary/20 transition-all shadow-sm" 
-                      value={recipeForm.name}
-                      onChange={e => setRecipeForm({...recipeForm, name: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <label className="text-sm font-black text-slate-700 flex items-center gap-2">
-                       <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                      التصنيف الأساسي
-                    </label>
-                    <select 
-                      className="w-full h-14 rounded-2xl border-slate-100 bg-white px-4 font-black text-lg shadow-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                      value={recipeForm.category}
-                      onChange={e => setRecipeForm({...recipeForm, category: e.target.value as any})}
-                    >
-                      <option value="نوم">غرف نوم</option>
-                      <option value="سفرة">غرف سفرة</option>
-                      <option value="انتريه">انتريه وصالون</option>
-                      <option value="أخرى">أخرى</option>
-                    </select>
-                  </div>
-               </div>
-
-               <div className="space-y-10">
-                  {recipeForm.departments?.map((dept, deptIdx) => (
-                    <div key={deptIdx} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 transition-all hover:shadow-md group/dept">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-slate-50 pb-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary font-black text-xl">
-                            {deptIdx + 1}
-                          </div>
-                          <div>
-                            <h3 className="font-black text-2xl text-slate-900">{dept.departmentName}</h3>
-                            <p className="text-slate-400 text-sm font-bold">أضف الخامات والمصنعيات لهذا القسم</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end">
-                           <span className="text-xs text-slate-400 font-black mb-1 uppercase tracking-tighter">إجمالي تكلفة القسم</span>
-                           <span className="text-3xl font-black text-primary font-mono">{(dept.totalCost || 0).toLocaleString()} <small className="text-sm opacity-60">ج.م</small></span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-12 gap-4 px-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                          <div className="col-span-5 text-right w-full">البند (خامة / مصنعية)</div>
-                          <div className="col-span-2 text-center">الكمية</div>
-                          <div className="col-span-2 text-center">سعر الوحدة</div>
-                          <div className="col-span-2 text-center">الإجمالي</div>
-                          <div className="col-span-1"></div>
-                        </div>
-
-                        <div className="space-y-3">
-                          {dept.items.map((item, itemIdx) => (
-                            <div key={item.id} className="grid grid-cols-12 gap-3 p-3 bg-slate-50 rounded-2xl border border-transparent hover:border-primary/20 hover:bg-white transition-all">
-                              <div className="col-span-5">
-                                <div className="relative group/search">
-                                  <Input 
-                                    placeholder="ابحث عن خامة أو اكتب اسماً..."
-                                    list={`items-list-${deptIdx}-${itemIdx}`}
-                                    className="h-11 rounded-xl border-none bg-slate-100 group-hover/search:bg-white focus:bg-white font-bold"
-                                    value={item.name}
-                                    onChange={e => handleUpdateItem(deptIdx, itemIdx, { name: e.target.value })}
-                                  />
-                                  <datalist id={`items-list-${deptIdx}-${itemIdx}`}>
-                                    {stockItems.map(si => <option key={si.id} value={si.name} />)}
-                                  </datalist>
-                                </div>
-                              </div>
-                              <div className="col-span-2">
-                                <Input 
-                                  type="number"
-                                  className="h-11 rounded-xl border-none bg-slate-100 focus:bg-white font-black text-center"
-                                  value={item.quantity}
-                                  onChange={e => handleUpdateItem(deptIdx, itemIdx, { quantity: Number(e.target.value) })}
-                                />
-                              </div>
-                              <div className="col-span-2">
-                                <Input 
-                                  type="number"
-                                  className="h-11 rounded-xl border-none bg-slate-100 focus:bg-white font-black text-center"
-                                  value={item.unitPrice}
-                                  onChange={e => handleUpdateItem(deptIdx, itemIdx, { unitPrice: Number(e.target.value) })}
-                                />
-                              </div>
-                              <div className="col-span-2 flex items-center justify-center font-black text-slate-900 bg-white rounded-xl shadow-inner text-sm">
-                                {item.total.toLocaleString()}
-                              </div>
-                              <div className="col-span-1 flex items-center justify-center">
-                                <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(deptIdx, itemIdx)} className="h-10 w-10 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
-                                  <Trash2 size={18} />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <Button 
-                          variant="outline" 
-                          className="w-full h-14 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all font-black text-lg"
-                          onClick={() => handleAddItem(deptIdx)}
-                        >
-                          <Plus size={20} className="ml-2" />
-                          إضافة بند جديد لـ {dept.departmentName}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-               </div>
-            </CardContent>
-            
-            <div className="shrink-0 p-8 bg-slate-900 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="text-right">
-                  <p className="text-primary text-xs font-black uppercase tracking-[0.2em] mb-2 opacity-80">إجمالي التكلفة المعيارية التقديرية</p>
-                  <p className="text-5xl font-black text-white font-mono tracking-tighter">
-                    {(recipeForm.departments || []).reduce((sum, d) => sum + Number(d.totalCost || 0), 0).toLocaleString()} <small className="text-xl opacity-40 font-sans">ج.م</small>
-                  </p>
-                </div>
-                <div className="flex gap-4 w-full md:w-auto">
-                  <Button 
-                    variant="ghost" 
-                    className="flex-1 md:flex-none h-16 px-12 rounded-2xl font-black text-white hover:bg-white/10 text-lg transition-all" 
-                    onClick={() => { setShowAddForm(false); setEditingRecipe(null); }}
-                  >إلغاء</Button>
-                  <Button 
-                    className="flex-1 md:flex-none btn-primary h-16 px-16 rounded-2xl text-2xl font-black shadow-2xl shadow-primary/20 hover:-translate-y-1 active:translate-y-0 transition-all bg-primary border-none" 
-                    onClick={handleSave}
-                  >حفظ وتطبيق النموذج</Button>
-                </div>
-            </div>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-
+export default AppContent;

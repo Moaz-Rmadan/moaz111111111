@@ -425,6 +425,7 @@ export interface RecipeItem {
   unit: string;
   unitPrice: number;
   total: number;
+  type?: 'material' | 'labor' | 'overhead'; // Odoo-style classification
 }
 
 export interface DepartmentRecipe {
@@ -442,6 +443,11 @@ export interface ProductRecipe {
   departments: DepartmentRecipe[];
   totalEstimatedCost: number;
   lastUpdated: string;
+  costingMethod?: 'standard' | 'avco' | 'latest'; // Odoo valuation costing method
+  sellingPrice?: number; // Target or actual selling price
+  indirectOverheadPercent?: number; // Indirect cost percentage (rent, electricity, etc.)
+  wasteOverheadPercent?: number; // Scrap/waste rate
+  targetMarginPercent?: number; // Margin target
 }
 
 export interface UserProfile {

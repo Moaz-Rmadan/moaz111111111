@@ -1,0 +1,12 @@
+              { label: 'رصيد أول المدة', value: selectedItem.openingBalance || 0, color: 'text-slate-400', icon: <History size={24} />, bg: "bg-slate-50" },
+                            <History size={18} />
+                        { label: 'رصيد أول المدة', value: selectedItemCard.openingBalance || 0, color: 'text-slate-400', icon: <History size={24} />, bg: "bg-slate-50" },
+          <History size={18} className="ml-2" />
+  const [showHistory, setShowHistory] = useState(false);
+    setShowHistory(false);
+  if (showHistory) {
+          <Button onClick={() => setShowHistory(false)} variant="outline" className="rounded-2xl border-slate-200">
+          <Button onClick={() => setShowHistory(true)} variant="outline" className="h-14 px-8 rounded-2xl border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
+            <History size={18} className="ml-2" />
+    { id: 'payroll', label: 'إقفال الرواتب', icon: <History size={16} />, desc: 'مراجعة الكشوف النهائية وصرف الرواتب للموظفين.' },
+              <History size={20} className="ml-2" />
