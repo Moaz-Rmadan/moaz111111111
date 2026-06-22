@@ -1496,8 +1496,9 @@ function MainApp({
               <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-transparent opacity-60" />
               <Package size={32} className="relative z-10" />
             </motion.div>
-            <div className="flex flex-col">
-              <h1 className="font-black text-2xl tracking-tighter text-slate-900 leading-none">
+            <div className="flex flex-col text-right">
+              <h1 className="font-extrabold text-lg text-slate-900 leading-none">
+                النجار ديزاين
               </h1>
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex gap-1">
@@ -3047,6 +3048,34 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
   );
 }
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-950/95 backdrop-blur-xl p-4 rounded-[1.25rem] border border-slate-800 shadow-2xl text-right select-none">
+        <p className="text-[10px] font-black tracking-widest text-slate-400 mb-2 font-sans">{label}</p>
+        <div className="space-y-2 min-w-[140px]">
+          {payload.map((entry, idx) => (
+            <div key={idx} className="flex items-center justify-between gap-4">
+              <span className="text-xs font-bold text-white font-mono">{entry.value?.toLocaleString()} ج.م</span>
+              <div className="flex items-center gap-1.5 justify-end">
+                <span className="text-[10px] font-semibold text-slate-400">{entry.name}</span>
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 // --- Views ---
 
 function StatCardBento({ title, value, unit, icon, trend, color, className }: { 
@@ -3059,34 +3088,35 @@ function StatCardBento({ title, value, unit, icon, trend, color, className }: {
   className?: string 
 }) {
   const colorStyles = {
-    primary: "text-primary bg-primary/10 border-primary/20",
-    orange: "text-orange-600 bg-orange-100/50 border-orange-200/50",
-    emerald: "text-emerald-600 bg-emerald-100/50 border-emerald-200/50",
-    red: "text-red-600 bg-red-100/50 border-red-200/50"
+    primary: "text-primary bg-primary/10 border-primary/25 shadow-primary/5",
+    orange: "text-amber-600 bg-amber-500/10 border-amber-500/25 shadow-amber-500/5",
+    emerald: "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 shadow-emerald-500/5",
+    red: "text-rose-600 bg-rose-500/10 border-rose-500/25 shadow-rose-500/5"
   };
 
   return (
-    <Card className={cn("dribbble-card border-none overflow-hidden group relative bg-white shadow-2xl shadow-slate-200/40 hover:shadow-indigo-500/10 transition-all duration-700", className)}>
-       <div className={`absolute -top-20 -right-20 w-64 h-64 ${colorStyles[color].split(' ')[1]} rounded-full blur-[100px] opacity-30 group-hover:opacity-50 group-hover:scale-150 transition-all duration-1000 rotate-12 pointer-events-none`} />
-       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.1] pointer-events-none" />
+    <Card className={cn("dribbble-card border-none overflow-hidden group relative bg-white shadow-[0_24px_56px_-16px_rgba(0,0,0,0.02)] hover:shadow-[0_32px_72px_-16px_rgba(0,0,0,0.06)] hover:-translate-y-1.5 transition-all duration-500 text-right flex flex-col justify-between", className)}>
+       {/* Ambient soft background glow */}
+       <div className={`absolute -top-24 -right-24 w-72 h-72 ${colorStyles[color].split(' ')[1]} rounded-full blur-[100px] opacity-40 group-hover:opacity-60 group-hover:scale-125 transition-all duration-1000 pointer-events-none`} />
+       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.2] pointer-events-none" />
        
-       <CardContent className="p-10 relative z-10 flex flex-col h-full min-h-[220px]">
-          <div className="flex items-center justify-between mb-8">
-             <div className={cn("w-16 h-16 rounded-2.5xl flex items-center justify-center shadow-sm border transition-all duration-700 group-hover:scale-110 group-hover:rotate-6 bg-white", colorStyles[color])}>
+       <CardContent className="p-8 relative z-10 flex flex-col h-full min-h-[220px]">
+          <div className="flex items-center justify-between mb-8 select-none">
+             <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 bg-white shadow-sm", colorStyles[color])}>
                 {icon}
              </div>
-             <div className="flex flex-col items-end">
-                <div className="px-4 py-1.5 bg-slate-900 border border-slate-800 rounded-full text-[9px] font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-2">
-                   <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                   {trend}
-                </div>
+             
+             <div className="px-3.5 py-1.5 bg-emerald-500/15 border border-emerald-500/20 rounded-full text-[10px] font-black tracking-wider text-emerald-600 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                {trend}
              </div>
           </div>
-          <div className="mt-auto space-y-2">
-             <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1 font-mono">{title}</p>
-             <h3 className="text-5xl lg:text-6xl font-black tracking-tighter text-slate-900 flex items-baseline gap-3 font-mono">
-                {(value || 0).toLocaleString()}
-                <span className="text-sm font-bold text-slate-300 tracking-widest uppercase font-sans">{unit}</span>
+          
+          <div className="mt-auto space-y-1">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] font-sans leading-none mb-1.5 select-none">{title}</p>
+             <h3 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 flex items-baseline gap-2 font-sans leading-none">
+                {(value || 0).toLocaleString('ar-EG')}
+                <span className="text-sm font-semibold text-slate-400 tracking-normal mr-1">{unit}</span>
              </h3>
           </div>
        </CardContent>
@@ -3103,23 +3133,26 @@ function StatMiniCard({ title, value, unit, sub, icon, color }: {
   color: 'blue' | 'emerald' | 'red' 
 }) {
   const colorStyles = {
-    blue: "text-blue-600 bg-blue-50",
-    emerald: "text-emerald-600 bg-emerald-50",
-    red: "text-red-600 bg-red-50"
+    blue: "text-indigo-600 bg-indigo-50 border-indigo-100",
+    emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
+    red: "text-rose-600 bg-rose-50 border-rose-100"
   };
 
   return (
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 group hover:-translate-y-1 transition-all duration-300">
-       <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorStyles[color]} group-hover:scale-110 transition-transform`}>
+    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.03)] group hover:shadow-[0_20px_48px_-12px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 text-right relative overflow-hidden">
+       {/* Ambient accent background hover effect */}
+       <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-current ${color === 'blue' ? 'text-indigo-500' : color === 'emerald' ? 'text-emerald-500' : 'text-rose-500'}`} />
+       
+       <div className="flex items-center gap-4 relative z-10 select-none">
+          <div className={`w-12 h-12 rounded-[1.1rem] flex items-center justify-center border ${colorStyles[color]} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
              {icon}
           </div>
           <div className="flex flex-col">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{title}</p>
-             <h4 className="text-xl font-black text-slate-900 leading-none">
-                {value.toLocaleString()} {unit && <span className="text-xs font-bold text-slate-400">{unit}</span>}
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{title}</p>
+             <h4 className="text-xl font-extrabold text-slate-900 leading-none tracking-tight">
+                {value.toLocaleString()} {unit && <span className="text-xs font-semibold text-slate-400 mr-0.5">{unit}</span>}
              </h4>
-             {sub && <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tight mt-1">{sub}</p>}
+             {sub && <p className="text-[10px] font-semibold text-slate-400 tracking-tight mt-1.5">{sub}</p>}
           </div>
        </div>
     </div>
@@ -3240,15 +3273,25 @@ function Dashboard({
 
   // --- Analytical Data Calculations ---
   
-  // 1. Monthly Salaries
+  // 1. Monthly Salaries (using Intl.DateTimeFormat for premium Arabic localized names)
   const months = Array.from({ length: 6 }, (_, i) => {
     const date = new Date();
     date.setMonth(date.getMonth() - i);
     return format(date, 'yyyy-MM');
   }).reverse();
 
-  const salaryChartData = months.map(m => ({
-  }));
+  const salaryChartData = months.map(m => {
+    const [year, month] = m.split('-');
+    const mDate = new Date(parseInt(year), parseInt(month) - 1, 15);
+    const monthName = new Intl.DateTimeFormat('ar-EG', { month: 'long' }).format(mDate);
+    const total = payrolls
+      ?.filter(p => p.startDate && p.startDate.startsWith(m))
+      .reduce((sum, p) => sum + (p.netSalary || 0), 0) || 0;
+    return {
+      month: monthName,
+      total
+    };
+  });
 
   // 2. Attendance Status Distribution (Last 30 days)
   const thirtyDaysAgo = new Date();
@@ -3264,7 +3307,10 @@ function Dashboard({
   // 3. Production Statistics (Last 14 days output)
   const productionStatData = last14Days.map(date => {
     const dayRecords = productionRecords.filter(r => r.date === date);
+    const mDate = new Date(date);
+    const dayName = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short' }).format(mDate);
     return {
+      date: dayName,
       output: dayRecords.reduce((sum, r) => sum + r.quantity, 0)
     };
   });
@@ -3274,30 +3320,65 @@ function Dashboard({
     amount: safeTransactions.filter(t => t.date.startsWith(m) && (t.type === 'سحب' || t.type === 'مصروفات' || t.type === 'رواتب' || t.type === 'مشتريات')).reduce((sum, t) => sum + t.amount, 0)
   }));
 
+  // Greeting logic according to the current local hour
+  const getGreeting = () => {
+    const hr = new Date().getHours();
+    if (hr >= 4 && hr < 12) return 'صباح الخير والبركة والنشاط';
+    if (hr >= 12 && hr < 17) return 'مساء الخير والإنتاج المتميز';
+    return 'مساء السعادة والروعة والنجاح';
+  };
+
+  const arabToday = new Intl.DateTimeFormat('ar-EG', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  }).format(new Date());
+
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
-      {/* Premium Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 py-4">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">
-            الذكاء الصناعي في الخدمة
-          </div>
-          <h2 className="text-4xl lg:text-7xl font-black tracking-tighter text-slate-900 leading-[0.9]">
-            نظرة عامة <br />
-            <span className="text-primary">على المصنع</span>
-          </h2>
-          <p className="text-slate-500 font-bold text-lg lg:text-xl max-w-xl pr-2 border-r-4 border-slate-100 mt-4">
-            تتبع حي وشامل لكافة عمليات الإنتاج والمخازن والتدفقات المالية في لحظتها.
-          </p>
-        </div>
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      {/* 1. Global Class Welcome Banner */}
+      <div className="relative rounded-[2.5rem] overflow-hidden border border-slate-200/50 bg-gradient-to-br from-white via-slate-50/20 to-slate-100 p-8 md:p-12 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.03)] text-right">
+        {/* Abstract glowing shapes behind for luxury backdrop effect */}
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-60 h-60 bg-emerald-500/5 rounded-full blur-[60px] pointer-events-none" />
         
-        <div className="flex flex-col gap-4 self-start lg:self-auto">
-          <div className="flex items-center gap-3 bg-white p-4 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100">
-            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-              <Calendar size={22} />
+        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+          <div className="space-y-4 max-w-2xl">
+            <div className="inline-flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-extrabold uppercase tracking-widest animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                المصنع متصل وقيد العمل الآن
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-[10px] font-extrabold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                تزامن سحابي حي للبيانات
+              </span>
             </div>
-            <div className="flex flex-col pr-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">تاريخ اليوم</p>
+            
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-tight">
+              {getGreeting()}، <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary via-indigo-600 to-indigo-500 font-extrabold pb-1">
+                {profile?.name || 'مدير النظام'}
+              </span>
+            </h2>
+            
+            <p className="text-slate-500 font-bold text-sm md:text-base leading-relaxed">
+              مرحباً بك في لوحة تحكم مصنع النجار للأثاث الذكية. تتبع في لحظتها الحالية العمليات الإنتاجية، التدفقات النقدية، انضباط العمال، وحالة المخزون فورياً.
+            </p>
+          </div>
+
+          <div className="w-full lg:w-auto self-stretch lg:self-auto flex flex-col sm:flex-row lg:flex-col justify-between items-stretch gap-4 bg-white/70 backdrop-blur-md p-6 rounded-[2rem] border border-white/80 shadow-xl shadow-slate-200/50">
+            <div className="flex items-center gap-4 text-right">
+              <div className="w-14 h-14 bg-gradient-to-tr from-primary to-indigo-500 rounded-[1.25rem] flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                <Calendar size={24} />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 font-sans">تاريخ اليوم والوقت المحلي</p>
+                <p className="font-extrabold text-sm md:text-base text-slate-800 leading-tight">
+                  {arabToday}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -3344,21 +3425,21 @@ function Dashboard({
           />
         )}
 
-        <div className="lg:col-span-8 space-y-6">
-           <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between p-8 pb-2">
+        <div className="lg:col-span-8 space-y-6 text-right">
+           <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden bg-white">
+              <CardHeader className="flex flex-col sm:flex-row items-center justify-between p-8 pb-2 gap-4">
                  <div>
-                    <CardTitle className="text-2xl font-black text-slate-900">تحليل التدفقات</CardTitle>
-                    <CardDescription className="font-bold">مقارنة بين المشتريات والمنصرف والهالك (آخر 14 يوم)</CardDescription>
+                    <CardTitle className="text-2xl font-black text-slate-900">تحليل تدفق المشتريات والمنصرف</CardTitle>
+                    <CardDescription className="font-bold text-slate-400 mt-1">مقارنة شاملة بين قيم فواتير الشراء والمنصرف من المخزن إلى أوامر العمل (آخر 14 يوم)</CardDescription>
                  </div>
                  <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
-                       <span className="w-3 h-3 rounded-full bg-primary" />
-                       <span className="text-[10px] font-black uppercase text-slate-400">مشتريات</span>
+                       <span className="w-3.5 h-3.5 rounded-full bg-primary shadow-sm" />
+                       <span className="text-xs font-black text-slate-500">المشتريات</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                       <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                       <span className="text-[10px] font-black uppercase text-slate-400">منصرف</span>
+                       <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm" />
+                       <span className="text-xs font-black text-slate-500">المنصرف للمخازن</span>
                     </div>
                  </div>
               </CardHeader>
@@ -3368,23 +3449,24 @@ function Dashboard({
                        <AreaChart data={chartData}>
                           <defs>
                              <linearGradient id="colorPur" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
-                                <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                                <stop offset="5%" stopColor="oklch(0.48 0.165 245)" stopOpacity={0.15}/>
+                                <stop offset="95%" stopColor="oklch(0.48 0.165 245)" stopOpacity={0}/>
                              </linearGradient>
                              <linearGradient id="colorIss" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
                                 <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                              </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 10 }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 10 }} />
+                          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontWeight: '700', fill: '#64748b', fontSize: 11, fontFamily: 'IBM Plex Sans Arabic' }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontWeight: '700', fill: '#64748b', fontSize: 11, fontFamily: 'IBM Plex Sans Arabic' }} />
                           <Tooltip 
-                             contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', fontWeight: 'black', fontFamily: 'Cairo' }}
-                             formatter={(value: number) => `${value.toLocaleString()} ج.م`}
+                             content={
+                                <CustomTooltip />
+                             }
                           />
-                          <Area type="monotone" dataKey="purchases" stroke="#2563eb" strokeWidth={4} fillOpacity={1} fill="url(#colorPur)" />
-                          <Area type="monotone" dataKey="issuances" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorIss)" />
+                          <Area type="monotone" name="مشتريات" dataKey="purchases" stroke="oklch(0.48 0.165 245)" strokeWidth={4} fillOpacity={1} fill="url(#colorPur)" />
+                          <Area type="monotone" name="منصرف" dataKey="issuances" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorIss)" />
                        </AreaChart>
                     </ResponsiveContainer>
                  </div>
@@ -12432,7 +12514,7 @@ function LoansView({ employees }: { employees: Employee[] }) {
             </CardContent>
             <CardFooter className="flex justify-center gap-3 p-6 pt-0">
               <Button variant="ghost" className="rounded-xl font-bold px-6" onClick={() => setShowDeleteConfirm(null)}>إلغاء</Button>
-              <Button onClick={() => handleDelete(showDeleteConfirm)} className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-8 font-black font-bold">نعم، احذف</Button>
+              <Button onClick={() => handleDelete(showDeleteConfirm)} className="bg-red-600 hover:bg-red-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-red-600/20">نعم، احذف</Button>
             </CardFooter>
           </Card>
         </div>
@@ -12657,7 +12739,7 @@ function HRTransactionsView({ employees, transactions }: { employees: Employee[]
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700 block text-right">المعدل</label>
-                      <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right" value={formData.overtimeRate} onChange={e => setFormData({...formData, overtimeRate: Number(e.target.value) as any})}>
+                      <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right cursor-pointer" value={formData.overtimeRate} onChange={e => setFormData({...formData, overtimeRate: Number(e.target.value) as any})}>
                         <option value={1.33}>ساعة وثلث (1.33)</option>
                         <option value={1.5}>ساعة ونصف (1.5)</option>
                         <option value={2}>ساعتين (2.0)</option>
@@ -12678,93 +12760,8 @@ function HRTransactionsView({ employees, transactions }: { employees: Employee[]
                 <Input className="rounded-xl h-11 text-right font-bold" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="سبب الحركة..." />
               </div>
               <div className="flex justify-end gap-3 pt-6 font-bold">
-                <Button variant="ghost" className="btn-ghost" onClick={() => setShowAdd(false)}>إلغاء</Button>
+                <Button variant="ghost" className="btn-ghost shadow-none" onClick={() => setShowAdd(false)}>إلغاء</Button>
                 <Button onClick={handleAdd} className="btn-primary px-10 h-11 rounded-xl font-bold">حفظ الحركة</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {editingTransaction && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
-          <Card className="dribbble-card w-full max-w-md animate-in fade-in zoom-in duration-200">
-            <CardHeader anonymity="true" className="pb-4">
-              <CardTitle className="font-black text-2xl text-right font-bold">تعديل الحركة المالية</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-right">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">الموظف</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right" value={editingTransaction.employeeId} onChange={e => setEditingTransaction({...editingTransaction, employeeId: e.target.value})}>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.date} onChange={e => setEditingTransaction({...editingTransaction, date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">النوع</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-sm" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value as any})}>
-                  <option value="مكافأة">مكافأة</option>
-                  <option value="خصم">خصم</option>
-                  <option value="مصروف">مصروف (سلفة أسبوعية)</option>
-                  <option value="خصم سلف">خصم سلف</option>
-                  <option value="بدل">بدل</option>
-                  <option value="إضافي">وقت إضافي</option>
-                </select>
-              </div>
-
-              {editingTransaction.type === 'إضافي' ? (
-                <div className="pt-4 border-t border-slate-100 space-y-4 font-bold">
-                  <h4 className="font-black text-sm text-slate-900 block text-right">تفاصيل الإضافي</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 block text-right">عدد الساعات</label>
-                      <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.overtimeHours || 0} onChange={e => setEditingTransaction({...editingTransaction, overtimeHours: Number(e.target.value)})} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 block text-right">المعدل</label>
-                      <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right" value={editingTransaction.overtimeRate || 1.5} onChange={e => setEditingTransaction({...editingTransaction, overtimeRate: Number(e.target.value) as any})}>
-                        <option value={1.33}>ساعة وثلث (1.33)</option>
-                        <option value={1.5}>ساعة ونصف (1.5)</option>
-                        <option value={2}>ساعتين (2.0)</option>
-                      </select>
-                    </div>
-                  </div>
-                  <p className="text-[10px] font-bold text-slate-400 block text-right">سيتم احتساب المبلغ تلقائياً بناءً على يومية الموظف (اليومية ÷ 10 ساعات)</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 block text-right">المبلغ</label>
-                  <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.amount} onChange={e => setEditingTransaction({...editingTransaction, amount: Number(e.target.value)})} />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">الوصف</label>
-                <Input className="rounded-xl h-11 text-right font-bold" value={editingTransaction.description || ''} onChange={e => setEditingTransaction({...editingTransaction, description: e.target.value})} placeholder="سبب الحركة..." />
-              </div>
-              <div className="flex justify-end gap-3 pt-6 font-bold">
-                <Button variant="ghost" className="btn-ghost" onClick={() => setEditingTransaction(null)}>إلغاء</Button>
-                <Button onClick={handleUpdate} className="btn-primary px-10 h-11 rounded-xl font-bold">حفظ التغييرات</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {deletingId && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
-          <Card className="dribbble-card w-full max-w-sm">
-            <CardHeader anonymity="true">
-              <CardTitle className="font-black text-slate-900 block text-right text-lg font-bold">تأكيد حذف الحركة المالية</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-slate-500 font-bold block text-right text-sm">هل أنت متأكد من رغبتك في حذف هذه الحركة المالية بشكل نهائي؟</p>
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="ghost" onClick={() => setDeletingId(null)}>إلغاء</Button>
-                <Button onClick={handleDelete} className="bg-red-500 hover:bg-red-600 text-white font-bold h-10 px-6 rounded-xl">حذف نهائياً</Button>
               </div>
             </CardContent>
           </Card>
@@ -12776,7 +12773,9 @@ function HRTransactionsView({ employees, transactions }: { employees: Employee[]
 
 function ProductionView({ employees, productionRecords }: { employees: Employee[], productionRecords: ProductionRecord[] }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [entryType, setEntryType] = useState<'registered' | 'manual'>('registered');
   const [entryEmployeeId, setEntryEmployeeId] = useState('');
+  const [entryContractorName, setEntryContractorName] = useState('');
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
   const [items, setItems] = useState([{ id: Math.random().toString(36).substr(2, 9), itemName: '', quantity: 1, rate: 0 }]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -12827,11 +12826,16 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
 
   const filteredRecords = productionRecords.filter(r => {
     const employee = employees.find(e => e.id === r.employeeId);
-    if (!employee) return false;
+    const displayName = r.contractorName || employee?.name || 'مقاول يدوية/أخرى';
     
     // Name or item search
-    if (searchTerm && !employee.name.toLowerCase().includes(searchTerm.toLowerCase()) && !r.itemName.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchName = displayName.toLowerCase().includes(searchLower);
+      const matchItem = r.itemName && r.itemName.toLowerCase().includes(searchLower);
+      if (!matchName && !matchItem) {
+        return false;
+      }
     }
     
     return true;
@@ -12852,8 +12856,12 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
   };
 
   const handleAdd = async () => {
-    if (!entryEmployeeId) {
-      alert('يرجى اختيار الموظف');
+    if (entryType === 'registered' && !entryEmployeeId) {
+      alert('يرجى اختيار الموظف أو المقاول المسجل');
+      return;
+    }
+    if (entryType === 'manual' && !entryContractorName.trim()) {
+      alert('يرجى إدخال اسم المقاول / المجموعة يدوياً');
       return;
     }
 
@@ -12868,7 +12876,8 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
       validItems.forEach(item => {
         const docRef = doc(collection(db, 'productionRecords'));
         batch.set(docRef, {
-          employeeId: entryEmployeeId,
+          employeeId: entryType === 'registered' ? entryEmployeeId : 'manual',
+          contractorName: entryType === 'registered' ? '' : entryContractorName.trim(),
           itemName: item.itemName,
           quantity: item.quantity,
           rate: item.rate,
@@ -12882,6 +12891,8 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
       setShowAdd(false);
       setItems([{ id: Math.random().toString(36).substr(2, 9), itemName: '', quantity: 1, rate: 0 }]);
       setEntryEmployeeId('');
+      setEntryContractorName('');
+      setEntryType('registered');
     } catch (err) { console.error(err); } };
 
   const handleDelete = async (id: string) => {

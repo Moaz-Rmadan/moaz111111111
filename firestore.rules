@@ -292,8 +292,8 @@ service cloud.firestore {
     }
 
     match /productionRates/{id} {
-      allow read: if hasPermission('hr') || hasPermission('reports');
-      allow write: if hasPermission('hr');
+      allow read: if isAuthenticated();
+      allow write: if hasPermission('hr') || hasPermission('production');
     }
 
     match /test/{id} {

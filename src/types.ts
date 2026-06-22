@@ -333,6 +333,7 @@ export interface ProductionRecord {
   quantity: number;
   rate: number;
   total: number;
+  contractorName?: string;
 }
 
 export interface Payroll {
