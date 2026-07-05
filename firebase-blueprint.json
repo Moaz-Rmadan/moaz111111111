@@ -704,9 +704,31 @@
         "createdAt": { "type": "string" }
       },
       "required": ["itemName", "rateA", "rateB"]
+    },
+    "ByproductSale": {
+      "title": "ByproductSale",
+      "description": "Sale of byproduct scrap, sawdust, or wood breaks",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "materialType": { "type": "string", "enum": ["نشارة", "كسر خشب", "خردة حديد", "مخلفات عامة", "أخرى"] },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "unitPrice": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["مسدد بالكامل", "غير مسدد", "مسدد جزئياً"] },
+        "safeId": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["customerName", "date", "materialType", "quantity", "unitPrice", "totalAmount"]
     }
   },
   "firestore": {
+    "/byproductSales/{id}": { "schema": "ByproductSale", "description": "Byproduct and scrap sales records" },
     "/settings/{id}": { "schema": "CompanySettings", "description": "Company settings" },
     "/warehouses/{warehouseId}": { "schema": "Warehouse", "description": "Warehouses" },
     "/units/{unitId}": { "schema": "Unit", "description": "Units of measurement" },

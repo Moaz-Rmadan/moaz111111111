@@ -558,3 +558,30 @@ export interface CompanySettings {
   logoUrl?: string;
   managerName?: string;
 }
+
+export interface ByproductSale {
+  id: string;
+  customerName: string;
+  customerPhone?: string;
+  date: string;
+  materialType: 'نشارة' | 'كسر خشب' | 'خردة حديد' | 'مخلفات عامة' | 'أخرى';
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  paymentStatus: 'مسدد بالكامل' | 'غير مسدد' | 'مسدد جزئياً';
+  safeId?: string;
+  notes?: string;
+  scheduledPayments?: {
+    id: string;
+    dueDate: string;
+    amount: number;
+    status: 'pending' | 'collected';
+    collectedDate?: string;
+    collectedSafeId?: string;
+    safeTransactionId?: string;
+  }[];
+}
+

@@ -20,7 +20,7 @@ import {
   LayoutDashboard, ChevronDown, Layers, Wrench, Building2, ShoppingBag, ShieldAlert,
   Activity, Printer, ArrowDownLeft, ArrowUpRight, Menu, ChevronLeft, Calendar, PieChartIcon,
   TrendingUp, Filter, Edit2, MessageSquare, FileText, CheckCircle2, PackageCheck, RotateCcw,
-  ReceiptText, ClipboardCheck, PlusCircle, FileCheck, CreditCard, Scale, Wallet, ArrowRight,
+  ReceiptText, ClipboardCheck, PlusCircle, FileCheck, CreditCard, Scale, Wallet, Coins, ArrowRight,
   ChevronUp, Target, Database, Briefcase, Home, Code, Save, Upload, ArrowLeft,
   ArrowUpToLine, ArrowDownToLine, Eye, Box, Clock, List, Zap, Warehouse as WarehouseIcon, X, Image as ImageIcon,
   Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History
@@ -32,7 +32,8 @@ import type {
   LostSale, StockAudit, BOM, WorkCenter, ManufacturingOperation, SalesOrder,
   Attendance, FinancialTransaction, Loan, Payroll, LoadingManifest, Waste,
   BladeSharpening, PlateSharpening, MaintenanceOrder, UserProfile, Safe, Employee, CompanySettings,
-  SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense
+  SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense,
+  ByproductSale
 } from './types';
 
 import { cn } from '@/lib/utils';
@@ -65,6 +66,7 @@ import { MaintenanceOrdersView } from "./components/MaintenanceOrdersView";
 import { AttendanceView } from './components/AttendanceView';
 import { FinancialReports } from './components/FinancialReports';
 import { UsersManager } from './components/UsersManager';
+import { ByproductSalesView } from './components/ByproductSalesView';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
 const logout = () => signOut(auth);
@@ -7113,7 +7115,7 @@ const Finance = React.memo(function Finance({
   employees: Employee[],
   loadingManifests: LoadingManifest[]
 }) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'purchases' | 'audits' | 'settlements' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'scrapSales' | 'purchases' | 'audits' | 'settlements' | 'analytics'>('overview');
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showAddSafe, setShowAddSafe] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
@@ -7429,19 +7431,27 @@ const Finance = React.memo(function Finance({
         </div>
       </div>
 
-      <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
+      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
         <Button 
           onClick={() => setActiveTab('overview')} 
           variant={activeTab === 'overview' ? 'default' : 'ghost'}
-          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'overview' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+          className={`h-11 rounded-xl font-black px-6 ${activeTab === 'overview' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
         >
           <PieChartIcon size={18} className="ml-2" />
           الملخص والحركات
         </Button>
         <Button 
+          onClick={() => setActiveTab('scrapSales')} 
+          variant={activeTab === 'scrapSales' ? 'default' : 'ghost'}
+          className={`h-11 rounded-xl font-black px-6 ${activeTab === 'scrapSales' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+        >
+          <Coins size={18} className="ml-2" />
+          مبيعات الخردة والنشارة
+        </Button>
+        <Button 
           onClick={() => setActiveTab('purchases')} 
           variant={activeTab === 'purchases' ? 'default' : 'ghost'}
-          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'purchases' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+          className={`h-11 rounded-xl font-black px-6 ${activeTab === 'purchases' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
         >
           <ShoppingCart size={18} className="ml-2" />
           مشتريات الخامات
@@ -7449,7 +7459,7 @@ const Finance = React.memo(function Finance({
         <Button 
           onClick={() => setActiveTab('audits')} 
           variant={activeTab === 'audits' ? 'default' : 'ghost'}
-          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'audits' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+          className={`h-11 rounded-xl font-black px-6 ${activeTab === 'audits' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
         >
           <History size={18} className="ml-2" />
           سجل الجرد
@@ -7457,7 +7467,7 @@ const Finance = React.memo(function Finance({
         <Button 
           onClick={() => setActiveTab('settlements')} 
           variant={activeTab === 'settlements' ? 'default' : 'ghost'}
-          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'settlements' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+          className={`h-11 rounded-xl font-black px-6 ${activeTab === 'settlements' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
         >
           <FileCheck size={18} className="ml-2" />
           سجل التسويات
@@ -7465,7 +7475,7 @@ const Finance = React.memo(function Finance({
         <Button 
           onClick={() => setActiveTab('analytics')} 
           variant={activeTab === 'analytics' ? 'default' : 'ghost'}
-          className={`h-11 rounded-xl font-black px-8 ${activeTab === 'analytics' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+          className={`h-11 rounded-xl font-black px-6 ${activeTab === 'analytics' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
         >
           <BarChart3 size={18} className="ml-2" />
           تحليل المصروفات
@@ -7636,6 +7646,10 @@ const Finance = React.memo(function Finance({
             </Card>
           </div>
         </>
+      ) : activeTab === 'scrapSales' ? (
+        <div className="animate-in slide-in-from-left duration-300">
+          <ByproductSalesView safes={safes} profile={profile} />
+        </div>
       ) : activeTab === 'purchases' ? (
         <div className="animate-in slide-in-from-left duration-300">
           <Purchases 
