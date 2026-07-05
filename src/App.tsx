@@ -62,6 +62,7 @@ import { OdooManufacturingSuite } from './components/OdooManufacturingSuite';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'motion/react';
 import { AttendanceView } from './components/AttendanceView';
+import { FinancialReports } from './components/FinancialReports';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
 const logout = () => signOut(auth);
@@ -852,6 +853,8 @@ function MainApp({
   const [showDeleteConfirmBase, setShowDeleteConfirmBase] = useState<{ collection: string, id: string } | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [showWarehouseResetConfirm, setShowWarehouseResetConfirm] = useState(false);
+  const [isResettingWarehouse, setIsResettingWarehouse] = useState(false);
 
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
@@ -1000,6 +1003,45 @@ function MainApp({
       console.error(err);
     } finally {
       setIsResetting(false);
+    }
+  };
+
+  const handleResetWarehouseData = async () => {
+    setIsResettingWarehouse(true);
+    const collectionsToClear = [
+      'purchases', 'issuances', 'waste', 'stockAudits',
+      'deliveryReceipts', 'loadingManifests', 'productionJobs',
+      'jobLabors', 'jobOtherCosts'
+    ];
+    try {
+      const { getDocs, query, collection, writeBatch } = await import('firebase/firestore');
+      for (const colName of collectionsToClear) {
+        const querySnapshot = await getDocs(query(collection(db, colName)));
+        const batch = writeBatch(db);
+        querySnapshot.forEach((doc) => { batch.delete(doc.ref); });
+        await batch.commit();
+      }
+      const itemsSnapshot = await getDocs(query(collection(db, 'items')));
+      const itemBatch = writeBatch(db);
+      itemsSnapshot.forEach((itemDoc) => {
+        itemBatch.update(itemDoc.ref, {
+          inward: 0,
+          outward: 0,
+          returned: 0,
+          wasted: 0,
+          openingBalance: 0,
+          currentBalance: 0,
+          totalValue: 0
+        });
+      });
+      await itemBatch.commit();
+      setShowWarehouseResetConfirm(false);
+      alert('تم تصفير كميات وحركات المخازن بنجاح! تم تصفير كافة الكميات لتصبح 0 مع الاحتفاظ بأسماء الأصناف (الخامات والمنتجات)، الموردين، ومراكز التكلفة لتتمكن من البدء من جديد.');
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء تصفير المخازن.');
+    } finally {
+      setIsResettingWarehouse(false);
     }
   };
 
@@ -1764,7 +1806,10 @@ function MainApp({
           </div>
           
           {profile?.isAdmin && (
-            <NavButton active={activeTab === 'userManagement'} onClick={() => handleNavClick('userManagement')} icon={<ShieldAlert size={20} />} label="المستخدمين" />
+            <>
+              <NavButton active={activeTab === 'userManagement'} onClick={() => handleNavClick('userManagement')} icon={<ShieldAlert size={20} />} label="المستخدمين" />
+              <NavButton active={activeTab === 'settings'} onClick={() => handleNavClick('settings')} icon={<SettingsIcon size={20} />} label="الإعدادات" />
+            </>
           )}
           
         </nav>
@@ -1933,6 +1978,20 @@ function MainApp({
             manufacturingOperations={manufacturingOperations}
           />
         )}
+        {activeTab === 'loading' && (
+          <LoadingManifests 
+            manifests={loadingManifests}
+            companyInfo={settings}
+            profile={profile}
+          />
+        )}
+        {activeTab === 'deliveryReceipts' && (
+          <DeliveryReceipts 
+            receipts={deliveryReceipts}
+            companyInfo={settings}
+            profile={profile}
+          />
+        )}
         {activeTab === 'issuances' && <Issuances items={items} issuances={issuances} costCenters={costCenters} />}
         {activeTab === 'stockAudit' && <StockAuditView items={items} warehouses={warehouses} audits={stockAudits} />}
         {activeTab === 'returns' && <Returns items={items} suppliers={suppliers} costCenters={costCenters} />}
@@ -1992,6 +2051,13 @@ function MainApp({
             bladeSharpening={bladeSharpening}
             plateSharpening={plateSharpening}
             machineMaintenance={machineMaintenance}
+            salesOrders={salesOrders}
+            safes={safes}
+            safeTransactions={safeTransactions}
+            supplierPayments={supplierPayments}
+            payrolls={payrolls}
+            hrTransactions={hrTransactions}
+            loans={loans}
           />
         )}
         {activeTab === 'payrollMasterReport' && (
@@ -2048,6 +2114,10 @@ function MainApp({
             setShowResetConfirm={setShowResetConfirm}
             isResetting={isResetting}
             setIsResetting={setIsResetting}
+            showWarehouseResetConfirm={showWarehouseResetConfirm}
+            setShowWarehouseResetConfirm={setShowWarehouseResetConfirm}
+            isResettingWarehouse={isResettingWarehouse}
+            handleResetWarehouseData={handleResetWarehouseData}
             editingWarehouse={editingWarehouse}
             setEditingWarehouse={setEditingWarehouse}
             editingUnit={editingUnit}
@@ -2443,6 +2513,15 @@ function MainApp({
         confirmText={isResetting ? "جاري التصفير..." : "نعم، تصفير الكل"}
         onConfirm={handleResetAllData}
         onCancel={() => !isResetting && setShowResetConfirm(false)}
+      />
+
+      <ConfirmDialog 
+        isOpen={showWarehouseResetConfirm}
+        title="تصفير المخازن والكميات فقط"
+        message="هل أنت متأكد من رغبتك في تصفير حركات المخازن والكميات؟ سيتم حذف جميع حركات التوريد والصرف والجرد والهالك والتحميل، وتصفير أرصدة الأصناف (الخامات والمنتجات) بالكامل لتصبح صفر، مع الاحتفاظ بأسماء الأصناف، الموردين، ومراكز التكلفة دون حذف للبدء من جديد. لا يمكن التراجع عن هذا الإجراء."
+        confirmText={isResettingWarehouse ? "جاري التصفير..." : "نعم، تصفير المخازن"}
+        onConfirm={handleResetWarehouseData}
+        onCancel={() => !isResettingWarehouse && setShowWarehouseResetConfirm(false)}
       />
 
       <ConfirmDialog 
@@ -4817,158 +4896,166 @@ function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: a
 }
 
 function PrintDeliveryReceipt({ receipt, companyInfo }: { receipt: DeliveryReceipt, companyInfo: any }) {
-  const productsText = receipt.products.map(p => `${p.name} (عدد ${p.quantity}) ${p.notes ? `[${p.notes}]` : ''}`).join(' + ');
+  if (!receipt) return null;
 
   return (
-    <div className="hidden print:block p-0 bg-white text-slate-900 font-sans tracking-tight dir-rtl relative overflow-hidden" style={{ width: '210mm', height: '297mm', maxHeight: '297mm' }}>
-      {/* Red Corners - Triangles */}
-      <div className="absolute top-0 left-0 w-40 h-40 bg-red-600" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }} />
-      <div className="absolute bottom-0 right-0 w-40 h-40 bg-red-600" style={{ clipPath: 'polygon(100% 100%, 0 100%, 100% 0)' }} />
+    <div className="hidden print:block p-0 bg-white text-slate-900 font-sans tracking-tight dir-rtl relative overflow-hidden h-[297mm] w-[210mm] max-h-[297mm] max-w-[210mm]" style={{ contentVisibility: 'auto' }}>
+      {/* Red Corners - Triangles using high-fidelity SVGs for crisp print resolution */}
+      <svg className="absolute top-0 left-0 w-48 h-48 pointer-events-none text-red-600 fill-current" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polygon points="0,0 100,0 0,100" />
+      </svg>
+      <svg className="absolute bottom-0 right-0 w-48 h-48 pointer-events-none text-red-600 fill-current" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polygon points="100,100 0,100 100,0" />
+      </svg>
 
-      <div className="relative z-10 p-10 h-full flex flex-col border-[12px] border-slate-100/50">
-        {/* Header Section */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="border-4 border-black p-4 bg-white shadow-[10px_10px_0_0_rgba(0,0,0,1)] flex flex-col items-center">
-            <Building2 className="text-red-600 mb-1" size={32} />
-             <h1 className="text-4xl font-black text-black">النجار ديزاين</h1>
-             <p className="text-[12px] font-black tracking-[0.4em] text-center mt-2">D E S I G N • G R O U P</p>
-          </div>
-          
-          <div className="mt-6 relative">
-            <div className="border-4 border-black px-16 py-3 bg-white rounded-2xl relative z-10">
-              <h2 className="text-3xl font-black text-black">تقرير استلام المنتج</h2>
+      {/* Decorative Golden Corner Inner Accents */}
+      <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-amber-500/40" />
+      <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-amber-500/40" />
+
+      <div className="relative z-10 p-12 h-full flex flex-col justify-between" style={{ minHeight: '290mm' }}>
+        {/* Top Header Row representing the exact layout: Logo on the right, calligraphic name, and details on left */}
+        <div className="flex justify-between items-start mb-4">
+          {/* Metadata Section Left-aligned */}
+          <div className="space-y-3.5 text-right font-black text-slate-900 min-w-[280px]">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 font-bold whitespace-nowrap min-w-[110px]">تاريخ الاستلام :</span>
+              <span className="text-lg font-black">{receipt.date ? receipt.date.split('-').reverse().join(' / ') : ''}</span>
             </div>
-            <div className="absolute -inset-1 bg-black rounded-2xl translate-x-2 translate-y-2 opacity-50 z-0"></div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 font-bold whitespace-nowrap min-w-[110px]">الفــــــــــرع :</span>
+              <span className="text-lg font-black">{receipt.branch || "دمياط الجديدة"}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 font-bold whitespace-nowrap min-w-[110px]">رقم الموبايل :</span>
+              <span className="text-lg font-black">{receipt.phone || "---"}</span>
+            </div>
+          </div>
+
+          {/* Centered Large Custom Title */}
+          <div className="flex-1 flex flex-col items-center justify-center pt-2">
+            <h1 className="font-heading text-6xl font-black text-black tracking-tight leading-none">النـجــار</h1>
+            <span className="text-[10px] font-bold text-slate-400 tracking-[0.35em] uppercase mt-2">F U R N I T U R E • F A C T O R Y</span>
+          </div>
+
+          {/* Right logo and Document Title pill */}
+          <div className="flex flex-col items-end gap-3 min-w-[280px]">
+            {/* Elegant Golden and Black Furniture brand Logo */}
+            <div className="w-20 h-20 bg-stone-950 flex items-center justify-center rounded-2xl shadow-md border-2 border-stone-800">
+              <svg viewBox="0 0 100 100" className="w-14 h-14 text-amber-500 fill-current">
+                <path d="M50 15 L85 80 L65 80 L50 45 L35 80 L15 80 Z" />
+                <path d="M50 35 L60 60 L40 60 Z" className="fill-stone-950" />
+                <circle cx="50" cy="72" r="5" className="fill-amber-500" />
+              </svg>
+            </div>
+
+            {/* Document type badge */}
+            <div className="border-2 border-black rounded-xl px-6 py-1 bg-white">
+              <h2 className="text-xl font-black text-black tracking-wide">تقرير استلام المنتج</h2>
+            </div>
+
+            {/* Client Metadata on Right Side */}
+            <div className="space-y-2.5 text-right font-black text-slate-900 w-full mt-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 font-bold whitespace-nowrap min-w-[90px]">اسم العميل :</span>
+                <span className="text-lg font-black flex-1">أ/ {receipt.clientName}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 font-bold whitespace-nowrap min-w-[90px]">عنوان العميل :</span>
+                <span className="text-lg font-black flex-1">{receipt.address || "---"}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Metadata Grid */}
-        <div className="grid grid-cols-2 gap-x-12 gap-y-4 mb-6 text-base">
-          <div className="flex items-center gap-3 border-b-2 border-slate-300 pb-1">
-            <span className="font-black text-slate-500 whitespace-nowrap min-w-[120px]">تاريخ الاستلام :</span>
-            <span className="flex-1 text-center font-black text-xl">{receipt.date.split('-').reverse().join(' / ')}</span>
-          </div>
-          <div className="flex items-center gap-3 border-b-2 border-slate-300 pb-1">
-            <span className="font-black text-slate-500 whitespace-nowrap min-w-[120px]">اسم العميل :</span>
-            <span className="flex-1 font-black text-xl">{receipt.clientName}</span>
-          </div>
-          <div className="flex items-center gap-3 border-b-2 border-slate-300 pb-1">
-            <span className="font-black text-slate-500 whitespace-nowrap min-w-[120px]">الفرع :</span>
-            <span className="flex-1 font-black text-xl">{receipt.branch}</span>
-          </div>
-          <div className="flex items-center gap-3 border-b-2 border-slate-300 pb-1">
-            <span className="font-black text-slate-500 whitespace-nowrap min-w-[120px]">رقم الموبايل :</span>
-            <span className="flex-1 font-black text-xl">{receipt.phone}</span>
-          </div>
-          <div className="flex items-center gap-3 border-b-2 border-slate-300 pb-1 col-span-2">
-            <span className="font-black text-slate-500 whitespace-nowrap min-w-[120px]">عنوان العميل :</span>
-            <span className="flex-1 font-black text-xl">{receipt.address}</span>
+        {/* Dynamic header label "Products are:" */}
+        <div className="mb-2">
+          <div className="bg-red-600 text-white px-8 py-2.5 inline-block rounded-l-none rounded-r-3xl shadow-sm">
+            <span className="font-black text-lg">المنتجات عبارة عن :</span>
           </div>
         </div>
 
-        {/* Products Header Bar */}
-        <div className="bg-red-600 text-white px-8 py-3 rounded-2xl mb-4 flex items-center justify-center shadow-lg">
-           <span className="font-black text-xl">المنتجات المستلمة عبارة عن :</span>
-        </div>
+        {/* Double Border Red Frame around list of products */}
+        <div className="flex-1 border-[3px] border-red-600 rounded-[32px] p-2 bg-white relative overflow-hidden flex flex-col justify-between mb-4 min-h-[380px]">
+          {/* Inner border line creating double border style */}
+          <div className="border border-red-500/40 rounded-[24px] p-6 h-full flex flex-col justify-between flex-grow">
+            {/* Products Table */}
+            <div className="w-full">
+              {/* Table Header */}
+              <div className="flex justify-between items-center border-b-2 border-red-600/20 pb-2 mb-4">
+                <span className="font-black text-red-600 text-lg flex-1 text-center">اسم المنتج</span>
+                <span className="font-black text-red-600 text-lg w-12 text-center">م</span>
+              </div>
 
-        {/* Main Product Area with Grid */}
-        <div className="flex-1 border-4 border-red-600 rounded-[32px] relative bg-white overflow-hidden mb-6 min-h-[350px]">
-          {/* Subtle Grid Background */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-               style={{ backgroundImage: 'linear-gradient(#000 2px, transparent 2px), linear-gradient(90deg, #000 2px, transparent 2px)', backgroundSize: '40px 40px' }} 
-          />
-          
-          <div className="relative p-10 text-3xl font-black leading-[1.6]">
-            {productsText || "......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................."}
-          </div>
-        </div>
-
-        {/* Ratings Section - Designed for Manual Input */}
-        <div className="space-y-4 mb-6">
-           <div className="flex items-center gap-6">
-              <div className="bg-red-600 text-white px-6 py-2 rounded-xl font-black text-sm min-w-[180px] text-center">ما هو تقييمك للمنتج ؟</div>
-              <div className="flex gap-10 font-black">
-                {['ممتاز', 'جيد جداً', 'جيد', 'مقبول'].map(r => (
-                  <div key={r} className="flex items-center gap-3">
-                    <span className="text-sm"> ( ) </span>
-                    <span className="text-sm">{r}</span>
+              {/* Dynamic rows of products exactly formatted */}
+              <div className="space-y-4">
+                {receipt.products && receipt.products.map((p, i) => (
+                  <div key={i} className="flex justify-between items-start text-right text-lg font-black leading-relaxed border-b border-dashed border-slate-100 pb-3">
+                    <span className="flex-1 text-center pr-10 text-stone-900 font-bold">
+                      {p.name} {p.notes ? `(${p.notes})` : ''} {p.quantity > 1 ? ` - عدد ${p.quantity}` : ''}
+                    </span>
+                    <span className="w-12 text-center text-red-600 shrink-0 font-extrabold">{i + 1}</span>
                   </div>
                 ))}
-              </div>
-           </div>
-           <div className="flex items-center gap-6">
-              <div className="bg-red-600 text-white px-6 py-2 rounded-xl font-black text-sm min-w-[180px] text-center">ما هو تقييمك للفريق ؟</div>
-              <div className="flex gap-10 font-black">
-                {['ممتاز', 'جيد جداً', 'جيد', 'مقبول'].map(r => (
-                  <div key={r} className="flex items-center gap-3">
-                    <span className="text-sm"> ( ) </span>
-                    <span className="text-sm">{r}</span>
+                
+                {(!receipt.products || receipt.products.length === 0) && (
+                  <div className="py-20 text-center text-slate-300 font-medium">
+                    ( لم يتم تسجيل منتجات )
                   </div>
-                ))}
+                )}
               </div>
-           </div>
+            </div>
+
+            {/* Bottom Specifications dynamic block aligned to left-bottom of the double frame */}
+            <div className="flex justify-between items-end mt-8 pb-1 pr-6">
+              <div className="text-right text-xs font-black text-stone-800 space-y-1 bg-stone-50/50 p-3 rounded-xl border border-stone-100">
+                <div>الدهان : مرفق بأمر التشغيل **</div>
+                <div>التنجيد : مرفق بأمر التشغيل **</div>
+                <div>المواصفات : مرفق بأمر التشغيل **</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Notes Line */}
-        <div className="flex items-center gap-6 mb-8">
-          <div className="bg-red-600 text-white px-6 py-2 rounded-xl font-black text-sm whitespace-nowrap">ملاحظات أخرى :</div>
-          <div className="flex-1 border-b-2 border-dotted border-black min-h-[40px] font-bold text-lg pt-2">{receipt.notes || "................................................................................................................"}</div>
-        </div>
-
-        {/* Final Declaration & Branches - EXACT WORDING FROM IMAGE */}
-        <div className="text-[11px] font-black tracking-tight mb-6">
-          <p className="border-t-2 border-black pt-2 text-right text-base mb-2 font-black">
-            أقر أنا الموقع أدناه بأنني قد استلمت كافة المستندات من شركة <span className="text-red-600">النجار ديزاين</span> وفروعها كالأتي :
+        {/* Shipping and Delivery Acknowledgment exactly like uploaded photo */}
+        <div className="text-center space-y-2 mb-6 mt-1">
+          <p className="text-xl font-black text-stone-950 tracking-wide">
+            تم استلام جميع الغرف بمعرفة شركة الشحن .... الحاج / محمود العزبي .. هاتف : ٠١٠٦٦٩٠٨٠٨٧
           </p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-4">
-             <div className="flex items-center gap-2">
-               <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center text-[9px] bg-red-50">📍</div>
-               <span className="text-[10px]">٨٤ جوزيف تيتو - النزهة الجديدة</span>
-             </div>
-             <div className="flex items-center gap-2">
-               <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center text-[9px] bg-red-50">📍</div>
-               <span className="text-[10px]">٢٩ مكرم عبيد - مدينة نصر</span>
-             </div>
-             <div className="flex items-center gap-2">
-               <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center text-[9px] bg-red-50">📍</div>
-               <span className="text-[10px]">٥١ نبيل الوقاد - أرض الجولف</span>
-             </div>
-             <div className="flex items-center gap-2">
-               <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center text-[9px] bg-red-50">📍</div>
-               <span className="text-[10px]">طريق بورسعيد - دمياط</span>
-             </div>
-          </div>
-          
-          <div className="mt-4 px-6 text-right font-black leading-relaxed text-[11px]">
-            وإننى بالتوقيع على هذا الإقرار أخلى طرف الشركة من أى مستحقات أو خلافات تتعلق بالمنتجات المستلمة من الشركة شاملة وخالية من عيوب الصناعة.
-            وبعد المعاينه والقبول وفى حالة جيدة وقد سددت القيمة المتفق عليها في العقد.
-            <br />
-            توقيع العميل أو تابعه (أو أي مستخدم ملحق بخدمته حتى هذا الان يكون مقام إمضاء العميل نفسه).
-          </div>
+          <p className="text-xl font-black text-stone-950 inline-block bg-stone-100 px-8 py-1.5 rounded-2xl border border-stone-200">
+            وتم استلامها خالية من العيوب او خدوش او كسور
+          </p>
         </div>
 
-        {/* Signature Box Area */}
-        <div className="grid grid-cols-2 gap-20 px-8 mt-auto pt-4 border-t border-slate-100">
-           <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <span className="font-black text-xs text-slate-500 whitespace-nowrap">و هذا إقرار مني بذلك ، التوقيع :</span>
-                <div className="flex-1 border-b-2 border-black h-4"></div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-black text-xs text-slate-500 whitespace-nowrap">الرقم القومي (البطاقة) :</span>
-                <div className="flex-1 border-b-2 border-black h-4 font-extrabold">{receipt.nationalId || "........................."}</div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-black text-xs text-slate-500 whitespace-nowrap">رقم الهاتف الجوال :</span>
-                <div className="flex-1 border-b-2 border-black h-4 font-extrabold">{receipt.phone || "........................."}</div>
-              </div>
-           </div>
-           
-           <div className="flex flex-col items-end justify-end space-y-4">
-              <div className="border-4 border-black/10 rounded-full w-24 h-24 flex items-center justify-center text-[10px] font-black text-slate-200 uppercase tracking-tighter text-center p-4 border-dashed">
-                ختم الشركة
-              </div>
-           </div>
+        {/* Bottom Signature Acknowledgments with dotted lines */}
+        <div className="flex justify-between items-end px-6 pt-4 border-t border-slate-200/60">
+          {/* Note from previous standard if needed, or keeping it clean */}
+          <div className="text-[10px] text-slate-400 font-bold max-w-sm text-right leading-relaxed">
+            * هذا المستند مخرجات نظام مصنع النجار لإدارة الإنتاج والمخازن.
+            <br />
+            * يرجى الاحتفاظ بالتقرير لإرفاقه عند أي طلب مراجعة فنية أو تفتيش.
+          </div>
+
+          {/* Dotted Form fields on the right side pointing to Signature */}
+          <div className="w-[380px] text-right space-y-3.5 font-black text-stone-900" dir="rtl">
+            <div className="flex items-center gap-1.5 w-full">
+              <span className="whitespace-nowrap font-black text-[15px]">و هذا اقرار مني بذلك ، التوقيع /</span>
+              <span className="flex-1 border-b-2 border-dotted border-stone-500 h-2.5"></span>
+            </div>
+            <div className="flex items-center gap-1.5 w-full">
+              <span className="whitespace-nowrap font-black text-[15px]">الرقم القومي /</span>
+              <span className="flex-1 border-b-2 border-dotted border-stone-500 h-2.5">
+                {receipt.nationalId ? <span className="px-2 font-mono tracking-widest">{receipt.nationalId}</span> : ""}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 w-full">
+              <span className="whitespace-nowrap font-black text-[15px]">رقم الهاتف /</span>
+              <span className="flex-1 border-b-2 border-dotted border-stone-500 h-2.5">
+                {receipt.phone ? <span className="px-2 font-mono">{receipt.phone}</span> : ""}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -10342,7 +10429,31 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
   );
 }
 
-function ReportsView({ 
+function ReportsView(props: { 
+  items: Item[], 
+  suppliers: Supplier[], 
+  purchases: Purchase[], 
+  issuances: Issuance[], 
+  warehouses: Warehouse[],
+  productionJobs: ProductionJob[],
+  jobLabors: JobLabor[],
+  jobOtherCosts: JobOtherCost[],
+  wasteRecords: Waste[],
+  bladeSharpening: BladeSharpening[],
+  plateSharpening: PlateSharpening[],
+  machineMaintenance: MachineMaintenance[],
+  salesOrders?: SalesOrder[],
+  safes?: Safe[],
+  safeTransactions?: SafeTransaction[],
+  supplierPayments?: SupplierPayment[],
+  payrolls?: Payroll[],
+  hrTransactions?: FinancialTransaction[],
+  loans?: Loan[],
+}) {
+  return <FinancialReports {...props} />;
+}
+
+function OldReportsView({ 
   items, 
   suppliers, 
   purchases, 
@@ -14437,6 +14548,10 @@ function Settings({
   setShowResetConfirm,
   isResetting,
   setIsResetting,
+  showWarehouseResetConfirm,
+  setShowWarehouseResetConfirm,
+  isResettingWarehouse,
+  handleResetWarehouseData,
   editingWarehouse,
   setEditingWarehouse,
   editingUnit,
@@ -14492,6 +14607,10 @@ function Settings({
   setShowResetConfirm: (v: boolean) => void,
   isResetting: boolean,
   setIsResetting: (v: boolean) => void,
+  showWarehouseResetConfirm: boolean,
+  setShowWarehouseResetConfirm: (v: boolean) => void,
+  isResettingWarehouse: boolean,
+  handleResetWarehouseData: () => Promise<void>,
   editingWarehouse: Warehouse | null,
   setEditingWarehouse: (v: Warehouse | null) => void,
   editingUnit: Unit | null,
@@ -14523,6 +14642,63 @@ function Settings({
 }) {
   const [settingsTab, setSettingsTab] = useState<'general' | 'company' | 'baseData' | 'items' | 'suppliers' | 'about' | 'security'>('general');
 
+  // Local state for company settings editing
+  const [localSettings, setLocalSettings] = useState<CompanySettings>({ ...settings });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Search and filter states
+  const [itemSearch, setItemSearch] = useState('');
+  const [itemWarehouseFilter, setItemWarehouseFilter] = useState('');
+  const [itemCostCenterFilter, setItemCostCenterFilter] = useState('');
+  const [supplierSearch, setSupplierSearch] = useState('');
+
+  // Keep localSettings in sync if settings props update from database
+  useEffect(() => {
+    setLocalSettings({ ...settings });
+  }, [settings]);
+
+  // Warehouse lookup map
+  const warehouseMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    warehouses.forEach(w => {
+      map[w.id] = w.name;
+    });
+    return map;
+  }, [warehouses]);
+
+  const handleSaveCompanyInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      setSettings(localSettings);
+      await handleSaveSettings();
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Filtered items list
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(itemSearch.toLowerCase());
+      const matchesWarehouse = !itemWarehouseFilter || item.warehouseId === itemWarehouseFilter;
+      const matchesCostCenter = !itemCostCenterFilter || item.department === itemCostCenterFilter;
+      return matchesSearch && matchesWarehouse && matchesCostCenter;
+    });
+  }, [items, itemSearch, itemWarehouseFilter, itemCostCenterFilter]);
+
+  // Filtered suppliers list
+  const filteredSuppliers = useMemo(() => {
+    return suppliers.filter(supplier => 
+      supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())
+    );
+  }, [suppliers, supplierSearch]);
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -14532,23 +14708,23 @@ function Settings({
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar */}
-        <div className="w-full md:w-64 shrink-0">
-          <div className="flex flex-col gap-2 sticky top-6">
+        <div className="w-full lg:w-64 shrink-0">
+          <div className="flex flex-col gap-2 sticky top-6 bg-slate-50 p-4 rounded-3xl border border-slate-100">
             <button
               onClick={() => setSettingsTab('general')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
-                settingsTab === 'general' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+                settingsTab === 'general' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <Layers size={18} />
+              <LayoutDashboard size={18} />
               إعدادات عامة
             </button>
             <button
               onClick={() => setSettingsTab('company')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
-                settingsTab === 'company' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+                settingsTab === 'company' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               <Building2 size={18} />
@@ -14556,8 +14732,8 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('baseData')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
-                settingsTab === 'baseData' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+                settingsTab === 'baseData' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               <Layers size={18} />
@@ -14565,8 +14741,8 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('items')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
-                settingsTab === 'items' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+                settingsTab === 'items' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               <Package size={18} />
@@ -14574,8 +14750,8 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('suppliers')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
-                settingsTab === 'suppliers' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+                settingsTab === 'suppliers' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               <Users size={18} />
@@ -14583,8 +14759,8 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('about')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
-                settingsTab === 'about' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+                settingsTab === 'about' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               <Code size={18} />
@@ -14592,8 +14768,8 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('security')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
-                settingsTab === 'security' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100'
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+                settingsTab === 'security' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               <ShieldAlert size={18} />
@@ -14602,10 +14778,44 @@ function Settings({
           </div>
         </div>
 
-        {/* Content */}
+        {/* Content Area */}
         <div className="flex-1 min-w-0">
-            {settingsTab === 'general' && (
+          
+          {/* GENERAL TAB */}
+          {settingsTab === 'general' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Package size={24} />
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-bold text-xs">إجمالي الأصناف</span>
+                    <h3 className="text-2xl font-black text-slate-900 mt-1">{items.length}</h3>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <Users size={24} />
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-bold text-xs">إجمالي الموردين</span>
+                    <h3 className="text-2xl font-black text-slate-900 mt-1">{suppliers.length}</h3>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <WarehouseIcon size={24} />
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-bold text-xs">المستودعات والمخازن</span>
+                    <h3 className="text-2xl font-black text-slate-900 mt-1">{warehouses.length}</h3>
+                  </div>
+                </div>
+              </div>
+
               <Card className="dribbble-card border-none bg-slate-900 text-white overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent pointer-events-none" />
                 <CardHeader>
@@ -14622,7 +14832,7 @@ function Settings({
                         type="file"
                         accept=".xlsx, .xls"
                         onChange={handleImportExcel}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         disabled={isImporting}
                       />
                       <Button variant="outline" className="h-14 w-full rounded-2xl border-white/10 hover:bg-white/5 font-black text-white hover:border-white/20 transition-all bg-white/5 flex items-center justify-center gap-2" disabled={isImporting}>
@@ -14634,110 +14844,549 @@ function Settings({
                 </CardContent>
               </Card>
 
+              {/* Quick instructions */}
+              <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 text-blue-950">
+                <h4 className="font-black text-lg flex items-center gap-2 mb-2 text-blue-900">
+                  <AlertCircle size={20} className="text-blue-600" />
+                  دليل تهيئة البيانات الأساسية
+                </h4>
+                <p className="text-sm leading-relaxed font-medium text-blue-800">
+                  لبدء تشغيل النظام لأول مرة بصورة صحيحة، يرجى اتباع الخطوات التالية:
+                </p>
+                <ol className="list-decimal list-inside text-sm mt-3 space-y-2 font-medium text-blue-800">
+                  <li>قم بتعديل <strong className="text-blue-900">بيانات الشركة</strong> وعنوانها والشعار لطباعة فواتير متميزة.</li>
+                  <li>عرف <strong className="text-blue-900">مخازن المصنع والمعارض</strong> في لسان البيانات الأساسية.</li>
+                  <li>حدد <strong className="text-blue-900">الوحدات المستعملة</strong> (مثال: متر مكعب، لوح، حبة، طقم).</li>
+                  <li>هيئ <strong className="text-blue-900">مراحل الإنتاج</strong> (مراكز التكلفة) لتقسيم العمليات الإنتاجية وتوزيع التكاليف عليها.</li>
+                  <li>أضف <strong className="text-blue-900">الأصناف</strong> و <strong className="text-blue-900">الموردين</strong> لبدء حركات الشراء والتشغيل المالي واللوجستي.</li>
+                </ol>
+              </div>
+            </div>
+          )}
+
+          {/* COMPANY INFO TAB */}
+          {settingsTab === 'company' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <Card className="dribbble-card border-none">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-black text-slate-900">بيانات الشركة والمؤسسة</CardTitle>
+                  <CardDescription className="font-medium">تعديل معلومات الاتصال والترويسة التي تظهر في فواتير الطباعة ومحاضر الاستلام</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSaveCompanyInfo} className="space-y-6">
+                    {saveSuccess && (
+                      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center gap-3 font-bold text-sm animate-in fade-in">
+                        <CheckCircle2 size={20} className="text-emerald-600" />
+                        تم حفظ إعدادات الشركة بنجاح وتحديث النظام بالكامل!
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">اسم الشركة / المصنع</label>
+                        <Input 
+                          className="h-12 rounded-xl"
+                          value={localSettings.name || ''} 
+                          onChange={e => setLocalSettings({ ...localSettings, name: e.target.value })}
+                          placeholder="النجار ديزاين للمقاولات والديكور"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">اسم المدير المسؤول</label>
+                        <Input 
+                          className="h-12 rounded-xl"
+                          value={localSettings.managerName || ''} 
+                          onChange={e => setLocalSettings({ ...localSettings, managerName: e.target.value })}
+                          placeholder="المهندس معاذ"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">رقم الهاتف / واتساب</label>
+                        <Input 
+                          className="h-12 rounded-xl text-left"
+                          value={localSettings.phone || ''} 
+                          onChange={e => setLocalSettings({ ...localSettings, phone: e.target.value })}
+                          placeholder="+966500000000"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-bold text-slate-700">البريد الإلكتروني</label>
+                        <Input 
+                          type="email"
+                          className="h-12 rounded-xl text-left"
+                          value={localSettings.email || ''} 
+                          onChange={e => setLocalSettings({ ...localSettings, email: e.target.value })}
+                          placeholder="info@alnajjar.com"
+                        />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-bold text-slate-700">العنوان الجغرافي للمصنع</label>
+                        <Input 
+                          className="h-12 rounded-xl"
+                          value={localSettings.address || ''} 
+                          onChange={e => setLocalSettings({ ...localSettings, address: e.target.value })}
+                          placeholder="المنطقة الصناعية، الورش، الدمام، المملكة العربية السعودية"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2">
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700">الرقم الضريبي (إن وجد)</label>
+                          <Input 
+                            className="h-12 rounded-xl text-left"
+                            value={localSettings.taxId || ''} 
+                            onChange={e => setLocalSettings({ ...localSettings, taxId: e.target.value })}
+                            placeholder="310293810293812"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700">رابط شعار الشركة (Logo Image URL)</label>
+                          <Input 
+                            className="h-12 rounded-xl text-left"
+                            value={localSettings.logoUrl || ''} 
+                            onChange={e => setLocalSettings({ ...localSettings, logoUrl: e.target.value })}
+                            placeholder="https://example.com/logo.png"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex justify-end">
+                      <Button 
+                        type="submit" 
+                        disabled={isSaving}
+                        className="btn-primary h-12 px-10 rounded-2xl font-black text-sm shadow-lg shadow-primary/25"
+                      >
+                        {isSaving ? 'جاري الحفظ...' : 'حفظ بيانات الشركة'}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* BASE DATA TAB */}
+          {settingsTab === 'baseData' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              
+              {/* Warehouses Section */}
+              <Card className="dribbble-card border-none">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
+                  <div>
+                    <CardTitle className="text-xl font-black text-slate-900">المستودعات والمخازن</CardTitle>
+                    <CardDescription className="font-medium">إدارة مخازن الخامات ومستودعات المنتجات المعرضة للتسليم</CardDescription>
+                  </div>
+                  <Button size="icon" onClick={() => setShowWarehouseAdd(true)} className="btn-primary h-10 w-10 rounded-xl">
+                    <Plus size={20} />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {warehouses.map(w => (
+                      <div key={w.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-white text-slate-400 group-hover:text-primary flex items-center justify-center transition-colors">
+                            <WarehouseIcon size={18} />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-slate-800">{w.name}</h4>
+                            <p className="text-[10px] text-slate-400 font-bold mt-0.5">مستودع معرف بالنظام</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" onClick={() => setEditingWarehouse(w)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
+                            <Edit2 size={14} />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'warehouses', id: w.id })} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {warehouses.length === 0 && (
+                      <div className="md:col-span-2 text-center py-8 text-slate-400 font-bold">
+                        لم يتم تعريف أي مستودعات حتى الآن
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Units Section */}
               <Card className="dribbble-card border-none">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
                   <div>
                     <CardTitle className="text-xl font-black text-slate-900">الوحدات والمعايير</CardTitle>
-                    <CardDescription className="font-medium">إدارة وحدات قياس المواد والمنتجات</CardDescription>
+                    <CardDescription className="font-medium">وحدات القياس والوزن المستعملة في المواد الخام والمنتجات النهائية</CardDescription>
                   </div>
                   <Button size="icon" onClick={() => setShowUnitAdd(true)} className="btn-primary h-10 w-10 rounded-xl">
                     <Plus size={20} />
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                  {units.map(u => (
-                    <div key={u.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
-                          <Package size={16} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {units.map(u => (
+                      <div key={u.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
+                            <Scale size={16} />
+                          </div>
+                          <span className="font-black text-slate-700">{u.name}</span>
                         </div>
-                        <span className="font-black text-slate-700">{u.name}</span>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" onClick={() => setEditingUnit(u)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
+                            <Edit2 size={14} />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'units', id: u.id })} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" onClick={() => setEditingUnit(u)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'units', id: u.id })} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
-                          <Trash2 size={14} />
-                        </Button>
+                    ))}
+                    {units.length === 0 && (
+                      <div className="col-span-full text-center py-8 text-slate-400 font-bold">
+                        لم يتم تعريف وحدات قياس مخصصة بالنظام
                       </div>
-                    </div>
-                  ))}
-                  {units.length === 0 && <p className="text-center text-slate-400 py-8 font-medium">لا يوجد وحدات معرفة</p>}
-                </div>
-              </CardContent>
-            </Card>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Cost Centers Management */}
-            <Card className="dribbble-card border-none">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
-                <div>
-                  <CardTitle className="text-xl font-black text-slate-900">مراكز التكلفة</CardTitle>
-                  <CardDescription className="font-medium">تعريف مراحل الإنتاج</CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={async () => {
-                      const stages = [
-                        'النجارة',
-                        'الخدمة والصنفرة والتجهيز',
-                        'كابينة الدهان (دوكو/استر)',
-                        'التنجيد',
-                        'التشطيب والكهرباء',
-                        'التغليف والتحميل',
-                        'المراجعة النهائية',
-                        'تم التسليم'
-                      ];
-                      try {
-                        for (const stage of stages) {
-                          if (!costCenters.some(c => c.name === stage)) {
-                            await addDoc(collection(db, 'costCenters'), { name: stage });
+              {/* Cost Centers & Stages Section */}
+              <Card className="dribbble-card border-none">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
+                  <div>
+                    <CardTitle className="text-xl font-black text-slate-900">مراحل الإنتاج (مراكز التكلفة)</CardTitle>
+                    <CardDescription className="font-medium">المحطات الإنتاجية والمراكز المحاسبية المسؤولة عن تتبع التكاليف وتحويل أمر الشغل</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={async () => {
+                        const stages = [
+                          'النجارة',
+                          'الخدمة والصنفرة والتجهيز',
+                          'كابينة الدهان (دوكو/استر)',
+                          'التنجيد',
+                          'التشطيب والكهرباء',
+                          'التغليف والتحميل',
+                          'المراجعة النهائية',
+                          'تم التسليم'
+                        ];
+                        try {
+                          for (const stage of stages) {
+                            if (!costCenters.some(c => c.name === stage)) {
+                              await addDoc(collection(db, 'costCenters'), { name: stage });
+                            }
                           }
+                          alert('تم إضافة مراحل الإنتاج الافتراضية بنجاح');
+                        } catch (err) {
+                          console.error(err);
                         }
-                        alert('تم إضافة مراحل الإنتاج الافتراضية بنجاح');
-                      } catch (err) {
-                      }
-                    }} 
-                    className="h-10 rounded-xl font-bold text-xs border-primary/20 text-primary hover:bg-primary/5"
-                  >
-                    تهيئة المراحل
-                  </Button>
-                  <Button size="icon" onClick={() => setShowCostCenterAdd(true)} className="btn-primary h-10 w-10 rounded-xl">
-                    <Plus size={20} />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {costCenters.map(c => (
-                    <div key={c.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
-                          <BarChart3 size={16} />
+                      }} 
+                      className="h-10 rounded-xl font-bold text-xs border-primary/20 text-primary hover:bg-primary/5"
+                    >
+                      تهيئة المراحل
+                    </Button>
+                    <Button size="icon" onClick={() => setShowCostCenterAdd(true)} className="btn-primary h-10 w-10 rounded-xl">
+                      <Plus size={20} />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {costCenters.map(c => (
+                      <div key={c.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
+                            <BarChart3 size={16} />
+                          </div>
+                          <span className="font-black text-slate-700">{c.name}</span>
                         </div>
-                        <span className="font-black text-slate-700">{c.name}</span>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" onClick={() => setEditingCostCenter(c)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
+                            <Edit2 size={14} />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'costCenters', id: c.id })} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" onClick={() => setEditingCostCenter(c)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'costCenters', id: c.id })} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
-                          <Trash2 size={14} />
-                        </Button>
+                    ))}
+                    {costCenters.length === 0 && (
+                      <div className="lg:col-span-3 text-center py-8 text-slate-400 font-bold">
+                        يرجى النقر على زر "تهيئة المراحل" لتعبئة مراحل الإنتاج الافتراضية
                       </div>
-                    </div>
-                  ))}
-                  {costCenters.length === 0 && <p className="text-center text-slate-400 py-8 font-medium">لا يوجد مراحل معرفة</p>}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-            {settingsTab === 'security' && (
+          {/* MANAGE ITEMS TAB */}
+          {settingsTab === 'items' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <Card className="dribbble-card border-none">
+                <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
+                  <div>
+                    <CardTitle className="text-xl font-black text-slate-900">إدارة دليل الأصناف والمنتجات</CardTitle>
+                    <CardDescription className="font-medium">عرض، تصفية، تعديل، وحذف الأصناف والخامات المعرفة في النظام</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowItemAdd(true)} className="btn-primary h-11 px-6 rounded-xl font-black text-sm shrink-0 flex items-center gap-2">
+                    <Plus size={18} />
+                    إضافة صنف جديد
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Search and Filters */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="relative">
+                      <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <Input 
+                        className="pr-10 h-11 rounded-xl"
+                        placeholder="ابحث باسم الصنف..." 
+                        value={itemSearch}
+                        onChange={e => setItemSearch(e.target.value)}
+                      />
+                    </div>
+
+                    <select 
+                      className="h-11 rounded-xl border border-slate-200 px-3 font-bold text-slate-700 text-sm outline-none bg-white focus:ring-2 focus:ring-primary/20"
+                      value={itemWarehouseFilter}
+                      onChange={e => setItemWarehouseFilter(e.target.value)}
+                    >
+                      <option value="">جميع المخازن</option>
+                      {warehouses.map(w => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
+
+                    <select 
+                      className="h-11 rounded-xl border border-slate-200 px-3 font-bold text-slate-700 text-sm outline-none bg-white focus:ring-2 focus:ring-primary/20"
+                      value={itemCostCenterFilter}
+                      onChange={e => setItemCostCenterFilter(e.target.value)}
+                    >
+                      <option value="">جميع الأقسام / مراحل التشغيل</option>
+                      {costCenters.map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Items Table */}
+                  <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white">
+                    <Table>
+                      <TableHeader className="bg-slate-50/70">
+                        <TableRow>
+                          <TableHead className="font-black text-slate-700 text-right">اسم الصنف</TableHead>
+                          <TableHead className="font-black text-slate-700 text-right">المخزن</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">الوحدة</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">السعر (ر.س)</TableHead>
+                          <TableHead className="font-black text-slate-700 className text-right">القسم الرئيسي</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">الرصيد الحالي</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">حد الأمان</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">الإجراءات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredItems.map(item => {
+                          const isBelowSafety = item.currentBalance <= (item.safetyLimit || 0);
+                          return (
+                            <TableRow key={item.id} className="hover:bg-slate-50/40 transition-colors">
+                              <TableCell className="font-bold text-slate-900">{item.name}</TableCell>
+                              <TableCell className="font-bold text-slate-600">{warehouseMap[item.warehouseId] || 'غير محدد'}</TableCell>
+                              <TableCell className="font-bold text-center text-slate-600">{item.unit}</TableCell>
+                              <TableCell className="font-black text-center text-slate-900">{(item.price || 0).toLocaleString()} ر.س</TableCell>
+                              <TableCell className="font-bold text-slate-600">{item.department || 'غير محدد'}</TableCell>
+                              <TableCell className="font-black text-center">
+                                <Badge 
+                                  variant="secondary" 
+                                  className={`rounded-lg ${isBelowSafety ? 'bg-red-50 text-red-600 border border-red-100 font-black' : 'bg-slate-100 text-slate-700 font-black'}`}
+                                >
+                                  {item.currentBalance || 0}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-black text-center text-slate-500">{item.safetyLimit || 0}</TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex gap-1 justify-center">
+                                  <Button variant="ghost" size="icon" onClick={() => setEditingItem(item)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
+                                    <Edit2 size={14} />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'items', id: item.id })} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        {filteredItems.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-8 text-slate-400 font-bold">
+                              لا توجد أصناف مطابقة لخيارات التصفية والبحث
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* MANAGE SUPPLIERS TAB */}
+          {settingsTab === 'suppliers' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <Card className="dribbble-card border-none">
+                <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
+                  <div>
+                    <CardTitle className="text-xl font-black text-slate-900">دليل وإدارة الموردين</CardTitle>
+                    <CardDescription className="font-medium">متابعة حسابات الموردين، الأرصدة الافتتاحية والمستحقات والمدفوعات</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowSupplierAdd(true)} className="btn-primary h-11 px-6 rounded-xl font-black text-sm shrink-0 flex items-center gap-2">
+                    <Plus size={18} />
+                    إضافة مورد جديد
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Search bar */}
+                  <div className="relative max-w-md">
+                    <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <Input 
+                      className="pr-10 h-11 rounded-xl"
+                      placeholder="ابحث باسم المورد..." 
+                      value={supplierSearch}
+                      onChange={e => setSupplierSearch(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Suppliers Grid / Table */}
+                  <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white">
+                    <Table>
+                      <TableHeader className="bg-slate-50/70">
+                        <TableRow>
+                          <TableHead className="font-black text-slate-700 text-right">المورد</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">الرصيد الافتتاحي (ر.س)</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">إجمالي المشتريات</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">إجمالي المدفوعات</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">الرصيد المستحق (الديون)</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">حالة الحساب</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">الإجراءات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredSuppliers.map(supplier => {
+                          const opening = supplier.openingBalance || 0;
+                          const purchases = supplier.totalPurchases || 0;
+                          const payments = supplier.totalPayments || 0;
+                          // حساب الرصيد الحالي للمورد (الرصيد الافتتاحي + المشتريات الآجلة - المدفوعات)
+                          const calculatedBalance = opening + purchases - payments;
+                          
+                          return (
+                            <TableRow key={supplier.id} className="hover:bg-slate-50/40 transition-colors">
+                              <TableCell className="font-bold text-slate-900">{supplier.name}</TableCell>
+                              <TableCell className="font-black text-center text-slate-600">{opening.toLocaleString()} ر.س</TableCell>
+                              <TableCell className="font-black text-center text-blue-600">{purchases.toLocaleString()} ر.س</TableCell>
+                              <TableCell className="font-black text-center text-emerald-600">{payments.toLocaleString()} ر.س</TableCell>
+                              <TableCell className="font-black text-center text-slate-900">{calculatedBalance.toLocaleString()} ر.س</TableCell>
+                              <TableCell className="font-bold text-center">
+                                <Badge 
+                                  variant="secondary"
+                                  className={`rounded-lg ${calculatedBalance > 0 ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}
+                                >
+                                  {calculatedBalance > 0 ? 'مستحق له' : 'مسدد بالكامل'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex gap-1 justify-center">
+                                  <Button variant="ghost" size="icon" onClick={() => setEditingSupplier(supplier)} className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary hover:bg-blue-50">
+                                    <Edit2 size={14} />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => setShowDeleteConfirm({ collection: 'suppliers', id: supplier.id })} className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        {filteredSuppliers.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8 text-slate-400 font-bold">
+                              لم يتم تعريف أي موردين بالنظام مطابقة للبحث
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ABOUT TAB */}
+          {settingsTab === 'about' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <Card className="dribbble-card border-none overflow-hidden relative">
+                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent pointer-events-none" />
+                <CardHeader className="text-center pb-8 border-b border-slate-100">
+                  <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                    <Building2 size={40} />
+                  </div>
+                  <CardTitle className="text-3xl font-black text-slate-900">نظام النجار ديزاين المتكامل</CardTitle>
+                  <CardDescription className="font-bold text-slate-500 mt-2 text-base">ERP Suite لإدارة الإنتاج، المبيعات، شؤون الموظفين والمخازن</CardDescription>
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <Badge variant="outline" className="h-7 px-3 text-xs font-black border-slate-200 text-slate-600 bg-white">
+                      الإصدار 2.5.0
+                    </Badge>
+                    <Badge variant="outline" className="h-7 px-3 text-xs font-black border-emerald-200 text-emerald-600 bg-emerald-50">
+                      قاعدة بيانات سحابية مفعلة
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-8 space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                      <h4 className="font-black text-slate-800 text-lg flex items-center gap-2">
+                        <Zap size={18} className="text-primary" />
+                        القدرات والميزات الأساسية
+                      </h4>
+                      <p className="text-slate-500 text-sm mt-2 leading-relaxed font-medium">
+                        صمم هذا النظام لتلبية متطلبات مصانع ومحلات النجارة وصناعة الأثاث المتكاملة. يدير دورة التشغيل بالكامل بدءاً من شراء الألواح والخامات، تحويلها لأمر شغل، احتساب تكلفة العمالة والمواد الإضافية، تتبع تقدم المنتج عبر مراحل التصنيع (النجارة، الصنفرة، كابينة الدهان، التنجيد)، ومراقبة الخزنة ومسيرات رواتب العمال بالإنتاجية.
+                      </p>
+                    </div>
+
+                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                      <h4 className="font-black text-slate-800 text-lg flex items-center gap-2">
+                        <ShieldCheck size={18} className="text-emerald-600" />
+                        الربط السحابي والآمان
+                      </h4>
+                      <p className="text-slate-500 text-sm mt-2 leading-relaxed font-medium">
+                        تخزن بياناتك بشكل آمن سحابياً على خوادم Firestore المشفرة ومصادقة المستخدمين عبر Firebase Auth. يدعم النظام تصدير وتصدير جداول إكسيل، وأرشفة ملفات الموظفين والوثائق إلكترونياً، والعمل بموجب الصلاحيات والتحقق المباشر من القيود لتجنب الأخطاء المحاسبية واللوجستية.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-center pt-4 text-xs text-slate-400 font-bold">
+                    نظام النجار ديزاين © 2026 • تم تصميمه بالكامل لمصانع وشركات الديكور والمقاولات في الخليج العربي.
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* DANGER ZONE / SECURITY TAB */}
+          {settingsTab === 'security' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <Card className="dribbble-card border-red-100 bg-red-50/30">
                 <CardHeader>
@@ -14747,9 +15396,27 @@ function Settings({
                   </CardTitle>
                   <CardDescription className="font-medium text-red-600/70">إجراءات حساسة تؤثر على قاعدة البيانات بأكملها</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-6">
+                  {/* Warehouse Only Reset (Requested by User) */}
+                  <div className="bg-white p-6 rounded-2xl border border-amber-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="text-right">
+                      <h4 className="font-black text-slate-900 text-lg">تصفير المخازن والكميات فقط</h4>
+                      <p className="text-slate-500 text-sm mt-1">
+                        سيؤدي هذا الإجراء إلى حذف جميع حركات المشتريات، المنصرف، الهوالك، الجرد، وتقارير الاستلام، وتصفير كميات وأرصدة كافة الأصناف (الخامات والمنتجات) بالكامل لتصبح صفر، مع <strong className="text-amber-600">الاحتفاظ ببيانات الأصناف نفسها، الموردين، ومراكز التكلفة</strong> دون أي حذف لتبدأ العمل بها كلياً في مصنع أو دورة جديدة.
+                      </p>
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      className="shrink-0 h-12 px-8 rounded-2xl font-black bg-amber-600 text-white hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20"
+                      onClick={() => setShowWarehouseResetConfirm(true)}
+                    >
+                      تصفير المخازن فقط
+                    </Button>
+                  </div>
+
+                  {/* Complete Reset */}
                   <div className="bg-white p-6 rounded-2xl border border-red-100 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div>
+                    <div className="text-right">
                       <h4 className="font-black text-slate-900 text-lg">تصفير كافة بيانات البرنامج</h4>
                       <p className="text-slate-500 text-sm mt-1">سيؤدي هذا الإجراء إلى مسح كافة الأصناف، الموردين، الفواتير، والعمليات نهائياً. لا يمكن التراجع عن هذا الإجراء.</p>
                     </div>

@@ -1,5 +1,6 @@
 {
   "name": "مخازن مصنع النجار",
   "description": "نظام متكامل لإدارة المخازن والمشتريات وحسابات الموردين لمصنع النجار للأثاث",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
