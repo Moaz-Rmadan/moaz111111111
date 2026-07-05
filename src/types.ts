@@ -264,6 +264,23 @@ export interface PlateSharpening {
   safeTransactionId?: string;
 }
 
+export interface MaintenanceOrder {
+  id: string;
+  type: 'معدة/ماكينة' | 'سن صواني' | 'سن صفايح' | 'أخرى';
+  itemName: string;
+  costCenterId: string;
+  receiveDate: string;
+  externalCenterName: string;
+  sendDate: string;
+  expectedReturnDate: string;
+  actualReturnDate?: string;
+  cost: number;
+  status: 'جاري الصيانة' | 'مكتملة';
+  notes: string;
+  safeId?: string;
+  safeTransactionId?: string;
+}
+
 export interface MachineMaintenance {
   id: string;
   date: string;

@@ -31,7 +31,7 @@ import type {
   ProductionJob, JobLabor, JobOtherCost, ProductionRecord, DeliveryReceipt, 
   LostSale, StockAudit, BOM, WorkCenter, ManufacturingOperation, SalesOrder,
   Attendance, FinancialTransaction, Loan, Payroll, LoadingManifest, Waste,
-  BladeSharpening, PlateSharpening, MachineMaintenance, UserProfile, Safe, Employee, CompanySettings,
+  BladeSharpening, PlateSharpening, MaintenanceOrder, UserProfile, Safe, Employee, CompanySettings,
   SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense
 } from './types';
 
@@ -61,6 +61,7 @@ import { ProductRecipesView } from './components/ProductRecipesView';
 import { OdooManufacturingSuite } from './components/OdooManufacturingSuite';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'motion/react';
+import { MaintenanceOrdersView } from "./components/MaintenanceOrdersView";
 import { AttendanceView } from './components/AttendanceView';
 import { FinancialReports } from './components/FinancialReports';
 import { UsersManager } from './components/UsersManager';
@@ -821,7 +822,7 @@ function MainApp({
   const [wasteRecords, setWasteRecords] = useState<Waste[]>([]);
   const [bladeSharpening, setBladeSharpening] = useState<BladeSharpening[]>([]);
   const [plateSharpening, setPlateSharpening] = useState<PlateSharpening[]>([]);
-  const [machineMaintenance, setMachineMaintenance] = useState<MachineMaintenance[]>([]);
+  const [maintenanceOrders, setMaintenanceOrder] = useState<MaintenanceOrder[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [hrTransactions, setHrTransactions] = useState<FinancialTransaction[]>([]);
@@ -976,7 +977,7 @@ function MainApp({
     setIsResetting(true);
     const collectionsToClear = [
       'purchases', 'issuances', 'productionJobs', 'loadingManifests', 
-      'waste', 'bladeSharpening', 'plateSharpening', 'machineMaintenance',
+      'waste', 'bladeSharpening', 'plateSharpening', 'maintenanceOrders',
       'attendance', 'hrTransactions', 'loans', 'payrolls', 'productionRecords',
       'supplierPayments', 'deliveryReceipts', 'jobLabors', 'jobOtherCosts'
     ];
@@ -995,7 +996,7 @@ function MainApp({
         itemBatch.update(itemDoc.ref, {
           inward: 0, outward: 0, returned: 0, wasted: 0,
           currentBalance: itemData.openingBalance
-        });
+            });
       });
       await itemBatch.commit();
       setShowResetConfirm(false);
@@ -1033,7 +1034,7 @@ function MainApp({
           openingBalance: 0,
           currentBalance: 0,
           totalValue: 0
-        });
+            });
       });
       await itemBatch.commit();
       setShowWarehouseResetConfirm(false);
@@ -1146,237 +1147,404 @@ function MainApp({
   useEffect(() => {
     if (!user || !profile) return;
 
+    // Declarations
     let unsubWarehouses = () => {};
-    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
-      unsubWarehouses = onSnapshot(collection(db, 'warehouses'), (snap) => {
-        setWarehouses(snap.docs.map(d => ({ id: d.id, ...d.data() } as Warehouse)));
-      });
-    }
-
     let unsubUnits = () => {};
-    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
-      unsubUnits = onSnapshot(collection(db, 'units'), (snap) => {
-        setUnits(snap.docs.map(d => ({ id: d.id, ...d.data() } as Unit)));
-      });
-    }
-
     let unsubCostCenters = () => {};
-    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.production || profile.permissions.reports) {
-      unsubCostCenters = onSnapshot(collection(db, 'costCenters'), (snap) => {
-        setCostCenters(snap.docs.map(d => ({ id: d.id, ...d.data() } as CostCenter)));
-      });
-    }
-
     let unsubItems = () => {};
-    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
-      unsubItems = onSnapshot(collection(db, 'items'), (snap) => {
-        setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as Item)));
-      });
-    }
-
     let unsubSuppliers = () => {};
-    if (profile.isAdmin || profile.permissions.suppliers || profile.permissions.reports) {
-      unsubSuppliers = onSnapshot(collection(db, 'suppliers'), (snap) => {
-        setSuppliers(snap.docs.map(d => ({ id: d.id, ...d.data() } as Supplier)));
-      });
-    }
-
     let unsubPurchases = () => {};
-    if (profile.isAdmin || profile.permissions.purchases || profile.permissions.reports) {
-      unsubPurchases = onSnapshot(collection(db, 'purchases'), (snap) => {
-        setPurchases(snap.docs.map(d => ({ id: d.id, ...d.data() } as Purchase)));
-      });
-    }
-
     let unsubIssuances = () => {};
-    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
-      unsubIssuances = onSnapshot(collection(db, 'issuances'), (snap) => {
-        setIssuances(snap.docs.map(d => ({ id: d.id, ...d.data() } as Issuance)));
-      });
-    }
-
     let unsubProductionJobs = () => {};
-    if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
-      unsubProductionJobs = onSnapshot(collection(db, 'productionJobs'), (snap) => {
-        setProductionJobs(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionJob)));
-      });
-    }
-
     let unsubLoadingManifests = () => {};
-    if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
-      unsubLoadingManifests = onSnapshot(collection(db, 'loadingManifests'), (snap) => {
-        setLoadingManifests(snap.docs.map(d => ({ id: d.id, ...d.data() } as LoadingManifest)));
-      });
-    }
-
     let unsubWaste = () => {};
-    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
-      unsubWaste = onSnapshot(collection(db, 'waste'), (snap) => {
-        setWasteRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as Waste)));
-      });
-    }
-
     let unsubBladeSharpening = () => {};
-    if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
-      unsubBladeSharpening = onSnapshot(collection(db, 'bladeSharpening'), (snap) => {
-        setBladeSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as BladeSharpening)));
-      });
-    }
-
     let unsubPlateSharpening = () => {};
-    if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
-      unsubPlateSharpening = onSnapshot(collection(db, 'plateSharpening'), (snap) => {
-        setPlateSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as PlateSharpening)));
-      });
-    }
-
-    let unsubMachineMaintenance = () => {};
-    if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
-      unsubMachineMaintenance = onSnapshot(collection(db, 'machineMaintenance'), (snap) => {
-        setMachineMaintenance(snap.docs.map(d => ({ id: d.id, ...d.data() } as MachineMaintenance)));
-      });
-    }
-
+    let unsubMaintenanceOrders = () => {};
     let unsubEmployees = () => {};
-    if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      unsubEmployees = onSnapshot(collection(db, 'employees'), (snap) => {
-        setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() } as Employee)));
-      });
-    }
-
     let unsubAttendance = () => {};
-    if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      unsubAttendance = onSnapshot(collection(db, 'attendance'), (snap) => {
-        setAttendance(snap.docs.map(d => ({ id: d.id, ...d.data() } as Attendance)));
-      });
-    }
-
     let unsubHrTransactions = () => {};
-    if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      unsubHrTransactions = onSnapshot(collection(db, 'hrTransactions'), (snap) => {
-        setHrTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialTransaction)));
-      });
+    let unsubLoans = () => {};
+    let unsubPayrolls = () => {};
+    let unsubProductionRecords = () => {};
+    let unsubSupplierPayments = () => {};
+    let unsubJobLabors = () => {};
+    let unsubJobOtherCosts = () => {};
+    let unsubDeliveryReceipts = () => {};
+    let unsubStockAudits = () => {};
+    let unsubBoms = () => {};
+    let unsubWorkCenters = () => {};
+    let unsubManufacturingOperations = () => {};
+    let unsubLostSales = () => {};
+    let unsubSalesOrders = () => {};
+    let unsubSafeAudits = () => {};
+    let unsubProductRecipes = () => {};
+    let unsubSafes = () => {};
+    let unsubSafeTransactions = () => {};
+
+    // 1. unsubWarehouses
+    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
+      unsubWarehouses = onSnapshot(
+        collection(db, 'warehouses'),
+        (snap) => {
+          setWarehouses(snap.docs.map(d => ({ id: d.id, ...d.data() } as Warehouse)));
+        },
+        (error) => console.error('Permission error in collection warehouses:', error)
+      );
     }
 
-    let unsubLoans = () => {};
+    // 2. unsubUnits
+    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
+      unsubUnits = onSnapshot(
+        collection(db, 'units'),
+        (snap) => {
+          setUnits(snap.docs.map(d => ({ id: d.id, ...d.data() } as Unit)));
+        },
+        (error) => console.error('Permission error in collection units:', error)
+      );
+    }
+
+    // 3. unsubCostCenters
+    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.production || profile.permissions.reports) {
+      unsubCostCenters = onSnapshot(
+        collection(db, 'costCenters'),
+        (snap) => {
+          setCostCenters(snap.docs.map(d => ({ id: d.id, ...d.data() } as CostCenter)));
+        },
+        (error) => console.error('Permission error in collection costCenters:', error)
+      );
+    }
+
+    // 4. unsubItems
+    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
+      unsubItems = onSnapshot(
+        collection(db, 'items'),
+        (snap) => {
+          setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as Item)));
+        },
+        (error) => console.error('Permission error in collection items:', error)
+      );
+    }
+
+    // 5. unsubSuppliers
+    if (profile.isAdmin || profile.permissions.suppliers || profile.permissions.reports) {
+      unsubSuppliers = onSnapshot(
+        collection(db, 'suppliers'),
+        (snap) => {
+          setSuppliers(snap.docs.map(d => ({ id: d.id, ...d.data() } as Supplier)));
+        },
+        (error) => console.error('Permission error in collection suppliers:', error)
+      );
+    }
+
+    // 6. unsubPurchases
+    if (profile.isAdmin || profile.permissions.purchases || profile.permissions.reports) {
+      unsubPurchases = onSnapshot(
+        collection(db, 'purchases'),
+        (snap) => {
+          setPurchases(snap.docs.map(d => ({ id: d.id, ...d.data() } as Purchase)));
+        },
+        (error) => console.error('Permission error in collection purchases:', error)
+      );
+    }
+
+    // 7. unsubIssuances
+    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
+      unsubIssuances = onSnapshot(
+        collection(db, 'issuances'),
+        (snap) => {
+          setIssuances(snap.docs.map(d => ({ id: d.id, ...d.data() } as Issuance)));
+        },
+        (error) => console.error('Permission error in collection issuances:', error)
+      );
+    }
+
+    // 8. unsubProductionJobs
+    if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
+      unsubProductionJobs = onSnapshot(
+        collection(db, 'productionJobs'),
+        (snap) => {
+          setProductionJobs(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionJob)));
+        },
+        (error) => console.error('Permission error in collection productionJobs:', error)
+      );
+    }
+
+    // 9. unsubLoadingManifests
+    if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
+      unsubLoadingManifests = onSnapshot(
+        collection(db, 'loadingManifests'),
+        (snap) => {
+          setLoadingManifests(snap.docs.map(d => ({ id: d.id, ...d.data() } as LoadingManifest)));
+        },
+        (error) => console.error('Permission error in collection loadingManifests:', error)
+      );
+    }
+
+    // 10. unsubWaste
+    if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
+      unsubWaste = onSnapshot(
+        collection(db, 'waste'),
+        (snap) => {
+          setWasteRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as Waste)));
+        },
+        (error) => console.error('Permission error in collection waste:', error)
+      );
+    }
+
+    // 11. unsubBladeSharpening
+    if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
+      unsubBladeSharpening = onSnapshot(
+        collection(db, 'bladeSharpening'),
+        (snap) => {
+          setBladeSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as BladeSharpening)));
+        },
+        (error) => console.error('Permission error in collection bladeSharpening:', error)
+      );
+    }
+
+    // 12. unsubPlateSharpening
+    if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
+      unsubPlateSharpening = onSnapshot(
+        collection(db, 'plateSharpening'),
+        (snap) => {
+          setPlateSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as PlateSharpening)));
+        },
+        (error) => console.error('Permission error in collection plateSharpening:', error)
+      );
+    }
+
+    // 13. unsubMaintenanceOrders
+    if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
+      unsubMaintenanceOrders = onSnapshot(
+        collection(db, 'maintenanceOrders'),
+        (snap) => {
+          setMaintenanceOrder(snap.docs.map(d => ({ id: d.id, ...d.data() } as MaintenanceOrder)));
+        },
+        (error) => console.error('Permission error in collection maintenanceOrders:', error)
+      );
+    }
+
+    // 14. unsubEmployees
+    if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
+      unsubEmployees = onSnapshot(
+        collection(db, 'employees'),
+        (snap) => {
+          setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() } as Employee)));
+        },
+        (error) => console.error('Permission error in collection employees:', error)
+      );
+    }
+
+    // 15. unsubAttendance
+    if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
+      unsubAttendance = onSnapshot(
+        collection(db, 'attendance'),
+        (snap) => {
+          setAttendance(snap.docs.map(d => ({ id: d.id, ...d.data() } as Attendance)));
+        },
+        (error) => console.error('Permission error in collection attendance:', error)
+      );
+    }
+
+    // 16. unsubHrTransactions
+    if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
+      unsubHrTransactions = onSnapshot(
+        collection(db, 'hrTransactions'),
+        (snap) => {
+          setHrTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialTransaction)));
+        },
+        (error) => console.error('Permission error in collection hrTransactions:', error)
+      );
+    }
+
+    // 17. unsubLoans
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
       const q = query(collection(db, 'loans'), where('status', '==', 'نشط'));
-      unsubLoans = onSnapshot(q, (snap) => {
-        setLoans(snap.docs.map(d => ({ id: d.id, ...d.data() } as Loan)));
-      });
+      unsubLoans = onSnapshot(
+        q,
+        (snap) => {
+          setLoans(snap.docs.map(d => ({ id: d.id, ...d.data() } as Loan)));
+        },
+        (error) => console.error('Permission error in collection loans:', error)
+      );
     }
 
-    let unsubPayrolls = () => {};
+    // 18. unsubPayrolls
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
       const q = query(collection(db, 'payrolls'), where('status', '==', 'مسودة'));
-      unsubPayrolls = onSnapshot(q, (snap) => {
-        setPayrolls(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payroll)));
-      });
+      unsubPayrolls = onSnapshot(
+        q,
+        (snap) => {
+          setPayrolls(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payroll)));
+        },
+        (error) => console.error('Permission error in collection payrolls:', error)
+      );
     }
 
-    let unsubProductionRecords = () => {};
+    // 19. unsubProductionRecords
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      unsubProductionRecords = onSnapshot(collection(db, 'productionRecords'), (snap) => {
-        setProductionRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionRecord)));
-      });
+      unsubProductionRecords = onSnapshot(
+        collection(db, 'productionRecords'),
+        (snap) => {
+          setProductionRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionRecord)));
+        },
+        (error) => console.error('Permission error in collection productionRecords:', error)
+      );
     }
 
-    let unsubSupplierPayments = () => {};
+    // 20. unsubSupplierPayments
     if (profile.isAdmin || profile.permissions.suppliers || profile.permissions.reports) {
-      unsubSupplierPayments = onSnapshot(collection(db, 'supplierPayments'), (snap) => {
-        setSupplierPayments(snap.docs.map(d => ({ id: d.id, ...d.data() } as SupplierPayment)));
-      });
+      unsubSupplierPayments = onSnapshot(
+        collection(db, 'supplierPayments'),
+        (snap) => {
+          setSupplierPayments(snap.docs.map(d => ({ id: d.id, ...d.data() } as SupplierPayment)));
+        },
+        (error) => console.error('Permission error in collection supplierPayments:', error)
+      );
     }
 
-    let unsubJobLabors = () => {};
+    // 21. unsubJobLabors
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
-      unsubJobLabors = onSnapshot(collection(db, 'jobLabors'), (snap) => {
-        setJobLabors(snap.docs.map(d => ({ id: d.id, ...d.data() } as JobLabor)));
-      });
+      unsubJobLabors = onSnapshot(
+        collection(db, 'jobLabors'),
+        (snap) => {
+          setJobLabors(snap.docs.map(d => ({ id: d.id, ...d.data() } as JobLabor)));
+        },
+        (error) => console.error('Permission error in collection jobLabors:', error)
+      );
     }
 
-    let unsubJobOtherCosts = () => {};
+    // 22. unsubJobOtherCosts
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
-      unsubJobOtherCosts = onSnapshot(collection(db, 'jobOtherCosts'), (snap) => {
-        setJobOtherCosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as JobOtherCost)));
-      });
+      unsubJobOtherCosts = onSnapshot(
+        collection(db, 'jobOtherCosts'),
+        (snap) => {
+          setJobOtherCosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as JobOtherCost)));
+        },
+        (error) => console.error('Permission error in collection jobOtherCosts:', error)
+      );
     }
 
-    let unsubDeliveryReceipts = () => {};
+    // 23. unsubDeliveryReceipts
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
-      unsubDeliveryReceipts = onSnapshot(collection(db, 'deliveryReceipts'), (snap) => {
-        setDeliveryReceipts(snap.docs.map(d => ({ id: d.id, ...d.data() } as DeliveryReceipt)));
-      });
+      unsubDeliveryReceipts = onSnapshot(
+        collection(db, 'deliveryReceipts'),
+        (snap) => {
+          setDeliveryReceipts(snap.docs.map(d => ({ id: d.id, ...d.data() } as DeliveryReceipt)));
+        },
+        (error) => console.error('Permission error in collection deliveryReceipts:', error)
+      );
     }
 
-    let unsubStockAudits = () => {};
+    // 24. unsubStockAudits
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
-      unsubStockAudits = onSnapshot(collection(db, 'stockAudits'), (snap) => {
-        setStockAudits(snap.docs.map(d => ({ id: d.id, ...d.data() } as StockAudit)));
-      });
+      unsubStockAudits = onSnapshot(
+        collection(db, 'stockAudits'),
+        (snap) => {
+          setStockAudits(snap.docs.map(d => ({ id: d.id, ...d.data() } as StockAudit)));
+        },
+        (error) => console.error('Permission error in collection stockAudits:', error)
+      );
     }
 
-    let unsubBoms = () => {};
+    // 25. unsubBoms
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
-      unsubBoms = onSnapshot(collection(db, 'boms'), (snap) => {
-        setBoms(snap.docs.map(d => ({ id: d.id, ...d.data() } as BOM)));
-      });
+      unsubBoms = onSnapshot(
+        collection(db, 'boms'),
+        (snap) => {
+          setBoms(snap.docs.map(d => ({ id: d.id, ...d.data() } as BOM)));
+        },
+        (error) => console.error('Permission error in collection boms:', error)
+      );
     }
 
-    let unsubWorkCenters = () => {};
+    // 26. unsubWorkCenters
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
-      unsubWorkCenters = onSnapshot(collection(db, 'workCenters'), (snap) => {
-        setWorkCenters(snap.docs.map(d => ({ id: d.id, ...d.data() } as WorkCenter)));
-      });
+      unsubWorkCenters = onSnapshot(
+        collection(db, 'workCenters'),
+        (snap) => {
+          setWorkCenters(snap.docs.map(d => ({ id: d.id, ...d.data() } as WorkCenter)));
+        },
+        (error) => console.error('Permission error in collection workCenters:', error)
+      );
     }
 
-    let unsubManufacturingOperations = () => {};
+    // 27. unsubManufacturingOperations
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
-      unsubManufacturingOperations = onSnapshot(collection(db, 'manufacturingOperations'), (snap) => {
-        setManufacturingOperations(snap.docs.map(d => ({ id: d.id, ...d.data() } as ManufacturingOperation)));
-      });
+      unsubManufacturingOperations = onSnapshot(
+        collection(db, 'manufacturingOperations'),
+        (snap) => {
+          setManufacturingOperations(snap.docs.map(d => ({ id: d.id, ...d.data() } as ManufacturingOperation)));
+        },
+        (error) => console.error('Permission error in collection manufacturingOperations:', error)
+      );
     }
 
-    let unsubLostSales = () => {};
+    // 28. unsubLostSales
     if (profile.isAdmin || profile.permissions.dashboard || profile.permissions.reports) {
-      unsubLostSales = onSnapshot(collection(db, 'lostSales'), (snap) => {
-        setLostSales(snap.docs.map(d => ({ id: d.id, ...d.data() } as LostSale)));
-      });
+      unsubLostSales = onSnapshot(
+        collection(db, 'lostSales'),
+        (snap) => {
+          setLostSales(snap.docs.map(d => ({ id: d.id, ...d.data() } as LostSale)));
+        },
+        (error) => console.error('Permission error in collection lostSales:', error)
+      );
     }
 
-    let unsubSalesOrders = () => {};
+    // 29. unsubSalesOrders
     if (profile.isAdmin || profile.permissions.dashboard || profile.permissions.reports) {
-      unsubSalesOrders = onSnapshot(collection(db, 'salesOrders'), (snap) => {
-        setSalesOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as SalesOrder)));
-      });
+      unsubSalesOrders = onSnapshot(
+        collection(db, 'salesOrders'),
+        (snap) => {
+          setSalesOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as SalesOrder)));
+        },
+        (error) => console.error('Permission error in collection salesOrders:', error)
+      );
     }
 
-    let unsubSafeAudits = () => {};
+    // 30. unsubSafeAudits
     if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
-      unsubSafeAudits = onSnapshot(collection(db, 'safeAudits'), (snap) => {
-        setSafeAudits(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeAudit)));
-      });
+      unsubSafeAudits = onSnapshot(
+        collection(db, 'safeAudits'),
+        (snap) => {
+          setSafeAudits(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeAudit)));
+        },
+        (error) => console.error('Permission error in collection safeAudits:', error)
+      );
     }
 
-    let unsubProductRecipes = () => {};
+    // 31. unsubProductRecipes
     if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {
-      unsubProductRecipes = onSnapshot(collection(db, 'productRecipes'), (snap) => {
-        setProductRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductRecipe)));
-      });
+      unsubProductRecipes = onSnapshot(
+        collection(db, 'productRecipes'),
+        (snap) => {
+          setProductRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductRecipe)));
+        },
+        (error) => console.error('Permission error in collection productRecipes:', error)
+      );
     }
 
-    let unsubSafes = () => {};
+    // 32. unsubSafes
     if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
-      unsubSafes = onSnapshot(collection(db, 'safes'), (snap) => {
-        setSafes(snap.docs.map(d => ({ id: d.id, ...d.data() } as Safe)));
-      });
+      unsubSafes = onSnapshot(
+        collection(db, 'safes'),
+        (snap) => {
+          setSafes(snap.docs.map(d => ({ id: d.id, ...d.data() } as Safe)));
+        },
+        (error) => console.error('Permission error in collection safes:', error)
+      );
     }
 
-    let unsubSafeTransactions = () => {};
+    // 33. unsubSafeTransactions
     if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
-      unsubSafeTransactions = onSnapshot(collection(db, 'safeTransactions'), (snap) => {
-        setSafeTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeTransaction)));
-      });
+      unsubSafeTransactions = onSnapshot(
+        collection(db, 'safeTransactions'),
+        (snap) => {
+          setSafeTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeTransaction)));
+        },
+        (error) => console.error('Permission error in collection safeTransactions:', error)
+      );
     }
 
     return () => {
@@ -1392,7 +1560,7 @@ function MainApp({
       unsubWaste();
       unsubBladeSharpening();
       unsubPlateSharpening();
-      unsubMachineMaintenance();
+      unsubMaintenanceOrders();
       unsubEmployees();
       unsubAttendance();
       unsubHrTransactions();
@@ -1665,13 +1833,13 @@ function MainApp({
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setMaintenanceMenuOpen(!maintenanceMenuOpen)}
                   className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                    ['bladeSharpening', 'plateSharpening', 'machineMaintenance'].includes(activeTab) 
+                    ['bladeSharpening', 'plateSharpening', 'maintenanceOrders'].includes(activeTab) 
                     ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' 
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Wrench size={20} className={['bladeSharpening', 'plateSharpening', 'machineMaintenance'].includes(activeTab) ? 'text-primary' : ''} />
+                    <Wrench size={20} className={['bladeSharpening', 'plateSharpening', 'maintenanceOrders'].includes(activeTab) ? 'text-primary' : ''} />
                     <span className="font-black text-sm">قسم الصيانة</span>
                   </div>
                   <ChevronDown size={14} className={`transition-transform duration-300 ${maintenanceMenuOpen ? 'rotate-180' : ''}`} />
@@ -1686,9 +1854,8 @@ function MainApp({
                       className="overflow-hidden bg-slate-100/50 rounded-2xl mt-1 mx-1"
                     >
                       <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
-                        <SubNavButton active={activeTab === 'bladeSharpening'} onClick={() => handleNavClick('bladeSharpening')} label="خدمات السن" permission="maintenance" profile={profile} />
                         <SubNavButton active={activeTab === 'plateSharpening'} onClick={() => handleNavClick('plateSharpening')} label="سن الصفايح" permission="maintenance" profile={profile} />
-                        <SubNavButton active={activeTab === 'machineMaintenance'} onClick={() => handleNavClick('machineMaintenance')} label="صيانة الماكينات" permission="maintenance" profile={profile} />
+                        <SubNavButton active={activeTab === 'maintenanceOrders'} onClick={() => handleNavClick('maintenanceOrders')} label="الصيانة الخارجية" permission="maintenance" profile={profile} />
                       </div>
                     </motion.div>
                   )}
@@ -1896,7 +2063,7 @@ function MainApp({
                 employees={employees}
                 productionJobs={productionJobs}
                 loadingManifests={loadingManifests}
-                machineMaintenance={machineMaintenance}
+                maintenanceOrders={maintenanceOrders}
                 bladeSharpening={bladeSharpening}
                 plateSharpening={plateSharpening}
                 hrTransactions={hrTransactions}
@@ -1999,7 +2166,7 @@ function MainApp({
         {activeTab === 'waste' && <WastedItemsView items={items} wasteRecords={wasteRecords} />}
         {activeTab === 'bladeSharpening' && <BladeSharpeningView bladeRecords={bladeSharpening} plateRecords={plateSharpening} safes={safes} profile={profile} initialTab="blades" />}
         {activeTab === 'plateSharpening' && <BladeSharpeningView bladeRecords={bladeSharpening} plateRecords={plateSharpening} safes={safes} profile={profile} initialTab="plates" />}
-        {activeTab === 'machineMaintenance' && <MachineMaintenanceView records={machineMaintenance} safes={safes} profile={profile} />}
+        {activeTab === 'maintenanceOrders' && <MaintenanceOrdersView records={maintenanceOrders} safes={safes} costCenters={costCenters} profile={profile} />}
         {activeTab === 'employees' && <EmployeesView employees={employees} />}
         {activeTab === 'attendance' && <AttendanceView employees={employees} />}
         {activeTab === 'hrProduction' && <ProductionView employees={employees} productionRecords={productionRecords} />}
@@ -2051,7 +2218,7 @@ function MainApp({
             wasteRecords={wasteRecords}
             bladeSharpening={bladeSharpening}
             plateSharpening={plateSharpening}
-            machineMaintenance={machineMaintenance}
+            maintenanceOrders={maintenanceOrders}
             salesOrders={salesOrders}
             safes={safes}
             safeTransactions={safeTransactions}
@@ -2964,7 +3131,7 @@ function DashboardList({ title, icon, data, renderItem }: {
   );
 }
 
-function Dashboard({ 
+const Dashboard = React.memo(function Dashboard({ 
   settings,
   setSettings,
   handleSaveSettings,
@@ -2975,7 +3142,7 @@ function Dashboard({
   employees,
   productionJobs,
   loadingManifests,
-  machineMaintenance,
+  maintenanceOrders,
   bladeSharpening,
   plateSharpening,
   hrTransactions,
@@ -3001,7 +3168,7 @@ function Dashboard({
   employees: Employee[],
   productionJobs: ProductionJob[],
   loadingManifests: LoadingManifest[],
-  machineMaintenance: MachineMaintenance[],
+  maintenanceOrders: MaintenanceOrder[],
   bladeSharpening: BladeSharpening[],
   plateSharpening: PlateSharpening[],
   hrTransactions: FinancialTransaction[],
@@ -3508,7 +3675,7 @@ function Dashboard({
       </motion.div>
     </div>
   );
-}
+});
 
 function StatCard({ title, value, icon, color = "text-primary" }: { title: string, value: string | number, icon: React.ReactNode, color?: string }) {
   const bgColorMap: Record<string, string> = {
@@ -3546,7 +3713,7 @@ function StatCard({ title, value, icon, color = "text-primary" }: { title: strin
   );
 }
 
-function Inventory({ 
+const Inventory = React.memo(function Inventory({ 
   items, 
   warehouses, 
   purchases, 
@@ -4451,7 +4618,7 @@ function Inventory({
       </AnimatePresence>
     </div>
   );
-}
+});
 
 function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: any }) {
   return (
@@ -4856,7 +5023,7 @@ function PrintManifest({ manifest, companyInfo }: { manifest: LoadingManifest, c
   );
 }
 
-function ProductionLine({ 
+const ProductionLine = React.memo(function ProductionLine({ 
   costCenters, 
   productionJobs, 
   issuances, 
@@ -6008,7 +6175,7 @@ function ProductionLine({
       )}
     </div>
   );
-}
+});
 
 function LoadingManifests({ 
   manifests, 
@@ -6921,7 +7088,7 @@ function ExpenseAnalytics({ transactions, costCenters }: { transactions: SafeTra
   );
 }
 
-function Finance({
+const Finance = React.memo(function Finance({
   safes, 
   safeTransactions, 
   safeAudits,
@@ -7051,7 +7218,7 @@ function Finance({
         batch.set(doc(safeTransactionsRef), txOut);
         batch.update(doc(db, 'safes', transactionForm.safeId), {
           balance: increment(-Number(transactionForm.amount))
-        });
+            });
 
         // 2. Transaction: In to Destination
         const txIn = {
@@ -7065,7 +7232,7 @@ function Finance({
         batch.set(doc(safeTransactionsRef), txIn);
         batch.update(doc(db, 'safes', transactionForm.relatedId), {
           balance: increment(Number(transactionForm.amount))
-        });
+            });
       } else {
         const safeRef = doc(db, 'safes', transactionForm.safeId);
         const multiplier = (transactionForm.type === 'إيداع' || transactionForm.type === 'مبيعات' || transactionForm.type === 'قرض شخصي') ? 1 : -1;
@@ -7080,7 +7247,7 @@ function Finance({
         batch.set(doc(safeTransactionsRef), newTransaction);
         batch.update(safeRef, {
           balance: increment(amountChange)
-        });
+            });
 
         // Link with Production Job
         if (multiplier === -1 && transactionForm.productionJobId) {
@@ -7118,14 +7285,11 @@ function Finance({
 
   const handleAuditSafe = async () => {
     if (!auditForm.safeId) return;
-
     const safe = safes.find(s => s.id === auditForm.safeId);
     if (!safe) return;
-
     const physical = Number(auditForm.physicalBalance);
     const system = safe.balance;
     const diff = physical - system;
-
     try {
       const batch = writeBatch(db);
       const auditRef = doc(collection(db, 'safeAudits'));
@@ -7139,7 +7303,7 @@ function Finance({
         createdBy: profile?.name || 'مستخدم'
       });
 
-      // If there is a difference, create a corrective transaction
+      // If there is a difference, create a corrective transaction and update safe balance
       if (diff !== 0) {
         const txRef = doc(collection(db, 'safeTransactions'));
         batch.set(txRef, {
@@ -7151,7 +7315,6 @@ function Finance({
           createdBy: profile?.name || 'مستخدم',
           relatedId: auditRef.id
         });
-
         batch.update(doc(db, 'safes', auditForm.safeId), {
           balance: physical // Force update to physical balance
         });
@@ -7160,7 +7323,10 @@ function Finance({
       await batch.commit();
       setShowAudit(false);
       setAuditForm({ safeId: '', physicalBalance: 0, notes: '' });
-  } catch (err) { console.error(err); } };
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleCreateSettlement = async () => {
     if (!settlementForm.safeId || settlementForm.expenses.length === 0) return;
@@ -8017,7 +8183,7 @@ function Finance({
       )}
     </div>
   );
-}
+});
 
 function Purchases({ items, suppliers, purchases, safes, profile }: { 
   items: Item[], 
@@ -8112,13 +8278,13 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           category: 'خامات/مشتريات',
           createdBy: profile?.name || 'مستخدم'
         });
-
+        
         // Update safe balance
         batch.update(doc(db, 'safes', formData.safeId), {
           balance: increment(-Number(formData.paidAmount))
         });
       }
-
+      
       for (const selectedItem of formData.selectedItems) {
         const item = items.find(i => i.id === selectedItem.itemId);
         const itemTotal = selectedItem.quantity * selectedItem.unitPrice;
@@ -8139,14 +8305,14 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           safeId: formData.safeId || null,
           safeTransactionId: safeTransactionId || null
         });
-
+        
         // Update Item Stock
         const itemRef = doc(db, 'items', selectedItem.itemId);
         const currentTotalValue = (item?.totalValue || (item ? item.currentBalance * item.price : 0));
         const newTotalValue = currentTotalValue + itemTotal;
         const newQuantity = (item?.currentBalance || 0) + selectedItem.quantity;
         const newAveragePrice = newQuantity > 0 ? newTotalValue / newQuantity : selectedItem.unitPrice;
-
+        
         batch.update(itemRef, {
           inward: increment(selectedItem.quantity),
           currentBalance: increment(selectedItem.quantity),
@@ -8154,7 +8320,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           price: newAveragePrice
         });
       }
-
+      
       // Update Supplier Balance
       const supplierRef = doc(db, 'suppliers', formData.supplierId);
       const balanceChange = invoiceTotal - formData.paidAmount;
@@ -8163,9 +8329,8 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         totalPayments: increment(formData.paidAmount),
         balance: increment(balanceChange)
       });
-
+      
       await batch.commit();
-
       setShowAdd(false);
       setFormData({
         supplierId: '',
@@ -8176,6 +8341,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         notes: ''
       });
     } catch (err) {
+      console.error(err);
     }
   };
 
@@ -8532,7 +8698,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
           price: item.price,
           unit: item.unit,
           date: format(new Date(), 'yyyy-MM-dd')
-        });
+            });
 
         // Update Item Stock
         const currentAveragePrice = item.price || 0;
@@ -8852,7 +9018,7 @@ function Suppliers({
           category: 'سداد موردين',
           relatedId: paymentRef.id,
           createdBy: profile?.name || 'مستخدم'
-        });
+            });
 
         batch.update(doc(db, 'safes', paymentData.safeId), {
           balance: increment(-paymentData.amount)
@@ -9692,7 +9858,7 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
           returned: increment(formData.quantity),
           currentBalance: increment(formData.quantity),
           totalValue: increment(formData.quantity * currentAveragePrice)
-        });
+            });
       } else {
         // Return from Inventory to Supplier
         // 1. Update Inventory
@@ -9701,7 +9867,7 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
           outward: increment(formData.quantity),
           currentBalance: increment(-formData.quantity),
           totalValue: increment(-formData.quantity * currentAveragePrice)
-        });
+            });
 
         // 2. Update Supplier Balance (Reduce debt)
         const refundValue = formData.quantity * currentAveragePrice;
@@ -10142,7 +10308,7 @@ function ReportsView(props: {
   wasteRecords: Waste[],
   bladeSharpening: BladeSharpening[],
   plateSharpening: PlateSharpening[],
-  machineMaintenance: MachineMaintenance[],
+  maintenanceOrders: MaintenanceOrder[],
   salesOrders?: SalesOrder[],
   safes?: Safe[],
   safeTransactions?: SafeTransaction[],
@@ -10166,7 +10332,7 @@ function OldReportsView({
   wasteRecords,
   bladeSharpening,
   plateSharpening,
-  machineMaintenance,
+  maintenanceOrders,
 }: { 
   items: Item[], 
   suppliers: Supplier[], 
@@ -10179,7 +10345,7 @@ function OldReportsView({
   wasteRecords: Waste[],
   bladeSharpening: BladeSharpening[],
   plateSharpening: PlateSharpening[],
-  machineMaintenance: MachineMaintenance[],
+  maintenanceOrders: MaintenanceOrder[],
 }) {
   const [activeReportTab, setActiveReportTab] = useState<'dashboard' | 'warehouse' | 'purchases' | 'suppliers'>('dashboard');
 
@@ -10303,7 +10469,7 @@ function OldReportsView({
   const maintenanceData = [
     { name: 'سن الصواني', value: plateSharpening.reduce((acc, s) => acc + s.cost, 0) },
     { name: 'سن الأسلحة', value: bladeSharpening.reduce((acc, s) => acc + s.cost, 0) },
-    { name: 'صيانة الماكينات', value: machineMaintenance.reduce((acc, s) => acc + s.cost, 0) },
+    { name: 'الصيانة الخارجية', value: maintenanceOrders.reduce((acc, s) => acc + s.cost, 0) },
   ];
 
   const COLORS = ['#2563eb', '#3b82f6', '#60a5fa', '#10b981', '#34d399', '#8b5cf6', '#a78bfa'];
@@ -11391,157 +11557,7 @@ function BladeSharpeningView({
   );
 }
 
-function MachineMaintenanceView({ records, safes, profile }: { records: MachineMaintenance[], safes: Safe[], profile: UserProfile | null }) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [formData, setFormData] = useState({ 
-    machineName: '', 
-    maintenanceType: '', 
-    cost: 0, 
-    notes: '',
-    safeId: ''
-  });
-
-  const handleAdd = async () => {
-    if (!formData.machineName || !formData.maintenanceType) return;
-    if (formData.cost > 0 && !formData.safeId) {
-      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
-      return;
-    }
-
-    try {
-      const batch = writeBatch(db);
-      const recordRef = doc(collection(db, 'machineMaintenance'));
-      let safeTransactionId = '';
-
-      if (formData.cost > 0 && formData.safeId) {
-        const txRef = doc(collection(db, 'safeTransactions'));
-        safeTransactionId = txRef.id;
-        
-        batch.set(txRef, {
-          safeId: formData.safeId,
-          date: formData.date,
-          type: 'مصروفات',
-          amount: Number(formData.cost),
-          description: `صيانة ماكينة: ${formData.machineName} (${formData.maintenanceType})`,
-          category: 'صيانة ومصاريف سن',
-          createdBy: profile?.name || 'مستخدم',
-          relatedId: recordRef.id
-        });
-
-        batch.update(doc(db, 'safes', formData.safeId), {
-          balance: increment(-Number(formData.cost))
-        });
-      }
-
-      batch.set(recordRef, {
-        machineName: formData.machineName,
-        maintenanceType: formData.maintenanceType,
-        cost: formData.cost,
-        notes: formData.notes,
-        safeId: formData.safeId || null,
-        safeTransactionId: safeTransactionId || null
-      });
-
-      await batch.commit();
-      setShowAdd(false);
-  } catch (err) { console.error(err); } };
-
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">صيانة الالات والمعدات</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">تسجيل ومتابعة صيانة الماكينات والمعدات بالمصنع</p>
-        </div>
-        <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8">
-          <Plus size={18} className="ml-2" />
-          تسجيل صيانة جديدة
-        </Button>
-      </div>
-
-      <Card className="dribbble-card overflow-hidden border-none">
-        <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow>
-              <TableHead className="text-right font-black text-slate-900 py-5">التاريخ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">اسم الماكينة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">نوع الصيانة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">التكلفة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">ملاحظات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
-              <TableRow key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
-                <TableCell className="font-black text-slate-900">{r.machineName}</TableCell>
-                <TableCell className="font-bold text-blue-600">{r.maintenanceType}</TableCell>
-                <TableCell className="font-black text-primary">{r.cost.toLocaleString()} ج.م</TableCell>
-                <TableCell className="text-sm text-slate-600">{r.notes}</TableCell>
-              </TableRow>
-            ))}
-            {records.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-slate-400 font-bold">لا توجد سجلات حالياً</TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
-
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">تسجيل صيانة ماكينة</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">اسم الماكينة / المعدة</label>
-                <Input className="rounded-xl h-11" value={formData.machineName} onChange={e => setFormData({...formData, machineName: e.target.value})} placeholder="مثال: ماكينة تقطيع CNC" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">نوع الصيانة</label>
-                <Input className="rounded-xl h-11" value={formData.maintenanceType} onChange={e => setFormData({...formData, maintenanceType: e.target.value})} placeholder="مثال: تغيير سيور / عمرة موتور" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">التكلفة</label>
-                <Input type="number" className="rounded-xl h-11" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} />
-              </div>
-              {formData.cost > 0 && (
-                <div className="space-y-2 animate-in slide-in-from-top duration-300">
-                  <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
-                  <select 
-                    className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
-                    value={formData.safeId}
-                    onChange={e => setFormData({...formData, safeId: e.target.value})}
-                  >
-                    <option value="">اختر الخزنة...</option>
-                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
-                  </select>
-                </div>
-              )}
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">ملاحظات</label>
-                <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="تفاصيل إضافية..." />
-              </div>
-              <div className="flex justify-end gap-3 pt-6">
-                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} className="btn-primary px-10 h-12 font-black">حفظ السجل</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EmployeesView({ employees }: { employees: Employee[] }) {
+const EmployeesView = React.memo(function EmployeesView({ employees }: { employees: Employee[] }) {
   const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
   const [showAdd, setShowAdd] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -11918,7 +11934,7 @@ function EmployeesView({ employees }: { employees: Employee[] }) {
       )}
     </div>
   );
-}
+});
 
 
 function HRWorkflowGuide({ activeTab, onTabChange }: { activeTab: string, onTabChange: (tab: string) => void }) {
@@ -11978,7 +11994,7 @@ function HRWorkflowGuide({ activeTab, onTabChange }: { activeTab: string, onTabC
   );
 }
 
-function LoansView({ employees }: { employees: Employee[] }) {
+const LoansView = React.memo(function LoansView({ employees }: { employees: Employee[] }) {
   const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
   const [showAdd, setShowAdd] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
@@ -12333,10 +12349,10 @@ function LoansView({ employees }: { employees: Employee[] }) {
       )}
     </div>
   );
-}
+});
 
 
-function HRTransactionsView({ employees, transactions }: { employees: Employee[], transactions: FinancialTransaction[] }) {
+const HRTransactionsView = React.memo(function HRTransactionsView({ employees, transactions }: { employees: Employee[], transactions: FinancialTransaction[] }) {
   const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
   const [showAdd, setShowAdd] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<FinancialTransaction | null>(null);
@@ -12581,9 +12597,9 @@ function HRTransactionsView({ employees, transactions }: { employees: Employee[]
       )}
     </div>
   );
-}
+});
 
-function ProductionView({ employees, productionRecords }: { employees: Employee[], productionRecords: ProductionRecord[] }) {
+const ProductionView = React.memo(function ProductionView({ employees, productionRecords }: { employees: Employee[], productionRecords: ProductionRecord[] }) {
   const [showAdd, setShowAdd] = useState(false);
   const [entryType, setEntryType] = useState<'registered' | 'manual'>('registered');
   const [entryEmployeeId, setEntryEmployeeId] = useState('');
@@ -12696,7 +12712,7 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
           total: item.quantity * item.rate,
           date: entryDate,
           createdAt: serverTimestamp()
-        });
+            });
       });
       
       await batch.commit();
@@ -13081,9 +13097,9 @@ function ProductionView({ employees, productionRecords }: { employees: Employee[
       )}
     </div>
   );
-}
+});
 
-function PayrollView({
+const PayrollView = React.memo(function PayrollView({
   employees,
   attendance,
   transactions,
@@ -13865,7 +13881,7 @@ function PayrollView({
       )}
     </div>
   );
-}
+});
 
 
 function SalesModule(props: any) {

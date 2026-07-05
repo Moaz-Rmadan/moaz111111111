@@ -25,7 +25,7 @@ export function UsersManager() {
       const snapshot = await getDocs(q);
       const fetchedUsers: UserProfile[] = [];
       snapshot.forEach(doc => {
-        fetchedUsers.push(doc.data() as UserProfile);
+        fetchedUsers.push({ ...doc.data(), uid: doc.id } as UserProfile);
       });
       setUsers(fetchedUsers);
     } catch (err) {
@@ -71,7 +71,7 @@ export function UsersManager() {
 
       await setDoc(doc(db, 'users', uid), newProfile);
       
-      setUsers([...users, newProfile]);
+      setUsers([...users.filter(u => u.uid !== uid), newProfile]);
       setNewUserEmail('');
       setNewUserName('');
     } catch (err: any) {

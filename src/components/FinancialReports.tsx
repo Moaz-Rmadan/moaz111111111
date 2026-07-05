@@ -15,7 +15,7 @@ import * as XLSX from 'xlsx';
 import type { 
   Item, Supplier, Purchase, Issuance, Warehouse, 
   ProductionJob, JobLabor, JobOtherCost, Waste,
-  BladeSharpening, PlateSharpening, MachineMaintenance, Safe, 
+  BladeSharpening, PlateSharpening, MaintenanceOrder, Safe, 
   SafeTransaction, SupplierPayment, Payroll, FinancialTransaction, Loan,
   SalesOrder
 } from '../types';
@@ -36,7 +36,7 @@ interface FinancialReportsProps {
   wasteRecords: Waste[];
   bladeSharpening: BladeSharpening[];
   plateSharpening: PlateSharpening[];
-  machineMaintenance: MachineMaintenance[];
+  maintenanceOrders: MaintenanceOrder[];
   salesOrders?: SalesOrder[];
   safes?: Safe[];
   safeTransactions?: SafeTransaction[];
@@ -58,7 +58,7 @@ export function FinancialReports({
   wasteRecords,
   bladeSharpening,
   plateSharpening,
-  machineMaintenance,
+  maintenanceOrders,
   salesOrders = [],
   safes = [],
   safeTransactions = [],
@@ -212,8 +212,8 @@ export function FinancialReports({
   const maintenanceData = useMemo(() => [
     { name: 'سن الصواني', value: plateSharpening.reduce((acc, s) => acc + s.cost, 0) },
     { name: 'سن الأسلحة', value: bladeSharpening.reduce((acc, s) => acc + s.cost, 0) },
-    { name: 'صيانة الماكينات', value: machineMaintenance.reduce((acc, s) => acc + s.cost, 0) },
-  ], [plateSharpening, bladeSharpening, machineMaintenance]);
+    { name: 'الصيانة الخارجية', value: maintenanceOrders.reduce((acc, s) => acc + s.cost, 0) },
+  ], [plateSharpening, bladeSharpening, maintenanceOrders]);
 
   const COLORS = ['#2563eb', '#3b82f6', '#60a5fa', '#10b981', '#34d399', '#8b5cf6', '#a78bfa'];
 
@@ -311,9 +311,9 @@ export function FinancialReports({
         credit: 0,
         reference: 'سن صواني'
       }));
-      const maintRows = machineMaintenance.map(m => ({
-        date: m.date,
-        description: `صيانة ماكينات - ${m.machineName}`,
+      const maintRows = maintenanceOrders.map(m => ({
+        date: m.sendDate,
+        description: `صيانة ماكينات - ${m.itemName}`,
         debit: m.cost,
         credit: 0,
         reference: 'صيانة ماكينة'
@@ -344,7 +344,7 @@ export function FinancialReports({
         r.reference.toLowerCase().includes(ledgerSearch.toLowerCase());
       return matchesFrom && matchesTo && matchesSearch;
     }).sort((a, b) => a.date.localeCompare(b.date));
-  }, [ledgerAccount, safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, bladeSharpening, plateSharpening, machineMaintenance, jobOtherCosts, ledgerDateFrom, ledgerDateTo, ledgerSearch]);
+  }, [ledgerAccount, safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, bladeSharpening, plateSharpening, maintenanceOrders, jobOtherCosts, ledgerDateFrom, ledgerDateTo, ledgerSearch]);
 
   // Running Ledger Balances
   const runningLedgerBalances = useMemo(() => {
@@ -377,11 +377,11 @@ export function FinancialReports({
     const generalPayroll = payrolls.filter(p => p.paymentDate ? filterByPeriod(p.paymentDate) : filterByPeriod(p.startDate)).reduce((sum, p) => sum + p.netSalary, 0);
     const sharpening = bladeSharpening.filter(b => filterByPeriod(b.date)).reduce((sum, b) => sum + b.cost, 0) + 
                        plateSharpening.filter(p => filterByPeriod(p.date)).reduce((sum, p) => sum + p.cost, 0);
-    const machineMaintenanceCost = machineMaintenance.filter(m => filterByPeriod(m.date)).reduce((sum, m) => sum + m.cost, 0);
+    const maintenanceOrdersCost = maintenanceOrders.filter(m => filterByPeriod(m.sendDate)).reduce((sum, m) => sum + m.cost, 0);
     const commissions = salesOrders.filter(so => filterByPeriod(so.date)).reduce((sum, so) => sum + (so.totalCommission || 0), 0);
     const logistics = salesOrders.filter(so => filterByPeriod(so.date)).reduce((sum, so) => sum + (so.totalLogisticsCost || 0), 0);
     const administrative = safeTransactions.filter(t => t.type === 'مصروفات' && filterByPeriod(t.date)).reduce((sum, t) => sum + t.amount, 0);
-    const totalOPEX = generalPayroll + sharpening + machineMaintenanceCost + commissions + logistics + administrative;
+    const totalOPEX = generalPayroll + sharpening + maintenanceOrdersCost + commissions + logistics + administrative;
     const netProfit = grossProfit - totalOPEX;
 
     return {
@@ -394,14 +394,14 @@ export function FinancialReports({
       grossProfit,
       generalPayroll,
       sharpening,
-      machineMaintenanceCost,
+      maintenanceOrdersCost,
       commissions,
       logistics,
       administrative,
       totalOPEX,
       netProfit
     };
-  }, [salesOrders, issuances, jobLabors, jobOtherCosts, wasteRecords, items, payrolls, bladeSharpening, plateSharpening, machineMaintenance, safeTransactions, filterByPeriod]);
+  }, [salesOrders, issuances, jobLabors, jobOtherCosts, wasteRecords, items, payrolls, bladeSharpening, plateSharpening, maintenanceOrders, safeTransactions, filterByPeriod]);
 
   // Balance Sheet Calculations (Cumulative State)
   const balanceSheetData = useMemo(() => {
@@ -422,7 +422,7 @@ export function FinancialReports({
     const allOPEX = payrolls.reduce((sum, p) => sum + p.netSalary, 0) +
                     bladeSharpening.reduce((sum, b) => sum + b.cost, 0) +
                     plateSharpening.reduce((sum, p) => sum + p.cost, 0) +
-                    machineMaintenance.reduce((sum, m) => sum + m.cost, 0) +
+                    maintenanceOrders.reduce((sum, m) => sum + m.cost, 0) +
                     salesOrders.reduce((sum, so) => sum + (so.totalCommission || 0), 0) +
                     salesOrders.reduce((sum, so) => sum + (so.totalLogisticsCost || 0), 0) +
                     safeTransactions.filter(t => t.type === 'مصروفات').reduce((sum, t) => sum + t.amount, 0);
@@ -442,7 +442,7 @@ export function FinancialReports({
       capitalReserves,
       totalEquity
     };
-  }, [safes, items, loans, suppliers, salesOrders, issuances, jobLabors, jobOtherCosts, wasteRecords, payrolls, bladeSharpening, plateSharpening, machineMaintenance, safeTransactions]);
+  }, [safes, items, loans, suppliers, salesOrders, issuances, jobLabors, jobOtherCosts, wasteRecords, payrolls, bladeSharpening, plateSharpening, maintenanceOrders, safeTransactions]);
 
   // Excel exporters for financial statements
   const exportLedgerToExcel = () => {
@@ -468,7 +468,7 @@ export function FinancialReports({
       { 'البند المالي': 'مجمل ربح العمليات (Gross Profit)', 'المبلغ (ج.م)': pnlData.grossProfit },
       { 'البند المالي': 'الرواتب والأجور العامة والإدارية', 'المبلغ (ج.م)': -pnlData.generalPayroll },
       { 'البند المالي': 'مصاريف سن الصواني والأسلحة', 'المبلغ (ج.م)': -pnlData.sharpening },
-      { 'البند المالي': 'مصاريف صيانة الآلات والمعدات', 'المبلغ (ج.م)': -pnlData.machineMaintenanceCost },
+      { 'البند المالي': 'مصاريف صيانة الآلات والمعدات', 'المبلغ (ج.م)': -pnlData.maintenanceOrdersCost },
       { 'البند المالي': 'عمولات المبيعات للوسطاء وموظفي البيع', 'المبلغ (ج.م)': -pnlData.commissions },
       { 'البند المالي': 'تكاليف الخدمات اللوجستية والنقل', 'المبلغ (ج.م)': -pnlData.logistics },
       { 'البند المالي': 'مصاريف نثرية وإدارية عامة', 'المبلغ (ج.م)': -pnlData.administrative },
@@ -622,7 +622,7 @@ export function FinancialReports({
                     </div>
                     <div className="flex justify-between items-center py-2 text-base font-bold text-slate-600 border-b border-dashed border-slate-100">
                       <span>صيانة وإصلاح الماكينات والآلات</span>
-                      <span>{(pnlData.machineMaintenanceCost).toLocaleString()} ج.م</span>
+                      <span>{(pnlData.maintenanceOrdersCost).toLocaleString()} ج.م</span>
                     </div>
                     <div className="flex justify-between items-center py-2 text-base font-bold text-slate-600 border-b border-dashed border-slate-100">
                       <span>عمولات المبيعات اللوجستية والوسطاء</span>

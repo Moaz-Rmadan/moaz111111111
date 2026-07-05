@@ -61,18 +61,21 @@ service cloud.firestore {
     // Helper Functions
     // ===============================================================
     
+    function getUserId() {
+      return request.auth.token.email != null ? request.auth.token.email.lower() : request.auth.uid;
+    }
     function isAuthenticated() {
       return request.auth != null;
     }
 
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return get(/databases/$(database)/documents/users/$(getUserId())).data;
     }
 
     function isAdmin() {
       return isAuthenticated() && 
-             (request.auth.token.email == "cfo.moaz@gmail.com" || 
-              (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true));
+             (request.auth.token.email.lower() == "cfo.moaz@gmail.com" || 
+              (exists(/databases/$(database)/documents/users/$(getUserId())) && get(/databases/$(database)/documents/users/$(getUserId())).data.isAdmin == true));
     }
 
     function isVerified() {
@@ -81,7 +84,7 @@ service cloud.firestore {
 
     function hasPermission(module) {
       return isVerified() && 
-             (isAdmin() || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions[module] == true));
+             (isAdmin() || (exists(/databases/$(database)/documents/users/$(getUserId())) && get(/databases/$(database)/documents/users/$(getUserId())).data.permissions[module] == true));
     }
 
     function isValidStockAudit(data) {
@@ -100,9 +103,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow read: if isAuthenticated() && (getUserId() == userId || isAdmin());
       allow write: if isAdmin();
-      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated() && getUserId() == userId;
     }
 
     match /settings/{id} {
@@ -170,7 +173,7 @@ service cloud.firestore {
       allow write: if hasPermission('maintenance');
     }
 
-    match /machineMaintenance/{id} {
+    match /maintenanceOrders/{id} {
       allow read: if hasPermission('maintenance') || hasPermission('reports');
       allow write: if hasPermission('maintenance');
     }

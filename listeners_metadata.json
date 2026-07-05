@@ -1,0 +1,266 @@
+[
+  {
+    "unsubName": "unsubWarehouses",
+    "lineNum": 1150,
+    "ifLine": "if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubWarehouses = onSnapshot(collection(db, 'warehouses'), (snap) => {",
+    "setLine": "setWarehouses(snap.docs.map(d => ({ id: d.id, ...d.data() } as Warehouse)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubUnits",
+    "lineNum": 1157,
+    "ifLine": "if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubUnits = onSnapshot(collection(db, 'units'), (snap) => {",
+    "setLine": "setUnits(snap.docs.map(d => ({ id: d.id, ...d.data() } as Unit)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubCostCenters",
+    "lineNum": 1164,
+    "ifLine": "if (profile.isAdmin || profile.permissions.inventory || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubCostCenters = onSnapshot(collection(db, 'costCenters'), (snap) => {",
+    "setLine": "setCostCenters(snap.docs.map(d => ({ id: d.id, ...d.data() } as CostCenter)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubItems",
+    "lineNum": 1171,
+    "ifLine": "if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubItems = onSnapshot(collection(db, 'items'), (snap) => {",
+    "setLine": "setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as Item)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubSuppliers",
+    "lineNum": 1178,
+    "ifLine": "if (profile.isAdmin || profile.permissions.suppliers || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubSuppliers = onSnapshot(collection(db, 'suppliers'), (snap) => {",
+    "setLine": "setSuppliers(snap.docs.map(d => ({ id: d.id, ...d.data() } as Supplier)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubPurchases",
+    "lineNum": 1185,
+    "ifLine": "if (profile.isAdmin || profile.permissions.purchases || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubPurchases = onSnapshot(collection(db, 'purchases'), (snap) => {",
+    "setLine": "setPurchases(snap.docs.map(d => ({ id: d.id, ...d.data() } as Purchase)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubIssuances",
+    "lineNum": 1192,
+    "ifLine": "if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubIssuances = onSnapshot(collection(db, 'issuances'), (snap) => {",
+    "setLine": "setIssuances(snap.docs.map(d => ({ id: d.id, ...d.data() } as Issuance)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubProductionJobs",
+    "lineNum": 1199,
+    "ifLine": "if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubProductionJobs = onSnapshot(collection(db, 'productionJobs'), (snap) => {",
+    "setLine": "setProductionJobs(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionJob)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubLoadingManifests",
+    "lineNum": 1206,
+    "ifLine": "if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubLoadingManifests = onSnapshot(collection(db, 'loadingManifests'), (snap) => {",
+    "setLine": "setLoadingManifests(snap.docs.map(d => ({ id: d.id, ...d.data() } as LoadingManifest)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubWaste",
+    "lineNum": 1213,
+    "ifLine": "if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubWaste = onSnapshot(collection(db, 'waste'), (snap) => {",
+    "setLine": "setWasteRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as Waste)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubBladeSharpening",
+    "lineNum": 1220,
+    "ifLine": "if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubBladeSharpening = onSnapshot(collection(db, 'bladeSharpening'), (snap) => {",
+    "setLine": "setBladeSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as BladeSharpening)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubPlateSharpening",
+    "lineNum": 1227,
+    "ifLine": "if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubPlateSharpening = onSnapshot(collection(db, 'plateSharpening'), (snap) => {",
+    "setLine": "setPlateSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as PlateSharpening)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubMaintenanceOrders",
+    "lineNum": 1234,
+    "ifLine": "if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubMaintenanceOrders = onSnapshot(collection(db, 'maintenanceOrders'), (snap) => {",
+    "setLine": "setMaintenanceOrder(snap.docs.map(d => ({ id: d.id, ...d.data() } as MaintenanceOrder)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubEmployees",
+    "lineNum": 1241,
+    "ifLine": "if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubEmployees = onSnapshot(collection(db, 'employees'), (snap) => {",
+    "setLine": "setEmployees(snap.docs.map(d => ({ id: d.id, ...d.data() } as Employee)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubAttendance",
+    "lineNum": 1248,
+    "ifLine": "if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubAttendance = onSnapshot(collection(db, 'attendance'), (snap) => {",
+    "setLine": "setAttendance(snap.docs.map(d => ({ id: d.id, ...d.data() } as Attendance)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubHrTransactions",
+    "lineNum": 1255,
+    "ifLine": "if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubHrTransactions = onSnapshot(collection(db, 'hrTransactions'), (snap) => {",
+    "setLine": "setHrTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinancialTransaction)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubLoans",
+    "lineNum": 1262,
+    "ifLine": "if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubLoans = onSnapshot(q, (snap) => {",
+    "setLine": "setLoans(snap.docs.map(d => ({ id: d.id, ...d.data() } as Loan)));",
+    "queryLine": "const q = query(collection(db, 'loans'), where('status', '==', 'نشط'));"
+  },
+  {
+    "unsubName": "unsubPayrolls",
+    "lineNum": 1270,
+    "ifLine": "if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubPayrolls = onSnapshot(q, (snap) => {",
+    "setLine": "setPayrolls(snap.docs.map(d => ({ id: d.id, ...d.data() } as Payroll)));",
+    "queryLine": "const q = query(collection(db, 'payrolls'), where('status', '==', 'مسودة'));"
+  },
+  {
+    "unsubName": "unsubProductionRecords",
+    "lineNum": 1278,
+    "ifLine": "if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubProductionRecords = onSnapshot(collection(db, 'productionRecords'), (snap) => {",
+    "setLine": "setProductionRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionRecord)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubSupplierPayments",
+    "lineNum": 1285,
+    "ifLine": "if (profile.isAdmin || profile.permissions.suppliers || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubSupplierPayments = onSnapshot(collection(db, 'supplierPayments'), (snap) => {",
+    "setLine": "setSupplierPayments(snap.docs.map(d => ({ id: d.id, ...d.data() } as SupplierPayment)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubJobLabors",
+    "lineNum": 1292,
+    "ifLine": "if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubJobLabors = onSnapshot(collection(db, 'jobLabors'), (snap) => {",
+    "setLine": "setJobLabors(snap.docs.map(d => ({ id: d.id, ...d.data() } as JobLabor)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubJobOtherCosts",
+    "lineNum": 1299,
+    "ifLine": "if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubJobOtherCosts = onSnapshot(collection(db, 'jobOtherCosts'), (snap) => {",
+    "setLine": "setJobOtherCosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as JobOtherCost)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubDeliveryReceipts",
+    "lineNum": 1306,
+    "ifLine": "if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubDeliveryReceipts = onSnapshot(collection(db, 'deliveryReceipts'), (snap) => {",
+    "setLine": "setDeliveryReceipts(snap.docs.map(d => ({ id: d.id, ...d.data() } as DeliveryReceipt)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubStockAudits",
+    "lineNum": 1313,
+    "ifLine": "if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubStockAudits = onSnapshot(collection(db, 'stockAudits'), (snap) => {",
+    "setLine": "setStockAudits(snap.docs.map(d => ({ id: d.id, ...d.data() } as StockAudit)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubBoms",
+    "lineNum": 1320,
+    "ifLine": "if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubBoms = onSnapshot(collection(db, 'boms'), (snap) => {",
+    "setLine": "setBoms(snap.docs.map(d => ({ id: d.id, ...d.data() } as BOM)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubWorkCenters",
+    "lineNum": 1327,
+    "ifLine": "if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubWorkCenters = onSnapshot(collection(db, 'workCenters'), (snap) => {",
+    "setLine": "setWorkCenters(snap.docs.map(d => ({ id: d.id, ...d.data() } as WorkCenter)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubManufacturingOperations",
+    "lineNum": 1334,
+    "ifLine": "if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubManufacturingOperations = onSnapshot(collection(db, 'manufacturingOperations'), (snap) => {",
+    "setLine": "setManufacturingOperations(snap.docs.map(d => ({ id: d.id, ...d.data() } as ManufacturingOperation)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubLostSales",
+    "lineNum": 1341,
+    "ifLine": "if (profile.isAdmin || profile.permissions.dashboard || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubLostSales = onSnapshot(collection(db, 'lostSales'), (snap) => {",
+    "setLine": "setLostSales(snap.docs.map(d => ({ id: d.id, ...d.data() } as LostSale)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubSalesOrders",
+    "lineNum": 1348,
+    "ifLine": "if (profile.isAdmin || profile.permissions.dashboard || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubSalesOrders = onSnapshot(collection(db, 'salesOrders'), (snap) => {",
+    "setLine": "setSalesOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as SalesOrder)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubSafeAudits",
+    "lineNum": 1355,
+    "ifLine": "if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubSafeAudits = onSnapshot(collection(db, 'safeAudits'), (snap) => {",
+    "setLine": "setSafeAudits(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeAudit)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubProductRecipes",
+    "lineNum": 1362,
+    "ifLine": "if (profile.isAdmin || profile.permissions.production || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubProductRecipes = onSnapshot(collection(db, 'productRecipes'), (snap) => {",
+    "setLine": "setProductRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductRecipe)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubSafes",
+    "lineNum": 1369,
+    "ifLine": "if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubSafes = onSnapshot(collection(db, 'safes'), (snap) => {",
+    "setLine": "setSafes(snap.docs.map(d => ({ id: d.id, ...d.data() } as Safe)));",
+    "queryLine": ""
+  },
+  {
+    "unsubName": "unsubSafeTransactions",
+    "lineNum": 1376,
+    "ifLine": "if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {",
+    "onSnapshotLine": "unsubSafeTransactions = onSnapshot(collection(db, 'safeTransactions'), (snap) => {",
+    "setLine": "setSafeTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeTransaction)));",
+    "queryLine": ""
+  }
+]

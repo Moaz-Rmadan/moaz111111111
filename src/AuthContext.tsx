@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
               // Create default profile for first time user
               const defaultProfile: UserProfile = {
-                uid: firebaseUser.uid,
+                uid: userId,
                 email: firebaseUser.email || '',
                 name: firebaseUser.displayName || 'مستخدم جديد',
                 isAdmin: isMasterAdmin, // Set to true if master admin
