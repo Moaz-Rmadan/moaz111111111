@@ -44,7 +44,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (firebaseUser) {
         // Fetch profile
         try {
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userId = firebaseUser.email?.toLowerCase() || firebaseUser.uid;
+          const userDocRef = doc(db, 'users', userId);
           
           // Use onSnapshot to keep profile in sync
           const unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {

@@ -63,6 +63,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { motion, AnimatePresence } from 'motion/react';
 import { AttendanceView } from './components/AttendanceView';
 import { FinancialReports } from './components/FinancialReports';
+import { UsersManager } from './components/UsersManager';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
 const logout = () => signOut(auth);
@@ -2070,7 +2071,7 @@ function MainApp({
             productionRecords={productionRecords}
           />
         )}
-        {activeTab === 'userManagement' && <UserManagement />}
+        {activeTab === 'userManagement' && <UsersManager />}
         {activeTab === 'safe' && (
           <Finance 
             safes={safes} 
@@ -2610,306 +2611,6 @@ function SubNavButton({ active, onClick, label, permission, profile }: { active:
 function PlateSharpeningView(props: any) {
   return null;
 }
-function UserManagement() {
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const { profile } = useAuth();
-
-  useEffect(() => {
-    if (!profile?.isAdmin) return;
-    
-    const q = query(collection(db, 'users'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
-      setUsers(usersData);
-    });
-    return () => unsubscribe();
-  }, [profile]);
-
-  const handleUpdatePermissions = async (uid: string, permissions: UserProfile['permissions'], isAdmin: boolean) => {
-    try {
-      await updateDoc(doc(db, 'users', uid), { permissions, isAdmin });
-      setEditingUser(null);
-      setIsModalOpen(false);
-    } catch (error) {
-    }
-  };
-
-  const handleDeleteUserRecord = async (uid: string) => {
-    try {
-      await deleteDoc(doc(db, 'users', uid));
-      setDeleteConfirm(null);
-    } catch (error) {
-    }
-  };
-
-  if (!profile?.isAdmin) return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-      <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500">
-        <ShieldAlert size={40} />
-      </div>
-      <h2 className="text-2xl font-black text-slate-900">عذراً، لا تملك صلاحية الوصول</h2>
-      <p className="text-slate-500 font-medium">هذه الصفحة مخصصة لمديري النظام فقط</p>
-    </div>
-  );
-
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className="w-16 h-16 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-slate-900/20">
-            <Users size={32} />
-          </div>
-          <div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">إدارة المستخدمين</h2>
-            <p className="text-slate-500 font-medium mt-1">التحكم في هويات وصلاحيات الفريق</p>
-          </div>
-        </div>
-        
-        <div className="relative w-full md:w-96">
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <Input 
-            placeholder="بحث بالاسم أو البريد الإلكتروني..." 
-            className="h-12 pr-12 rounded-2xl border-slate-200 bg-white/50 backdrop-blur-sm focus:bg-white transition-all shadow-sm font-bold"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredUsers.map((u) => (
-          <Card key={u.uid} className="dribbble-card border-none overflow-hidden group hover:shadow-2xl transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all duration-500">
-                    <UserCircle size={32} />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-lg text-slate-900">{u.name}</h3>
-                    <p className="text-slate-500 text-xs font-mono lowercase">{u.email}</p>
-                  </div>
-                </div>
-                <Badge variant={u.isAdmin ? "default" : "secondary"} className={`rounded-xl py-1 px-3 font-black text-[10px] ${u.isAdmin ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-100 text-slate-500'}`}>
-                  {u.isAdmin ? 'مدير نظام' : 'مستخدم'}
-                </Badge>
-              </div>
-
-              <div className="space-y-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الصلاحيات النشطة</p>
-                <div className="flex flex-wrap gap-1.5 h-16 overflow-y-auto custom-scrollbar content-start">
-                  {Object.entries(u.permissions || {}).some(([, val]) => val) ? (
-                    Object.entries(u.permissions || {}).map(([key, val]) => (
-                      val && (
-                        <Badge key={key} className="bg-blue-50 text-blue-600 border-none rounded-lg text-[10px] font-bold px-2.5 py-1">
-                          {key === 'dashboard' ? 'لوحة التحكم' : 
-                           key === 'inventory' ? 'المخزن' : 
-                           key === 'production' ? 'الإنتاج' : 
-                           key === 'maintenance' ? 'الصيانة' : 
-                           key === 'purchases' ? 'المشتريات' : 
-                           key === 'hr' ? 'الأجور' : 
-                           key === 'reports' ? 'التقارير' : 
-                           key === 'suppliers' ? 'الموردين' : 
-                           key === 'sales' ? 'المبيعات' :
-                           key === 'canDelete' ? 'صلاحية الحذف' :
-                           key === 'finance' ? 'الخزنة' : 'الإعدادات'}
-                        </Badge>
-                      )
-                    ))
-                  ) : (
-                    <span className="text-xs text-slate-400 italic">لا توجد صلاحيات محددة</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-8">
-                <Button 
-                  onClick={() => { setEditingUser(u); setIsModalOpen(true); }}
-                  className="rounded-2xl bg-slate-900 text-white hover:bg-slate-800 font-black h-11"
-                >
-                  <ShieldCheck size={16} className="ml-2" />
-                  الصلاحيات
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setDeleteConfirm(u.uid)}
-                  className="rounded-2xl border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 font-black h-11"
-                >
-                  <Trash2 size={16} className="ml-2" />
-                  حذف السجل
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredUsers.length === 0 && (
-        <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
-          <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-4">
-            <Search size={32} />
-          </div>
-          <h3 className="text-xl font-black text-slate-900">لا يوجد مستخدمون</h3>
-          <p className="text-slate-500 font-medium">لم يتم العثور على أي مستخدم يطابق بحثك</p>
-        </div>
-      )}
-
-      {isModalOpen && editingUser && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300"
-          >
-            <div className="bg-slate-900 p-8 text-white relative">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setIsModalOpen(false)} 
-                className="absolute left-6 top-6 text-slate-400 hover:text-white hover:bg-white/10 rounded-2xl"
-              >
-                <X size={24} />
-              </Button>
-              
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white backdrop-blur-md">
-                  <ShieldCheck size={40} />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-black">{editingUser.name}</h3>
-                  <p className="text-slate-400 font-mono text-sm">{editingUser.email}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-10 space-y-10">
-              <div className="bg-orange-50 p-6 rounded-[2rem] border border-orange-100/50 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm">
-                    <ShieldAlert size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-slate-900">مدير نظام كامل</h4>
-                    <p className="text-orange-600/70 text-xs font-bold leading-tight">يتمتع المدير بكافة الصلاحيات تلقائياً<br/>وتجاوز كافة القيود</p>
-                  </div>
-                </div>
-                <div 
-                  className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-all duration-300 ${editingUser.isAdmin ? 'bg-orange-500' : 'bg-slate-200'}`}
-                  onClick={() => setEditingUser({ ...editingUser, isAdmin: !editingUser.isAdmin })}
-                >
-                  <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${editingUser.isAdmin ? 'translate-x-6' : 'translate-x-0'}`} />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <h4 className="font-black text-slate-900">صلاحيات الموديلات</h4>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">تفعيل/تعطيل بالتفصيل</span>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {Object.entries(editingUser.permissions).map(([key, val]) => (
-                    <div 
-                      key={key} 
-                      onClick={() => setEditingUser({
-                        ...editingUser,
-                        permissions: { ...editingUser.permissions, [key]: !val }
-                      })}
-                      className={`p-4 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 group ${val ? 'border-primary bg-blue-50/50 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200'}`}
-                    >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${val ? 'bg-primary text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100'}`}>
-                        {key === 'dashboard' ? <LayoutDashboard size={18} /> : 
-                         key === 'inventory' ? <Package size={18} /> : 
-                         key === 'production' ? <Layers size={18} /> : 
-                         key === 'maintenance' ? <Wrench size={18} /> : 
-                         key === 'purchases' ? <ShoppingCart size={18} /> : 
-                         key === 'hr' ? <Users size={18} /> : 
-                         key === 'reports' ? <BarChart3 size={18} /> : 
-                         key === 'suppliers' ? <Truck size={18} /> : 
-                         key === 'sales' ? <ShoppingBag size={18} /> :
-                         key === 'canDelete' ? <ShieldAlert size={18} /> :
-                         key === 'finance' ? <Wallet size={18} /> : <SettingsIcon size={18} />}
-                      </div>
-                      <span className={`font-black text-xs ${val ? 'text-primary' : 'text-slate-600'}`}>
-                        {key === 'dashboard' ? 'لوحة التحكم' : 
-                         key === 'inventory' ? 'المخزن' : 
-                         key === 'production' ? 'الإنتاج' : 
-                         key === 'maintenance' ? 'الصيانة' : 
-                         key === 'purchases' ? 'المشتريات' : 
-                         key === 'hr' ? 'الأجور' : 
-                         key === 'reports' ? 'التقارير' : 
-                         key === 'suppliers' ? 'الموردين' : 
-                         key === 'sales' ? 'المبيعات' :
-                         key === 'canDelete' ? 'صلاحية الحذف' :
-                         key === 'finance' ? 'الخزنة' : 'الإعدادات'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <Button 
-                  className="flex-1 rounded-[1.5rem] bg-slate-900 hover:bg-slate-800 text-white font-black h-14 shadow-xl shadow-slate-900/10"
-                  onClick={() => handleUpdatePermissions(editingUser.uid, editingUser.permissions, editingUser.isAdmin)}
-                >
-                  تحديث كافة الصلاحيات
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="rounded-[1.5rem] border-slate-200 text-slate-500 font-bold h-14 px-10"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  تراجع
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 border-0 text-center animate-in zoom-in-95">
-            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-500 mb-6">
-              <AlertTriangle size={40} />
-            </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2">تأكيد حذف المستخدم؟</h3>
-            <p className="text-slate-500 font-medium mb-10 leading-relaxed">
-              سيؤدي هذا إلى حذف سجل المستخدم وصلاحياته من النظام. لن يتمكن من الدخول مرة أخرى.
-            </p>
-            <div className="flex flex-col gap-3">
-              <Button 
-                variant="destructive" 
-                className="w-full h-14 rounded-2xl font-black text-lg bg-red-600 hover:bg-red-700 shadow-xl shadow-red-600/20"
-                onClick={() => handleDeleteUserRecord(deleteConfirm)}
-              >
-                نعم، احذف السجل نهائياً
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full h-12 rounded-2xl font-bold text-slate-400 hover:bg-slate-50"
-                onClick={() => setDeleteConfirm(null)}
-              >
-                تراجع عن الأمر
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-    </div>
-  );
-}
-
 
 function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements }: { items: Item[], suppliers: Supplier[], purchases: Purchase[], issuances: Issuance[], getItemMovements: (id: string) => any[] }) {
   const [selectedId, setSelectedId] = useState<string>('');
@@ -14640,7 +14341,7 @@ function Settings({
   handleResetAllData: () => Promise<void>,
   handleImportExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>
 }) {
-  const [settingsTab, setSettingsTab] = useState<'general' | 'company' | 'baseData' | 'items' | 'suppliers' | 'about' | 'security'>('general');
+  const [settingsTab, setSettingsTab] = useState<'general' | 'company' | 'baseData' | 'items' | 'suppliers' | 'about' | 'security' | 'users'>('general');
 
   // Local state for company settings editing
   const [localSettings, setLocalSettings] = useState<CompanySettings>({ ...settings });
@@ -14756,6 +14457,15 @@ function Settings({
             >
               <Users size={18} />
               إدارة الموردين
+            </button>
+            <button
+              onClick={() => setSettingsTab('users')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+                settingsTab === 'users' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Users size={18} />
+              إدارة المستخدمين
             </button>
             <button
               onClick={() => setSettingsTab('about')}
@@ -15382,6 +15092,13 @@ function Settings({
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* USERS MANAGER TAB */}
+          {settingsTab === 'users' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <UsersManager />
             </div>
           )}
 
