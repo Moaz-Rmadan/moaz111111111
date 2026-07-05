@@ -280,13 +280,28 @@ service cloud.firestore {
     }
 
     match /lostSales/{id} {
-      allow read: if hasPermission('dashboard') || hasPermission('reports');
-      allow write: if hasPermission('dashboard');
+      allow read: if hasPermission('dashboard') || hasPermission('reports') || hasPermission('sales');
+      allow write: if hasPermission('dashboard') || hasPermission('sales');
     }
 
     match /salesOrders/{id} {
-      allow read: if hasPermission('dashboard') || hasPermission('reports');
-      allow write: if hasPermission('dashboard');
+      allow read: if hasPermission('dashboard') || hasPermission('reports') || hasPermission('sales');
+      allow write: if hasPermission('dashboard') || hasPermission('sales');
+    }
+
+    match /showrooms/{id} {
+      allow read: if hasPermission('sales') || hasPermission('inventory') || hasPermission('reports');
+      allow write: if hasPermission('sales') || hasPermission('inventory');
+    }
+
+    match /showroomInventory/{id} {
+      allow read: if hasPermission('sales') || hasPermission('inventory') || hasPermission('reports');
+      allow write: if hasPermission('sales') || hasPermission('inventory');
+    }
+
+    match /transferOrders/{id} {
+      allow read: if hasPermission('sales') || hasPermission('inventory') || hasPermission('reports');
+      allow write: if hasPermission('sales') || hasPermission('inventory');
     }
 
     match /mrpOrders/{id} {

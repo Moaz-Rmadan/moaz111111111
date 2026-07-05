@@ -33,7 +33,7 @@ import type {
   Attendance, FinancialTransaction, Loan, Payroll, LoadingManifest, Waste,
   BladeSharpening, PlateSharpening, MaintenanceOrder, UserProfile, Safe, Employee, CompanySettings,
   SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense,
-  ByproductSale
+  ByproductSale, Showroom, TransferOrder, ShowroomInventory
 } from './types';
 
 import { cn } from '@/lib/utils';
@@ -67,6 +67,7 @@ import { AttendanceView } from './components/AttendanceView';
 import { FinancialReports } from './components/FinancialReports';
 import { UsersManager } from './components/UsersManager';
 import { ByproductSalesView } from './components/ByproductSalesView';
+import { SalesModule } from './components/SalesModule';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
 const logout = () => signOut(auth);
@@ -841,6 +842,9 @@ function MainApp({
   const [manufacturingOperations, setManufacturingOperations] = useState<ManufacturingOperation[]>([]);
   const [lostSales, setLostSales] = useState<LostSale[]>([]);
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
+  const [showrooms, setShowrooms] = useState<Showroom[]>([]);
+  const [transferOrders, setTransferOrders] = useState<TransferOrder[]>([]);
+  const [showroomInventory, setShowroomInventory] = useState<ShowroomInventory[]>([]);
   const [productRecipes, setProductRecipes] = useState<ProductRecipe[]>([]);
   const [safes, setSafes] = useState<Safe[]>([]);
   const [safeTransactions, setSafeTransactions] = useState<SafeTransaction[]>([]);
@@ -1179,6 +1183,9 @@ function MainApp({
     let unsubManufacturingOperations = () => {};
     let unsubLostSales = () => {};
     let unsubSalesOrders = () => {};
+    let unsubShowrooms = () => {};
+    let unsubTransferOrders = () => {};
+    let unsubShowroomInventory = () => {};
     let unsubSafeAudits = () => {};
     let unsubProductRecipes = () => {};
     let unsubSafes = () => {};
@@ -1495,13 +1502,40 @@ function MainApp({
     }
 
     // 29. unsubSalesOrders
-    if (profile.isAdmin || profile.permissions.dashboard || profile.permissions.reports) {
+    if (profile.isAdmin || profile.permissions.dashboard || profile.permissions.reports || profile.permissions.sales) {
       unsubSalesOrders = onSnapshot(
         collection(db, 'salesOrders'),
         (snap) => {
           setSalesOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as SalesOrder)));
         },
         (error) => console.error('Permission error in collection salesOrders:', error)
+      );
+    }
+
+    // Showrooms and Transfers
+    if (profile.isAdmin || profile.permissions.sales || profile.permissions.inventory || profile.permissions.reports) {
+      unsubShowrooms = onSnapshot(
+        collection(db, 'showrooms'),
+        (snap) => {
+          setShowrooms(snap.docs.map(d => ({ id: d.id, ...d.data() } as Showroom)));
+        },
+        (error) => console.error('Permission error in collection showrooms:', error)
+      );
+
+      unsubShowroomInventory = onSnapshot(
+        collection(db, 'showroomInventory'),
+        (snap) => {
+          setShowroomInventory(snap.docs.map(d => ({ id: d.id, ...d.data() } as ShowroomInventory)));
+        },
+        (error) => console.error('Permission error in collection showroomInventory:', error)
+      );
+
+      unsubTransferOrders = onSnapshot(
+        collection(db, 'transferOrders'),
+        (snap) => {
+          setTransferOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as TransferOrder)));
+        },
+        (error) => console.error('Permission error in collection transferOrders:', error)
       );
     }
 
@@ -1579,6 +1613,9 @@ function MainApp({
       unsubManufacturingOperations();
       unsubLostSales();
       unsubSalesOrders();
+      unsubShowrooms();
+      unsubTransferOrders();
+      unsubShowroomInventory();
       unsubSafeAudits();
       unsubProductRecipes();
       unsubSafes();
@@ -2189,10 +2226,14 @@ function MainApp({
         {activeTab === 'archive' && <ArchiveView employees={employees} payrolls={payrolls} transactions={hrTransactions} />}
         {activeTab === 'sales' && (
           <SalesModule 
-            showrooms={[]}
-            transferOrders={[]}
-            salesOrders={[]}
+            showrooms={showrooms}
+            transferOrders={transferOrders}
+            showroomInventory={showroomInventory}
+            salesOrders={salesOrders}
             productionJobs={productionJobs}
+            safes={safes}
+            profile={profile}
+            lostSales={lostSales}
           />
         )}
         {activeTab === 'suppliers' && (
@@ -13898,15 +13939,7 @@ const PayrollView = React.memo(function PayrollView({
 });
 
 
-function SalesModule(props: any) {
-  return (
-    <div className="p-8 text-center text-slate-500 font-bold border-2 border-dashed border-slate-200 rounded-3xl m-8">
-      <ShoppingCart size={48} className="mx-auto mb-4 text-slate-300" />
-      <h3 className="text-2xl text-slate-700">وحدة المبيعات والمعارض</h3>
-      <p className="mt-2 text-slate-400">جاري تطوير هذا القسم ليتم التعامل مع المبيعات وأوامر البيع بشكل مستقل.</p>
-    </div>
-  );
-}
+
 
 function ArchiveView({ employees, payrolls, transactions }: { employees: Employee[], payrolls: Payroll[], transactions: FinancialTransaction[] }) {
   const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];

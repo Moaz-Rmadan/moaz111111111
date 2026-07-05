@@ -11,6 +11,8 @@ export interface ShowroomInventory {
   itemId: string; // يشير إلى الـ ProductionJob أو المنتج النهائي
   quantity: number;
   costPrice: number; // التكلفة الحقيقية من المصنع
+  status?: string; // available or pending_receipt
+  transferOrderId?: string;
 }
 
 export interface TransferOrder {
