@@ -1,0 +1,484 @@
+function Dashboard({ 
+  items, 
+  suppliers, 
+  purchases, 
+  issuances,
+  employees,
+  productionJobs,
+  loadingManifests,
+  machineMaintenance,
+  bladeSharpening,
+  plateSharpening,
+  hrTransactions,
+  supplierPayments,
+  attendance,
+  loans,
+  payrolls,
+  wasteRecords,
+  jobLabors,
+  jobOtherCosts,
+  productionRecords,
+  safes,
+  safeTransactions,
+  profile
+}: { 
+  items: Item[], 
+  suppliers: Supplier[], 
+  purchases: Purchase[], 
+  issuances: Issuance[],
+  employees: Employee[],
+  productionJobs: ProductionJob[],
+  loadingManifests: LoadingManifest[],
+  machineMaintenance: MachineMaintenance[],
+  bladeSharpening: BladeSharpening[],
+  plateSharpening: PlateSharpening[],
+  hrTransactions: FinancialTransaction[],
+  supplierPayments: SupplierPayment[],
+  attendance: Attendance[],
+  loans: Loan[],
+  payrolls: Payroll[],
+  wasteRecords: Waste[],
+  jobLabors: JobLabor[],
+  jobOtherCosts: JobOtherCost[],
+  productionRecords: ProductionRecord[],
+  safes: Safe[],
+  safeTransactions: SafeTransaction[],
+  profile: UserProfile | null
+}) {
+  const totalInventoryValue = items.reduce((acc, item) => acc + (item.currentBalance * item.price), 0);
+  const lowStockItems = items.filter(item => item.currentBalance <= item.safetyLimit);
+  const totalSupplierDebt = suppliers.reduce((acc, s) => acc + s.balance, 0);
+  
+  const activeEmployees = employees.filter(emp => emp.status === 'نشط');
+  const totalWasteValue = wasteRecords.reduce((acc, w) => {
+    const item = items.find(i => i.id === w.itemId);
+    return acc + (w.quantity * (item?.price || 0));
+  }, 0);
+
+  const totalManufacturingCost = productionJobs.reduce((acc, job) => {
+    const materialCost = issuances.filter(i => i.jobOrderNo === job.orderNo).reduce((sum, m) => sum + m.total, 0);
+    const laborCost = jobLabors.filter(l => l.jobId === job.id).reduce((sum, l) => sum + l.total, 0);
+    const otherCost = jobOtherCosts.filter(o => o.jobId === job.id).reduce((sum, o) => sum + o.amount, 0);
+    return acc + materialCost + laborCost + otherCost;
+  }, 0);
+
+  // Daily trend for the last 14 days
+  const last14Days = Array.from({ length: 14 }, (_, i) => {
+    return format(d, 'yyyy-MM-dd');
+  }).reverse();
+
+  const chartData = last14Days.map(date => ({
+    purchases: purchases.filter(p => p.date === date).reduce((sum, p) => sum + p.total, 0),
+    issuances: issuances.filter(is => is.date === date).reduce((sum, is) => sum + is.total, 0),
+    waste: wasteRecords.filter(w => w.date === date).reduce((sum, w) => {
+      const item = items.find(i => i.id === w.itemId);
+      return sum + (w.quantity * (item?.price || 0));
+    }, 0)
+  }));
+
+  // --- Analytical Data Calculations ---
+  
+  // 1. Monthly Salaries
+  const months = Array.from({ length: 6 }, (_, i) => {
+    d.setMonth(d.getMonth() - i);
+    return format(d, 'yyyy-MM');
+  }).reverse();
+
+  const salaryChartData = months.map(m => ({
+  }));
+
+  // 2. Attendance Status Distribution (Last 30 days)
+  const attendancePieData = [
+    { name: 'حضور', value: recentAttendance.filter(a => a.status === 'حضور').length, color: '#10b981' },
+    { name: 'تأخير', value: recentAttendance.filter(a => a.status === 'تأخير').length, color: '#f59e0b' },
+    { name: 'غياب', value: recentAttendance.filter(a => a.status === 'غياب').length, color: '#ef4444' }
+  ].filter(d => d.value > 0);
+
+  // 3. Production Statistics (Last 14 days output)
+  const productionStatData = last14Days.map(date => {
+    const dayRecords = productionRecords.filter(r => r.date === date);
+    return {
+      output: dayRecords.reduce((sum, r) => sum + r.quantity, 0)
+    };
+  });
+
+  // 4. Safe Consumption (Last 6 months)
+  const safeOutgoingsData = months.map(m => ({
+    amount: safeTransactions.filter(t => t.date.startsWith(m) && (t.type === 'سحب' || t.type === 'مصروفات' || t.type === 'رواتب' || t.type === 'مشتريات')).reduce((sum, t) => sum + t.amount, 0)
+  }));
+
+  return (
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
+      {/* Premium Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 py-4">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">
+            الذكاء الصناعي في الخدمة
+          </div>
+          <h2 className="text-4xl lg:text-7xl font-black tracking-tighter text-slate-900 leading-[0.9]">
+            نظرة عامة <br />
+            <span className="text-primary">على المصنع</span>
+          </h2>
+          <p className="text-slate-500 font-bold text-lg lg:text-xl max-w-xl pr-2 border-r-4 border-slate-100 mt-4">
+            تتبع حي وشامل لكافة عمليات الإنتاج والمخازن والتدفقات المالية في لحظتها.
+          </p>
+        </div>
+        
+        <div className="flex flex-col gap-4 self-start lg:self-auto">
+          <div className="flex items-center gap-3 bg-white p-4 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+              <Calendar size={22} />
+            </div>
+            <div className="flex flex-col pr-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">تاريخ اليوم</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="bento-grid"
+      >
+        {(profile?.isAdmin || profile?.permissions.inventory) && (
+          <StatCardBento 
+            title="قيمة المخزون" 
+            value={totalInventoryValue} 
+            unit="ج.م" 
+            icon={<Package size={28} />} 
+            className="lg:col-span-4"
+            trend="+4.2%"
+            color="primary"
+          />
+        )}
+        {(profile?.isAdmin || profile?.permissions.suppliers) && (
+          <StatCardBento 
+            title="ديون الموردين" 
+            value={totalSupplierDebt} 
+            unit="ج.م" 
+            icon={<Users size={28} />} 
+            className="lg:col-span-4"
+            trend="-2.1%"
+            color="orange"
+          />
+        )}
+        {(profile?.isAdmin || profile?.permissions.production) && (
+          <StatCardBento 
+            title="تكلفة التصنيع" 
+            value={totalManufacturingCost} 
+            unit="ج.م" 
+            icon={<DollarSign size={28} />} 
+            className="lg:col-span-4"
+            trend="+12%"
+            color="emerald"
+          />
+        )}
+
+        <div className="lg:col-span-8 space-y-6">
+           <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between p-8 pb-2">
+                 <div>
+                    <CardTitle className="text-2xl font-black text-slate-900">تحليل التدفقات</CardTitle>
+                    <CardDescription className="font-bold">مقارنة بين المشتريات والمنصرف والهالك (آخر 14 يوم)</CardDescription>
+                 </div>
+                 <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                       <span className="w-3 h-3 rounded-full bg-primary" />
+                       <span className="text-[10px] font-black uppercase text-slate-400">مشتريات</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                       <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                       <span className="text-[10px] font-black uppercase text-slate-400">منصرف</span>
+                    </div>
+                 </div>
+              </CardHeader>
+              <CardContent className="p-8 pt-6">
+                 <div className="h-[350px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                       <AreaChart data={chartData}>
+                          <defs>
+                             <linearGradient id="colorPur" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
+                                <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                             </linearGradient>
+                             <linearGradient id="colorIss" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                             </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 10 }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 10 }} />
+                          <Tooltip 
+                             contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', fontWeight: 'black', fontFamily: 'Cairo' }}
+                             formatter={(value: number) => `${value.toLocaleString()} ج.م`}
+                          />
+                          <Area type="monotone" dataKey="purchases" stroke="#2563eb" strokeWidth={4} fillOpacity={1} fill="url(#colorPur)" />
+                          <Area type="monotone" dataKey="issuances" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorIss)" />
+                       </AreaChart>
+                    </ResponsiveContainer>
+                 </div>
+              </CardContent>
+           </Card>
+
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <StatMiniCard title="الموظفين" value={activeEmployees.length} sub="موظف نشط" icon={<Users size={20} />} color="emerald" />
+              <StatMiniCard title="أوامر الإنتاج" value={productionJobs.length} sub="عملية جارية" icon={<Wrench size={20} />} color="blue" />
+              <StatMiniCard title="الهالك" value={totalWasteValue} unit="ج.م" icon={<Trash2 size={20} />} color="red" />
+           </div>
+        </div>
+
+        <div className="lg:col-span-4 space-y-6">
+           {/* Inventory Alert Column */}
+           <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 bg-slate-900 text-white flex flex-col h-full">
+              <CardHeader className="p-8 pb-4">
+                 <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6">
+                    <AlertTriangle size={24} className="text-orange-400" />
+                 </div>
+                 <CardTitle className="text-2xl font-black tracking-tight">نقص المواد</CardTitle>
+                 <CardDescription className="text-slate-400 font-bold">أصناف تجاوزت حد الأمان ({lowStockItems.length})</CardDescription>
+              </CardHeader>
+              <CardContent className="p-8 pt-0 flex-1">
+                 <div className="space-y-3 mt-4">
+                    {lowStockItems.slice(0, 6).map(item => (
+                       <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group">
+                          <div className="flex items-center gap-3">
+                             <div className="w-10 h-10 rounded-xl bg-orange-400/20 flex items-center justify-center text-orange-400 font-black">
+                                {item.currentBalance}
+                             </div>
+                             <div>
+                                <p className="font-black text-sm truncate max-w-[120px]">{item.name}</p>
+                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{item.unit}</p>
+                             </div>
+                          </div>
+                          <ChevronLeft size={16} className="text-slate-600 group-hover:text-white transition-colors" />
+                       </div>
+                    ))}
+                    {lowStockItems.length === 0 && (
+                       <div className="text-center py-12 flex flex-col items-center gap-4 opacity-50">
+                          <ShieldCheck size={48} className="text-emerald-400" />
+                          <p className="font-black">جميع الفراغات ممتلئة</p>
+                       </div>
+                    )}
+                 </div>
+              </CardContent>
+              {lowStockItems.length > 6 && (
+                <CardFooter className="p-6 pt-0">
+                   <Button variant="ghost" className="w-full text-slate-400 hover:text-white font-black text-xs uppercase tracking-widest">عرض كافة التنبيهات</Button>
+                </CardFooter>
+              )}
+           </Card>
+        </div>
+
+        {/* --- Section 2: Advanced Analytics --- */}
+        <div className="lg:col-span-12 space-y-6 pt-8 border-t border-slate-100">
+           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                 <h3 className="text-3xl font-black text-slate-900 flex items-center gap-4">
+                   <Activity size={32} className="text-primary" />
+                   التحليلات الذكية
+                 </h3>
+                 <p className="text-slate-500 font-bold">تقارير بيانية تفاعلية لدعم اتخاذ القرار الإداري</p>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+             <Card className="lg:col-span-12 xl:col-span-8 dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
+               <CardHeader className="bg-slate-50/50 p-8">
+                 <CardTitle className="text-xl font-black flex items-center gap-3">
+                   <DollarSign className="text-emerald-500" size={24} />
+                   تحليل الرواتب والمصاريف الشهرية
+                 </CardTitle>
+                 <CardDescription className="font-bold">مقارنة بين إجمالي الرواتب ومصاريف الخزينة (آخر 6 أشهر)</CardDescription>
+               </CardHeader>
+               <CardContent className="p-8">
+                 <div className="h-[350px] w-full">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <ComposedChart data={salaryChartData.map((s, i) => ({ ...s, safeOut: safeOutgoingsData[i]?.amount || 0 }))}>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                       <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 11 }} />
+                       <YAxis axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 11 }} />
+                       <Tooltip 
+                         contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 'bold' }} 
+                         formatter={(value: number) => `${value.toLocaleString()} ج.م`}
+                       />
+                       <Legend verticalAlign="top" height={36}/>
+                       <Bar name="إجمالي الرواتب" dataKey="total" fill="#10b981" radius={[8, 8, 0, 0]} barSize={40} />
+                       <Line name="مصاريف الخزينة" type="monotone" dataKey="safeOut" stroke="#6366f1" strokeWidth={4} dot={{ r: 4 }} />
+                     </ComposedChart>
+                   </ResponsiveContainer>
+                 </div>
+               </CardContent>
+             </Card>
+
+             <Card className="lg:col-span-12 xl:col-span-4 dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
+               <CardHeader className="bg-slate-50/50 p-8">
+                 <CardTitle className="text-xl font-black flex items-center gap-3">
+                   <ClipboardCheck className="text-blue-500" size={24} />
+                   انضباط العمل
+                 </CardTitle>
+                 <CardDescription className="font-bold">نسبة الحضور والالتزام (آخر 30 يوماً)</CardDescription>
+               </CardHeader>
+               <CardContent className="p-8 flex flex-col items-center justify-center">
+                 <div className="h-[250px] w-full">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <PieChart>
+                       <Pie
+                         data={attendancePieData}
+                         cx="50%"
+                         cy="50%"
+                         innerRadius={70}
+                         outerRadius={90}
+                         paddingAngle={8}
+                         dataKey="value"
+                       >
+                         {attendancePieData.map((entry, index) => (
+                           <RechartsCell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                         ))}
+                       </Pie>
+                       <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
+                     </PieChart>
+                   </ResponsiveContainer>
+                 </div>
+                 <div className="mt-6 grid grid-cols-3 gap-4 w-full">
+                   {attendancePieData.map((stat, i) => (
+                     <div key={i} className="text-center">
+                       <div className="text-lg font-black" style={{ color: stat.color }}>
+                          {((stat.value / (recentAttendance.length || 1)) * 100).toFixed(1)}%
+                       </div>
+                       <div className="text-[10px] font-bold text-slate-400 uppercase">{stat.name}</div>
+                     </div>
+                   ))}
+                 </div>
+               </CardContent>
+             </Card>
+
+             <Card className="lg:col-span-12 dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
+               <CardHeader className="bg-slate-50/50 p-8">
+                 <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-xl font-black flex items-center gap-3">
+                        <Zap className="text-orange-500" size={24} />
+                        تحليل كثافة الإنتاج
+                      </CardTitle>
+                      <CardDescription className="font-bold">تتبع إجمالي عدد القطع المنتجة يومياً (آخر 14 يوم)</CardDescription>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي إنتاج الفترة</div>
+                      <div className="text-2xl font-black text-orange-500">
+                        {productionStatData.reduce((s, d) => s + d.output, 0).toLocaleString()} <span className="text-sm font-bold text-slate-400">قطعة</span>
+                      </div>
+                    </div>
+                 </div>
+               </CardHeader>
+               <CardContent className="p-8">
+                 <div className="h-[300px] w-full">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <AreaChart data={productionStatData}>
+                       <defs>
+                         <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
+                           <stop offset="5%" stopColor="#f97316" stopOpacity={0.1}/>
+                           <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                         </linearGradient>
+                       </defs>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                       <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 11 }} />
+                       <YAxis axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 11 }} />
+                       <Tooltip 
+                         contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', fontWeight: 'black' }}
+                         formatter={(v: number) => `${v.toLocaleString()} قطعة`}
+                       />
+                       <Area type="monotone" dataKey="output" stroke="#f97316" strokeWidth={4} fillOpacity={1} fill="url(#colorProd)" />
+                     </AreaChart>
+                   </ResponsiveContainer>
+                 </div>
+               </CardContent>
+             </Card>
+           </div>
+        </div>
+
+        {/* Recent Activities Section */}
+        <div className="lg:col-span-12 mt-4">
+           <div className="flex items-center gap-4 mb-8">
+              <div className="h-px flex-1 bg-slate-200" />
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">العمليات الأخيرة</h3>
+              <div className="h-px flex-1 bg-slate-200" />
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              <DashboardList 
+                title="أوامر التشغيل" 
+                icon={<Layers className="text-primary" />} 
+                data={productionJobs.slice(-4).reverse()} 
+                renderItem={(job) => (
+                  <div key={job.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:shadow-lg transition-all group">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 group-hover:bg-primary group-hover:text-white transition-all">
+                          {job.orderNo.slice(-2)}
+                       </div>
+                       <div className="flex flex-col">
+                          <span className="text-sm font-black text-slate-900 leading-tight">{job.productName}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{job.clientName}</span>
+                       </div>
+                    </div>
+                    <Badge className="bg-emerald-50 text-emerald-600 border-none rounded-lg text-[9px] font-black uppercase tracking-widest">{job.status}</Badge>
+                  </div>
+                )}
+              />
+
+              <DashboardList 
+                title="عمليات الصرف" 
+                icon={<ArrowUpRight className="text-emerald-500" />} 
+                data={issuances.slice(-4).reverse()} 
+                renderItem={(iss) => (
+                  <div key={iss.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:shadow-lg transition-all group">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                          <Package size={18} />
+                       </div>
+                       <div className="flex flex-col">
+                          <span className="text-sm font-black text-slate-900 leading-tight">{items.find(i => i.id === iss.itemId)?.name || 'صنف جديد'}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{iss.costCenter}</span>
+                       </div>
+                    </div>
+                    <div className="text-left flex flex-col">
+                       <span className="text-sm font-black text-slate-900">{iss.quantity}</span>
+                    </div>
+                  </div>
+                )}
+              />
+
+              <DashboardList 
+                title="أجور الموظفين" 
+                icon={<DollarSign className="text-blue-500" />} 
+                data={hrTransactions.slice(-4).reverse()} 
+                renderItem={(trans) => (
+                  <div key={trans.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:shadow-lg transition-all group">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                          <Users size={18} />
+                       </div>
+                       <div className="flex flex-col">
+                          <span className="text-sm font-black text-slate-900 leading-tight">{employees.find(e => e.id === trans.employeeId)?.name || 'موظف مجهول'}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{trans.type}</span>
+                       </div>
+                    </div>
+                    <div className="text-left flex flex-col">
+                       <span className={`text-sm font-black ${trans.type === 'خصم' ? 'text-red-500' : 'text-blue-600'}`}>
+                          {trans.type === 'خصم' ? '-' : '+'}{trans.amount.toLocaleString()} 
+                       </span>
+                    </div>
+                  </div>
+                )}
+              />
+           </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon, color = "text-primary" }: { title: string, value: string | number, icon: React.ReactNode, color?: string }) {

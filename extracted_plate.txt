@@ -1,0 +1,150 @@
+function PlateSharpeningView({ records, safes, profile }: { records: PlateSharpening[], safes: Safe[], profile: UserProfile | null }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [formData, setFormData] = useState({ 
+    plateName: '', 
+    quantity: 1, 
+    cost: 0, 
+    notes: '',
+    safeId: ''
+  });
+
+  const handleAdd = async () => {
+    if (!formData.plateName || formData.quantity <= 0) return;
+    if (formData.cost > 0 && !formData.safeId) {
+      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+      const recordRef = doc(collection(db, 'plateSharpening'));
+      let safeTransactionId = '';
+
+      if (formData.cost > 0 && formData.safeId) {
+        const txRef = doc(collection(db, 'safeTransactions'));
+        safeTransactionId = txRef.id;
+        
+        batch.set(txRef, {
+          safeId: formData.safeId,
+          date: formData.date,
+          type: 'مصروفات',
+          amount: Number(formData.cost),
+          description: `سن صفايح: ${formData.plateName} (عدد ${formData.quantity})`,
+          category: 'صيانة ومصاريف سن',
+          createdBy: profile?.name || 'مستخدم',
+          relatedId: recordRef.id
+        });
+
+        batch.update(doc(db, 'safes', formData.safeId), {
+          balance: increment(-Number(formData.cost))
+        });
+      }
+
+      batch.set(recordRef, {
+        plateName: formData.plateName,
+        quantity: formData.quantity,
+        cost: formData.cost,
+        notes: formData.notes,
+        safeId: formData.safeId || null,
+        safeTransactionId: safeTransactionId || null
+      });
+
+      await batch.commit();
+      setShowAdd(false);
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">سن الصفايح</h2>
+          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">تسجيل ومتابعة عمليات سن صفايح المنشار</p>
+        </div>
+        <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8">
+          <Plus size={18} className="ml-2" />
+          تسجيل عملية سن
+        </Button>
+      </div>
+
+      <Card className="dribbble-card overflow-hidden border-none">
+        <Table>
+          <TableHeader className="bg-slate-50/50">
+            <TableRow>
+              <TableHead className="text-right font-black text-slate-900 py-5">التاريخ</TableHead>
+              <TableHead className="text-right font-black text-slate-900">اسم الصفيحة</TableHead>
+              <TableHead className="text-right font-black text-slate-900">العدد</TableHead>
+              <TableHead className="text-right font-black text-slate-900">التكلفة</TableHead>
+              <TableHead className="text-right font-black text-slate-900">ملاحظات</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+              <TableRow key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                <TableCell className="font-black text-slate-900">{r.plateName}</TableCell>
+                <TableCell className="font-bold text-slate-600">{r.quantity}</TableCell>
+                <TableCell className="font-black text-primary">{r.cost.toLocaleString()} ج.م</TableCell>
+                <TableCell className="text-sm text-slate-600">{r.notes}</TableCell>
+              </TableRow>
+            ))}
+            {records.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-10 text-slate-400 font-bold">لا توجد سجلات حالياً</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {showAdd && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
+          <Card className="dribbble-card w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="font-black text-2xl">تسجيل عملية سن صفايح</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">التاريخ</label>
+                <Input type="date" className="rounded-xl h-11" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">اسم الصفيحة / النوع</label>
+                <Input className="rounded-xl h-11" value={formData.plateName} onChange={e => setFormData({...formData, plateName: e.target.value})} placeholder="مثال: صفيحة منشار شريط" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">العدد</label>
+                  <Input type="number" className="rounded-xl h-11" value={formData.quantity} onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">التكلفة الإجمالية</label>
+                  <Input type="number" className="rounded-xl h-11" value={formData.cost} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} />
+                </div>
+              </div>
+              {formData.cost > 0 && (
+                <div className="space-y-2 animate-in slide-in-from-top duration-300">
+                  <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
+                  <select 
+                    className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
+                    value={formData.safeId}
+                    onChange={e => setFormData({...formData, safeId: e.target.value})}
+                  >
+                    <option value="">اختر الخزنة...</option>
+                    {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
+                  </select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">ملاحظات</label>
+                <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="أي ملاحظات إضافية..." />
+              </div>
+              <div className="flex justify-end gap-3 pt-6">
+                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAdd(false)}>إلغاء</Button>
+                <Button onClick={handleAdd} className="btn-primary px-10 h-12 font-black">حفظ السجل</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+

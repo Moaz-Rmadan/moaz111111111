@@ -31,7 +31,7 @@ import type {
   ProductionJob, JobLabor, JobOtherCost, ProductionRecord, DeliveryReceipt, 
   LostSale, StockAudit, BOM, WorkCenter, ManufacturingOperation, SalesOrder,
   Attendance, FinancialTransaction, Loan, Payroll, LoadingManifest, Waste,
-  BladeSharpening, PlateSharpening, MaintenanceOrder, UserProfile, Safe, Employee, CompanySettings,
+  BladeSharpening, PlateSharpening, MaintenanceOrder, MachineMaintenance, UserProfile, Safe, Employee, CompanySettings,
   SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense,
   ByproductSale, Showroom, TransferOrder, ShowroomInventory
 } from './types';
@@ -823,8 +823,6 @@ function MainApp({
   const [productionJobs, setProductionJobs] = useState<ProductionJob[]>([]);
   const [loadingManifests, setLoadingManifests] = useState<LoadingManifest[]>([]);
   const [wasteRecords, setWasteRecords] = useState<Waste[]>([]);
-  const [bladeSharpening, setBladeSharpening] = useState<BladeSharpening[]>([]);
-  const [plateSharpening, setPlateSharpening] = useState<PlateSharpening[]>([]);
   const [maintenanceOrders, setMaintenanceOrder] = useState<MaintenanceOrder[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -983,7 +981,7 @@ function MainApp({
     setIsResetting(true);
     const collectionsToClear = [
       'purchases', 'issuances', 'productionJobs', 'loadingManifests', 
-      'waste', 'bladeSharpening', 'plateSharpening', 'maintenanceOrders',
+      'waste', 'maintenanceOrders',
       'attendance', 'hrTransactions', 'loans', 'payrolls', 'productionRecords',
       'supplierPayments', 'deliveryReceipts', 'jobLabors', 'jobOtherCosts'
     ];
@@ -1164,8 +1162,6 @@ function MainApp({
     let unsubProductionJobs = () => {};
     let unsubLoadingManifests = () => {};
     let unsubWaste = () => {};
-    let unsubBladeSharpening = () => {};
-    let unsubPlateSharpening = () => {};
     let unsubMaintenanceOrders = () => {};
     let unsubEmployees = () => {};
     let unsubAttendance = () => {};
@@ -1298,28 +1294,6 @@ function MainApp({
           setWasteRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as Waste)));
         },
         (error) => console.error('Permission error in collection waste:', error)
-      );
-    }
-
-    // 11. unsubBladeSharpening
-    if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
-      unsubBladeSharpening = onSnapshot(
-        collection(db, 'bladeSharpening'),
-        (snap) => {
-          setBladeSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as BladeSharpening)));
-        },
-        (error) => console.error('Permission error in collection bladeSharpening:', error)
-      );
-    }
-
-    // 12. unsubPlateSharpening
-    if (profile.isAdmin || profile.permissions.maintenance || profile.permissions.reports) {
-      unsubPlateSharpening = onSnapshot(
-        collection(db, 'plateSharpening'),
-        (snap) => {
-          setPlateSharpening(snap.docs.map(d => ({ id: d.id, ...d.data() } as PlateSharpening)));
-        },
-        (error) => console.error('Permission error in collection plateSharpening:', error)
       );
     }
 
@@ -1594,8 +1568,6 @@ function MainApp({
       unsubProductionJobs();
       unsubLoadingManifests();
       unsubWaste();
-      unsubBladeSharpening();
-      unsubPlateSharpening();
       unsubMaintenanceOrders();
       unsubEmployees();
       unsubAttendance();
@@ -1699,6 +1671,12 @@ function MainApp({
     const sorted = movements.sort((a, b) => {
       if (a.date === '---') return -1;
       if (b.date === '---') return 1;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+    let runningBalance = 0;
+    sorted.forEach(m => {
+      runningBalance += (m.in || 0) - (m.out || 0);
+      m.balance = runningBalance;
     });
     return sorted;
   };
@@ -1867,39 +1845,7 @@ function MainApp({
 
           {(profile?.isAdmin || profile?.permissions?.maintenance) && (
             <div className="space-y-1">
-              <div>
-                <motion.button 
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setMaintenanceMenuOpen(!maintenanceMenuOpen)}
-                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                    ['bladeSharpening', 'plateSharpening', 'maintenanceOrders'].includes(activeTab) 
-                    ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' 
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Wrench size={20} className={['bladeSharpening', 'plateSharpening', 'maintenanceOrders'].includes(activeTab) ? 'text-primary' : ''} />
-                    <span className="font-black text-sm">قسم الصيانة</span>
-                  </div>
-                  <ChevronDown size={14} className={`transition-transform duration-300 ${maintenanceMenuOpen ? 'rotate-180' : ''}`} />
-                </motion.button>
-                
-                <AnimatePresence>
-                  {maintenanceMenuOpen && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden bg-slate-100/50 rounded-2xl mt-1 mx-1"
-                    >
-                      <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
-                        <SubNavButton active={activeTab === 'plateSharpening'} onClick={() => handleNavClick('plateSharpening')} label="سن الصفايح" permission="maintenance" profile={profile} />
-                        <SubNavButton active={activeTab === 'maintenanceOrders'} onClick={() => handleNavClick('maintenanceOrders')} label="الصيانة الخارجية" permission="maintenance" profile={profile} />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+              <NavButton active={activeTab === 'maintenanceOrders'} onClick={() => handleNavClick('maintenanceOrders')} icon={<Wrench size={20} />} label="قسم الصيانة" permission="maintenance" profile={profile} />
             </div>
           )}
 
@@ -2103,8 +2049,6 @@ function MainApp({
                 productionJobs={productionJobs}
                 loadingManifests={loadingManifests}
                 maintenanceOrders={maintenanceOrders}
-                bladeSharpening={bladeSharpening}
-                plateSharpening={plateSharpening}
                 hrTransactions={hrTransactions}
                 supplierPayments={supplierPayments}
                 attendance={attendance}
@@ -2203,8 +2147,6 @@ function MainApp({
         {activeTab === 'stockAudit' && <StockAuditView items={items} warehouses={warehouses} audits={stockAudits} />}
         {activeTab === 'returns' && <Returns items={items} suppliers={suppliers} costCenters={costCenters} />}
         {activeTab === 'waste' && <WastedItemsView items={items} wasteRecords={wasteRecords} />}
-        {activeTab === 'bladeSharpening' && <BladeSharpeningView bladeRecords={bladeSharpening} plateRecords={plateSharpening} safes={safes} profile={profile} initialTab="blades" />}
-        {activeTab === 'plateSharpening' && <BladeSharpeningView bladeRecords={bladeSharpening} plateRecords={plateSharpening} safes={safes} profile={profile} initialTab="plates" />}
         {activeTab === 'maintenanceOrders' && <MaintenanceOrdersView records={maintenanceOrders} safes={safes} costCenters={costCenters} profile={profile} />}
         {activeTab === 'employees' && <EmployeesView employees={employees} />}
         {activeTab === 'attendance' && <AttendanceView employees={employees} />}
@@ -2259,8 +2201,6 @@ function MainApp({
             jobLabors={jobLabors} 
             jobOtherCosts={jobOtherCosts}
             wasteRecords={wasteRecords}
-            bladeSharpening={bladeSharpening}
-            plateSharpening={plateSharpening}
             maintenanceOrders={maintenanceOrders}
             salesOrders={salesOrders}
             safes={safes}
@@ -2818,9 +2758,310 @@ function SubNavButton({ active, onClick, label, permission, profile }: { active:
   );
 }
 
-function PlateSharpeningView(props: any) {
-  return null;
+
+
+
+
+function UserManagement() {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const { profile } = useAuth();
+
+  useEffect(() => {
+    if (!profile?.isAdmin) return;
+    
+    const q = query(collection(db, 'users'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const usersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+      setUsers(usersData);
+    });
+    return () => unsubscribe();
+  }, [profile]);
+
+  const handleUpdatePermissions = async (uid: string, permissions: UserProfile['permissions'], isAdmin: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', uid), { permissions, isAdmin });
+      setEditingUser(null);
+      setIsModalOpen(false);
+    } catch (error) {
+    }
+  };
+
+  const handleDeleteUserRecord = async (uid: string) => {
+    try {
+      await deleteDoc(doc(db, 'users', uid));
+      setDeleteConfirm(null);
+    } catch (error) {
+    }
+  };
+
+  if (!profile?.isAdmin) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500">
+        <ShieldAlert size={40} />
+      </div>
+      <h2 className="text-2xl font-black text-slate-900">عذراً، لا تملك صلاحية الوصول</h2>
+      <p className="text-slate-500 font-medium">هذه الصفحة مخصصة لمديري النظام فقط</p>
+    </div>
+  );
+
+  const filteredUsers = users.filter(u => 
+    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <div className="w-16 h-16 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-slate-900/20">
+            <Users size={32} />
+          </div>
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">إدارة المستخدمين</h2>
+            <p className="text-slate-500 font-medium mt-1">التحكم في هويات وصلاحيات الفريق</p>
+          </div>
+        </div>
+        
+        <div className="relative w-full md:w-96">
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <Input 
+            placeholder="بحث بالاسم أو البريد الإلكتروني..." 
+            className="h-12 pr-12 rounded-2xl border-slate-200 bg-white/50 backdrop-blur-sm focus:bg-white transition-all shadow-sm font-bold"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredUsers.map((u) => (
+          <Card key={u.uid} className="dribbble-card border-none overflow-hidden group hover:shadow-2xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                    <UserCircle size={32} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg text-slate-900">{u.name}</h3>
+                    <p className="text-slate-500 text-xs font-mono lowercase">{u.email}</p>
+                  </div>
+                </div>
+                <Badge variant={u.isAdmin ? "default" : "secondary"} className={`rounded-xl py-1 px-3 font-black text-[10px] ${u.isAdmin ? 'bg-amber-500 hover:bg-amber-600' : 'bg-slate-100 text-slate-500'}`}>
+                  {u.isAdmin ? 'مدير نظام' : 'مستخدم'}
+                </Badge>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الصلاحيات النشطة</p>
+                <div className="flex flex-wrap gap-1.5 h-16 overflow-y-auto custom-scrollbar content-start">
+                  {Object.entries(u.permissions || {}).some(([, val]) => val) ? (
+                    Object.entries(u.permissions || {}).map(([key, val]) => (
+                      val && (
+                        <Badge key={key} className="bg-blue-50 text-blue-600 border-none rounded-lg text-[10px] font-bold px-2.5 py-1">
+                          {key === 'dashboard' ? 'لوحة التحكم' : 
+                           key === 'inventory' ? 'المخزن' : 
+                           key === 'production' ? 'الإنتاج' : 
+                           key === 'maintenance' ? 'الصيانة' : 
+                           key === 'purchases' ? 'المشتريات' : 
+                           key === 'hr' ? 'الأجور' : 
+                           key === 'reports' ? 'التقارير' : 
+                           key === 'suppliers' ? 'الموردين' : 
+                           key === 'sales' ? 'المبيعات' :
+                           key === 'canDelete' ? 'صلاحية الحذف' :
+                           key === 'finance' ? 'الخزنة' : 'الإعدادات'}
+                        </Badge>
+                      )
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">لا توجد صلاحيات محددة</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mt-8">
+                <Button 
+                  onClick={() => { setEditingUser(u); setIsModalOpen(true); }}
+                  className="rounded-2xl bg-slate-900 text-white hover:bg-slate-800 font-black h-11"
+                >
+                  <ShieldCheck size={16} className="ml-2" />
+                  الصلاحيات
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setDeleteConfirm(u.uid)}
+                  className="rounded-2xl border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 font-black h-11"
+                >
+                  <Trash2 size={16} className="ml-2" />
+                  حذف السجل
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredUsers.length === 0 && (
+        <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+          <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-4">
+            <Search size={32} />
+          </div>
+          <h3 className="text-xl font-black text-slate-900">لا يوجد مستخدمون</h3>
+          <p className="text-slate-500 font-medium">لم يتم العثور على أي مستخدم يطابق بحثك</p>
+        </div>
+      )}
+
+      {isModalOpen && editingUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300"
+          >
+            <div className="bg-slate-900 p-8 text-white relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsModalOpen(false)} 
+                className="absolute left-6 top-6 text-slate-400 hover:text-white hover:bg-white/10 rounded-2xl"
+              >
+                <X size={24} />
+              </Button>
+              
+              <div className="flex items-center gap-6">
+                <div className="w-20 h-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white backdrop-blur-md">
+                  <ShieldCheck size={40} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black">{editingUser.name}</h3>
+                  <p className="text-slate-400 font-mono text-sm">{editingUser.email}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-10 space-y-10">
+              <div className="bg-orange-50 p-6 rounded-[2rem] border border-orange-100/50 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm">
+                    <ShieldAlert size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900">مدير نظام كامل</h4>
+                    <p className="text-orange-600/70 text-xs font-bold leading-tight">يتمتع المدير بكافة الصلاحيات تلقائياً<br/>وتجاوز كافة القيود</p>
+                  </div>
+                </div>
+                <div 
+                  className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-all duration-300 ${editingUser.isAdmin ? 'bg-orange-500' : 'bg-slate-200'}`}
+                  onClick={() => setEditingUser({ ...editingUser, isAdmin: !editingUser.isAdmin })}
+                >
+                  <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${editingUser.isAdmin ? 'translate-x-6' : 'translate-x-0'}`} />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <h4 className="font-black text-slate-900">صلاحيات الموديلات</h4>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">تفعيل/تعطيل بالتفصيل</span>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {Object.entries(editingUser.permissions).map(([key, val]) => (
+                    <div 
+                      key={key} 
+                      onClick={() => setEditingUser({
+                        ...editingUser,
+                        permissions: { ...editingUser.permissions, [key]: !val }
+                      })}
+                      className={`p-4 rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-3 group ${val ? 'border-primary bg-blue-50/50 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${val ? 'bg-primary text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100'}`}>
+                        {key === 'dashboard' ? <LayoutDashboard size={18} /> : 
+                         key === 'inventory' ? <Package size={18} /> : 
+                         key === 'production' ? <Layers size={18} /> : 
+                         key === 'maintenance' ? <Wrench size={18} /> : 
+                         key === 'purchases' ? <ShoppingCart size={18} /> : 
+                         key === 'hr' ? <Users size={18} /> : 
+                         key === 'reports' ? <BarChart3 size={18} /> : 
+                         key === 'suppliers' ? <Truck size={18} /> : 
+                         key === 'sales' ? <ShoppingBag size={18} /> :
+                         key === 'canDelete' ? <ShieldAlert size={18} /> :
+                         key === 'finance' ? <Building2 size={18} /> : <SettingsIcon size={18} />}
+                      </div>
+                      <span className={`font-black text-xs ${val ? 'text-primary' : 'text-slate-600'}`}>
+                        {key === 'dashboard' ? 'لوحة التحكم' : 
+                         key === 'inventory' ? 'المخزن' : 
+                         key === 'production' ? 'الإنتاج' : 
+                         key === 'maintenance' ? 'الصيانة' : 
+                         key === 'purchases' ? 'المشتريات' : 
+                         key === 'hr' ? 'الأجور' : 
+                         key === 'reports' ? 'التقارير' : 
+                         key === 'suppliers' ? 'الموردين' : 
+                         key === 'sales' ? 'المبيعات' :
+                         key === 'canDelete' ? 'صلاحية الحذف' :
+                         key === 'finance' ? 'الخزنة' : 'الإعدادات'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Button 
+                  className="flex-1 rounded-[1.5rem] bg-slate-900 hover:bg-slate-800 text-white font-black h-14 shadow-xl shadow-slate-900/10"
+                  onClick={() => handleUpdatePermissions(editingUser.uid, editingUser.permissions, editingUser.isAdmin)}
+                >
+                  تحديث كافة الصلاحيات
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="rounded-[1.5rem] border-slate-200 text-slate-500 font-bold h-14 px-10"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  تراجع
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4">
+          <Card className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 border-0 text-center animate-in zoom-in-95">
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-500 mb-6">
+              <AlertTriangle size={40} />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">تأكيد حذف المستخدم؟</h3>
+            <p className="text-slate-500 font-medium mb-10 leading-relaxed">
+              سيؤدي هذا إلى حذف سجل المستخدم وصلاحياته من النظام. لن يتمكن من الدخول مرة أخرى.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button 
+                variant="destructive" 
+                className="w-full h-14 rounded-2xl font-black text-lg bg-red-600 hover:bg-red-700 shadow-xl shadow-red-600/20"
+                onClick={() => handleDeleteUserRecord(deleteConfirm)}
+              >
+                نعم، احذف السجل نهائياً
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full h-12 rounded-2xl font-bold text-slate-400 hover:bg-slate-50"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                تراجع عن الأمر
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
 }
+
 
 function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements }: { items: Item[], suppliers: Supplier[], purchases: Purchase[], issuances: Issuance[], getItemMovements: (id: string) => any[] }) {
   const [selectedId, setSelectedId] = useState<string>('');
@@ -2861,7 +3102,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
                 className="w-full pl-6 pr-12 h-16 rounded-2xl border-2 border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-primary/20 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 font-bold text-lg text-slate-700 appearance-none cursor-pointer transition-all outline-none"
               >
                 <option value="">--- اضغط هنا للاختيار من القائمة ---</option>
-                {items.sort((a,b) => a.name.localeCompare(b.name)).map(item => (
+                {items.slice().sort((a,b) => a.name.localeCompare(b.name)).map(item => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </select>
@@ -3038,34 +3279,6 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
   );
 }
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: any[];
-  label?: string;
-}
-
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-slate-950/95 backdrop-blur-xl p-4 rounded-[1.25rem] border border-slate-800 shadow-2xl text-right select-none">
-        <p className="text-[10px] font-black tracking-widest text-slate-400 mb-2 font-sans">{label}</p>
-        <div className="space-y-2 min-w-[140px]">
-          {payload.map((entry, idx) => (
-            <div key={idx} className="flex items-center justify-between gap-4">
-              <span className="text-xs font-bold text-white font-mono">{entry.value?.toLocaleString()} ج.م</span>
-              <div className="flex items-center gap-1.5 justify-end">
-                <span className="text-[10px] font-semibold text-slate-400">{entry.name}</span>
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  return null;
-}
-
 // --- Views ---
 
 function StatCardBento({ title, value, unit, icon, trend, color, className }: { 
@@ -3078,35 +3291,34 @@ function StatCardBento({ title, value, unit, icon, trend, color, className }: {
   className?: string 
 }) {
   const colorStyles = {
-    primary: "text-primary bg-primary/10 border-primary/25 shadow-primary/5",
-    orange: "text-amber-600 bg-amber-500/10 border-amber-500/25 shadow-amber-500/5",
-    emerald: "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 shadow-emerald-500/5",
-    red: "text-rose-600 bg-rose-500/10 border-rose-500/25 shadow-rose-500/5"
+    primary: "text-primary bg-primary/10 border-primary/20",
+    orange: "text-orange-600 bg-orange-100/50 border-orange-200/50",
+    emerald: "text-emerald-600 bg-emerald-100/50 border-emerald-200/50",
+    red: "text-red-600 bg-red-100/50 border-red-200/50"
   };
 
   return (
-    <Card className={cn("dribbble-card border-none overflow-hidden group relative bg-white shadow-[0_24px_56px_-16px_rgba(0,0,0,0.02)] hover:shadow-[0_32px_72px_-16px_rgba(0,0,0,0.06)] hover:-translate-y-1.5 transition-all duration-500 text-right flex flex-col justify-between", className)}>
-       {/* Ambient soft background glow */}
-       <div className={`absolute -top-24 -right-24 w-72 h-72 ${colorStyles[color].split(' ')[1]} rounded-full blur-[100px] opacity-40 group-hover:opacity-60 group-hover:scale-125 transition-all duration-1000 pointer-events-none`} />
-       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.2] pointer-events-none" />
+    <Card className={cn("dribbble-card border-none overflow-hidden group relative bg-white shadow-2xl shadow-slate-200/40 hover:shadow-indigo-500/10 transition-all duration-700", className)}>
+       <div className={`absolute -top-20 -right-20 w-64 h-64 ${colorStyles[color].split(' ')[1]} rounded-full blur-[100px] opacity-30 group-hover:opacity-50 group-hover:scale-150 transition-all duration-1000 rotate-12 pointer-events-none`} />
+       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.1] pointer-events-none" />
        
-       <CardContent className="p-8 relative z-10 flex flex-col h-full min-h-[220px]">
-          <div className="flex items-center justify-between mb-8 select-none">
-             <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 bg-white shadow-sm", colorStyles[color])}>
+       <CardContent className="p-10 relative z-10 flex flex-col h-full min-h-[220px]">
+          <div className="flex items-center justify-between mb-8">
+             <div className={cn("w-16 h-16 rounded-2.5xl flex items-center justify-center shadow-sm border transition-all duration-700 group-hover:scale-110 group-hover:rotate-6 bg-white", colorStyles[color])}>
                 {icon}
              </div>
-             
-             <div className="px-3.5 py-1.5 bg-emerald-500/15 border border-emerald-500/20 rounded-full text-[10px] font-black tracking-wider text-emerald-600 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-                {trend}
+             <div className="flex flex-col items-end">
+                <div className="px-4 py-1.5 bg-slate-900 border border-slate-800 rounded-full text-[9px] font-black text-white uppercase tracking-widest shadow-xl flex items-center gap-2">
+                   <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                   {trend}
+                </div>
              </div>
           </div>
-          
-          <div className="mt-auto space-y-1">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] font-sans leading-none mb-1.5 select-none">{title}</p>
-             <h3 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 flex items-baseline gap-2 font-sans leading-none">
-                {(value || 0).toLocaleString('ar-EG')}
-                <span className="text-sm font-semibold text-slate-400 tracking-normal mr-1">{unit}</span>
+          <div className="mt-auto space-y-2">
+             <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1 font-mono">{title}</p>
+             <h3 className="text-5xl lg:text-6xl font-black tracking-tighter text-slate-900 flex items-baseline gap-3 font-mono">
+                {(value || 0).toLocaleString()}
+                <span className="text-sm font-bold text-slate-300 tracking-widest uppercase font-sans">{unit}</span>
              </h3>
           </div>
        </CardContent>
@@ -3123,26 +3335,23 @@ function StatMiniCard({ title, value, unit, sub, icon, color }: {
   color: 'blue' | 'emerald' | 'red' 
 }) {
   const colorStyles = {
-    blue: "text-indigo-600 bg-indigo-50 border-indigo-100",
-    emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
-    red: "text-rose-600 bg-rose-50 border-rose-100"
+    blue: "text-blue-600 bg-blue-50",
+    emerald: "text-emerald-600 bg-emerald-50",
+    red: "text-red-600 bg-red-50"
   };
 
   return (
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.03)] group hover:shadow-[0_20px_48px_-12px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 text-right relative overflow-hidden">
-       {/* Ambient accent background hover effect */}
-       <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-current ${color === 'blue' ? 'text-indigo-500' : color === 'emerald' ? 'text-emerald-500' : 'text-rose-500'}`} />
-       
-       <div className="flex items-center gap-4 relative z-10 select-none">
-          <div className={`w-12 h-12 rounded-[1.1rem] flex items-center justify-center border ${colorStyles[color]} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 group hover:-translate-y-1 transition-all duration-300">
+       <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorStyles[color]} group-hover:scale-110 transition-transform`}>
              {icon}
           </div>
           <div className="flex flex-col">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{title}</p>
-             <h4 className="text-xl font-extrabold text-slate-900 leading-none tracking-tight">
-                {value.toLocaleString()} {unit && <span className="text-xs font-semibold text-slate-400 mr-0.5">{unit}</span>}
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{title}</p>
+             <h4 className="text-xl font-black text-slate-900 leading-none">
+                {value.toLocaleString()} {unit && <span className="text-xs font-bold text-slate-400">{unit}</span>}
              </h4>
-             {sub && <p className="text-[10px] font-semibold text-slate-400 tracking-tight mt-1.5">{sub}</p>}
+             {sub && <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tight mt-1">{sub}</p>}
           </div>
        </div>
     </div>
@@ -3174,10 +3383,7 @@ function DashboardList({ title, icon, data, renderItem }: {
   );
 }
 
-const Dashboard = React.memo(function Dashboard({ 
-  settings,
-  setSettings,
-  handleSaveSettings,
+function Dashboard({ 
   items, 
   suppliers, 
   purchases, 
@@ -3186,8 +3392,6 @@ const Dashboard = React.memo(function Dashboard({
   productionJobs,
   loadingManifests,
   maintenanceOrders,
-  bladeSharpening,
-  plateSharpening,
   hrTransactions,
   supplierPayments,
   attendance,
@@ -3199,11 +3403,11 @@ const Dashboard = React.memo(function Dashboard({
   productionRecords,
   safes,
   safeTransactions,
-  profile
+  profile,
+  settings,
+  setSettings,
+  handleSaveSettings
 }: { 
-  settings: CompanySettings,
-  setSettings: (v: CompanySettings) => void,
-  handleSaveSettings: () => Promise<void>,
   items: Item[], 
   suppliers: Supplier[], 
   purchases: Purchase[], 
@@ -3211,9 +3415,7 @@ const Dashboard = React.memo(function Dashboard({
   employees: Employee[],
   productionJobs: ProductionJob[],
   loadingManifests: LoadingManifest[],
-  maintenanceOrders: MaintenanceOrder[],
-  bladeSharpening: BladeSharpening[],
-  plateSharpening: PlateSharpening[],
+  maintenanceOrders?: MaintenanceOrder[],
   hrTransactions: FinancialTransaction[],
   supplierPayments: SupplierPayment[],
   attendance: Attendance[],
@@ -3225,7 +3427,10 @@ const Dashboard = React.memo(function Dashboard({
   productionRecords: ProductionRecord[],
   safes: Safe[],
   safeTransactions: SafeTransaction[],
-  profile: UserProfile
+  profile: UserProfile | null,
+  settings?: CompanySettings,
+  setSettings?: (v: CompanySettings) => void,
+  handleSaveSettings?: () => Promise<void>
 }) {
   const totalInventoryValue = items.reduce((acc, item) => acc + (item.currentBalance * item.price), 0);
   const lowStockItems = items.filter(item => item.currentBalance <= item.safetyLimit);
@@ -3244,18 +3449,22 @@ const Dashboard = React.memo(function Dashboard({
     return acc + materialCost + laborCost + otherCost;
   }, 0);
 
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+  const recentAttendance = attendance.filter(a => a.date >= thirtyDaysAgoStr);
+
   // Daily trend for the last 14 days
   const last14Days = Array.from({ length: 14 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    return format(date, 'yyyy-MM-dd');
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return format(d, 'yyyy-MM-dd');
   }).reverse();
 
   const chartData = last14Days.map(date => ({
-    date,
-    purchases: (purchases || []).filter(p => p.date === date).reduce((sum, p) => sum + p.total, 0),
-    issuances: (issuances || []).filter(is => is.date === date).reduce((sum, is) => sum + is.total, 0),
-    waste: (wasteRecords || []).filter(w => w.date === date).reduce((sum, w) => {
+    purchases: purchases.filter(p => p.date === date).reduce((sum, p) => sum + p.total, 0),
+    issuances: issuances.filter(is => is.date === date).reduce((sum, is) => sum + is.total, 0),
+    waste: wasteRecords.filter(w => w.date === date).reduce((sum, w) => {
       const item = items.find(i => i.id === w.itemId);
       return sum + (w.quantity * (item?.price || 0));
     }, 0)
@@ -3263,44 +3472,27 @@ const Dashboard = React.memo(function Dashboard({
 
   // --- Analytical Data Calculations ---
   
-  // 1. Monthly Salaries (using Intl.DateTimeFormat for premium Arabic localized names)
+  // 1. Monthly Salaries
   const months = Array.from({ length: 6 }, (_, i) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - i);
-    return format(date, 'yyyy-MM');
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    return format(d, 'yyyy-MM');
   }).reverse();
 
-  const salaryChartData = months.map(m => {
-    const [year, month] = m.split('-');
-    const mDate = new Date(parseInt(year), parseInt(month) - 1, 15);
-    const monthName = new Intl.DateTimeFormat('ar-EG', { month: 'long' }).format(mDate);
-    const total = payrolls
-      ?.filter(p => p.startDate && p.startDate.startsWith(m))
-      .reduce((sum, p) => sum + (p.netSalary || 0), 0) || 0;
-    return {
-      month: monthName,
-      total
-    };
-  });
+  const salaryChartData = months.map(m => ({
+  }));
 
   // 2. Attendance Status Distribution (Last 30 days)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const recentAttendance = (attendance || []).filter(a => a.date && new Date(a.date) >= thirtyDaysAgo);
-
   const attendancePieData = [
     { name: 'حضور', value: recentAttendance.filter(a => a.status === 'حضور').length, color: '#10b981' },
     { name: 'تأخير', value: recentAttendance.filter(a => a.status === 'تأخير').length, color: '#f59e0b' },
     { name: 'غياب', value: recentAttendance.filter(a => a.status === 'غياب').length, color: '#ef4444' }
-  ].filter(d => d.value > 0);
+  ].filter(x => x.value > 0);
 
   // 3. Production Statistics (Last 14 days output)
   const productionStatData = last14Days.map(date => {
     const dayRecords = productionRecords.filter(r => r.date === date);
-    const mDate = new Date(date);
-    const dayName = new Intl.DateTimeFormat('ar-EG', { day: 'numeric', month: 'short' }).format(mDate);
     return {
-      date: dayName,
       output: dayRecords.reduce((sum, r) => sum + r.quantity, 0)
     };
   });
@@ -3310,65 +3502,30 @@ const Dashboard = React.memo(function Dashboard({
     amount: safeTransactions.filter(t => t.date.startsWith(m) && (t.type === 'سحب' || t.type === 'مصروفات' || t.type === 'رواتب' || t.type === 'مشتريات')).reduce((sum, t) => sum + t.amount, 0)
   }));
 
-  // Greeting logic according to the current local hour
-  const getGreeting = () => {
-    const hr = new Date().getHours();
-    if (hr >= 4 && hr < 12) return 'صباح الخير والبركة والنشاط';
-    if (hr >= 12 && hr < 17) return 'مساء الخير والإنتاج المتميز';
-    return 'مساء السعادة والروعة والنجاح';
-  };
-
-  const arabToday = new Intl.DateTimeFormat('ar-EG', { 
-    weekday: 'long', 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
-  }).format(new Date());
-
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
-      {/* 1. Global Class Welcome Banner */}
-      <div className="relative rounded-[2.5rem] overflow-hidden border border-slate-200/50 bg-gradient-to-br from-white via-slate-50/20 to-slate-100 p-8 md:p-12 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.03)] text-right">
-        {/* Abstract glowing shapes behind for luxury backdrop effect */}
-        <div className="absolute top-0 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute bottom-0 left-10 w-60 h-60 bg-emerald-500/5 rounded-full blur-[60px] pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-          <div className="space-y-4 max-w-2xl">
-            <div className="inline-flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-extrabold uppercase tracking-widest animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                المصنع متصل وقيد العمل الآن
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-[10px] font-extrabold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                تزامن سحابي حي للبيانات
-              </span>
-            </div>
-            
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-tight">
-              {getGreeting()}، <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary via-indigo-600 to-indigo-500 font-extrabold pb-1">
-                {profile?.name || 'مدير النظام'}
-              </span>
-            </h2>
-            
-            <p className="text-slate-500 font-bold text-sm md:text-base leading-relaxed">
-              مرحباً بك في لوحة تحكم مصنع النجار للأثاث الذكية. تتبع في لحظتها الحالية العمليات الإنتاجية، التدفقات النقدية، انضباط العمال، وحالة المخزون فورياً.
-            </p>
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
+      {/* Premium Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 py-4">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">
+            الذكاء الصناعي في الخدمة
           </div>
-
-          <div className="w-full lg:w-auto self-stretch lg:self-auto flex flex-col sm:flex-row lg:flex-col justify-between items-stretch gap-4 bg-white/70 backdrop-blur-md p-6 rounded-[2rem] border border-white/80 shadow-xl shadow-slate-200/50">
-            <div className="flex items-center gap-4 text-right">
-              <div className="w-14 h-14 bg-gradient-to-tr from-primary to-indigo-500 rounded-[1.25rem] flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                <Calendar size={24} />
-              </div>
-              <div className="flex flex-col">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 font-sans">تاريخ اليوم والوقت المحلي</p>
-                <p className="font-extrabold text-sm md:text-base text-slate-800 leading-tight">
-                  {arabToday}
-                </p>
-              </div>
+          <h2 className="text-4xl lg:text-7xl font-black tracking-tighter text-slate-900 leading-[0.9]">
+            نظرة عامة <br />
+            <span className="text-primary">على المصنع</span>
+          </h2>
+          <p className="text-slate-500 font-bold text-lg lg:text-xl max-w-xl pr-2 border-r-4 border-slate-100 mt-4">
+            تتبع حي وشامل لكافة عمليات الإنتاج والمخازن والتدفقات المالية في لحظتها.
+          </p>
+        </div>
+        
+        <div className="flex flex-col gap-4 self-start lg:self-auto">
+          <div className="flex items-center gap-3 bg-white p-4 rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+              <Calendar size={22} />
+            </div>
+            <div className="flex flex-col pr-1">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">تاريخ اليوم</p>
             </div>
           </div>
         </div>
@@ -3415,21 +3572,21 @@ const Dashboard = React.memo(function Dashboard({
           />
         )}
 
-        <div className="lg:col-span-8 space-y-6 text-right">
-           <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden bg-white">
-              <CardHeader className="flex flex-col sm:flex-row items-center justify-between p-8 pb-2 gap-4">
+        <div className="lg:col-span-8 space-y-6">
+           <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between p-8 pb-2">
                  <div>
-                    <CardTitle className="text-2xl font-black text-slate-900">تحليل تدفق المشتريات والمنصرف</CardTitle>
-                    <CardDescription className="font-bold text-slate-400 mt-1">مقارنة شاملة بين قيم فواتير الشراء والمنصرف من المخزن إلى أوامر العمل (آخر 14 يوم)</CardDescription>
+                    <CardTitle className="text-2xl font-black text-slate-900">تحليل التدفقات</CardTitle>
+                    <CardDescription className="font-bold">مقارنة بين المشتريات والمنصرف والهالك (آخر 14 يوم)</CardDescription>
                  </div>
                  <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
-                       <span className="w-3.5 h-3.5 rounded-full bg-primary shadow-sm" />
-                       <span className="text-xs font-black text-slate-500">المشتريات</span>
+                       <span className="w-3 h-3 rounded-full bg-primary" />
+                       <span className="text-[10px] font-black uppercase text-slate-400">مشتريات</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                       <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm" />
-                       <span className="text-xs font-black text-slate-500">المنصرف للمخازن</span>
+                       <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                       <span className="text-[10px] font-black uppercase text-slate-400">منصرف</span>
                     </div>
                  </div>
               </CardHeader>
@@ -3439,24 +3596,23 @@ const Dashboard = React.memo(function Dashboard({
                        <AreaChart data={chartData}>
                           <defs>
                              <linearGradient id="colorPur" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="oklch(0.48 0.165 245)" stopOpacity={0.15}/>
-                                <stop offset="95%" stopColor="oklch(0.48 0.165 245)" stopOpacity={0}/>
+                                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
+                                <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
                              </linearGradient>
                              <linearGradient id="colorIss" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
                                 <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                              </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontWeight: '700', fill: '#64748b', fontSize: 11, fontFamily: 'IBM Plex Sans Arabic' }} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontWeight: '700', fill: '#64748b', fontSize: 11, fontFamily: 'IBM Plex Sans Arabic' }} />
+                          <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 10 }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontWeight: 'bold', fill: '#64748b', fontSize: 10 }} />
                           <Tooltip 
-                             content={
-                                <CustomTooltip />
-                             }
+                             contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', fontWeight: 'black', fontFamily: 'Cairo' }}
+                             formatter={(value: number) => `${value.toLocaleString()} ج.م`}
                           />
-                          <Area type="monotone" name="مشتريات" dataKey="purchases" stroke="oklch(0.48 0.165 245)" strokeWidth={4} fillOpacity={1} fill="url(#colorPur)" />
-                          <Area type="monotone" name="منصرف" dataKey="issuances" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorIss)" />
+                          <Area type="monotone" dataKey="purchases" stroke="#2563eb" strokeWidth={4} fillOpacity={1} fill="url(#colorPur)" />
+                          <Area type="monotone" dataKey="issuances" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorIss)" />
                        </AreaChart>
                     </ResponsiveContainer>
                  </div>
@@ -3718,7 +3874,7 @@ const Dashboard = React.memo(function Dashboard({
       </motion.div>
     </div>
   );
-});
+}
 
 function StatCard({ title, value, icon, color = "text-primary" }: { title: string, value: string | number, icon: React.ReactNode, color?: string }) {
   const bgColorMap: Record<string, string> = {
@@ -3756,66 +3912,74 @@ function StatCard({ title, value, icon, color = "text-primary" }: { title: strin
   );
 }
 
-const Inventory = React.memo(function Inventory({ 
-  items, 
-  warehouses, 
-  purchases, 
-  issuances, 
-  suppliers, 
+
+
+function Inventory({
+  items,
+  warehouses,
+  purchases,
+  issuances,
+  suppliers,
   getItemMovements,
   setShowItemAdd,
   setShowCostCenterAdd,
   costCenters,
   profile
-}: { 
-  items: Item[], 
-  warehouses: Warehouse[], 
-  purchases: Purchase[], 
-  issuances: Issuance[], 
-  suppliers: Supplier[], 
+}: {
+  items: Item[],
+  warehouses: Warehouse[],
+  purchases: Purchase[],
+  issuances: Issuance[],
+  suppliers: Supplier[],
   getItemMovements: (id: string) => any[],
   setShowItemAdd: (v: boolean) => void,
   setShowCostCenterAdd: (v: boolean) => void,
   costCenters: CostCenter[],
   profile: UserProfile | null
 }) {
-  const departments = Array.from(new Set(items.map(i => i.department || 'غير محدد'))).filter(Boolean);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<string>('all');
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
-  const [selectedCostCenter, setSelectedCostCenter] = useState<string>('all');
-  const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [selectedItemCard, setSelectedItemCard] = useState<Item | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [category, setCategory] = useState('all');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState('all');
+  const [selectedCostCenter, setSelectedCostCenter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-
-  const filtered = items.filter(i => 
-    i.name.toLowerCase().includes(search.toLowerCase()) && 
-    (category === 'all' || i.category === category) &&
-    (selectedWarehouseId === 'all' || i.warehouseId === selectedWarehouseId) &&
-    (selectedCostCenter === 'all' || i.department === selectedCostCenter)
-  );
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [selectedItemCard, setSelectedItemCard] = useState<Item | null>(null);
+  const [lowStockOnly, setLowStockOnly] = useState(false);
 
   const confirmDelete = async () => {
-    if (!showDeleteConfirm) return;
-    try {
-      await deleteDoc(doc(db, 'items', showDeleteConfirm));
-      setShowDeleteConfirm(null);
-  } catch (err) { console.error(err); } };
+    if (showDeleteConfirm) {
+      try {
+        await deleteDoc(doc(db, 'items', showDeleteConfirm));
+        setShowDeleteConfirm(null);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
 
-  const exportExcel = () => {
-    const data = filtered.map(i => ({
-      'اسم الصنف': i.name,
-      'المخزن': warehouses.find(w => w.id === i.warehouseId)?.name,
-      'الوحدة': i.unit,
-      'متوسط السعر': i.price,
-      'رصيد أول': i.openingBalance,
-      'الوارد': i.inward,
-      'المنصرف': i.outward,
-      'المرتجع': i.returned,
-      'الرصيد الحالي': i.currentBalance,
-      'إجمالي القيمة': i.totalValue || (i.currentBalance * i.price),
-      'حد الأمان': i.safetyLimit
+  const filtered = items.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = category === 'all' || item.category === category;
+    const matchesWarehouse = selectedWarehouseId === 'all' || item.warehouseId === selectedWarehouseId;
+    const matchesCostCenter = selectedCostCenter === 'all' || item.department === selectedCostCenter;
+    const matchesLowStock = !lowStockOnly || item.currentBalance <= item.safetyLimit;
+    return matchesSearch && matchesCategory && matchesWarehouse && matchesCostCenter && matchesLowStock;
+  });
+
+  const exportToExcel = () => {
+    const data = filtered.map(item => ({
+      'اسم الصنف': item.name,
+      'المخزن': warehouses.find(w => w.id === item.warehouseId)?.name,
+      'الوحدة': item.unit,
+      'متوسط السعر': item.price,
+      'رصيد أول': item.openingBalance,
+      'الوارد': item.inward,
+      'المنصرف': item.outward,
+      'المرتجع': item.returned,
+      'الرصيد الحالي': item.currentBalance,
+      'إجمالي القيمة': item.totalValue || item.currentBalance * item.price,
+      'حد الأمان': item.safetyLimit
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -3825,12 +3989,11 @@ const Inventory = React.memo(function Inventory({
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      {/* Header Section */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10 pb-6 relative">
         <div className="space-y-6 relative z-10">
           <div className="flex items-center gap-3 text-primary font-black text-xs uppercase tracking-[0.3em] px-5 py-2.5 bg-primary/5 border border-primary/10 rounded-full w-fit shadow-sm">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <Package size={16} />
+            <WarehouseIcon size={16} />
             إدارة المخزون والعهدة الرقمية
           </div>
           <h2 className="text-5xl lg:text-8xl font-black tracking-tighter text-slate-900 leading-[0.8]">
@@ -3841,36 +4004,26 @@ const Inventory = React.memo(function Inventory({
             مـنصة مـتكاملة لمـراقبة الأرصـدة والـتحليل الـمالي لـمجمل حـركة الخـامات والمـنتج النهـائي.
           </p>
         </div>
-
         <div className="flex flex-wrap items-center gap-5 bg-white/50 backdrop-blur-xl p-4 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-white/60 relative z-10">
           <div className="flex bg-slate-100/50 p-2 rounded-2xl border border-slate-200/50">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setViewMode('grid')}
-              className={`rounded-xl h-12 px-6 transition-all duration-500 ${viewMode === 'grid' ? 'bg-white text-primary shadow-xl font-black scale-105' : 'text-slate-400 hover:text-slate-600'}`}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("grid")} className={`rounded-xl h-12 px-6 transition-all duration-500 ${viewMode === "grid" ? "bg-white text-primary shadow-xl font-black scale-105" : "text-slate-400 hover:text-slate-600"}`}>
               <LayoutGrid size={20} className="ml-2" />
               شبكة
             </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setViewMode('table')}
-              className={`rounded-xl h-12 px-6 transition-all duration-500 ${viewMode === 'table' ? 'bg-white text-primary shadow-xl font-black scale-105' : 'text-slate-400 hover:text-slate-600'}`}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("table")} className={`rounded-xl h-12 px-6 transition-all duration-500 ${viewMode === "table" ? "bg-white text-primary shadow-xl font-black scale-105" : "text-slate-400 hover:text-slate-600"}`}>
               <List size={20} className="ml-2" />
               جدول
             </Button>
           </div>
-          
           <Button onClick={() => setShowItemAdd(true)} className="h-16 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3">
             <Plus size={22} strokeWidth={3} />
             إضافة صنف جديد
           </Button>
-          
           <DropdownMenu>
-            <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "h-16 w-16 rounded-2xl p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-sm flex items-center justify-center transition-all hover:rotate-90")}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-16 w-16 rounded-2xl p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-sm flex items-center justify-center transition-all hover:rotate-90">
+                <SettingsIcon size={24} />
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 p-3 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-slate-100">
               <DropdownMenuItem onClick={() => setShowCostCenterAdd(true)} className="rounded-xl p-4 font-black gap-3 text-slate-700 hover:bg-slate-50">
@@ -3882,131 +4035,25 @@ const Inventory = React.memo(function Inventory({
                 <Printer size={18} className="text-slate-400" />
                 طباعة جرد المخزن
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportExcel} className="rounded-xl p-4 font-black gap-3 text-emerald-600 md:flex hidden hover:bg-emerald-50">
-                <Download size={18} />
-                تصدير Excel (تحليل)
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        {/* Decorative elements */}
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
       </div>
 
-      {/* Stats Section - Changed to col-span-4 for 3 cards per row */}
-      <div className="bento-grid">
-        <StatCardBento 
-          title="إجمالي السيولة المخزنية" 
-          value={filtered.reduce((acc, item) => acc + (item.totalValue || (item.currentBalance * item.price)), 0)} 
-          unit="ج.م" 
-          icon={<DollarSign size={32} strokeWidth={2.5} />} 
-          trend="أرصدة نقدية"
-          color="primary"
-          className="lg:col-span-4"
-        />
-        <StatCardBento 
-          title="عجز المخزون الحرج" 
-          value={filtered.filter(i => i.currentBalance === 0).length} 
-          unit="صنف" 
-          icon={<AlertCircle size={32} strokeWidth={2.5} />} 
-          trend="رصيد صفري"
-          color="red"
-          className="lg:col-span-4"
-        />
-        <StatCardBento 
-          title="أصناف إعادة الطلب" 
-          value={filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length} 
-          unit="صنف" 
-          icon={<Zap size={32} strokeWidth={2.5} />} 
-          trend="تحت الأمان"
-          color="orange"
-          className="lg:col-span-4"
-        />
-      </div>
-      
-      {/* Analytics Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        <Card className="lg:col-span-2 dribbble-card border-none bg-white shadow-2xl shadow-slate-200/40 rounded-[3rem] p-10 overflow-hidden h-[450px] flex flex-col group/analytics">
-           <div className="flex items-center justify-between mb-10">
-              <div>
-                 <h4 className="font-black text-slate-900 uppercase tracking-[0.3em] text-[11px] mb-2 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                    توزيع القيمة الرأسمالية للمخزون
-                 </h4>
-                 <p className="text-xs font-bold text-slate-400 italic">تـصنيف الأصـناف حـسب الـوزن النـقدي المستـثمر</p>
-              </div>
-              <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover/analytics:bg-primary group-hover/analytics:text-white transition-all duration-700">
-                    <PieChartIcon size={20} />
-                 </div>
-              </div>
-           </div>
-           <div className="flex-1 min-h-0">
-              <ResponsiveContainer width="100%" height="100%">
-                 <BarChart data={filtered.sort((a, b) => (b.totalValue || (b.currentBalance * b.price)) - (a.totalValue || (a.currentBalance * a.price))).slice(0, 7)}>
-                    <defs>
-                      <linearGradient id="inventoryBarGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" stopOpacity={1} />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.4} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fontWeight: 900, fill: '#1e293b' }}
-                      height={40}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                    />
-                    <Tooltip 
-                      cursor={{ fill: '#f8fafc' }}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          return (
-                            <div className="bg-slate-900/95 backdrop-blur-xl p-6 rounded-[2rem] shadow-2xl border border-slate-800">
-                              <p className="text-white font-black text-lg tracking-tight mb-2">{payload[0].payload.name}</p>
-                              <div className="flex items-baseline gap-2">
-                                 <p className="text-primary font-black text-2xl tracking-tighter">{(payload[0].value as number).toLocaleString()}</p>
-                                 <span className="text-slate-500 font-bold text-[10px] uppercase">ج.م</span>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar 
-                      dataKey={(item) => item.totalValue || (item.currentBalance * item.price)} 
-                      fill="url(#inventoryBarGradient)" 
-                      radius={[16, 16, 0, 0]} 
-                      barSize={45}
-                    />
-                 </BarChart>
-              </ResponsiveContainer>
-           </div>
-        </Card>
-
-        <Card className="dribbble-card border-none bg-slate-900 shadow-2xl shadow-indigo-900/20 rounded-[3rem] p-10 overflow-hidden h-[450px] flex flex-col relative group/strategy">
-           <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/20 rounded-full blur-[120px] -mr-40 -mt-40 transition-all duration-1000 group-hover/strategy:scale-125" />
-           
-           <div className="relative z-10 flex flex-col h-full">
-              <h4 className="font-black text-white uppercase tracking-[0.3em] text-[11px] mb-10 flex items-center gap-3">
-                 <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+         <Card className="lg:col-span-2 dribbble-card border-none overflow-hidden bg-slate-900 text-white shadow-2xl rounded-[3rem] relative p-10 flex flex-col justify-between min-h-[320px]">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 space-y-6">
+              <h4 className="font-black text-white/50 uppercase tracking-[0.3em] text-[11px] flex items-center gap-3">
+                 <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-pulse" />
                  ملـخص الكـفـاءة التشـغيـلية للمخـزون
               </h4>
               
-              <div className="space-y-8 flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                  {[
-                   { label: 'أصناف آمنة (متوفرة)', count: filtered.filter(i => i.currentBalance > i.safetyLimit).length, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/30', percentage: (filtered.filter(i => i.currentBalance > i.safetyLimit).length / filtered.length) * 100 },
-                   { label: 'أصناف تحت المراقبة', count: filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length, color: 'bg-amber-500', shadow: 'shadow-amber-500/30', percentage: (filtered.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length / filtered.length) * 100 },
-                   { label: 'أرصدة معدومة', count: filtered.filter(i => i.currentBalance === 0).length, color: 'bg-rose-500', shadow: 'shadow-rose-500/30', percentage: (filtered.filter(i => i.currentBalance === 0).length / filtered.length) * 100 },
+                   { label: 'أصناف آمنة (متوفرة)', count: items.filter(i => i.currentBalance > i.safetyLimit).length, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/30', percentage: items.length ? (items.filter(i => i.currentBalance > i.safetyLimit).length / items.length) * 100 : 0 },
+                   { label: 'أصناف تحت المراقبة', count: items.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length, color: 'bg-amber-500', shadow: 'shadow-amber-500/30', percentage: items.length ? (items.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length / items.length) * 100 : 0 },
+                   { label: 'أرصدة معدومة', count: items.filter(i => i.currentBalance === 0).length, color: 'bg-rose-500', shadow: 'shadow-rose-500/30', percentage: items.length ? (items.filter(i => i.currentBalance === 0).length / items.length) * 100 : 0 },
                  ].map((stat, i) => (
                    <div key={i} className="space-y-3">
                       <div className="flex justify-between items-end">
@@ -4018,37 +4065,50 @@ const Inventory = React.memo(function Inventory({
                            initial={{ width: 0 }}
                            animate={{ width: `${stat.percentage}%` }}
                            transition={{ duration: 1.5, ease: "easeOut", delay: i * 0.2 }}
-                           className={cn("h-full rounded-full shadow-[0_0_15px_rgba(255,255,255,0.1)]", stat.color, stat.shadow)}
+                           className={cn("h-full rounded-full", stat.color)}
                          />
                       </div>
                    </div>
                  ))}
               </div>
+            </div>
 
-              <div className="mt-10 p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl relative overflow-hidden group/efficiency">
-                 <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover/efficiency:opacity-100 transition-opacity duration-700" />
-                 <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-3 relative z-10">مؤشر كـفاءة التـوفر اللـوجسـتي</p>
-                 <div className="flex items-baseline gap-3 relative z-10">
-                    <span className="text-5xl font-black text-white tracking-tighter leading-none">
-                       {Math.round((filtered.filter(i => i.currentBalance > i.safetyLimit).length / filtered.length) * 100)}%
-                    </span>
-                    <span className="text-emerald-400 font-black text-sm uppercase tracking-widest flex items-center gap-1 animate-bounce">
-                       <TrendingUp size={14} />
-                       صحي
-                    </span>
-                 </div>
-              </div>
-           </div>
-        </Card>
+            <div className="mt-8 pt-8 border-t border-white/5 flex flex-wrap justify-between items-center gap-4 relative z-10">
+               <div className="flex items-baseline gap-3">
+                  <span className="text-5xl font-black text-white tracking-tighter leading-none">
+                     {items.length ? Math.round((items.filter(i => i.currentBalance > i.safetyLimit).length / items.length) * 100) : 0}%
+                  </span>
+                  <span className="text-emerald-400 font-black text-sm uppercase tracking-widest flex items-center gap-1">
+                     <TrendingUp size={14} />
+                     مؤشر التوفر آمن
+                  </span>
+               </div>
+               <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">مؤشر كـفاءة التـوفر اللـوجسـتي</span>
+            </div>
+         </Card>
+
+         <Card className="dribbble-card border-none bg-white p-10 shadow-xl shadow-slate-200/50 rounded-[3rem] flex flex-col justify-between min-h-[320px]">
+            <div className="space-y-4">
+               <h3 className="text-2xl font-black text-slate-900">التحليل السريع</h3>
+               <p className="text-slate-500 font-bold text-sm leading-relaxed">يمكنك تصفية المخزون للوصول الفوري للأصناف منخفضة الرصيد لسرعة التوريد وتفادي توقف الإنتاج.</p>
+            </div>
+            <div className="space-y-4">
+               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <span className="text-sm font-bold text-slate-700">عدد الأصناف الكلي</span>
+                  <span className="font-black text-xl text-slate-900">{items.length} صنف</span>
+               </div>
+               <Button onClick={exportToExcel} className="w-full h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/60 font-black text-slate-700 transition-all">
+                  تصدير تقرير الجرد الكامل (Excel)
+               </Button>
+            </div>
+         </Card>
       </div>
 
-      {/* Filter & Search System */}
       <div className="bg-white/50 backdrop-blur-3xl p-10 rounded-[3.5rem] border border-white/60 shadow-2xl shadow-slate-200/50 space-y-10 relative overflow-hidden group/filter">
         <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none group-hover/filter:scale-110 transition-transform duration-1000" />
-        
-        <div className="flex flex-col lg:flex-row lg:items-center gap-8 relative z-10">
-           <div className="flex-1 relative group/search">
-              <div className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-focus-within/search:bg-slate-900 group-focus-within/search:text-white group-focus-within/search:scale-110 transition-all duration-500 border border-slate-100">
+        <div className="flex flex-col lg:flex-row gap-8 justify-between relative z-10">
+           <div className="flex-1 relative max-w-2xl">
+              <div className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300">
                 <Search size={22} strokeWidth={2.5} />
               </div>
               <Input 
@@ -4060,27 +4120,40 @@ const Inventory = React.memo(function Inventory({
            </div>
 
            <div className="flex flex-wrap items-center gap-4">
-              <div className="p-2.5 bg-white/60 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-xl shadow-slate-200/20 flex items-center gap-2">
-                 <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-lg">
-                    <Filter size={18} strokeWidth={2.5} />
-                 </div>
-                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-sm px-2">
-                   {['الكل', 'مادة خام', 'منتج نهائي', 'تعبئة وتغليف'].map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setCategory(cat === 'الكل' ? 'all' : cat)}
-                        className={cn(
-                          "h-12 px-8 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all duration-500 shrink-0 whitespace-nowrap",
-                          (category === 'all' && cat === 'الكل') || (category === cat)
-                            ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105"
-                            : "text-slate-400 hover:bg-white hover:text-slate-600"
-                        )}
-                      >
-                        {cat}
-                      </button>
+               <div className="p-2.5 bg-white/60 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-xl shadow-slate-200/20 flex items-center gap-2">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-lg">
+                     <Filter size={18} strokeWidth={2.5} />
+                  </div>
+                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-sm px-2">
+                    {['الكل', 'مادة خام', 'منتج نهائي', 'تعبئة وتغليف'].map((cat) => (
+                       <button
+                         key={cat}
+                         onClick={() => setCategory(cat === 'الكل' ? 'all' : cat)}
+                         className={cn(
+                           "h-12 px-8 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all duration-500 shrink-0 whitespace-nowrap",
+                           (category === 'all' && cat === 'الكل') || (category === cat)
+                             ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105"
+                             : "text-slate-400 hover:bg-white hover:text-slate-600"
+                         )}
+                       >
+                         {cat}
+                       </button>
                     ))}
-                 </div>
-              </div>
+                  </div>
+               </div>
+
+               <button
+                 onClick={() => setLowStockOnly(!lowStockOnly)}
+                 className={cn(
+                   "h-16 px-8 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all duration-500 flex items-center gap-3 border shadow-lg",
+                   lowStockOnly
+                     ? "bg-rose-500 text-white border-rose-500 shadow-rose-500/20 scale-105"
+                     : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50 shadow-slate-200/20"
+                 )}
+               >
+                 <AlertTriangle size={16} className={lowStockOnly ? "animate-bounce text-white" : "text-rose-500"} />
+                 نواقص ومخزون حرج فقط
+               </button>
            </div>
         </div>
 
@@ -4089,48 +4162,47 @@ const Inventory = React.memo(function Inventory({
               <WarehouseIcon size={16} className="text-slate-400" />
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">تصنيف المستودعات:</span>
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                 <button 
-                  onClick={() => setSelectedWarehouseId('all')}
-                  className={`h-11 px-6 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === 'all' ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
-                 >
-                  كافة المخازن
-                 </button>
-                 {warehouses.map(w => (
-                   <button 
-                    key={w.id}
-                    onClick={() => setSelectedWarehouseId(w.id)}
-                    className={`h-11 px-6 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === w.id ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
-                   >
-                    {w.name}
-                   </button>
-                 ))}
+                  <button 
+                   onClick={() => setSelectedWarehouseId('all')}
+                   className={`h-11 px-6 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === 'all' ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                   كافة المخازن
+                  </button>
+                  {warehouses.map(w => (
+                    <button 
+                     key={w.id}
+                     onClick={() => setSelectedWarehouseId(w.id)}
+                     className={`h-11 px-6 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === w.id ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                     {w.name}
+                    </button>
+                  ))}
               </div>
            </div>
            
            <div className="flex items-center gap-3 px-6 py-3 bg-slate-50/50 rounded-2xl border border-slate-100/50 ml-auto">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">مراكز التكلفة:</span>
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                 <button 
-                  onClick={() => setSelectedCostCenter('all')}
-                  className={`h-11 px-6 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === 'all' ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:text-slate-600'}`}
-                 >
-                  جميع الأقسام
-                 </button>
-                 {costCenters.map(c => (
-                   <button 
-                    key={c.id}
-                    onClick={() => setSelectedCostCenter(c.name)}
-                    className={`h-11 px-6 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === c.name ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:text-slate-600'}`}
-                   >
-                    {c.name}
-                   </button>
-                 ))}
+                  <button 
+                   onClick={() => setSelectedCostCenter('all')}
+                   className={`h-11 px-6 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === 'all' ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:text-slate-600'}`}
+                  >
+                   جميع الأقسام
+                  </button>
+                  {costCenters.map(c => (
+                    <button 
+                     key={c.id}
+                     onClick={() => setSelectedCostCenter(c.name)}
+                     className={`h-11 px-6 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === c.name ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                     {c.name}
+                    </button>
+                  ))}
               </div>
            </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {filtered.map((item, idx) => (
@@ -4157,7 +4229,7 @@ const Inventory = React.memo(function Inventory({
                               <Package size={16} className="text-slate-400 group-hover:text-primary transition-colors" />
                             </div>
                             <Badge variant="outline" className="bg-white border-slate-100 text-[9px] font-black tracking-widest text-slate-400 px-3 uppercase rounded-full group-hover:border-primary/20 group-hover:text-primary transition-all duration-700">
-                               {warehouses.find(w => w.id === item.warehouseId)?.name || 'غير معروف'}
+                                {warehouses.find(w => w.id === item.warehouseId)?.name || 'غير معروف'}
                             </Badge>
                           </div>
                           <h3 className="font-black text-2xl text-slate-900 group-hover:text-primary transition-colors leading-[1.2] line-clamp-2 tracking-tight group-hover:translate-x-1 duration-700">
@@ -4214,15 +4286,15 @@ const Inventory = React.memo(function Inventory({
                       <Eye size={18} className="ml-2" />
                       التفاصيل
                     </Button>
-                   <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-black bg-indigo-50 text-primary hover:bg-primary hover:text-white transition-all duration-500" onClick={() => setEditingItem(item)}>
-                     <Edit2 size={18} className="ml-2" />
-                     تعديل
-                   </Button>
-                   {(profile?.isAdmin || profile?.permissions.canDelete) && (
-                     <Button variant="ghost" className="rounded-2xl h-14 w-14 font-black bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-500" onClick={() => setShowDeleteConfirm(item.id)}>
-                       <Trash2 size={18} />
-                     </Button>
-                   )}
+                    <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-black bg-indigo-50 text-primary hover:bg-primary hover:text-white transition-all duration-500" onClick={() => setEditingItem(item)}>
+                      <Edit2 size={18} className="ml-2" />
+                      تعديل
+                    </Button>
+                    {(profile?.isAdmin || profile?.permissions.canDelete) && (
+                      <Button variant="ghost" className="rounded-2xl h-14 w-14 font-black bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-500" onClick={() => setShowDeleteConfirm(item.id)}>
+                        <Trash2 size={18} />
+                      </Button>
+                    )}
                   </CardFooter>
                </Card>
             </motion.div>
@@ -4262,12 +4334,12 @@ const Inventory = React.memo(function Inventory({
                     </TableCell>
                     <TableCell>
                        <div className="flex flex-col gap-1.5">
-                          <Badge variant="secondary" className="w-fit rounded-lg font-black text-[9px] tracking-tight bg-slate-900 text-white border-none px-2 py-0.5 shadow-sm">
-                            {warehouses.find(w => w.id === item.warehouseId)?.name || '-'}
-                          </Badge>
-                          <span className="text-[10px] font-black text-primary/70 uppercase tracking-tight">
-                            {item.department || '-'}
-                          </span>
+                           <Badge variant="secondary" className="w-fit rounded-lg font-black text-[9px] tracking-tight bg-slate-900 text-white border-none px-2 py-0.5 shadow-sm">
+                             {warehouses.find(w => w.id === item.warehouseId)?.name || '-'}
+                           </Badge>
+                           <span className="text-[10px] font-black text-primary/70 uppercase tracking-tight">
+                             {item.department || '-'}
+                           </span>
                        </div>
                     </TableCell>
                     <TableCell className="text-center">
@@ -4318,7 +4390,6 @@ const Inventory = React.memo(function Inventory({
                   </TableRow>
                 ))}
                 
-                {/* Summary Row */}
                 <TableRow className="bg-slate-900 h-32 font-black border-none sticky bottom-0 z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.1)]">
                   <TableCell colSpan={2} className="px-12">
                      <div className="flex flex-col">
@@ -4467,10 +4538,10 @@ const Inventory = React.memo(function Inventory({
                            const { id, ...data } = editingItem;
                            await updateDoc(doc(db, 'items', id), data);
                            setEditingItem(null);
-                         } catch (err) {
-                            console.error(err);
-                         }
-                      }}>حفظ البيانات الجديدة</Button>
+                        } catch (err) {
+                           console.error(err);
+                        }
+                     }}>حفظ البيانات الجديدة</Button>
                   </div>
               </div>
             </motion.div>
@@ -4489,47 +4560,46 @@ const Inventory = React.memo(function Inventory({
               className="bg-white rounded-[3.5rem] w-full max-w-7xl max-h-[92vh] overflow-hidden flex flex-col shadow-[0_32px_128px_rgba(0,0,0,0.1)] border border-slate-100"
             >
               <div className="p-12 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 relative">
-                 {/* Decorative background for modal header */}
-                 <div className="absolute top-0 right-0 w-64 h-full bg-primary/5 rounded-bl-[5rem] -mr-20 pointer-events-none blur-3xl opacity-50" />
-                 
-                <div className="relative z-10">
-                   <div className="flex items-center gap-4 mb-4">
-                     <div className="w-14 h-14 bg-slate-900 rounded-[20px] flex items-center justify-center text-white shadow-xl rotate-3">
-                        <Package size={28} />
-                     </div>
-                     <div>
-                       <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] px-3 py-1.5 mb-1 tracking-widest uppercase rounded-full">Warehouse Management System</Badge>
-                       <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">بطاقة مراقبة الصنف</h2>
-                     </div>
-                   </div>
-                   <div className="flex items-center gap-6 text-slate-500 font-bold">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                        <span className="text-slate-900">{selectedItemCard.name}</span>
+                  <div className="absolute top-0 right-0 w-64 h-full bg-primary/5 rounded-bl-[5rem] -mr-20 pointer-events-none blur-3xl opacity-50" />
+                  
+                 <div className="relative z-10">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-14 h-14 bg-slate-900 rounded-[20px] flex items-center justify-center text-white shadow-xl rotate-3">
+                         <Package size={28} />
                       </div>
-                      <div className="h-4 w-px bg-slate-200" />
-                      <div className="flex items-center gap-2">
-                         <span className="text-slate-400 font-black text-[10px] uppercase">المخزن:</span>
-                         <span className="text-slate-700">{warehouses.find(w => w.id === selectedItemCard.warehouseId)?.name}</span>
+                      <div>
+                        <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] px-3 py-1.5 mb-1 tracking-widest uppercase rounded-full">Warehouse Management System</Badge>
+                        <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">بطاقة مراقبة الصنف</h2>
                       </div>
-                      <div className="h-4 w-px bg-slate-200" />
-                      <div className="flex items-center gap-2">
-                         <span className="text-slate-400 font-black text-[10px] uppercase">الوحدة الأساسية:</span>
-                         <span className="text-slate-700">{selectedItemCard.unit}</span>
+                    </div>
+                    <div className="flex items-center gap-6 text-slate-500 font-bold">
+                       <div className="flex items-center gap-2">
+                         <div className="w-2 h-2 rounded-full bg-primary" />
+                         <span className="text-slate-900">{selectedItemCard.name}</span>
+                       </div>
+                       <div className="h-4 w-px bg-slate-200" />
+                       <div className="flex items-center gap-2">
+                          <span className="text-slate-400 font-black text-[10px] uppercase">المخزن:</span>
+                          <span className="text-slate-700">{warehouses.find(w => w.id === selectedItemCard.warehouseId)?.name}</span>
+                       </div>
+                       <div className="h-4 w-px bg-slate-200" />
+                       <div className="flex items-center gap-2">
+                          <span className="text-slate-400 font-black text-[10px] uppercase">الوحدة الأساسية:</span>
+                          <span className="text-slate-700">{selectedItemCard.unit}</span>
+                       </div>
+                    </div>
+                 </div>
+                 <div className="flex gap-4 relative z-10">
+                   <Button variant="outline" className="h-16 px-10 rounded-3xl border-slate-200 font-black gap-3 text-slate-900 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all" onClick={() => window.print()}>
+                      <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
+                         <Printer size={18} />
                       </div>
-                   </div>
-                </div>
-                <div className="flex gap-4 relative z-10">
-                  <Button variant="outline" className="h-16 px-10 rounded-3xl border-slate-200 font-black gap-3 text-slate-900 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all" onClick={() => window.print()}>
-                     <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
-                        <Printer size={18} />
-                     </div>
-                     طباعة التقرير الفني
-                  </Button>
-                  <Button variant="ghost" className="h-16 w-16 rounded-[22px] bg-white shadow-xl border border-slate-100 hover:bg-red-50 hover:text-red-500 transition-all hover:rotate-90" onClick={() => setSelectedItemCard(null)}>
-                     <X size={28} />
-                  </Button>
-                </div>
+                      طباعة التقرير الفني
+                   </Button>
+                   <Button variant="ghost" className="h-16 w-16 rounded-[22px] bg-white shadow-xl border border-slate-100 hover:bg-red-50 hover:text-red-500 transition-all hover:rotate-90" onClick={() => setSelectedItemCard(null)}>
+                      <X size={28} />
+                   </Button>
+                 </div>
               </div>
 
                <div className="flex-1 overflow-auto bg-white custom-scrollbar">
@@ -4585,13 +4655,6 @@ const Inventory = React.memo(function Inventory({
                             <p className="text-slate-400 font-bold text-xs mt-2 ml-11">عرض العمليات التاريخية المسجلة على هذا الصنف بدقة</p>
                          </div>
                          <div className="flex items-center gap-3 relative z-10">
-                            <div className="flex -space-x-2">
-                               {[1,2,3].map(i => (
-                                 <div key={i} className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-black text-slate-400">
-                                   USR
-                                 </div>
-                               ))}
-                            </div>
                             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">سجل محاسبي معتمد</span>
                          </div>
                       </div>
@@ -4610,6 +4673,7 @@ const Inventory = React.memo(function Inventory({
                             {getItemMovements(selectedItemCard.id).slice().reverse().map((m, idx) => (
                               <TableRow key={idx} className="h-24 border-slate-50 hover:bg-slate-50/50 transition-all group/row">
                                 <TableCell className="px-10 text-slate-400 font-bold font-mono text-xs group-hover/row:text-slate-900 transition-colors">
+                                  {m.date || '---'}
                                 </TableCell>
                                 <TableCell>
                                    <div className="flex items-center gap-3">
@@ -4661,7 +4725,7 @@ const Inventory = React.memo(function Inventory({
       </AnimatePresence>
     </div>
   );
-});
+}
 
 function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: any }) {
   return (
@@ -10361,8 +10425,6 @@ function ReportsView(props: {
   jobLabors: JobLabor[],
   jobOtherCosts: JobOtherCost[],
   wasteRecords: Waste[],
-  bladeSharpening: BladeSharpening[],
-  plateSharpening: PlateSharpening[],
   maintenanceOrders: MaintenanceOrder[],
   salesOrders?: SalesOrder[],
   safes?: Safe[],
@@ -10385,8 +10447,6 @@ function OldReportsView({
   jobLabors, 
   jobOtherCosts,
   wasteRecords,
-  bladeSharpening,
-  plateSharpening,
   maintenanceOrders,
 }: { 
   items: Item[], 
@@ -10398,8 +10458,6 @@ function OldReportsView({
   jobLabors: JobLabor[],
   jobOtherCosts: JobOtherCost[],
   wasteRecords: Waste[],
-  bladeSharpening: BladeSharpening[],
-  plateSharpening: PlateSharpening[],
   maintenanceOrders: MaintenanceOrder[],
 }) {
   const [activeReportTab, setActiveReportTab] = useState<'dashboard' | 'warehouse' | 'purchases' | 'suppliers'>('dashboard');
@@ -10522,8 +10580,6 @@ function OldReportsView({
 
   // 5. Maintenance Data
   const maintenanceData = [
-    { name: 'سن الصواني', value: plateSharpening.reduce((acc, s) => acc + s.cost, 0) },
-    { name: 'سن الأسلحة', value: bladeSharpening.reduce((acc, s) => acc + s.cost, 0) },
     { name: 'الصيانة الخارجية', value: maintenanceOrders.reduce((acc, s) => acc + s.cost, 0) },
   ];
 
@@ -11244,373 +11300,7 @@ function OldReportsView({
 }
 
 
-function BladeSharpeningView({ 
-  bladeRecords, 
-  plateRecords, 
-  safes, 
-  profile,
-  initialTab = 'blades'
-}: { 
-  bladeRecords: BladeSharpening[], 
-  plateRecords: PlateSharpening[], 
-  safes: Safe[], 
-  profile: UserProfile | null,
-  initialTab?: 'blades' | 'plates'
-}) {
-  const [activeSubTab, setActiveSubTab] = useState<'blades' | 'plates'>(initialTab);
 
-  useEffect(() => {
-    setActiveSubTab(initialTab);
-  }, [initialTab]);
-
-  const [bladeRecordsList, setBladeRecordsList] = useState<BladeSharpening[]>(bladeRecords);
-  const [plateRecordsList, setPlateRecordsList] = useState<PlateSharpening[]>(plateRecords);
-
-  useEffect(() => {
-    setBladeRecordsList(bladeRecords);
-  }, [bladeRecords]);
-
-  useEffect(() => {
-    setPlateRecordsList(plateRecords);
-  }, [plateRecords]);
-
-  // States for Blades
-  const [showAddBlade, setShowAddBlade] = useState(false);
-  const [bladeForm, setBladeForm] = useState({
-    bladeName: '',
-    quantity: 1,
-    cost: 0,
-    notes: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
-    safeId: ''
-  });
-
-  // States for Plates
-  const [showAddPlate, setShowAddPlate] = useState(false);
-  const [plateForm, setPlateForm] = useState({
-    plateName: '',
-    quantity: 1,
-    cost: 0,
-    notes: '',
-    date: format(new Date(), 'yyyy-MM-dd'),
-    safeId: ''
-  });
-
-  // Handle Add Blade
-  const handleAddBlade = async () => {
-    if (!bladeForm.bladeName || bladeForm.quantity <= 0 || bladeForm.cost < 0) {
-      alert('الرجاء إدخال اسم الصفيحة/السكينة والكمية والتكلفة بشكل صحيح');
-      return;
-    }
-
-    try {
-      const batch = writeBatch(db);
-      const newRef = doc(collection(db, 'bladeSharpening'));
-      const recordData = {
-        bladeName: bladeForm.bladeName,
-        quantity: Number(bladeForm.quantity),
-        cost: Number(bladeForm.cost),
-        notes: bladeForm.notes,
-        date: new Date(bladeForm.date).toISOString(),
-        createdAt: serverTimestamp(),
-        safeId: bladeForm.safeId || null
-      };
-
-      batch.set(newRef, recordData);
-
-      if (bladeForm.cost > 0 && bladeForm.safeId) {
-        const safeRef = doc(db, 'safes', bladeForm.safeId);
-        batch.update(safeRef, {
-          balance: increment(-Number(bladeForm.cost))
-        });
-
-        const txRef = doc(collection(db, 'safeTransactions'));
-        batch.set(txRef, {
-          safeId: bladeForm.safeId,
-          type: 'expense',
-          amount: Number(bladeForm.cost),
-          description: `سن سلاح: ${bladeForm.bladeName}`,
-          date: new Date(bladeForm.date).toISOString(),
-          createdAt: serverTimestamp()
-        });
-      }
-
-      await batch.commit();
-      
-      setBladeRecordsList(prev => [{ id: newRef.id, ...recordData } as BladeSharpening, ...prev]);
-      setShowAddBlade(false);
-      setBladeForm({ bladeName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
-      alert('تم حفظ سجل سن السكين بنجاح');
-    } catch (err) {
-      handleFirestoreError(err, 'write', 'bladeSharpening');
-    }
-  };
-
-  // Handle Add Plate
-  const handleAddPlate = async () => {
-    if (!plateForm.plateName || plateForm.quantity <= 0 || plateForm.cost < 0) {
-      alert('الرجاء إدخال كافة بيانات العملية بشكل صحيح');
-      return;
-    }
-
-    try {
-      const batch = writeBatch(db);
-      const newRef = doc(collection(db, 'plateSharpening'));
-      const recordData = {
-        plateName: plateForm.plateName,
-        quantity: Number(plateForm.quantity),
-        cost: Number(plateForm.cost),
-        notes: plateForm.notes,
-        date: new Date(plateForm.date).toISOString(),
-        createdAt: serverTimestamp(),
-        safeId: plateForm.safeId || null
-      };
-
-      batch.set(newRef, recordData);
-
-      if (plateForm.cost > 0 && plateForm.safeId) {
-        const safeRef = doc(db, 'safes', plateForm.safeId);
-        batch.update(safeRef, {
-          balance: increment(-Number(plateForm.cost))
-        });
-
-        const txRef = doc(collection(db, 'safeTransactions'));
-        batch.set(txRef, {
-          safeId: plateForm.safeId,
-          type: 'expense',
-          amount: Number(plateForm.cost),
-          description: `سن صفايح: ${plateForm.plateName}`,
-          date: new Date(plateForm.date).toISOString(),
-          createdAt: serverTimestamp()
-        });
-      }
-
-      await batch.commit();
-
-      setPlateRecordsList(prev => [{ id: newRef.id, ...recordData } as PlateSharpening, ...prev]);
-      setShowAddPlate(false);
-      setPlateForm({ plateName: '', quantity: 1, cost: 0, notes: '', date: format(new Date(), 'yyyy-MM-dd'), safeId: '' });
-      alert('تم حفظ سجل سن الصفائح بنجاح');
-    } catch (err) {
-      handleFirestoreError(err, 'write', 'plateSharpening');
-    }
-  };
-
-  return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">خدمات السن والصيانة</h2>
-          <p className="text-slate-500 font-bold mt-1 text-sm">إدارة ومتابعة تكاليف سن السكاكين والصفائح للمعدات</p>
-        </div>
-        <div className="flex bg-slate-100 p-1.5 rounded-2rem border border-slate-200/50 w-full md:w-auto self-start">
-          <Button 
-            variant={activeSubTab === 'blades' ? 'default' : 'ghost'} 
-            onClick={() => setActiveSubTab('blades')}
-            className={cn("rounded-xl font-bold flex-1 md:flex-none", activeSubTab === 'blades' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}
-          >
-            سن السكاكين
-          </Button>
-          <Button 
-            variant={activeSubTab === 'plates' ? 'default' : 'ghost'} 
-            onClick={() => setActiveSubTab('plates')}
-            className={cn("rounded-xl font-bold flex-1 md:flex-none", activeSubTab === 'plates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600')}
-          >
-            سن الصفائح
-          </Button>
-        </div>
-      </div>
-
-      {activeSubTab === 'blades' ? (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-bold text-slate-800">سجل عمليات سن السكاكين</h3>
-            <Button onClick={() => setShowAddBlade(true)} className="btn-primary flex items-center gap-2">
-              <Plus size={18} />
-              إضافة عملية سن سكاكين
-            </Button>
-          </div>
-
-          {showAddBlade && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <Card className="w-full max-w-lg border-none shadow-2xl rounded-3xl bg-white overflow-hidden animate-in fade-in zoom-in duration-200">
-                <CardHeader className="bg-slate-900 text-white p-6 pb-8">
-                  <CardTitle className="text-xl font-black">إضافة سجل سن سكين جديد</CardTitle>
-                  <p className="text-slate-400 text-sm mt-1">أدخل بيانات السكين وتكلفة السن</p>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">اسم السلاح / الماكينة</label>
-                    <Input className="rounded-xl h-11" value={bladeForm.bladeName} onChange={e => setBladeForm({ ...bladeForm, bladeName: e.target.value })} placeholder="مثال: سكين مقص رئيسي..." />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">الكمية</label>
-                      <Input type="number" className="rounded-xl h-11" value={bladeForm.quantity} onChange={e => setBladeForm({ ...bladeForm, quantity: Number(e.target.value) })} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">تاريخ العملية</label>
-                      <Input type="date" className="rounded-xl h-11 text-right" value={bladeForm.date} onChange={e => setBladeForm({ ...bladeForm, date: e.target.value })} />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">تكلفة الصيانة (جنيه)</label>
-                    <Input type="number" className="rounded-xl h-11 font-black" value={bladeForm.cost} onChange={e => setBladeForm({ ...bladeForm, cost: Number(e.target.value) })} />
-                  </div>
-                  {bladeForm.cost > 0 && (
-                    <div className="space-y-2 animate-in slide-in-from-top duration-300">
-                      <label className="text-sm font-bold text-slate-700">الخزنة / العهدة البديلة (لخصم المبلغ)</label>
-                      <select 
-                        className="w-full h-11 rounded-xl border-slate-200 px-3 bg-white font-bold text-slate-800 border"
-                        value={bladeForm.safeId}
-                        onChange={e => setBladeForm({ ...bladeForm, safeId: e.target.value })}
-                      >
-                        <option value="">اختر الخزنة...</option>
-                        {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
-                      </select>
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">ملاحظات</label>
-                    <Input className="rounded-xl h-11" value={bladeForm.notes} onChange={e => setBladeForm({ ...bladeForm, notes: e.target.value })} placeholder="ملاحظات إضافية..." />
-                  </div>
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAddBlade(false)}>إلغاء</Button>
-                    <Button onClick={handleAddBlade} className="btn-primary px-10 h-12 font-black">حفظ السجل</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
-            <Table>
-              <TableHeader className="bg-slate-50">
-                <TableRow>
-                  <TableHead className="font-bold text-slate-700">التاريخ</TableHead>
-                  <TableHead className="font-bold text-slate-700">اسم السلاح</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-center">الكمية</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-left">التكلفة (ج.م)</TableHead>
-                  <TableHead className="font-bold text-slate-700">ملاحظات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {bladeRecordsList.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-slate-400 font-bold">لا يوجد عمليات سن سكاكين مسجلة حالياً</TableCell>
-                  </TableRow>
-                ) : (
-                  bladeRecordsList.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell className="font-black text-slate-800">{r.bladeName}</TableCell>
-                      <TableCell className="font-bold text-center text-slate-600">{r.quantity}</TableCell>
-                      <TableCell className="font-black text-left text-indigo-600">{r.cost.toLocaleString()}</TableCell>
-                      <TableCell className="text-slate-500 text-sm font-medium">{r.notes || '---'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-bold text-slate-800">سجل عمليات سن الصفائح</h3>
-            <Button onClick={() => setShowAddPlate(true)} className="btn-primary flex items-center gap-2">
-              <Plus size={18} />
-              إضافة عملية سن صفائح
-            </Button>
-          </div>
-
-          {showAddPlate && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <Card className="w-full max-w-lg border-none shadow-2xl rounded-3xl bg-white overflow-hidden animate-in fade-in zoom-in duration-200">
-                <CardHeader className="bg-slate-900 text-white p-6 pb-8">
-                  <CardTitle className="text-xl font-black">إضافة سجل سن صفايح جديد</CardTitle>
-                  <p className="text-slate-400 text-sm mt-1">أدخل اسم الصفائح وتكلفة السن</p>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">اسم الصفيحة / الماكينة</label>
-                    <Input className="rounded-xl h-11" value={plateForm.plateName} onChange={e => setPlateForm({ ...plateForm, plateName: e.target.value })} placeholder="مثال: صفيحة منشار شريط..." />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">الكمية</label>
-                      <Input type="number" className="rounded-xl h-11" value={plateForm.quantity} onChange={e => setPlateForm({ ...plateForm, quantity: Number(e.target.value) })} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">تاريخ العملية</label>
-                      <Input type="date" className="rounded-xl h-11 text-right" value={plateForm.date} onChange={e => setPlateForm({ ...plateForm, date: e.target.value })} />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">تكلفة الصيانة (جنيه)</label>
-                    <Input type="number" className="rounded-xl h-11 font-black" value={plateForm.cost} onChange={e => setPlateForm({ ...plateForm, cost: Number(e.target.value) })} />
-                  </div>
-                  {plateForm.cost > 0 && (
-                    <div className="space-y-2 animate-in slide-in-from-top duration-300">
-                      <label className="text-sm font-bold text-slate-700">الخزنة / العهدة (لخصم المبلغ)</label>
-                      <select 
-                        className="w-full h-11 rounded-xl border-slate-200 px-3 bg-white font-bold text-slate-800 border"
-                        value={plateForm.safeId}
-                        onChange={e => setPlateForm({ ...plateForm, safeId: e.target.value })}
-                      >
-                        <option value="">اختر الخزنة...</option>
-                        {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance})</option>)}
-                      </select>
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700">ملاحظات</label>
-                    <Input className="rounded-xl h-11" value={plateForm.notes} onChange={e => setPlateForm({ ...plateForm, notes: e.target.value })} placeholder="ملاحظات إضافية..." />
-                  </div>
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setShowAddPlate(false)}>إلغاء</Button>
-                    <Button onClick={handleAddPlate} className="btn-primary px-10 h-12 font-black">حفظ السجل</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
-            <Table>
-              <TableHeader className="bg-slate-50">
-                <TableRow>
-                  <TableHead className="font-bold text-slate-700">التاريخ</TableHead>
-                  <TableHead className="font-bold text-slate-700">اسم الصفيحة</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-center">الكمية</TableHead>
-                  <TableHead className="font-bold text-slate-700 text-left">التكلفة (ج.م)</TableHead>
-                  <TableHead className="font-bold text-slate-700">ملاحظات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {plateRecordsList.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-slate-400 font-bold">لا يوجد عمليات سن صفائح مسجلة حالياً</TableCell>
-                  </TableRow>
-                ) : (
-                  plateRecordsList.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(r => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-bold text-slate-500">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell className="font-black text-slate-800">{r.plateName}</TableCell>
-                      <TableCell className="font-bold text-center text-slate-600">{r.quantity}</TableCell>
-                      <TableCell className="font-black text-left text-emerald-600">{r.cost.toLocaleString()}</TableCell>
-                      <TableCell className="text-slate-500 text-sm font-medium">{r.notes || '---'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 const EmployeesView = React.memo(function EmployeesView({ employees }: { employees: Employee[] }) {
   const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];

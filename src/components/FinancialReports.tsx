@@ -8,7 +8,7 @@ import {
   BarChart3, Download, Printer, Box, Package, ShoppingCart, Users, Activity, Trash2, 
   Database, Target, TrendingUp, AlertTriangle, Home, Briefcase, Scale, Wallet, 
   CreditCard, ArrowLeft, PieChartIcon, Search, FileText, Layers, TrendingDown,
-  Calendar, CheckCircle2, ChevronDown, ListFilter, AlertCircle, Calculator, Sparkles, CircleDollarSign
+  Calendar, CheckCircle2, ChevronDown, ListFilter, AlertCircle, Calculator, Sparkles, CircleDollarSign, BookOpen
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'motion/react';
@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { 
   Item, Supplier, Purchase, Issuance, Warehouse, 
   ProductionJob, JobLabor, JobOtherCost, Waste,
-  BladeSharpening, PlateSharpening, MaintenanceOrder, Safe, 
+  MaintenanceOrder, Safe, 
   SafeTransaction, SupplierPayment, Payroll, FinancialTransaction, Loan,
   SalesOrder
 } from '../types';
@@ -35,8 +35,6 @@ interface FinancialReportsProps {
   jobLabors: JobLabor[];
   jobOtherCosts: JobOtherCost[];
   wasteRecords: Waste[];
-  bladeSharpening: BladeSharpening[];
-  plateSharpening: PlateSharpening[];
   maintenanceOrders: MaintenanceOrder[];
   salesOrders?: SalesOrder[];
   safes?: Safe[];
@@ -57,8 +55,6 @@ export function FinancialReports({
   jobLabors,
   jobOtherCosts,
   wasteRecords,
-  bladeSharpening,
-  plateSharpening,
   maintenanceOrders,
   salesOrders = [],
   safes = [],
@@ -70,7 +66,7 @@ export function FinancialReports({
 }: FinancialReportsProps) {
   // Tabs management
   const [activeReportTab, setActiveReportTab] = useState<
-    'dashboard' | 'warehouse' | 'purchases' | 'suppliers' | 'ledger' | 'income_statement' | 'balance_sheet' | 'trial_balance' | 'production_costs' | 'sales_analytics'
+    'dashboard' | 'warehouse' | 'purchases' | 'suppliers' | 'ledger' | 'journal' | 'income_statement' | 'balance_sheet' | 'trial_balance' | 'production_costs' | 'sales_analytics'
   >('dashboard');
 
   // General Ledger States
@@ -78,6 +74,11 @@ export function FinancialReports({
   const [ledgerDateFrom, setLedgerDateFrom] = useState('');
   const [ledgerDateTo, setLedgerDateTo] = useState('');
   const [ledgerSearch, setLedgerSearch] = useState('');
+
+  // General Journal States
+  const [journalDateFrom, setJournalDateFrom] = useState('');
+  const [journalDateTo, setJournalDateTo] = useState('');
+  const [journalSearch, setJournalSearch] = useState('');
 
   // Financial statements date filters
   const [statementPeriod, setStatementPeriod] = useState<'all' | 'year' | 'month' | 'custom'>('all');
@@ -230,20 +231,6 @@ export function FinancialReports({
         credit: 0,
         reference: 'صرف أجور'
       }));
-      const bladeRows = bladeSharpening.map(b => ({
-        date: b.date,
-        description: `مصروف سن أسلحة - ${b.bladeName}`,
-        debit: b.cost,
-        credit: 0,
-        reference: 'سن أسلحة'
-      }));
-      const plateRows = plateSharpening.map(p => ({
-        date: p.date,
-        description: `مصروف سن صواني - ${p.plateName}`,
-        debit: p.cost,
-        credit: 0,
-        reference: 'سن صواني'
-      }));
       const maintRows = maintenanceOrders.map(m => ({
         date: m.sendDate,
         description: `صيانة ماكينات - ${m.itemName}`,
@@ -258,7 +245,7 @@ export function FinancialReports({
         credit: 0,
         reference: 'مصروفات خزينة'
       }));
-      rows = [...payRows, ...bladeRows, ...plateRows, ...maintRows, ...generalRows];
+      rows = [...payRows, ...maintRows, ...generalRows];
     }
 
     // Filter rows by criteria
@@ -270,7 +257,7 @@ export function FinancialReports({
         r.reference.toLowerCase().includes(ledgerSearch.toLowerCase());
       return matchesFrom && matchesTo && matchesSearch;
     }).sort((a, b) => a.date.localeCompare(b.date));
-  }, [ledgerAccount, safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, bladeSharpening, plateSharpening, maintenanceOrders, ledgerDateFrom, ledgerDateTo, ledgerSearch]);
+  }, [ledgerAccount, safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, maintenanceOrders, ledgerDateFrom, ledgerDateTo, ledgerSearch]);
 
   const runningLedgerBalances = useMemo(() => {
     let balance = 0;
@@ -284,6 +271,215 @@ export function FinancialReports({
       return balance;
     });
   }, [ledgerRows, ledgerAccount]);
+
+  // ==================== GENERAL JOURNAL ROWS (دفتر اليومية العامة) ====================
+  const journalRows = useMemo(() => {
+    const rows: { date: string; docNo: string; description: string; debit: number; credit: number; reference: string; account: string; createdBy?: string }[] = [];
+
+    // 1. Safe transactions (حركات الخزنة والعهد)
+    safeTransactions.forEach(t => {
+      const tType = t.type as string;
+      const isDeposit = tType === 'إيداع' || tType === 'مبيعات' || tType === 'سلفة مستردة' || tType === 'سداد قرض' || t.description.includes('وارد') || t.description.includes('مستلم') || t.description.includes('إيداع');
+      
+      if (isDeposit) {
+        rows.push({
+          date: t.date,
+          docNo: t.id ? t.id.substring(0, 6) : 'TX',
+          description: t.description || 'إيداع نقدي بالخزينة',
+          debit: t.amount,
+          credit: 0,
+          reference: t.type || 'إيداع',
+          account: `حساب الخزينة/الصندوق`,
+          createdBy: t.createdBy
+        });
+        rows.push({
+          date: t.date,
+          docNo: t.id ? t.id.substring(0, 6) : 'TX',
+          description: t.description || 'إيداع نقدي بالخزينة',
+          debit: 0,
+          credit: t.amount,
+          reference: t.type || 'إيداع',
+          account: `الإيرادات / المقبوضات`,
+          createdBy: t.createdBy
+        });
+      } else {
+        rows.push({
+          date: t.date,
+          docNo: t.id ? t.id.substring(0, 6) : 'TX',
+          description: t.description || 'صرف نقدي من الخزينة',
+          debit: t.amount,
+          credit: 0,
+          reference: t.type || 'مصروف',
+          account: t.category || `المصروفات العامة`,
+          createdBy: t.createdBy
+        });
+        rows.push({
+          date: t.date,
+          docNo: t.id ? t.id.substring(0, 6) : 'TX',
+          description: t.description || 'صرف نقدي من الخزينة',
+          debit: 0,
+          credit: t.amount,
+          reference: t.type || 'مصروف',
+          account: `حساب الخزينة/الصندوق`,
+          createdBy: t.createdBy
+        });
+      }
+    });
+
+    // 2. Sales Orders (فواتير المبيعات)
+    salesOrders.forEach(so => {
+      const docNo = so.id ? so.id.substring(0, 6).toUpperCase() : 'SO';
+      const desc = `فاتورة مبيعات رقم ${docNo} - العميل: ${so.customerName}`;
+      rows.push({
+        date: so.date,
+        docNo: docNo,
+        description: desc,
+        debit: so.totalAmount,
+        credit: 0,
+        reference: 'فاتورة مبيعات',
+        account: so.paymentMethod === 'نقدي' ? 'حساب النقدية/الخزائن' : 'حساب العملاء (أرصدة مدينة)',
+        createdBy: 'إدارة المبيعات'
+      });
+      rows.push({
+        date: so.date,
+        docNo: docNo,
+        description: desc,
+        debit: 0,
+        credit: so.totalAmount,
+        reference: 'فاتورة مبيعات',
+        account: 'حساب إيرادات مبيعات النشاط',
+        createdBy: 'إدارة المبيعات'
+      });
+    });
+
+    // 3. Purchases (فواتير شراء الخامات)
+    purchases.forEach(p => {
+      const docNo = p.id ? p.id.substring(0, 6).toUpperCase() : 'PO';
+      const supplierName = suppliers.find(s => s.id === p.supplierId)?.name || 'غير محدد';
+      const desc = `فاتورة شراء خامات - صنف: ${items.find(i => i.id === p.itemId)?.name || 'غير محدد'} من المورد: ${supplierName}`;
+      rows.push({
+        date: p.date,
+        docNo: docNo,
+        description: desc,
+        debit: p.total,
+        credit: 0,
+        reference: 'شراء خامات',
+        account: 'حساب مخازن المواد الخام',
+        createdBy: 'إدارة المشتريات'
+      });
+      rows.push({
+        date: p.date,
+        docNo: docNo,
+        description: desc,
+        debit: 0,
+        credit: p.total,
+        reference: 'شراء خامات',
+        account: p.paymentStatus === 'نقدي' ? 'حساب الخزينة/الصندوق' : `حساب المورد: ${supplierName}`,
+        createdBy: 'إدارة المشتريات'
+      });
+    });
+
+    // 4. Supplier Payments (دفعات الموردين)
+    supplierPayments.forEach(sp => {
+      const supplierName = suppliers.find(s => s.id === sp.supplierId)?.name || 'غير محدد';
+      const desc = `سداد دفعة نقدية للمورد: ${supplierName}`;
+      const docNo = sp.id ? sp.id.substring(0, 6).toUpperCase() : 'PAY';
+      rows.push({
+        date: sp.date,
+        docNo: docNo,
+        description: desc,
+        debit: sp.amount,
+        credit: 0,
+        reference: 'سند صرف مورد',
+        account: `حساب المورد: ${supplierName}`,
+        createdBy: 'إدارة الحسابات'
+      });
+      rows.push({
+        date: sp.date,
+        docNo: docNo,
+        description: desc,
+        debit: 0,
+        credit: sp.amount,
+        reference: 'سند صرف مورد',
+        account: 'حساب الخزينة/الصندوق',
+        createdBy: 'إدارة الحسابات'
+      });
+    });
+
+    // 5. Payroll (صرف أجور ومسيرات رواتب الموظفين)
+    payrolls.forEach(p => {
+      const desc = `صرف مسير الرواتب المجمع للأسبوع ${p.weekNumber} لسنة ${p.year}`;
+      rows.push({
+        date: p.paymentDate || p.startDate,
+        docNo: p.id ? p.id.substring(0, 6) : 'PAYROLL',
+        description: desc,
+        debit: p.netSalary,
+        credit: 0,
+        reference: 'صرف أجور',
+        account: 'حساب مصروفات الأجور والمرتبات',
+        createdBy: 'النظام المالي'
+      });
+      rows.push({
+        date: p.paymentDate || p.startDate,
+        docNo: p.id ? p.id.substring(0, 6) : 'PAYROLL',
+        description: desc,
+        debit: 0,
+        credit: p.netSalary,
+        reference: 'صرف أجور',
+        account: 'حساب الخزينة/الصندوق',
+        createdBy: 'النظام المالي'
+      });
+    });
+
+    // 6. Loans (قروض وسلفيات للموظفين)
+    loans.forEach(l => {
+      if (l.status === 'نشط' || l.status === 'مسدد') {
+        const desc = `سلفة موظف (كود: ${l.employeeId})`;
+        const docNo = l.id ? l.id.substring(0, 6).toUpperCase() : 'LOAN';
+        rows.push({
+          date: l.date,
+          docNo: docNo,
+          description: desc,
+          debit: l.amount,
+          credit: 0,
+          reference: 'صرف سلفة',
+          account: 'حساب أرصدة مدينة - سلف موظفين',
+          createdBy: 'النظام المالي'
+        });
+        rows.push({
+          date: l.date,
+          docNo: docNo,
+          description: desc,
+          debit: 0,
+          credit: l.amount,
+          reference: 'صرف سلفة',
+          account: 'حساب الخزينة/الصندوق',
+          createdBy: 'النظام المالي'
+        });
+      }
+    });
+
+    return rows.sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) return dateCompare;
+      const docCompare = a.docNo.localeCompare(b.docNo);
+      if (docCompare !== 0) return docCompare;
+      return b.debit - a.debit; 
+    });
+  }, [safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, loans, items]);
+
+  const filteredJournalRows = useMemo(() => {
+    return journalRows.filter(r => {
+      const matchesFrom = !journalDateFrom || r.date >= journalDateFrom;
+      const matchesTo = !journalDateTo || r.date <= journalDateTo;
+      const matchesSearch = !journalSearch || 
+        r.description.toLowerCase().includes(journalSearch.toLowerCase()) || 
+        r.account.toLowerCase().includes(journalSearch.toLowerCase()) || 
+        r.reference.toLowerCase().includes(journalSearch.toLowerCase()) || 
+        r.docNo.toLowerCase().includes(journalSearch.toLowerCase());
+      return matchesFrom && matchesTo && matchesSearch;
+    });
+  }, [journalRows, journalDateFrom, journalDateTo, journalSearch]);
 
   // ==================== INCOME STATEMENT P&L ====================
   const pnlData = useMemo(() => {
@@ -300,8 +496,7 @@ export function FinancialReports({
     const grossProfit = revenues - totalCOGS;
 
     const generalPayroll = payrolls.filter(p => p.paymentDate ? filterByPeriod(p.paymentDate) : filterByPeriod(p.startDate)).reduce((sum, p) => sum + p.netSalary, 0);
-    const sharpening = bladeSharpening.filter(b => filterByPeriod(b.date)).reduce((sum, b) => sum + b.cost, 0) + 
-                       plateSharpening.filter(p => filterByPeriod(p.date)).reduce((sum, p) => sum + p.cost, 0);
+    const sharpening = 0;
     const maintenance = maintenanceOrders.filter(m => filterByPeriod(m.sendDate)).reduce((sum, m) => sum + m.cost, 0);
     const commissions = salesOrders.filter(so => filterByPeriod(so.date)).reduce((sum, so) => sum + (so.totalCommission || 0), 0);
     const logistics = salesOrders.filter(so => filterByPeriod(so.date)).reduce((sum, so) => sum + (so.totalLogisticsCost || 0), 0);
@@ -327,7 +522,7 @@ export function FinancialReports({
       totalOPEX,
       netProfit
     };
-  }, [salesOrders, issuances, jobLabors, jobOtherCosts, wasteRecords, items, payrolls, bladeSharpening, plateSharpening, maintenanceOrders, safeTransactions, filterByPeriod]);
+  }, [salesOrders, issuances, jobLabors, jobOtherCosts, wasteRecords, items, payrolls, maintenanceOrders, safeTransactions, filterByPeriod]);
 
   // ==================== BALANCE SHEET ====================
   const balanceSheetData = useMemo(() => {
@@ -346,8 +541,6 @@ export function FinancialReports({
                     jobOtherCosts.reduce((sum, jo) => sum + jo.amount, 0) +
                     wasteRecords.reduce((sum, w) => sum + (w.quantity * (items.find(i => i.id === w.itemId)?.price || 0)), 0);
     const allOPEX = payrolls.reduce((sum, p) => sum + p.netSalary, 0) +
-                    bladeSharpening.reduce((sum, b) => sum + b.cost, 0) +
-                    plateSharpening.reduce((sum, p) => sum + p.cost, 0) +
                     maintenanceOrders.reduce((sum, m) => sum + m.cost, 0) +
                     salesOrders.reduce((sum, so) => sum + (so.totalCommission || 0), 0) +
                     salesOrders.reduce((sum, so) => sum + (so.totalLogisticsCost || 0), 0) +
@@ -368,7 +561,7 @@ export function FinancialReports({
       capitalReserves,
       totalEquity
     };
-  }, [safes, items, loans, suppliers, salesOrders, issuances, jobLabors, jobOtherCosts, wasteRecords, payrolls, bladeSharpening, plateSharpening, maintenanceOrders, safeTransactions]);
+  }, [safes, items, loans, suppliers, salesOrders, issuances, jobLabors, jobOtherCosts, wasteRecords, payrolls, maintenanceOrders, safeTransactions]);
 
   // ==================== DYNAMIC TRIAL BALANCE ====================
   const trialBalanceData = useMemo(() => {
@@ -395,8 +588,6 @@ export function FinancialReports({
     const purchasesTotal = purchases.reduce((sum, p) => sum + p.total, 0);
     const payrollExpenses = payrolls.reduce((sum, p) => sum + p.netSalary, 0) + jobLabors.reduce((sum, jl) => sum + jl.total, 0);
     const operatingExpenses = 
-      bladeSharpening.reduce((sum, b) => sum + b.cost, 0) + 
-      plateSharpening.reduce((sum, p) => sum + p.cost, 0) + 
       maintenanceOrders.reduce((sum, m) => sum + m.cost, 0) + 
       jobOtherCosts.reduce((sum, j) => sum + j.amount, 0) +
       salesOrders.reduce((sum, so) => sum + (so.totalCommission || 0), 0) +
@@ -432,7 +623,7 @@ export function FinancialReports({
       totalDebit: finalSumDebit,
       totalCredit: finalSumCredit
     };
-  }, [safeTransactions, purchases, issuances, wasteRecords, items, loans, suppliers, salesOrders, payrolls, jobLabors, bladeSharpening, plateSharpening, maintenanceOrders, jobOtherCosts]);
+  }, [safeTransactions, purchases, issuances, wasteRecords, items, loans, suppliers, salesOrders, payrolls, jobLabors, maintenanceOrders, jobOtherCosts]);
 
   // ==================== SALES ANALYTICS MEMO ====================
   const salesAnalysisData = useMemo(() => {
@@ -550,10 +741,8 @@ export function FinancialReports({
   }, [purchases, issuances]);
 
   const maintenanceData = useMemo(() => [
-    { name: 'سن الصواني', value: plateSharpening.reduce((acc, s) => acc + s.cost, 0) },
-    { name: 'سن الأسلحة', value: bladeSharpening.reduce((acc, s) => acc + s.cost, 0) },
     { name: 'الصيانة الخارجية', value: maintenanceOrders.reduce((acc, s) => acc + s.cost, 0) },
-  ], [plateSharpening, bladeSharpening, maintenanceOrders]);
+  ], [maintenanceOrders]);
 
   return (
     <div className="space-y-10 pb-24 print:p-0 animate-in fade-in duration-700" dir="rtl">
@@ -584,6 +773,7 @@ export function FinancialReports({
       <div className="flex flex-wrap gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl w-full print:hidden shadow-md">
         {[
           { id: 'dashboard', label: 'لوحة القيادة الموحدة', icon: <Box size={16} /> },
+          { id: 'journal', label: 'دفتر اليومية العامة', icon: <BookOpen size={16} /> },
           { id: 'ledger', label: 'دفتر الأستاذ المساعد', icon: <FileText size={16} /> },
           { id: 'income_statement', label: 'قائمة الدخل P&L', icon: <TrendingUp size={16} /> },
           { id: 'balance_sheet', label: 'الميزانية والمركز المالي', icon: <Scale size={16} /> },
@@ -777,6 +967,191 @@ export function FinancialReports({
             </Card>
 
           </div>
+        </div>
+      )}
+
+      {/* ==================== GENERAL JOURNAL (دفتر اليومية العامة) ==================== */}
+      {activeReportTab === 'journal' && (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
+            <CardHeader className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
+                  <CardTitle className="text-xl font-black text-slate-900">دفتر اليومية العامة (المزدوجة)</CardTitle>
+                </div>
+                <CardDescription className="text-xs font-bold text-slate-500">سجل محاسبي تاريخي موحد يجمع كافة قيود المقبوضات والمبيعات والمشتريات والمصروفات بالتأثير المزدوج</CardDescription>
+              </div>
+              <Button onClick={() => {
+                const formatted = filteredJournalRows.map((row) => ({
+                  'التاريخ': row.date,
+                  'رقم السند/القيد': row.docNo,
+                  'الحساب المالي': row.account,
+                  'البيان وشرح القيد': row.description,
+                  'نوع الحركة': row.reference,
+                  'مدين (Debit)': row.debit || '',
+                  'دائن (Credit)': row.credit || '',
+                  'المنشئ': row.createdBy || 'النظام'
+                }));
+                exportToExcel(formatted, 'دفتر_اليومية_العامة');
+              }} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 px-5 text-xs font-bold transition-all hover:scale-[1.02]">
+                <Download size={14} className="ml-1.5" /> تصدير اليومية العامة (Excel)
+              </Button>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              
+              {/* Filters Box */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">من تاريخ</label>
+                  <input 
+                    type="date" 
+                    value={journalDateFrom} 
+                    onChange={(e) => setJournalDateFrom(e.target.value)} 
+                    className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500/20 outline-none animate-none" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">إلى تاريخ</label>
+                  <input 
+                    type="date" 
+                    value={journalDateTo} 
+                    onChange={(e) => setJournalDateTo(e.target.value)} 
+                    className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500/20 outline-none animate-none" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">البحث السريع (حساب، سند، شرح...)</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="ابحث برقم القيد، الحساب، أو التفاصيل..." 
+                      value={journalSearch} 
+                      onChange={(e) => setJournalSearch(e.target.value)} 
+                      className="w-full h-11 rounded-xl border border-slate-200 bg-white pl-3 pr-9 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500/20 outline-none animate-none" 
+                    />
+                    <Search size={14} className="absolute right-3 top-3.5 text-slate-400" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Journal Metrics */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-indigo-500 font-bold mb-1">إجمالي الحركات المدينة (Debit)</p>
+                    <p className="text-xl font-black text-indigo-700">
+                      {filteredJournalRows.reduce((sum, r) => sum + r.debit, 0).toLocaleString()} <span className="text-xs">ج.م</span>
+                    </p>
+                  </div>
+                  <TrendingUp size={24} className="text-indigo-400" />
+                </div>
+                <div className="p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-emerald-500 font-bold mb-1">إجمالي الحركات الدائنة (Credit)</p>
+                    <p className="text-xl font-black text-emerald-700">
+                      {filteredJournalRows.reduce((sum, r) => sum + r.credit, 0).toLocaleString()} <span className="text-xs">ج.م</span>
+                    </p>
+                  </div>
+                  <TrendingDown size={24} className="text-emerald-400" />
+                </div>
+                <div className="p-5 bg-slate-900 text-white rounded-2xl flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-bold mb-1">حالة ميزان القيود المفتوحة</p>
+                    {filteredJournalRows.reduce((sum, r) => sum + r.debit, 0) === filteredJournalRows.reduce((sum, r) => sum + r.credit, 0) ? (
+                      <div className="flex items-center gap-1.5 text-emerald-400 font-black text-sm mt-1">
+                        <CheckCircle2 size={16} />
+                        متزن محاسبياً (100%)
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-amber-400 font-black text-sm mt-1">
+                        <AlertCircle size={16} />
+                        تصفية وعرض جزئي
+                      </div>
+                    )}
+                  </div>
+                  <Scale size={24} className="text-slate-500" />
+                </div>
+              </div>
+
+              {/* Journal Book Table */}
+              <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/80">
+                      <TableHead className="text-right font-black py-4 px-4 w-[110px]">التاريخ</TableHead>
+                      <TableHead className="text-right font-black w-[100px]">رقم القيد/المستند</TableHead>
+                      <TableHead className="text-right font-black w-[180px]">الحساب المالي</TableHead>
+                      <TableHead className="text-right font-black">البيان والشرح التفصيلي للعملية</TableHead>
+                      <TableHead className="text-right font-black w-[120px]">نوع الحركة</TableHead>
+                      <TableHead className="text-left font-black w-[130px]">مدين (+ Debit)</TableHead>
+                      <TableHead className="text-left font-black w-[130px]">دائن (- Credit)</TableHead>
+                      <TableHead className="text-center font-black w-[90px] print:hidden">بواسطة</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredJournalRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-16 text-slate-400 font-bold text-sm">
+                          لا توجد قيود محاسبية مسجلة تطابق محددات البحث المحددة.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredJournalRows.map((row, index) => {
+                        const prevRow = index > 0 ? filteredJournalRows[index - 1] : null;
+                        const isNewGroup = !prevRow || prevRow.docNo !== row.docNo || prevRow.date !== row.date;
+                        
+                        return (
+                          <TableRow 
+                            key={index} 
+                            className={`hover:bg-slate-50/30 transition-all text-xs ${isNewGroup ? 'border-t-2 border-slate-200' : 'border-t border-slate-100'}`}
+                          >
+                            <TableCell className="py-3.5 px-4 font-mono font-bold text-slate-600">
+                              {isNewGroup ? row.date : <span className="text-slate-300 font-normal">〃</span>}
+                            </TableCell>
+                            <TableCell className="font-bold text-slate-500 font-mono">
+                              {isNewGroup ? (
+                                <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[10px]">
+                                  {row.docNo}
+                                </span>
+                              ) : (
+                                <span className="text-slate-300 font-normal">〃</span>
+                              )}
+                            </TableCell>
+                            <TableCell className={`font-black ${row.debit > 0 ? 'text-slate-800' : 'text-slate-600 pr-5 text-right font-medium'}`}>
+                              {row.debit > 0 ? 'منـ / ' : 'إلى / '} {row.account}
+                            </TableCell>
+                            <TableCell className="text-slate-700 font-medium max-w-[300px] truncate" title={row.description}>
+                              {row.description}
+                            </TableCell>
+                            <TableCell>
+                              {isNewGroup ? (
+                                <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold">
+                                  {row.reference}
+                                </span>
+                              ) : (
+                                <span className="text-slate-300 font-normal">〃</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-left font-black text-slate-900 font-mono text-xs">
+                              {row.debit > 0 ? `${row.debit.toLocaleString()} ج.م` : ''}
+                            </TableCell>
+                            <TableCell className="text-left font-bold text-rose-600 font-mono text-xs">
+                              {row.credit > 0 ? `${row.credit.toLocaleString()} ج.م` : ''}
+                            </TableCell>
+                            <TableCell className="text-center text-slate-400 font-bold text-[10px] print:hidden">
+                              {row.createdBy ? row.createdBy.split('@')[0] : 'النظام'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+            </CardContent>
+          </Card>
         </div>
       )}
 
