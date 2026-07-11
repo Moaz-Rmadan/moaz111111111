@@ -23,7 +23,7 @@ import {
   ReceiptText, ClipboardCheck, PlusCircle, FileCheck, CreditCard, Scale, Wallet, Coins, ArrowRight,
   ChevronUp, Target, Database, Briefcase, Home, Code, Save, Upload, ArrowLeft,
   ArrowUpToLine, ArrowDownToLine, Eye, Box, Clock, List, Zap, Warehouse as WarehouseIcon, X, Image as ImageIcon,
-  Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History
+  Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History, CheckSquare
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { 
@@ -861,6 +861,8 @@ function MainApp({
   const [isResetting, setIsResetting] = useState(false);
   const [showWarehouseResetConfirm, setShowWarehouseResetConfirm] = useState(false);
   const [isResettingWarehouse, setIsResettingWarehouse] = useState(false);
+  const [showAttendanceResetConfirm, setShowAttendanceResetConfirm] = useState(false);
+  const [isResettingAttendance, setIsResettingAttendance] = useState(false);
 
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
@@ -1048,6 +1050,24 @@ function MainApp({
       alert('حدث خطأ أثناء تصفير المخازن.');
     } finally {
       setIsResettingWarehouse(false);
+    }
+  };
+
+  const handleResetAttendanceData = async () => {
+    setIsResettingAttendance(true);
+    try {
+      const { getDocs, query, collection, writeBatch } = await import('firebase/firestore');
+      const querySnapshot = await getDocs(query(collection(db, 'attendance')));
+      const batch = writeBatch(db);
+      querySnapshot.forEach((doc) => { batch.delete(doc.ref); });
+      await batch.commit();
+      setShowAttendanceResetConfirm(false);
+      alert('تم تصفير كافة حركات الحضور والانصراف بنجاح!');
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء تصفير حركات الحضور والانصراف.');
+    } finally {
+      setIsResettingAttendance(false);
     }
   };
 
@@ -2269,6 +2289,10 @@ function MainApp({
             setShowWarehouseResetConfirm={setShowWarehouseResetConfirm}
             isResettingWarehouse={isResettingWarehouse}
             handleResetWarehouseData={handleResetWarehouseData}
+            showAttendanceResetConfirm={showAttendanceResetConfirm}
+            setShowAttendanceResetConfirm={setShowAttendanceResetConfirm}
+            isResettingAttendance={isResettingAttendance}
+            handleResetAttendanceData={handleResetAttendanceData}
             editingWarehouse={editingWarehouse}
             setEditingWarehouse={setEditingWarehouse}
             editingUnit={editingUnit}
@@ -2673,6 +2697,15 @@ function MainApp({
         confirmText={isResettingWarehouse ? "جاري التصفير..." : "نعم، تصفير المخازن"}
         onConfirm={handleResetWarehouseData}
         onCancel={() => !isResettingWarehouse && setShowWarehouseResetConfirm(false)}
+      />
+
+      <ConfirmDialog 
+        isOpen={showAttendanceResetConfirm}
+        title="تصفير حركات الحضور والانصراف فقط"
+        message="هل أنت متأكد من رغبتك في تصفير حركات الحضور والانصراف؟ سيتم حذف جميع سجلات الحضور والانصراف اليومية بالكامل، مع الاحتفاظ ببيانات الموظفين ومسيرات الرواتب الأخرى. لا يمكن التراجع عن هذا الإجراء."
+        confirmText={isResettingAttendance ? "جاري التصفير..." : "نعم، تصفير الحضور والانصراف"}
+        onConfirm={handleResetAttendanceData}
+        onCancel={() => !isResettingAttendance && setShowAttendanceResetConfirm(false)}
       />
 
       <ConfirmDialog 
@@ -4096,6 +4129,12 @@ function Inventory({
                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <span className="text-sm font-bold text-slate-700">عدد الأصناف الكلي</span>
                   <span className="font-black text-xl text-slate-900">{items.length} صنف</span>
+               </div>
+               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <span className="text-sm font-bold text-slate-700">إجمالي قيمة المخزون الحالي</span>
+                  <span className="font-black text-xl text-primary">
+                    {items.reduce((sum, item) => sum + (item.currentBalance * (item.price || 0)), 0).toLocaleString()} ج.م
+                  </span>
                </div>
                <Button onClick={exportToExcel} className="w-full h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/60 font-black text-slate-700 transition-all">
                   تصدير تقرير الجرد الكامل (Excel)
@@ -12871,6 +12910,8 @@ const PayrollView = React.memo(function PayrollView({
   const [genData, setGenData] = useState({
     weekNumber: 1,
   });
+  const [selectedPayrollIds, setSelectedPayrollIds] = useState<string[]>([]);
+  const [selectedPayrollForSlip, setSelectedPayrollForSlip] = useState<Payroll | null>(null);
 
   const handleGenerate = async () => {
     try {
@@ -12920,11 +12961,12 @@ const PayrollView = React.memo(function PayrollView({
     }
   };
 
-  const [archiveConfig, setArchiveConfig] = useState<{ mode: 'single' | 'bulk'; id?: string; open: boolean }>({ mode: 'bulk', open: false });
+  const [archiveConfig, setArchiveConfig] = useState<{ mode: 'single' | 'bulk' | 'selected'; id?: string; open: boolean }>({ mode: 'bulk', open: false });
   const [selectedArchiveSafe, setSelectedArchiveSafe] = useState<string>('');
 
   const handleArchive = (id: string) => setArchiveConfig({ mode: 'single', id, open: true });
   const handleBulkArchive = () => setArchiveConfig({ mode: 'bulk', open: true });
+  const handleSelectedArchive = () => setArchiveConfig({ mode: 'selected', open: true });
 
   const processArchive = async () => {
     if (!selectedArchiveSafe) {
@@ -12959,12 +13001,16 @@ const PayrollView = React.memo(function PayrollView({
           });
           await batch.commit();
         }
-      } else if (archiveConfig.mode === 'bulk') {
+      } else if (archiveConfig.mode === 'bulk' || archiveConfig.mode === 'selected') {
           let batch = writeBatch(db);
           let opCount = 0;
           let totalNet = 0;
           
-          for (const p of draftPayrolls) {
+          const targets = archiveConfig.mode === 'selected'
+            ? draftPayrolls.filter(p => selectedPayrollIds.includes(p.id))
+            : draftPayrolls;
+          
+          for (const p of targets) {
             const liveP = getLivePayroll(p);
             
             applyLoanDeductionsToBatch(liveP, batch);
@@ -12990,7 +13036,9 @@ const PayrollView = React.memo(function PayrollView({
               safeId: selectedArchiveSafe,
               type: 'رواتب',
               amount: totalNet,
-              description: `دفع رواتب دورية مجمعة (عدد ${draftPayrolls.length} موظف)`
+              description: archiveConfig.mode === 'selected'
+                ? `دفع رواتب دورية مجمعة للموظفين المحددين (عدد ${targets.length} موظف)`
+                : `دفع رواتب دورية مجمعة (عدد ${draftPayrolls.length} موظف)`
             });
             batch.update(doc(db, 'safes', selectedArchiveSafe), {
               balance: increment(-totalNet)
@@ -12998,12 +13046,18 @@ const PayrollView = React.memo(function PayrollView({
           }
           
           await batch.commit();
+          setSelectedPayrollIds([]);
       }
       setArchiveConfig({ ...archiveConfig, open: false });
   } catch (err) { console.error(err); } };
 
-  const draftPayrolls = payrolls.filter(p => p.status === 'مسودة');
-  const totalWeekly = draftPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+  const draftPayrolls = React.useMemo(() => {
+    return payrolls.filter(p => p.status === 'مسودة');
+  }, [payrolls]);
+
+  const totalWeekly = React.useMemo(() => {
+    return draftPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+  }, [draftPayrolls]);
 
   const [showVouchers, setShowVouchers] = useState(false);
   const [editingPayroll, setEditingPayroll] = useState<Payroll | null>(null);
@@ -13060,17 +13114,48 @@ const PayrollView = React.memo(function PayrollView({
   };
 
 
-  const filteredDraftPayrolls = draftPayrolls.filter(p => {
-    const emp = employees.find(e => e.id === p.employeeId);
-    const matchesDept = selectedDept === 'الكل' || emp?.department === selectedDept;
-    const matchesSearch = emp?.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesDept && matchesSearch;
-  });
+  const filteredDraftPayrolls = React.useMemo(() => {
+    return draftPayrolls.filter(p => {
+      const emp = employees.find(e => e.id === p.employeeId);
+      const matchesDept = selectedDept === 'الكل' || emp?.department === selectedDept;
+      const matchesSearch = emp?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesDept && matchesSearch;
+    });
+  }, [draftPayrolls, employees, selectedDept, searchTerm]);
 
   const getLivePayroll = (p: Payroll) => calculateLivePayroll(p, employees, attendance, transactions, loans, productionRecords);
 
-  const processedPayrolls = filteredDraftPayrolls.map(getLivePayroll);
-  const filteredTotalWeekly = processedPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+  const processedPayrolls = React.useMemo(() => {
+    return filteredDraftPayrolls.map(getLivePayroll);
+  }, [filteredDraftPayrolls, employees, attendance, transactions, loans, productionRecords]);
+
+  const filteredTotalWeekly = React.useMemo(() => {
+    return processedPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+  }, [processedPayrolls]);
+
+  const handleBulkDeleteSelected = async () => {
+    if (selectedPayrollIds.length === 0) return;
+    if (!window.confirm(`هل أنت متأكد من حذف ${selectedPayrollIds.length} من كشوف الرواتب المحددة؟`)) return;
+    
+    try {
+      let batch = writeBatch(db);
+      let opCount = 0;
+      
+      for (const id of selectedPayrollIds) {
+        batch.delete(doc(db, 'payrolls', id));
+        opCount++;
+        if (opCount >= 450) {
+          await batch.commit();
+          batch = writeBatch(db);
+          opCount = 0;
+        }
+      }
+      await batch.commit();
+      setSelectedPayrollIds([]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleExportExcel = () => {
     const dataToExport = processedPayrolls.map(p => ({
@@ -13206,12 +13291,31 @@ const PayrollView = React.memo(function PayrollView({
           </div>
         </div>
         
-        <div className="md:col-span-2 flex items-center justify-end">
-          {draftPayrolls.length > 0 && (
-            <Button onClick={handleBulkArchive} className="h-14 px-10 rounded-2xl font-black text-lg bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-200">
-              <History size={20} className="ml-2" />
-              ترحيل وأرشفة الكل
-            </Button>
+        <div className="md:col-span-2 flex items-center justify-end gap-3 flex-wrap">
+          {selectedPayrollIds.length > 0 ? (
+            <>
+              <span className="text-sm font-black text-slate-500 bg-slate-100 px-4 py-2.5 rounded-xl border border-slate-200">
+                تم تحديد {selectedPayrollIds.length} كشف
+              </span>
+              <Button onClick={handleSelectedArchive} className="h-14 px-8 rounded-2xl font-black text-base bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-200">
+                <History size={18} className="ml-2" />
+                ترحيل وقبض المحددين
+              </Button>
+              <Button onClick={handleBulkDeleteSelected} variant="outline" className="h-14 px-6 rounded-2xl font-black text-base border-red-200 hover:border-red-300 hover:bg-red-50 text-red-600 shadow-sm">
+                <Trash2 size={18} className="ml-2" />
+                حذف المحددين
+              </Button>
+              <Button onClick={() => setSelectedPayrollIds([])} variant="ghost" className="h-14 px-4 rounded-2xl font-black text-sm text-slate-500 hover:bg-slate-100">
+                إلغاء التحديد
+              </Button>
+            </>
+          ) : (
+            draftPayrolls.length > 0 && (
+              <Button onClick={handleBulkArchive} className="h-14 px-10 rounded-2xl font-black text-lg bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-200">
+                <History size={20} className="ml-2" />
+                ترحيل وأرشفة الكل
+              </Button>
+            )
           )}
         </div>
       </div>
@@ -13221,7 +13325,21 @@ const PayrollView = React.memo(function PayrollView({
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow>
-                <TableHead className="text-right font-black text-slate-900 py-5">الأسبوع</TableHead>
+                <TableHead className="w-12 text-center py-5">
+                  <input 
+                    type="checkbox"
+                    className="w-5 h-5 rounded-lg border-slate-300 text-primary focus:ring-primary transition-all cursor-pointer accent-indigo-600"
+                    checked={filteredDraftPayrolls.length > 0 && selectedPayrollIds.length === filteredDraftPayrolls.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedPayrollIds(filteredDraftPayrolls.map(p => p.id));
+                      } else {
+                        setSelectedPayrollIds([]);
+                      }
+                    }}
+                  />
+                </TableHead>
+                <TableHead className="text-right font-black text-slate-900">الأسبوع</TableHead>
               <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
               <TableHead className="text-right font-black text-slate-900">سعر اليومية / القطعة</TableHead>
               <TableHead className="text-right font-black text-slate-900">أيام العمل</TableHead>
@@ -13240,6 +13358,20 @@ const PayrollView = React.memo(function PayrollView({
           <TableBody>
             {processedPayrolls.slice().sort((a, b) => b.year - a.year || b.weekNumber - a.weekNumber).map(p => (
               <TableRow key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                <TableCell className="text-center w-12">
+                  <input 
+                    type="checkbox"
+                    className="w-5 h-5 rounded-lg border-slate-300 text-primary focus:ring-primary transition-all cursor-pointer accent-indigo-600"
+                    checked={selectedPayrollIds.includes(p.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedPayrollIds(prev => [...prev, p.id]);
+                      } else {
+                        setSelectedPayrollIds(prev => prev.filter(id => id !== p.id));
+                      }
+                    }}
+                  />
+                </TableCell>
                 <TableCell className="font-bold text-slate-500">
                   <div className="flex flex-col">
                     <span>أسبوع {p.weekNumber}</span>
@@ -13300,6 +13432,9 @@ const PayrollView = React.memo(function PayrollView({
                   <div className="flex items-center gap-2">
                     <Button onClick={() => handleArchive(p.id)} variant="outline" size="sm" className="rounded-lg font-bold border-primary text-primary hover:bg-primary hover:text-white">
                       أرشفة وقبض
+                    </Button>
+                    <Button onClick={() => setSelectedPayrollForSlip(p)} variant="ghost" size="icon" className="text-indigo-600 hover:bg-indigo-50" title="مفردات الراتب">
+                      <FileText size={16} />
                     </Button>
                     <Button onClick={() => handleWhatsApp(p)} variant="ghost" size="icon" className="text-green-600 hover:bg-green-50">
                       <MessageSquare size={16} />
@@ -13624,6 +13759,169 @@ const PayrollView = React.memo(function PayrollView({
           </Card>
         </div>
       )}
+
+      {selectedPayrollForSlip && (() => {
+        const p = getLivePayroll(selectedPayrollForSlip);
+        const emp = employees.find(e => e.id === p.employeeId);
+        const totalEarnings = p.baseSalary + p.totalProduction + p.totalOvertime + p.totalBonuses;
+        const totalDeductionsVal = p.totalDeductions + p.totalExpenses + p.totalLoans;
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <style>{`
+              @media print {
+                body * {
+                  visibility: hidden;
+                }
+                #print-slip-area, #print-slip-area * {
+                  visibility: visible;
+                }
+                #print-slip-area {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                  direction: rtl;
+                  background: white !important;
+                  color: black !important;
+                  padding: 24px !important;
+                }
+                .no-print {
+                  display: none !important;
+                }
+              }
+            `}</style>
+            <Card className="dribbble-card w-full max-w-xl bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-100">
+              <div id="print-slip-area" className="p-8 space-y-6 text-slate-800">
+                {/* Header */}
+                <div className="text-center pb-6 border-b border-slate-100 space-y-2">
+                  <h3 className="text-2xl font-black text-slate-900">{companyInfo?.name || 'مجموعة شركات الجودة والتميز'}</h3>
+                  <p className="text-xs font-bold text-slate-400 tracking-wider">كشف مفردات راتب تفصيلي (أسبوعي)</p>
+                  <div className="flex justify-center gap-4 text-xs font-semibold text-slate-500 pt-1">
+                    <span>السنة المالية: {p.year}</span>
+                    <span>•</span>
+                    <span>الأسبوع: {p.weekNumber}</span>
+                  </div>
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl text-sm">
+                  <div className="space-y-1">
+                    <span className="text-xs text-slate-400 font-bold">اسم الموظف:</span>
+                    <p className="font-black text-slate-800">{emp?.name}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-slate-400 font-bold">القسم/المركز:</span>
+                    <p className="font-bold text-slate-800">{emp?.department || 'عام'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-slate-400 font-bold">طريقة الحساب:</span>
+                    <p className="font-bold text-slate-800">{p.payMethod === 'production' ? 'بالإنتاج / القطعة' : 'باليومية'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs text-slate-400 font-bold">رقم الهاتف:</span>
+                    <p className="font-bold text-slate-800">{emp?.phone || 'غير مسجل'}</p>
+                  </div>
+                </div>
+
+                {/* Financial Table */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                  {/* Earnings */}
+                  <div className="space-y-3">
+                    <h4 className="font-black text-sm text-emerald-600 pb-2 border-b-2 border-emerald-500/10 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      المستحقات (+)
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center py-1 border-b border-dashed border-slate-100">
+                        <span className="text-slate-500 font-semibold">الأجر الأساسي ({p.daysWorked.toFixed(2)} يوم):</span>
+                        <span className="font-black text-slate-800">{p.baseSalary.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1 border-b border-dashed border-slate-100">
+                        <span className="text-slate-500 font-semibold">أجر الإنتاج (بالقطعة):</span>
+                        <span className="font-black text-slate-800">{p.totalProduction.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1 border-b border-dashed border-slate-100">
+                        <span className="text-slate-500 font-semibold">الإضافي والعمل الإضافي:</span>
+                        <span className="font-black text-emerald-600">+{p.totalOvertime.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1 border-b border-dashed border-slate-100">
+                        <span className="text-slate-500 font-semibold">المكافآت والبدلات:</span>
+                        <span className="font-black text-emerald-600">+{p.totalBonuses.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="text-slate-700 font-bold">إجمالي المستحقات:</span>
+                        <span className="font-black text-emerald-600 text-sm">{totalEarnings.toLocaleString()} ج.م</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Deductions */}
+                  <div className="space-y-3">
+                    <h4 className="font-black text-sm text-rose-600 pb-2 border-b-2 border-rose-500/10 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      الاستقطاعات (-)
+                    </h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between items-center py-1 border-b border-dashed border-slate-100">
+                        <span className="text-slate-500 font-semibold">الخصومات والجزاءات:</span>
+                        <span className="font-black text-rose-600">-{p.totalDeductions.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1 border-b border-dashed border-slate-100">
+                        <span className="text-slate-500 font-semibold">العهد والمصروفات:</span>
+                        <span className="font-black text-rose-600">-{p.totalExpenses.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1 border-b border-dashed border-slate-100">
+                        <span className="text-slate-500 font-semibold">تسديد السلف والذمم:</span>
+                        <span className="font-black text-rose-600">-{p.totalLoans.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="text-slate-700 font-bold">إجمالي الاستقطاعات:</span>
+                        <span className="font-black text-rose-600 text-sm">{totalDeductionsVal.toLocaleString()} ج.م</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net Total Box */}
+                <div className="mt-6 p-5 rounded-2xl bg-slate-900 text-white flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-white/50 tracking-[0.2em] block">المبلغ المستحق الدفع</span>
+                    <span className="text-sm font-semibold text-emerald-400">صافي الراتب بعد التصفية والخصم</span>
+                  </div>
+                  <span className="text-3xl font-black text-white">{p.netSalary.toLocaleString()} ج.م</span>
+                </div>
+
+                {/* Signatures */}
+                <div className="grid grid-cols-2 gap-4 pt-8 text-center text-xs font-semibold text-slate-400">
+                  <div className="space-y-4">
+                    <p>توقيع مستلم المرتب</p>
+                    <div className="h-px w-24 bg-slate-200 mx-auto" />
+                  </div>
+                  <div className="space-y-4">
+                    <p>توقيع المدير المالي / HR</p>
+                    <div className="h-px w-24 bg-slate-200 mx-auto" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Footer */}
+              <CardFooter className="flex justify-end gap-3 bg-slate-50 p-6 border-t border-slate-100 no-print">
+                <Button variant="ghost" className="rounded-xl font-bold" onClick={() => setSelectedPayrollForSlip(null)}>
+                  إغلاق
+                </Button>
+                <Button onClick={() => handleWhatsApp(p)} variant="outline" className="rounded-xl font-bold border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-2">
+                  <MessageSquare size={16} />
+                  إرسال واتساب
+                </Button>
+                <Button onClick={() => window.print()} className="bg-primary hover:bg-primary/95 text-white rounded-xl font-black px-6 flex items-center gap-2">
+                  <Printer size={16} />
+                  طباعة القسيمة
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        );
+      })()}
     </div>
   );
 });
@@ -14006,6 +14304,10 @@ function Settings({
   setShowWarehouseResetConfirm,
   isResettingWarehouse,
   handleResetWarehouseData,
+  showAttendanceResetConfirm,
+  setShowAttendanceResetConfirm,
+  isResettingAttendance,
+  handleResetAttendanceData,
   editingWarehouse,
   setEditingWarehouse,
   editingUnit,
@@ -14065,6 +14367,10 @@ function Settings({
   setShowWarehouseResetConfirm: (v: boolean) => void,
   isResettingWarehouse: boolean,
   handleResetWarehouseData: () => Promise<void>,
+  showAttendanceResetConfirm: boolean,
+  setShowAttendanceResetConfirm: (v: boolean) => void,
+  isResettingAttendance: boolean,
+  handleResetAttendanceData: () => Promise<void>,
   editingWarehouse: Warehouse | null,
   setEditingWarehouse: (v: Warehouse | null) => void,
   editingUnit: Unit | null,
@@ -14881,6 +15187,23 @@ function Settings({
                       onClick={() => setShowWarehouseResetConfirm(true)}
                     >
                       تصفير المخازن فقط
+                    </Button>
+                  </div>
+
+                  {/* Attendance Only Reset (Requested by User) */}
+                  <div className="bg-white p-6 rounded-2xl border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="text-right">
+                      <h4 className="font-black text-slate-900 text-lg">تصفير حركات الحضور والانصراف فقط</h4>
+                      <p className="text-slate-500 text-sm mt-1">
+                        سيؤدي هذا الإجراء إلى حذف جميع سجلات الحضور والانصراف اليومية بالكامل لتتمكن من البدء من الصفر، مع <strong className="text-blue-600">الاحتفاظ بأسماء الموظفين والأقسام ومسيرات الرواتب الأخرى</strong> دون أي مساس بها.
+                      </p>
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      className="shrink-0 h-12 px-8 rounded-2xl font-black bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
+                      onClick={() => setShowAttendanceResetConfirm(true)}
+                    >
+                      تصفير الحضور والانصراف
                     </Button>
                   </div>
 
