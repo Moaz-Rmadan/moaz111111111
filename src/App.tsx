@@ -373,80 +373,136 @@ function PayrollMasterReport({
 }) {
   const [includeDrafts, setIncludeDrafts] = useState(false);
   const [reportSearch, setReportSearch] = useState('');
+  const [selectedDept, setSelectedDept] = useState<string>('الكل');
   const [dateRange, setDateRange] = useState({
     start: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd')
   });
 
-  const filteredPayrolls = payrolls.filter(p => {
-    if (includeDrafts) return true;
-    return p.status === 'مدفوع';
-  }).map(p => calculateLivePayroll(p, employees, attendance, hrTransactions, loans, productionRecords));
+  const filteredPayrolls = useMemo(() => {
+    return payrolls.filter(p => {
+      // 1. Status Filter
+      if (!includeDrafts && p.status !== 'مدفوع') return false;
+      
+      // 2. Date Range Filter: check if payroll falls inside or overlaps the selected date range
+      return p.startDate >= dateRange.start && p.endDate <= dateRange.end;
+    }).map(p => calculateLivePayroll(p, employees, attendance, hrTransactions, loans, productionRecords));
+  }, [payrolls, includeDrafts, dateRange, employees, attendance, hrTransactions, loans, productionRecords]);
 
-  const paidEmployeeCount = new Set(filteredPayrolls.map(py => py.employeeId)).size;
-  const sortedPayrolls = [...filteredPayrolls].sort((a, b) => {
-    if (a.year !== b.year) return a.year - b.year;
-    return a.weekNumber - b.weekNumber;
-  });
-  
-  const totalWages = filteredPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
-  const totalBonuses = filteredPayrolls.reduce((sum, p) => sum + (p.totalBonuses || 0), 0);
-  const totalOvertime = filteredPayrolls.reduce((sum, p) => sum + (p.totalOvertime || 0), 0);
-  const totalDeductions = filteredPayrolls.reduce((sum, p) => sum + (p.totalDeductions || 0), 0);
-  const totalExpenses = filteredPayrolls.reduce((sum, p) => sum + (p.totalExpenses || 0), 0);
-  const totalLoansRecovered = filteredPayrolls.reduce((sum, p) => sum + (p.totalLoans || 0), 0);
-  
-  const avgNetSalary = paidEmployeeCount > 0 ? totalWages / paidEmployeeCount : 0;
+  const departments = useMemo(() => {
+    return ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
+  }, [employees]);
 
-  const deptData = employees.reduce((acc: any[], emp) => {
-    const dept = emp.department || 'غير محدد';
-    const deptPayrolls = filteredPayrolls.filter(p => p.employeeId === emp.id);
-    const amount = deptPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
-    
-    if (amount > 0) {
-      const existing = acc.find(a => a.name === dept);
-      if (existing) {
-        existing.value += amount;
-      } else {
-        acc.push({ name: dept, value: amount });
+  const departmentFilteredPayrolls = useMemo(() => {
+    return filteredPayrolls.filter(p => {
+      if (selectedDept === 'الكل') return true;
+      const emp = employees.find(e => e.id === p.employeeId);
+      return emp?.department === selectedDept;
+    });
+  }, [filteredPayrolls, selectedDept, employees]);
+
+  const paidEmployeeCount = useMemo(() => {
+    return new Set(departmentFilteredPayrolls.map(py => py.employeeId)).size;
+  }, [departmentFilteredPayrolls]);
+
+  const sortedPayrolls = useMemo(() => {
+    return [...departmentFilteredPayrolls].sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.weekNumber - b.weekNumber;
+    });
+  }, [departmentFilteredPayrolls]);
+  
+  const totalWages = useMemo(() => {
+    return departmentFilteredPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+  }, [departmentFilteredPayrolls]);
+
+  const totalBonuses = useMemo(() => {
+    return departmentFilteredPayrolls.reduce((sum, p) => sum + (p.totalBonuses || 0), 0);
+  }, [departmentFilteredPayrolls]);
+
+  const totalOvertime = useMemo(() => {
+    return departmentFilteredPayrolls.reduce((sum, p) => sum + (p.totalOvertime || 0), 0);
+  }, [departmentFilteredPayrolls]);
+
+  const totalDeductions = useMemo(() => {
+    return departmentFilteredPayrolls.reduce((sum, p) => sum + (p.totalDeductions || 0), 0);
+  }, [departmentFilteredPayrolls]);
+
+  const totalExpenses = useMemo(() => {
+    return departmentFilteredPayrolls.reduce((sum, p) => sum + (p.totalExpenses || 0), 0);
+  }, [departmentFilteredPayrolls]);
+
+  const totalLoansRecovered = useMemo(() => {
+    return departmentFilteredPayrolls.reduce((sum, p) => sum + (p.totalLoans || 0), 0);
+  }, [departmentFilteredPayrolls]);
+  
+  const avgNetSalary = useMemo(() => {
+    return paidEmployeeCount > 0 ? totalWages / paidEmployeeCount : 0;
+  }, [totalWages, paidEmployeeCount]);
+
+  const deptData = useMemo(() => {
+    return employees.reduce((acc: any[], emp) => {
+      const dept = emp.department || 'غير محدد';
+      const deptPayrolls = filteredPayrolls.filter(p => p.employeeId === emp.id);
+      const amount = deptPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+      
+      if (amount > 0) {
+        const existing = acc.find(a => a.name === dept);
+        if (existing) {
+          existing.value += amount;
+        } else {
+          acc.push({ name: dept, value: amount });
+        }
       }
-    }
-    return acc;
-  }, []);
+      return acc;
+    }, []);
+  }, [employees, filteredPayrolls]);
 
   // Trend Data (Weekly)
-  const trendData = sortedPayrolls.reduce((acc: any[], p) => {
-    const weekLabel = `${p.weekNumber}/${p.year}`;
-    const existing = acc.find(a => a.name === weekLabel);
-    if (existing) {
-      existing.wages += p.netSalary;
-    } else {
-      acc.push({ name: weekLabel, wages: p.netSalary });
-    }
-    return acc;
-  }, []);
+  const trendData = useMemo(() => {
+    return sortedPayrolls.reduce((acc: any[], p) => {
+      const weekLabel = `أسبوع ${p.weekNumber}/${p.year}`;
+      const existing = acc.find(a => a.name === weekLabel);
+      if (existing) {
+        existing.wages += p.netSalary;
+      } else {
+        acc.push({ name: weekLabel, wages: p.netSalary });
+      }
+      return acc;
+    }, []);
+  }, [sortedPayrolls]);
 
   const COLORS = ['#2563eb', '#3b82f6', '#60a5fa', '#10b981', '#34d399', '#8b5cf6', '#a78bfa'];
 
-  const tableData = filteredPayrolls.filter(p => {
-    const emp = employees.find(e => e.id === p.employeeId);
-    return emp?.name.toLowerCase().includes(reportSearch.toLowerCase()) || 
-           emp?.department?.toLowerCase().includes(reportSearch.toLowerCase());
-  });
+  const tableData = useMemo(() => {
+    return departmentFilteredPayrolls.filter(p => {
+      const emp = employees.find(e => e.id === p.employeeId);
+      return emp?.name.toLowerCase().includes(reportSearch.toLowerCase()) || 
+             emp?.department?.toLowerCase().includes(reportSearch.toLowerCase());
+    });
+  }, [departmentFilteredPayrolls, employees, reportSearch]);
 
   // Top 5 Earners
-  const topEarners = [...tableData]
-    .sort((a, b) => b.netSalary - a.netSalary)
-    .slice(0, 5);
+  const topEarners = useMemo(() => {
+    return [...tableData]
+      .sort((a, b) => b.netSalary - a.netSalary)
+      .slice(0, 5);
+  }, [tableData]);
 
   // Bonus vs Base Analysis
-  const totalBase = filteredPayrolls.reduce((sum, p) => sum + p.baseSalary, 0);
-  const compositionData = [
-    { name: 'الراتب الأساسي', value: totalBase, color: '#6366f1' },
-    { name: 'حوافز وإضافي', value: totalBonuses + totalOvertime, color: '#10b981' },
-    { name: 'خصومات ومصاريف', value: totalDeductions + totalExpenses, color: '#f97316' },
-    { name: 'سلف مستردة', value: totalLoansRecovered, color: '#ef4444' }
-  ];
+  const compositionData = useMemo(() => {
+    const totalBase = departmentFilteredPayrolls.reduce((sum, p) => sum + p.baseSalary, 0);
+    return [
+      { name: 'الراتب الأساسي', value: totalBase, color: '#6366f1' },
+      { name: 'حوافز وإضافي', value: totalBonuses + totalOvertime, color: '#10b981' },
+      { name: 'خصومات ومصاريف', value: totalDeductions + totalExpenses, color: '#f97316' },
+      { name: 'سلف مستردة', value: totalLoansRecovered, color: '#ef4444' }
+    ];
+  }, [departmentFilteredPayrolls, totalBonuses, totalOvertime, totalDeductions, totalExpenses, totalLoansRecovered]);
+
+  const totalCompositionSum = useMemo(() => {
+    return compositionData.reduce((sum, item) => sum + item.value, 0);
+  }, [compositionData]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -487,6 +543,24 @@ function PayrollMasterReport({
             />
           </div>
         </div>
+      </div>
+
+      {/* Department Filter Pills */}
+      <div className="flex flex-wrap items-center gap-2 pb-2 overflow-x-auto print:hidden bg-slate-50 p-4 rounded-2xl border border-slate-100">
+        <span className="text-sm font-black text-slate-500 ml-2">تصفية حسب القسم:</span>
+        {departments.map(dept => (
+          <button
+            key={dept}
+            onClick={() => setSelectedDept(dept)}
+            className={`px-4 py-2 text-xs font-black rounded-xl border transition-all duration-200 ${
+              selectedDept === dept
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            {dept}
+          </button>
+        ))}
       </div>
 
       <div className="hidden print:block text-center mb-12 border-b-2 border-slate-100 pb-8">
@@ -625,7 +699,7 @@ function PayrollMasterReport({
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                     <span className="text-sm font-bold text-slate-600">{item.name}</span>
                   </div>
-                  <span className="font-black text-slate-900">{((item.value / (totalWages || 1)) * 100).toFixed(1)}%</span>
+                  <span className="font-black text-slate-900">{((item.value / (totalCompositionSum || 1)) * 100).toFixed(1)}%</span>
                 </div>
               ))}
             </div>
@@ -729,9 +803,16 @@ function PayrollMasterReport({
             <TableBody>
               {tableData.map(p => {
                 const emp = employees.find(e => e.id === p.employeeId);
-                const empTransactions = hrTransactions.filter(t => t.employeeId === p.employeeId);
+                const empTransactions = hrTransactions.filter(t => 
+                  t.employeeId === p.employeeId &&
+                  t.date >= p.startDate &&
+                  t.date <= p.endDate
+                );
                 const empBonuses = empTransactions.filter(t => t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل');
                 const empOvertimes = empTransactions.filter(t => t.type === 'إضافي' || t.type === 'أوفرتايم');
+                const empDeductions = empTransactions.filter(t => t.type === 'خصم' || t.type === 'جزاء');
+                const empExpenses = empTransactions.filter(t => t.type === 'مصروف' || t.type === 'سلفة' || t.type === 'عهدة');
+                const empLoansRecovered = empTransactions.filter(t => t.type === 'خصم سلف' || t.type === 'سلفة مستردة');
                 return (
                   <TableRow key={p.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell>
@@ -770,8 +851,24 @@ function PayrollMasterReport({
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="font-black text-red-600">
-                      -{( (p.totalDeductions || 0) + (p.totalLoans || 0) ).toLocaleString()}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-black text-red-600">
+                          -{( (p.totalDeductions || 0) + (p.totalLoans || 0) + (p.totalExpenses || 0) ).toLocaleString()} <span className="text-[10px]">ج.م</span>
+                        </span>
+                        {empDeductions.map((t, i) => (
+                           <span key={`ded-${i}`} className="text-[8px] text-red-400 font-bold truncate max-w-[100px]" title={`خصم: ${t.description}`}>{t.description || 'خصم'} (-{t.amount})</span>
+                        ))}
+                        {empExpenses.map((t, i) => (
+                           <span key={`exp-${i}`} className="text-[8px] text-orange-400 font-bold truncate max-w-[100px]" title={`مصروف: ${t.description}`}>{t.description || 'مصروف/عهدة'} (-{t.amount})</span>
+                        ))}
+                        {empLoansRecovered.map((t, i) => (
+                           <span key={`loan-${i}`} className="text-[8px] text-amber-500 font-bold truncate max-w-[100px]" title={`مسترد سلف: ${t.description}`}>{t.description || 'سداد سلفة'} (-{t.amount})</span>
+                        ))}
+                        {p.totalLoans > 0 && empLoansRecovered.length === 0 && (
+                          <span className="text-[8px] text-amber-600 font-bold">خصم قسط سلفة تلقائي (-{p.totalLoans})</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="font-black text-primary text-lg">
                       {p.netSalary.toLocaleString()} <span className="text-xs">ج.م</span>
@@ -781,7 +878,7 @@ function PayrollMasterReport({
               })}
               {tableData.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-24">
+                  <TableCell colSpan={8} className="text-center py-24">
                     <div className="flex flex-col items-center gap-4 opacity-30">
                       <BarChart3 size={64} />
                       <p className="font-black text-2xl">لا توجد سجلات مطابقة</p>
