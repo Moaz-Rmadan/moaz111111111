@@ -4053,11 +4053,13 @@ function Inventory({
             إضافة صنف جديد
           </Button>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-16 w-16 rounded-2xl p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-sm flex items-center justify-center transition-all hover:rotate-90">
-                <SettingsIcon size={24} />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="outline" className="h-16 w-16 rounded-2xl p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-sm flex items-center justify-center transition-all hover:rotate-90">
+                  <SettingsIcon size={24} />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end" className="w-64 p-3 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-slate-100">
               <DropdownMenuItem onClick={() => setShowCostCenterAdd(true)} className="rounded-xl p-4 font-black gap-3 text-slate-700 hover:bg-slate-50">
                 <Layers size={18} className="text-blue-500" />
@@ -12142,6 +12144,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
   const [editingTransaction, setEditingTransaction] = useState<FinancialTransaction | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
+  const [isSaving, setIsSaving] = useState(false);
   
   const [formData, setFormData] = useState({
     employeeId: '',
@@ -12154,7 +12157,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
   });
 
   const handleAdd = async () => {
-    if (!formData.employeeId) return;
+    if (!formData.employeeId || isSaving) return;
     
     let finalData = { ...formData };
     
@@ -12171,6 +12174,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
 
     if (finalData.amount <= 0 && finalData.type !== 'إضافي') return;
 
+    setIsSaving(true);
     try {
       await addDoc(collection(db, 'hrTransactions'), finalData);
       setShowAdd(false);
@@ -12185,11 +12189,13 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
       });
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleUpdate = async () => {
-    if (!editingTransaction) return;
+    if (!editingTransaction || isSaving) return;
     
     let finalData = { ...editingTransaction };
     
@@ -12203,22 +12209,28 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
 
     if (finalData.amount <= 0 && finalData.type !== 'إضافي') return;
 
+    setIsSaving(true);
     try {
       const { id, ...data } = finalData;
       await updateDoc(doc(db, 'hrTransactions', id), data);
       setEditingTransaction(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!deletingId) return;
+    if (!deletingId || isSaving) return;
+    setIsSaving(true);
     try {
       await deleteDoc(doc(db, 'hrTransactions', deletingId));
       setDeletingId(null);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -12373,8 +12385,103 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
               </div>
               <div className="flex justify-end gap-3 pt-6 font-bold">
                 <Button variant="ghost" className="btn-ghost shadow-none" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} className="btn-primary px-10 h-11 rounded-xl font-bold">حفظ الحركة</Button>
+                <Button onClick={handleAdd} disabled={isSaving} className="btn-primary px-10 h-11 rounded-xl font-bold">
+                  {isSaving ? "جاري الحفظ..." : "حفظ الحركة"}
+                </Button>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {editingTransaction && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
+          <Card className="dribbble-card w-full max-w-md animate-in fade-in zoom-in duration-200">
+            <CardHeader anonymity="true" className="pb-4">
+              <CardTitle className="font-black text-2xl text-right font-bold">تعديل الحركة المالية</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-right">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 block text-right">الموظف / العامل</label>
+                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right" value={editingTransaction.employeeId} onChange={e => setEditingTransaction({...editingTransaction, employeeId: e.target.value})}>
+                  <option value="">اختر موظف...</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 block text-right">التاريخ</label>
+                <Input type="date" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.date} onChange={e => setEditingTransaction({...editingTransaction, date: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 block text-right">النوع</label>
+                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-sm" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value as any})}>
+                  <option value="مكافأة">مكافأة</option>
+                  <option value="خصم">خصم</option>
+                  <option value="مصروف">مصروف (سلفة أسبوعية)</option>
+                  <option value="خصم سلف">خصم سلف</option>
+                  <option value="بدل">بدل</option>
+                  <option value="إضافي">وقت إضافي</option>
+                </select>
+              </div>
+
+              {editingTransaction.type === 'إضافي' ? (
+                <div className="pt-4 border-t border-slate-100 space-y-4 font-bold">
+                  <h4 className="font-black text-sm text-slate-900 block text-right">تفاصيل الإضافي</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700 block text-right">عدد الساعات</label>
+                      <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.overtimeHours || 0} onChange={e => setEditingTransaction({...editingTransaction, overtimeHours: Number(e.target.value)})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700 block text-right">المعدل</label>
+                      <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right cursor-pointer" value={editingTransaction.overtimeRate || 1.5} onChange={e => setEditingTransaction({...editingTransaction, overtimeRate: Number(e.target.value) as any})}>
+                        <option value={1.33}>ساعة وثلث (1.33)</option>
+                        <option value={1.5}>ساعة ونصف (1.5)</option>
+                        <option value={2}>ساعتين (2.0)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <p className="text-[10px] font-bold text-slate-400 block text-right">سيتم احتساب المبلغ تلقائياً بناءً على يومية الموظف (اليومية ÷ 10 ساعات)</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 block text-right">المبلغ (ج.م)</label>
+                  <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.amount} onChange={e => setEditingTransaction({...editingTransaction, amount: Number(e.target.value)})} />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 block text-right">الوصف</label>
+                <Input className="rounded-xl h-11 text-right font-bold" value={editingTransaction.description} onChange={e => setEditingTransaction({...editingTransaction, description: e.target.value})} placeholder="سبب الحركة..." />
+              </div>
+              <div className="flex justify-end gap-3 pt-6 font-bold">
+                <Button variant="ghost" className="btn-ghost shadow-none" onClick={() => setEditingTransaction(null)}>إلغاء</Button>
+                <Button onClick={handleUpdate} disabled={isSaving} className="btn-primary px-10 h-11 rounded-xl font-bold">
+                  {isSaving ? "جاري الحفظ..." : "حفظ التعديل"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {deletingId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
+          <Card className="dribbble-card w-full max-w-sm border-none shadow-2xl animate-in fade-in zoom-in duration-200">
+            <CardHeader className="pb-2">
+              <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
+                <AlertCircle className="text-red-500" size={24} />
+              </div>
+              <CardTitle className="font-black text-xl text-slate-900">تأكيد الحذف</CardTitle>
+              <CardDescription className="font-bold text-slate-500">
+                هل أنت متأكد من رغبتك في حذف هذه الحركة المالية؟ لا يمكن التراجع عن هذا الإجراء.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex gap-3 pt-4 font-bold">
+              <Button variant="ghost" className="btn-ghost flex-1 h-11" onClick={() => setDeletingId(null)}>إلغاء</Button>
+              <Button variant="destructive" className="btn-danger flex-1 h-11 font-bold" disabled={isSaving} onClick={handleDelete}>
+                {isSaving ? "جاري الحذف..." : "حذف الحركة"}
+              </Button>
             </CardContent>
           </Card>
         </div>
