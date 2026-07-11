@@ -13009,13 +13009,129 @@ const PayrollView = React.memo(function PayrollView({
   safes: Safe[],
   companyInfo: CompanySettings
 }) {
-  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
-  const [showGenerate, setShowGenerate] = useState(false);
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
   const [searchTerm, setSearchTerm] = useState('');
+  const [payrollSubTab, setPayrollSubTab] = useState<'weekly' | 'daily'>('weekly');
+  const [selectedDailyDate, setSelectedDailyDate] = useState<string>(() => {
+    if (attendance && attendance.length > 0) {
+      const sorted = [...attendance].sort((a, b) => b.date.localeCompare(a.date));
+      return sorted[0].date;
+    }
+    return new Date().toISOString().split('T')[0];
+  });
+
+  const dailyPayrollData = React.useMemo(() => {
+    return employees.map(emp => {
+      const att = attendance.find(a => a.employeeId === emp.id && a.date === selectedDailyDate);
+      const dayProd = productionRecords.filter(r => r.employeeId === emp.id && r.date === selectedDailyDate);
+      const totalProduction = dayProd.reduce((sum, r) => sum + (r.total || 0), 0);
+      const dayTxs = transactions.filter(t => t.employeeId === emp.id && t.date === selectedDailyDate);
+
+      const totalOvertime = dayTxs.filter(t => t.type === 'إضافي' || t.type === 'أوفرتايم').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      const totalBonuses = dayTxs.filter(t => t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      const totalExpenses = dayTxs.filter(t => t.type === 'مصروف' || t.type === 'سلفة' || t.type === 'عهدة').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      const manualDeductions = dayTxs.filter(t => t.type === 'خصم' || t.type === 'جزاء').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      const dailyLoanDeductions = dayTxs.filter(t => t.type === 'خصم سلف' || t.type === 'سلفة مستردة').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+      let daysWorked = 0;
+      let timeDeduction = 0;
+      let attendanceStatus = 'غياب';
+      let checkInOutStr = '--';
+
+      if (att) {
+        attendanceStatus = att.status || 'حضور';
+        if (att.checkIn && att.checkOut) {
+          checkInOutStr = `${att.checkIn} - ${att.checkOut}`;
+        }
+
+        if (attendanceStatus === 'حضور' || attendanceStatus === 'تأخير') {
+          if (!att.checkIn || !att.checkOut) {
+            daysWorked = 1;
+          } else {
+            const [inH, inM] = att.checkIn.split(':').map(Number);
+            const [outH, outM] = att.checkOut.split(':').map(Number);
+            const checkInMins = inH * 60 + inM;
+            const checkOutMins = outH * 60 + outM;
+
+            const shiftStartStr = emp.shiftStart || '08:00';
+            const shiftEndStr = emp.shiftEnd || '18:00';
+            const [sH, sM] = shiftStartStr.split(':').map(Number);
+            const [eH, eM] = shiftEndStr.split(':').map(Number);
+            const officialStart = sH * 60 + sM;
+            const officialEnd = eH * 60 + eM;
+            const shiftDurationMins = officialEnd - officialStart;
+            const gracePeriod = 15;
+
+            if (checkInMins <= officialStart + gracePeriod && att.checkOut === '12:00' && officialStart <= 12 * 60) {
+              daysWorked = 0.5;
+            } else {
+              let lateMins = 0;
+              if (checkInMins > officialStart + gracePeriod) lateMins = checkInMins - officialStart;
+              const earlyMins = Math.max(0, officialEnd - checkOutMins);
+              daysWorked = 1;
+              timeDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+            }
+          }
+        } else if (attendanceStatus === 'إجازة') {
+          daysWorked = 0;
+        } else {
+          daysWorked = 0;
+        }
+      } else {
+        attendanceStatus = 'لم يسجل';
+      }
+
+      let baseSalary = 0;
+      if (emp.payMethod === 'production') {
+        baseSalary = totalProduction;
+      } else {
+        baseSalary = emp.dailyRate * daysWorked;
+      }
+
+      const totalDeductions = manualDeductions + Math.round(timeDeduction * 100) / 100;
+
+      const earningsBeforeLoans = baseSalary + totalBonuses + totalOvertime - totalDeductions - totalExpenses + (emp.payMethod === 'daily' ? totalProduction : 0);
+      const netSalary = Math.max(0, earningsBeforeLoans - dailyLoanDeductions);
+
+      return {
+        id: emp.id,
+        employee: emp,
+        attendanceStatus,
+        checkInOutStr,
+        dailyRate: emp.dailyRate,
+        daysWorked,
+        baseSalary,
+        totalProduction,
+        totalOvertime,
+        totalBonuses,
+        totalDeductions,
+        totalExpenses,
+        totalLoans: dailyLoanDeductions,
+        netSalary
+      };
+    });
+  }, [employees, attendance, transactions, productionRecords, selectedDailyDate]);
+
+  const filteredDailyPayroll = React.useMemo(() => {
+    return dailyPayrollData.filter(d => {
+      const matchesDept = selectedDept === 'الكل' || d.employee.department === selectedDept;
+      const matchesSearch = d.employee.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesDept && matchesSearch;
+    });
+  }, [dailyPayrollData, selectedDept, searchTerm]);
+
+  const filteredDailyTotal = React.useMemo(() => {
+    return filteredDailyPayroll.reduce((sum, d) => sum + d.netSalary, 0);
+  }, [filteredDailyPayroll]);
+
+  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
+  const [showGenerate, setShowGenerate] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [genData, setGenData] = useState({
     weekNumber: 1,
+    year: 2026,
+    startDate: '',
+    endDate: '',
   });
   const [selectedPayrollIds, setSelectedPayrollIds] = useState<string[]>([]);
   const [selectedPayrollForSlip, setSelectedPayrollForSlip] = useState<Payroll | null>(null);
@@ -13265,6 +13381,32 @@ const PayrollView = React.memo(function PayrollView({
   };
 
   const handleExportExcel = () => {
+    if (payrollSubTab === 'daily') {
+      const dataToExport = filteredDailyPayroll.map(d => ({
+        'الموظف': d.employee.name,
+        'القسم': d.employee.department || 'غير محدد',
+        'حالة الحضور': d.attendanceStatus,
+        'الحضور والانصراف': d.checkInOutStr,
+        'طريقة الدفع': d.employee.payMethod === 'production' ? 'بالإنتاج' : 'باليومية',
+        'اليومية': d.dailyRate,
+        'نصيب اليوم': d.employee.payMethod === 'production' ? '--' : d.daysWorked,
+        'الأجر الأساسي المستحق': d.baseSalary,
+        'حوافز إنتاج اليوم': d.totalProduction,
+        'إضافي اليوم': d.totalOvertime,
+        'مكافآت اليوم': d.totalBonuses,
+        'خصومات اليوم': d.totalDeductions,
+        'مصروفات اليوم': d.totalExpenses,
+        'سلف اليوم': d.totalLoans,
+        'صافي أجر اليوم': d.netSalary
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Daily Payroll");
+      XLSX.writeFile(wb, `Daily_Payroll_${selectedDailyDate}.xlsx`);
+      return;
+    }
+
     const dataToExport = processedPayrolls.map(p => ({
       'الأسبوع': `أسبوع ${p.weekNumber}`,
       'اسم الموظف': employees.find(e => e.id === p.employeeId)?.name || 'غير معروف',
@@ -13283,6 +13425,7 @@ const PayrollView = React.memo(function PayrollView({
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Payroll");
+    XLSX.writeFile(wb, `Weekly_Payroll_Week_${genData.weekNumber}.xlsx`);
   };
 
   const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -13387,7 +13530,25 @@ const PayrollView = React.memo(function PayrollView({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Sub tabs inside PayrollView */}
+      <div className="flex border-b border-slate-200 gap-4 mb-2">
+        <button
+          onClick={() => setPayrollSubTab('weekly')}
+          className={`pb-3 px-6 font-bold text-base transition-all relative ${payrollSubTab === 'weekly' ? 'text-blue-600 border-b-2 border-blue-600 font-black' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          كشوف الرواتب الأسبوعية
+        </button>
+        <button
+          onClick={() => setPayrollSubTab('daily')}
+          className={`pb-3 px-6 font-bold text-base transition-all relative ${payrollSubTab === 'daily' ? 'text-blue-600 border-b-2 border-blue-600 font-black' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          رواتب الموظفين يوم بيومه (كشف يومي)
+        </button>
+      </div>
+
+      {payrollSubTab === 'weekly' ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
             <DollarSign className="text-blue-600" size={24} />
@@ -13480,8 +13641,11 @@ const PayrollView = React.memo(function PayrollView({
                   />
                 </TableCell>
                 <TableCell className="font-bold text-slate-500">
-                  <div className="flex flex-col">
-                    <span>أسبوع {p.weekNumber}</span>
+                  <div className="flex flex-col text-right">
+                    <span className="font-black text-slate-800">أسبوع {p.weekNumber}</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5">
+                      {p.startDate && p.endDate ? `${p.startDate} إلى ${p.endDate}` : 'بدون تاريخ محدد'}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell className="font-black text-slate-900">{employees.find(e => e.id === p.employeeId)?.name}</TableCell>
@@ -13560,6 +13724,155 @@ const PayrollView = React.memo(function PayrollView({
         </Table>
       </div>
     </Card>
+    </>
+  ) : (
+    <>
+      {/* Daily Payroll View */}
+      <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-black text-lg text-slate-800">تحديد تاريخ الكشف اليومي</h3>
+            <p className="text-xs text-slate-400 mt-0.5">اختر اليوم لعرض مستحقات العمال فيه بالتفصيل</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-slate-500">التاريخ:</span>
+            <Input 
+              type="date" 
+              value={selectedDailyDate} 
+              onChange={e => setSelectedDailyDate(e.target.value)} 
+              className="w-48 h-11 text-right font-black rounded-xl border-slate-200 animate-pulse-once"
+            />
+            <Button 
+              onClick={() => {
+                window.print();
+              }}
+              variant="outline" 
+              className="h-11 px-5 rounded-xl font-bold border-slate-200"
+            >
+              <Printer size={16} className="ml-2" />
+              طباعة الكشف اليومي
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي أجور اليوم</p>
+            <p className="text-2xl font-black text-slate-900 mt-1">{filteredDailyTotal.toLocaleString()} ج.م</p>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">العمال المتواجدين</p>
+            <p className="text-2xl font-black text-blue-600 mt-1">
+              {filteredDailyPayroll.filter(d => d.attendanceStatus === 'حضور' || d.attendanceStatus === 'تأخير').length} موظف
+            </p>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي إضافي وحوافز اليوم</p>
+            <p className="text-2xl font-black text-emerald-600 mt-1">
+              {filteredDailyPayroll.reduce((sum, d) => sum + d.totalOvertime + d.totalBonuses, 0).toLocaleString()} ج.م
+            </p>
+          </div>
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي خصومات ومصروف اليوم</p>
+            <p className="text-2xl font-black text-rose-600 mt-1">
+              {filteredDailyPayroll.reduce((sum, d) => sum + d.totalDeductions + d.totalExpenses + d.totalLoans, 0).toLocaleString()} ج.م
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Card className="dribbble-card border-none overflow-hidden print:shadow-none print:border-none">
+        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 print:hidden">
+          <div>
+            <h3 className="font-black text-xl text-slate-800">تفاصيل مستحقات يوم {selectedDailyDate}</h3>
+            <p className="text-xs text-slate-400 mt-0.5">مستند إلى سجل الحضور والانصراف والمعاملات المسجلة لهذا اليوم</p>
+          </div>
+          <Badge variant="outline" className="font-bold text-xs px-3 py-1 rounded-lg">
+            {selectedDept === 'الكل' ? 'كل الأقسام' : selectedDept}
+          </Badge>
+        </div>
+        <div className="overflow-x-auto">
+          <Table id="daily-payroll-print-table">
+            <TableHeader className="bg-slate-50/50">
+              <TableRow>
+                <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
+                <TableHead className="text-right font-black text-slate-900">القسم</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الحضور والانصراف</TableHead>
+                <TableHead className="text-right font-black text-slate-900">طريقة الدفع</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الفئة / اليومية</TableHead>
+                <TableHead className="text-right font-black text-slate-900">نصيب اليوم</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الأجر المستحق اليوم</TableHead>
+                <TableHead className="text-right font-black text-slate-900">حوافز إنتاج</TableHead>
+                <TableHead className="text-right font-black text-slate-900">إضافي (+)</TableHead>
+                <TableHead className="text-right font-black text-slate-900">مكافآت (+)</TableHead>
+                <TableHead className="text-right font-black text-slate-900">خصومات (-)</TableHead>
+                <TableHead className="text-right font-black text-slate-900">مصروفات (-)</TableHead>
+                <TableHead className="text-right font-black text-slate-900">سلف مستردة (-)</TableHead>
+                <TableHead className="text-right font-black text-slate-900">صافي اليوم</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDailyPayroll.map(d => (
+                <TableRow key={d.id} className="hover:bg-slate-50/50 transition-colors">
+                  <TableCell className="font-black text-slate-900">{d.employee.name}</TableCell>
+                  <TableCell className="font-bold text-slate-500 text-xs">{d.employee.department || 'غير محدد'}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      className={`rounded-lg px-2 py-0.5 border-none font-black text-[10px] ${
+                        d.attendanceStatus === 'حضور' ? 'bg-emerald-50 text-emerald-700' :
+                        d.attendanceStatus === 'تأخير' ? 'bg-amber-50 text-amber-700' :
+                        d.attendanceStatus === 'غياب' ? 'bg-rose-50 text-rose-700' :
+                        d.attendanceStatus === 'إجازة' ? 'bg-blue-50 text-blue-700' :
+                        'bg-slate-50 text-slate-400'
+                      }`}
+                    >
+                      {d.attendanceStatus}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-slate-500">{d.checkInOutStr}</TableCell>
+                  <TableCell className="font-bold text-xs text-slate-600">
+                    {d.employee.payMethod === 'production' ? 'بالإنتاج' : 'باليومية'}
+                  </TableCell>
+                  <TableCell className="font-bold text-slate-600 text-xs">{d.dailyRate?.toLocaleString()} ج.م</TableCell>
+                  <TableCell className="font-black text-blue-600 text-xs">
+                    {d.employee.payMethod === 'production' ? '--' : `${d.daysWorked.toFixed(2)} يوم`}
+                  </TableCell>
+                  <TableCell className="font-black text-slate-700 text-xs">{d.baseSalary.toLocaleString()} ج.م</TableCell>
+                  <TableCell className="font-black text-purple-600 text-xs">
+                    {d.totalProduction > 0 ? `+${d.totalProduction.toLocaleString()}` : '0'}
+                  </TableCell>
+                  <TableCell className="font-bold text-blue-600 text-xs">
+                    {d.totalOvertime > 0 ? `+${d.totalOvertime.toLocaleString()}` : '0'}
+                  </TableCell>
+                  <TableCell className="font-bold text-emerald-600 text-xs">
+                    {d.totalBonuses > 0 ? `+${d.totalBonuses.toLocaleString()}` : '0'}
+                  </TableCell>
+                  <TableCell className="font-bold text-rose-600 text-xs">
+                    {d.totalDeductions > 0 ? `-${d.totalDeductions.toLocaleString()}` : '0'}
+                  </TableCell>
+                  <TableCell className="font-bold text-orange-600 text-xs">
+                    {d.totalExpenses > 0 ? `-${d.totalExpenses.toLocaleString()}` : '0'}
+                  </TableCell>
+                  <TableCell className="font-bold text-amber-600 text-xs">
+                    {d.totalLoans > 0 ? `-${d.totalLoans.toLocaleString()}` : '0'}
+                  </TableCell>
+                  <TableCell className="font-black text-slate-900 bg-slate-50/50 text-sm">{d.netSalary.toLocaleString()} ج.م</TableCell>
+                </TableRow>
+              ))}
+              {filteredDailyPayroll.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={15} className="text-center py-10 text-slate-400 font-bold">
+                    لا توجد سجلات للموظفين في هذا اليوم
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </>
+  )}
 
       {showVouchers && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60] overflow-auto">
@@ -13715,6 +14028,26 @@ const PayrollView = React.memo(function PayrollView({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">تاريخ بداية الفترة</label>
+                  <Input 
+                    type="date" 
+                    className="rounded-xl h-11 text-right font-bold" 
+                    value={editingPayroll.startDate || ''} 
+                    onChange={e => setEditingPayroll({...editingPayroll, startDate: e.target.value})} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">تاريخ نهاية الفترة</label>
+                  <Input 
+                    type="date" 
+                    className="rounded-xl h-11 text-right font-bold" 
+                    value={editingPayroll.endDate || ''} 
+                    onChange={e => setEditingPayroll({...editingPayroll, endDate: e.target.value})} 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">
                     {editingPayroll.payMethod === 'production' ? 'استحقاق الإنتاج' : 'أيام العمل'}
                   </label>
@@ -13817,9 +14150,11 @@ const PayrollView = React.memo(function PayrollView({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">من تاريخ</label>
+                  <Input type="date" className="rounded-xl h-11 text-right font-bold" value={genData.startDate} onChange={e => setGenData({...genData, startDate: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">إلى تاريخ</label>
+                  <Input type="date" className="rounded-xl h-11 text-right font-bold" value={genData.endDate} onChange={e => setGenData({...genData, endDate: e.target.value})} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
