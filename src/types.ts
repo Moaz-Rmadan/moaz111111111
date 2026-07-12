@@ -342,6 +342,7 @@ export interface Loan {
   paidAlready?: number;
   notes?: string;
   status: 'نشط' | 'مسدد';
+  deductionMode?: 'auto_percentage' | 'auto_installment' | 'manual';
 }
 
 export interface ProductionRecord {

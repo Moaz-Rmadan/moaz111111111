@@ -99,11 +99,16 @@ async function startServer() {
 
         const empLoans = loans.filter((l: any) => l.employeeId === emp.id && l.status === 'نشط');
         let calculatedLoans = empLoans.reduce((sum: number, l: any) => {
+          if (l.deductionMode === 'manual') return sum;
+          
           let weeklyInstallment = 0;
-          if (l.installments && l.installments > 0) {
-            weeklyInstallment = l.amount / l.installments;
+          if (l.deductionMode === 'auto_percentage') {
+            weeklyInstallment = (emp.dailyRate * (daysWorked || 6)) * 0.1;
+          } else if (l.deductionMode === 'auto_installment') {
+            weeklyInstallment = l.installments && l.installments > 0 ? l.amount / l.installments : 0;
           } else {
-            weeklyInstallment = (emp.dailyRate * daysWorked) * 0.1; 
+            // Legacy fallback
+            weeklyInstallment = l.installments && l.installments > 0 ? l.amount / l.installments : (emp.dailyRate * (daysWorked || 6)) * 0.1;
           }
           return sum + Math.min(l.remainingAmount, weeklyInstallment);
         }, 0) + manualLoanDeductions;
