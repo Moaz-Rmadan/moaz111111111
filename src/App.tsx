@@ -11958,6 +11958,101 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
+  // New Employee Account Statements State
+  const [loansTab, setLoansTab] = useState<'all' | 'statements'>('all');
+  const [selectedEmpIdForStatement, setSelectedEmpIdForStatement] = useState<string>('');
+  const [employeeLoans, setEmployeeLoans] = useState<Loan[]>([]);
+  const [loadingEmployeeLoans, setLoadingEmployeeLoans] = useState(false);
+  const [showManualPaymentModal, setShowManualPaymentModal] = useState(false);
+  const [manualPaymentForm, setManualPaymentForm] = useState({
+    loanId: '',
+    amount: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    notes: ''
+  });
+
+  // Fetch all loans for specific selected employee
+  useEffect(() => {
+    if (!selectedEmpIdForStatement) {
+      setEmployeeLoans([]);
+      return;
+    }
+    const fetchEmpLoans = async () => {
+      setLoadingEmployeeLoans(true);
+      try {
+        const q = query(
+          collection(db, 'loans'),
+          where('employeeId', '==', selectedEmpIdForStatement),
+          orderBy('date', 'desc')
+        );
+        const snap = await getDocs(q);
+        setEmployeeLoans(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Loan)));
+      } catch (err) {
+        console.error('Error fetching employee specific loans:', err);
+      } finally {
+        setLoadingEmployeeLoans(false);
+      }
+    };
+    fetchEmpLoans();
+  }, [selectedEmpIdForStatement]);
+
+  const handleRegisterManualPayment = async () => {
+    const payAmount = parseFloat(manualPaymentForm.amount) || 0;
+    if (!manualPaymentForm.loanId || payAmount <= 0) return;
+    const selectedLoan = employeeLoans.find(l => l.id === manualPaymentForm.loanId);
+    if (!selectedLoan) return;
+
+    if (payAmount > selectedLoan.remainingAmount) {
+      alert('مبلغ السداد أكبر من المتبقي على هذه السلفة!');
+      return;
+    }
+
+    try {
+      const newRemaining = Math.max(0, selectedLoan.remainingAmount - payAmount);
+      const newPaidAlready = (selectedLoan.paidAlready || 0) + payAmount;
+      const existingPayments = selectedLoan.payments || [];
+      let finalPayments = [...existingPayments];
+      
+      if (finalPayments.length === 0 && (selectedLoan.paidAlready || 0) > 0) {
+        finalPayments = [{
+          date: selectedLoan.date,
+          amount: selectedLoan.paidAlready || 0,
+          type: 'initial' as const,
+          notes: 'دفعة مقدمة عند استلام السلفة'
+        }];
+      }
+
+      finalPayments.push({
+        date: manualPaymentForm.date,
+        amount: payAmount,
+        type: 'manual' as const,
+        notes: manualPaymentForm.notes || 'سداد يدوي'
+      });
+
+      const updatedData = {
+        remainingAmount: newRemaining,
+        paidAlready: newPaidAlready,
+        status: newRemaining <= 0 ? 'مسدد' : 'نشط',
+        payments: finalPayments
+      };
+
+      await updateDoc(doc(db, 'loans', selectedLoan.id), updatedData);
+      
+      // Update local states
+      setEmployeeLoans(prev => prev.map(l => l.id === selectedLoan.id ? { ...l, ...updatedData } as Loan : l));
+      setLoans(prev => prev.map(l => l.id === selectedLoan.id ? { ...l, ...updatedData } as Loan : l));
+      setShowManualPaymentModal(false);
+      setManualPaymentForm({
+        loanId: '',
+        amount: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        notes: ''
+      });
+    } catch (err) {
+      console.error('Error registering manual loan payment:', err);
+    }
+  };
+
   const [formData, setFormData] = useState({
     employeeId: '',
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -12012,12 +12107,19 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
     if (!formData.employeeId || amountVal <= 0) return;
     try {
       const remainingAmount = amountVal - paidAlreadyVal;
+      const initialPayments = paidAlreadyVal > 0 ? [{
+        date: formData.date,
+        amount: paidAlreadyVal,
+        type: 'initial' as const,
+        notes: 'دفعة مقدمة عند استلام السلفة'
+      }] : [];
       await addDoc(collection(db, 'loans'), {
         ...formData,
         amount: amountVal,
         paidAlready: paidAlreadyVal,
         remainingAmount: remainingAmount > 0 ? remainingAmount : 0,
-        status: remainingAmount <= 0 ? 'مسدد' : 'نشط'
+        status: remainingAmount <= 0 ? 'مسدد' : 'نشط',
+        payments: initialPayments
       });
       setShowAdd(false);
       setFormData({
@@ -12048,12 +12150,42 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
       const remainingAmount = amountVal - paidAlreadyVal;
       const { id, ...data } = editingLoan;
       
+      let updatedPayments = editingLoan.payments || [];
+      if (updatedPayments.length === 0 && paidAlreadyVal > 0) {
+        updatedPayments = [{
+          date: editingLoan.date || format(new Date(), 'yyyy-MM-dd'),
+          amount: paidAlreadyVal,
+          type: 'initial' as const,
+          notes: 'دفعة مقدمة عند استلام السلفة'
+        }];
+      } else if (paidAlreadyVal > 0) {
+        const initialIdx = updatedPayments.findIndex(p => p.type === 'initial');
+        if (initialIdx > -1) {
+          updatedPayments = updatedPayments.map((p, idx) => 
+            idx === initialIdx ? { ...p, amount: paidAlreadyVal } : p
+          );
+        } else {
+          updatedPayments = [
+            {
+              date: editingLoan.date || format(new Date(), 'yyyy-MM-dd'),
+              amount: paidAlreadyVal,
+              type: 'initial' as const,
+              notes: 'دفعة مقدمة عند استلام السلفة'
+            },
+            ...updatedPayments
+          ];
+        }
+      } else {
+        updatedPayments = updatedPayments.filter(p => p.type !== 'initial');
+      }
+
       const updatedData = {
         ...data,
         amount: amountVal,
         paidAlready: paidAlreadyVal,
         remainingAmount: remainingAmount > 0 ? remainingAmount : 0,
-        status: remainingAmount <= 0 ? 'مسدد' : 'نشط'
+        status: remainingAmount <= 0 ? 'مسدد' : 'نشط',
+        payments: updatedPayments
       };
 
       await updateDoc(doc(db, 'loans', id), updatedData);
@@ -12132,78 +12264,408 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
         </Card>
       </div>
 
-      <Card className="dribbble-card overflow-hidden border-none shadow-xl shadow-slate-200/40 text-right">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-slate-50/80 backdrop-blur-sm">
-              <TableRow className="border-b-0">
-                <TableHead className="text-right font-black text-slate-900 py-4 font-bold">التاريخ</TableHead>
-                <TableHead className="text-right font-black text-slate-900 font-bold">الموظف</TableHead>
-                <TableHead className="text-right font-black text-slate-900 font-bold">المبلغ</TableHead>
-                <TableHead className="text-right font-black text-slate-900 font-bold">المتبقي</TableHead>
-                <TableHead className="text-right font-black text-slate-900 font-bold">الحالة</TableHead>
-                <TableHead className="text-left font-black text-slate-900 font-bold">إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLoans.map((loan) => {
-                const emp = employees.find(e => e.id === loan.employeeId);
-                return (
-                  <TableRow key={loan.id} className="group hover:bg-slate-50 border-b border-slate-50/50">
-                    <TableCell className="font-bold text-slate-600 text-right">{loan.date}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3 justify-start">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                          <Users size={14} className="text-slate-400" />
-                        </div>
-                        <div className="text-right">
-                          <p className="font-black text-sm text-slate-900 font-bold">{emp?.name}</p>
-                          {loan.notes && <p className="text-xs text-slate-500 mt-1 truncate max-w-[150px]">{loan.notes}</p>}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-black text-slate-900 text-right font-bold">{loan.amount.toLocaleString()} ج.م</TableCell>
-                    <TableCell className="font-black text-red-600 text-right font-bold">{loan.remainingAmount.toLocaleString()} ج.م</TableCell>
-                    <TableCell className="text-right">
-                      <Badge className={`border-none font-bold ${
-                        loan.status === 'مسدد' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                      }`}>
-                        {loan.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="sm" onClick={() => setEditingLoan(loan)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 rounded-lg">
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(loan.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg">
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {filteredLoans.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-bold">لا يوجد سلف مسجلة</TableCell>
+      {/* Tab Switcher */}
+      <div className="flex justify-start gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
+        <Button 
+          variant={loansTab === 'all' ? 'default' : 'ghost'} 
+          onClick={() => setLoansTab('all')} 
+          className={cn(
+            "rounded-xl font-bold text-xs h-9 px-4 transition-all",
+            loansTab === 'all' ? "bg-white text-slate-900 shadow-sm hover:bg-white animate-in fade-in" : "text-slate-600 hover:bg-slate-200/50"
+          )}
+        >
+          سجل السلف العامة
+        </Button>
+        <Button 
+          variant={loansTab === 'statements' ? 'default' : 'ghost'} 
+          onClick={() => setLoansTab('statements')} 
+          className={cn(
+            "rounded-xl font-bold text-xs h-9 px-4 transition-all",
+            loansTab === 'statements' ? "bg-white text-slate-900 shadow-sm hover:bg-white animate-in fade-in" : "text-slate-600 hover:bg-slate-200/50"
+          )}
+        >
+          كشوف حسابات الموظفين تفصيلياً
+        </Button>
+      </div>
+
+      {loansTab === 'all' && (
+        <Card className="dribbble-card overflow-hidden border-none shadow-xl shadow-slate-200/40 text-right animate-in fade-in duration-200">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50/80 backdrop-blur-sm">
+                <TableRow className="border-b-0">
+                  <TableHead className="text-right font-black text-slate-900 py-4 font-bold">التاريخ</TableHead>
+                  <TableHead className="text-right font-black text-slate-900 font-bold">الموظف</TableHead>
+                  <TableHead className="text-right font-black text-slate-900 font-bold">المبلغ</TableHead>
+                  <TableHead className="text-right font-black text-slate-900 font-bold">المتبقي</TableHead>
+                  <TableHead className="text-right font-black text-slate-900 font-bold">الحالة</TableHead>
+                  <TableHead className="text-left font-black text-slate-900 font-bold">إجراءات</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        {hasMore && (
-          <div className="p-4 flex justify-center bg-slate-50 border-t border-slate-100">
-             <Button 
-                className="btn-secondary px-8 font-black rounded-xl h-10 text-sm font-bold"
-                onClick={() => fetchLoans()}
-                disabled={loading}
-              >
-                {loading ? 'جاري التحميل...' : 'عرض المزيد...'}
-              </Button>
+              </TableHeader>
+              <TableBody>
+                {filteredLoans.map((loan) => {
+                  const emp = employees.find(e => e.id === loan.employeeId);
+                  return (
+                    <TableRow key={loan.id} className="group hover:bg-slate-50 border-b border-slate-50/50">
+                      <TableCell className="font-bold text-slate-600 text-right">{loan.date}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3 justify-start">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <Users size={14} className="text-slate-400" />
+                          </div>
+                          <div className="text-right">
+                            <p className="font-black text-sm text-slate-900 font-bold">{emp?.name}</p>
+                            {loan.notes && <p className="text-xs text-slate-500 mt-1 truncate max-w-[150px]">{loan.notes}</p>}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-black text-slate-900 text-right font-bold">{loan.amount.toLocaleString()} ج.م</TableCell>
+                      <TableCell className="font-black text-red-600 text-right font-bold">{loan.remainingAmount.toLocaleString()} ج.م</TableCell>
+                      <TableCell className="text-right">
+                        <Badge className={`border-none font-bold ${
+                          loan.status === 'مسدد' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                        }`}>
+                          {loan.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setSelectedEmpIdForStatement(loan.employeeId);
+                              setLoansTab('statements');
+                            }} 
+                            className="h-8 px-2.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 rounded-lg"
+                          >
+                            <FileText size={12} className="text-slate-400" />
+                            <span>كشف الحساب</span>
+                          </Button>
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="sm" onClick={() => setEditingLoan(loan)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 rounded-lg">
+                              <Edit2 size={14} />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(loan.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg">
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {filteredLoans.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-bold">لا يوجد سلف مسجلة</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
-        )}
-      </Card>
+          {hasMore && (
+            <div className="p-4 flex justify-center bg-slate-50 border-t border-slate-100">
+               <Button 
+                  className="btn-secondary px-8 font-black rounded-xl h-10 text-sm font-bold"
+                  onClick={() => fetchLoans()}
+                  disabled={loading}
+                >
+                 {loading ? 'جاري التحميل...' : 'عرض المزيد...'}
+               </Button>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {loansTab === 'statements' && (
+        <div className="space-y-6 animate-in fade-in duration-200" dir="rtl">
+          <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40 p-6 text-right">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5 flex-1 max-w-md text-right">
+                <label className="text-sm font-bold text-slate-700 block text-right font-bold">اختر الموظف لعرض كشف حسابه الكامل</label>
+                <select
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold text-right text-sm focus:border-primary focus:bg-white transition-all outline-none"
+                  value={selectedEmpIdForStatement}
+                  onChange={e => setSelectedEmpIdForStatement(e.target.value)}
+                >
+                  <option value="">-- اختر الموظف --</option>
+                  {employees.map(emp => {
+                    return (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name} ({emp.department || 'الإنتاج'})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+              
+              {selectedEmpIdForStatement && (
+                <Button 
+                  onClick={() => {
+                    const activeLoan = employeeLoans.find(l => l.status === 'نشط');
+                    setManualPaymentForm(prev => ({ 
+                      ...prev, 
+                      loanId: activeLoan?.id || '',
+                      amount: '',
+                      notes: ''
+                    }));
+                    setShowManualPaymentModal(true);
+                  }} 
+                  disabled={employeeLoans.filter(l => l.status === 'نشط').length === 0}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-5 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 self-end mt-4 md:mt-0 font-bold"
+                >
+                  <DollarSign size={18} />
+                  <span>تسجيل دفعة سداد يدوية نقداً</span>
+                </Button>
+              )}
+            </div>
+          </Card>
+
+          {!selectedEmpIdForStatement ? (
+            <div className="text-center py-12 bg-slate-50/50 rounded-3xl border border-dashed border-slate-200">
+              <FileText className="mx-auto text-slate-300 mb-3" size={48} />
+              <p className="text-slate-500 font-bold text-base">يرجى اختيار موظف من القائمة أعلاه لعرض كشف حسابه التفصيلي</p>
+              <p className="text-slate-400 text-xs mt-1">يحتوي كشف الحساب على تفاصيل كل سلفة وتاريخها وسببها وجدول السدادات بالكامل</p>
+            </div>
+          ) : loadingEmployeeLoans ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p className="text-slate-500 font-bold text-sm">جاري تحميل كشف الحساب والمدفوعات...</p>
+            </div>
+          ) : (
+            <>
+              {/* Stats Grid */}
+              {(() => {
+                const totalEmpLoans = employeeLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
+                const totalEmpRemaining = employeeLoans.reduce((sum, l) => sum + (l.remainingAmount || 0), 0);
+                const totalEmpPaid = totalEmpLoans - totalEmpRemaining;
+
+                // Build chronologically sorted ledger
+                const ledger: Array<{
+                  date: string;
+                  type: 'issuance' | 'payment';
+                  loanId: string;
+                  description: string;
+                  debit: number;
+                  credit: number;
+                  runningBalance?: number;
+                }> = [];
+
+                employeeLoans.forEach(loan => {
+                  ledger.push({
+                    date: loan.date,
+                    type: 'issuance',
+                    loanId: loan.id,
+                    description: `استلام سلفة ${loan.notes ? `[ملاحظات: ${loan.notes}]` : ''}`,
+                    debit: loan.amount,
+                    credit: 0
+                  });
+
+                  if (loan.payments && loan.payments.length > 0) {
+                    loan.payments.forEach(p => {
+                      ledger.push({
+                        date: p.date,
+                        type: 'payment',
+                        loanId: loan.id,
+                        description: p.type === 'initial' 
+                          ? 'دفعة مقدمة مسددة عند الاستلام' 
+                          : p.type === 'payroll'
+                            ? `خصم تلقائي من كشف راتب الأسبوع [${p.notes || ''}]`
+                            : `سداد نقدي يدوي بالخزنة ${p.notes ? `[ملاحظات: ${p.notes}]` : ''}`,
+                        debit: 0,
+                        credit: p.amount
+                      });
+                    });
+                  } else {
+                    if ((loan.paidAlready || 0) > 0) {
+                      ledger.push({
+                        date: loan.date,
+                        type: 'payment',
+                        loanId: loan.id,
+                        description: 'دفعة مقدمة مسددة عند الاستلام (سداد جزئي)',
+                        debit: 0,
+                        credit: loan.paidAlready || 0
+                      });
+                    }
+                    const processedDeductions = loan.amount - loan.remainingAmount - (loan.paidAlready || 0);
+                    if (processedDeductions > 0) {
+                      ledger.push({
+                        date: loan.date,
+                        type: 'payment',
+                        loanId: loan.id,
+                        description: 'خصومات مستردة من كشوف رواتب الموظف السابقة',
+                        debit: 0,
+                        credit: processedDeductions
+                      });
+                    }
+                  }
+                });
+
+                let running = 0;
+                const sortedLedger = [...ledger]
+                  .sort((a, b) => a.date.localeCompare(b.date))
+                  .map(item => {
+                    running = running + item.debit - item.credit;
+                    return { ...item, runningBalance: running };
+                  });
+
+                return (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <Card className="border-none shadow-sm bg-red-50/50 border-red-100 p-5 text-right">
+                        <div className="flex justify-between items-center">
+                          <div className="space-y-1 text-right">
+                            <p className="text-red-700/80 font-bold text-xs">إجمالي المتبقي المستحق</p>
+                            <h4 className="text-2xl font-black text-red-900 font-bold">{totalEmpRemaining.toLocaleString()} ج.م</h4>
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                            <AlertCircle className="text-red-600" size={20} />
+                          </div>
+                        </div>
+                      </Card>
+
+                      <Card className="border-none shadow-sm bg-emerald-50/50 border-emerald-100 p-5 text-right">
+                        <div className="flex justify-between items-center">
+                          <div className="space-y-1 text-right">
+                            <p className="text-emerald-700/80 font-bold text-xs">إجمالي المسدد والمسترد</p>
+                            <h4 className="text-2xl font-black text-emerald-900 font-bold">{totalEmpPaid.toLocaleString()} ج.م</h4>
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                            <CheckCircle2 className="text-emerald-600" size={20} />
+                          </div>
+                        </div>
+                      </Card>
+
+                      <Card className="border-none shadow-sm bg-slate-50 border-slate-100 p-5 text-right">
+                        <div className="flex justify-between items-center">
+                          <div className="space-y-1 text-right">
+                            <p className="text-slate-500 font-bold text-xs font-bold">إجمالي السلف المستلمة</p>
+                            <h4 className="text-2xl font-black text-slate-800 font-bold">{totalEmpLoans.toLocaleString()} ج.م</h4>
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-slate-200/60 flex items-center justify-center">
+                            <Coins className="text-slate-600" size={20} />
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+
+                    {/* Ledger Timeline */}
+                    <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40 text-right overflow-hidden">
+                      <div className="bg-slate-50/50 border-b border-slate-100 p-5">
+                        <h3 className="text-lg font-black text-slate-800 font-bold block text-right font-bold">كشف الأستاذ التفصيلي لحركة السلف والمدفوعات</h3>
+                        <p className="text-slate-400 text-xs font-bold block text-right mt-1">كشف حركة مالي متسلسل يوضح تاريخ كل سلفة وتاريخ وقيمة كل دفعة مسددة بالتتابع التاريخي للرصيد</p>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader className="bg-slate-50/80">
+                            <TableRow>
+                              <TableHead className="text-right font-black text-slate-900 py-4 font-bold">التاريخ</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 font-bold">نوع الحركة</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 font-bold">البيان / ملاحظات الحركة</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 font-bold text-orange-600">قيمة السلفة (+)</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 font-bold text-emerald-600">المسدد (-)</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 font-bold text-slate-800">الرصيد المتبقي</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {[...sortedLedger].reverse().map((item, idx) => (
+                              <TableRow key={idx} className="group hover:bg-slate-50 border-b border-slate-50/50">
+                                <TableCell className="font-bold text-slate-600 text-right">{item.date}</TableCell>
+                                <TableCell className="text-right">
+                                  <Badge className={cn(
+                                    "border-none font-bold",
+                                    item.type === 'issuance' ? "bg-orange-50 text-orange-700" : "bg-emerald-50 text-emerald-700"
+                                  )}>
+                                    {item.type === 'issuance' ? 'استلام سلفة' : 'دفعة سداد'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right text-slate-700 font-bold max-w-[300px] truncate" title={item.description}>
+                                  {item.description}
+                                </TableCell>
+                                <TableCell className="font-black text-orange-600 text-right font-bold">
+                                  {item.debit > 0 ? `+${item.debit.toLocaleString()} ج.م` : '—'}
+                                </TableCell>
+                                <TableCell className="font-black text-emerald-600 text-right font-bold">
+                                  {item.credit > 0 ? `-${item.credit.toLocaleString()} ج.م` : '—'}
+                                </TableCell>
+                                <TableCell className="font-black text-slate-900 text-right font-bold bg-slate-50/50">
+                                  {item.runningBalance?.toLocaleString()} ج.م
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            {sortedLedger.length === 0 && (
+                              <TableRow>
+                                <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-bold">لا يوجد حركات مسجلة لهذا الموظف</TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+
+                    {/* Individual active/inactive sulafe details */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-black text-slate-900 font-bold text-right block font-bold">تفاصيل السلف المستلمة والجدولة</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {employeeLoans.map(loan => (
+                          <Card key={loan.id} className="dribbble-card border border-slate-100 p-5 space-y-4 text-right shadow-sm bg-white hover:shadow-md transition-all">
+                            <div className="flex justify-between items-center">
+                              <Badge className={cn(
+                                "border-none font-bold",
+                                loan.status === 'نشط' ? "bg-red-50 text-red-700 animate-pulse" : "bg-green-50 text-green-700"
+                              )}>
+                                {loan.status === 'نشط' ? 'نشطة جارية' : 'مسددة بالكامل'}
+                              </Badge>
+                              <span className="text-xs font-mono text-slate-400">سلفة #{loan.id.slice(0, 6)}</span>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 text-xs border-b border-slate-50 pb-3">
+                              <div>
+                                <span className="text-slate-400 block mb-0.5 font-bold">تاريخ الاستلام</span>
+                                <span className="font-black text-slate-800 text-sm font-bold">{loan.date}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 block mb-0.5 font-bold">طريقة الخصم والجدولة</span>
+                                <span className="font-black text-slate-800 text-sm font-bold">
+                                  {loan.deductionMode === 'auto_percentage' ? 'خصم 10% أسبوعياً' : 
+                                   loan.deductionMode === 'auto_installment' ? `أقساط ثابتة (${loan.installments} أقساط)` : 
+                                   'خصم مخصص يدوي'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2">
+                              <div>
+                                <span className="text-slate-400 block text-[10px] mb-0.5 font-bold">القيمة الكلية</span>
+                                <span className="font-black text-slate-800 text-sm font-bold">{loan.amount.toLocaleString()} ج.م</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 block text-[10px] mb-0.5 font-bold">المدفوع</span>
+                                <span className="font-black text-emerald-600 text-sm font-bold">{(loan.paidAlready || 0).toLocaleString()} ج.م</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 block text-[10px] mb-0.5 font-bold">المتبقي</span>
+                                <span className="font-black text-red-600 text-sm font-bold">{loan.remainingAmount.toLocaleString()} ج.م</span>
+                              </div>
+                            </div>
+
+                            {loan.notes && (
+                              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs text-slate-600 font-bold text-right">
+                                <span className="text-slate-400 block mb-1 font-bold">السبب / الملاحظات:</span>
+                                {loan.notes}
+                              </div>
+                            )}
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Adding Modal */}
       {showAdd && (
@@ -12577,6 +13039,80 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
             <CardFooter className="flex justify-center gap-3 p-6 pt-0">
               <Button variant="ghost" className="rounded-xl font-bold px-6" onClick={() => setShowDeleteConfirm(null)}>إلغاء</Button>
               <Button onClick={() => handleDelete(showDeleteConfirm)} className="bg-red-600 hover:bg-red-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-red-600/20">نعم، احذف</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
+      {/* Manual Cash Payment Modal */}
+      {showManualPaymentModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-right animate-in fade-in zoom-in-95 duration-200" dir="rtl">
+          <Card className="dribbble-card w-full max-w-md overflow-hidden border-none text-right shadow-2xl shadow-slate-950/20">
+            <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-5">
+              <CardTitle className="font-black text-xl flex items-center gap-2 justify-end font-bold text-slate-900 font-bold">
+                <DollarSign size={22} className="text-emerald-600" />
+                تسجيل دفعة سداد يدوية نقداً
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 block text-right font-bold">اختر السلفة المراد السداد عليها</label>
+                <select
+                  className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold text-right text-sm focus:border-primary focus:bg-white transition-all outline-none"
+                  value={manualPaymentForm.loanId}
+                  onChange={e => setManualPaymentForm(prev => ({ ...prev, loanId: e.target.value }))}
+                >
+                  <option value="">-- اختر السلفة النشطة --</option>
+                  {employeeLoans.filter(l => l.status === 'نشط').map(loan => (
+                    <option key={loan.id} value={loan.id}>
+                      مبلغ {loan.remainingAmount.toLocaleString()} ج.م متبقي من سلفة تاريخ {loan.date} ({loan.notes || 'بدون ملاحظات'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 block text-right font-bold">المبلغ المدفوع نقداً (ج.م)</label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={manualPaymentForm.amount}
+                    onChange={e => setManualPaymentForm(prev => ({ ...prev, amount: e.target.value }))}
+                    className="h-11 rounded-xl bg-slate-50 font-black text-right border-slate-200 focus:border-emerald-500 focus:bg-white transition-all pl-12 font-bold text-base font-bold"
+                  />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">ج.م</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 block text-right font-bold">تاريخ السداد</label>
+                <Input
+                  type="date"
+                  value={manualPaymentForm.date}
+                  onChange={e => setManualPaymentForm(prev => ({ ...prev, date: e.target.value }))}
+                  className="h-11 rounded-xl bg-slate-50 font-bold text-right border-slate-200 font-bold"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 block text-right font-bold font-bold">ملاحظات السداد</label>
+                <textarea
+                  placeholder="مثال: سداد نقدي بالخزنة بموجب إيصال"
+                  value={manualPaymentForm.notes}
+                  onChange={e => setManualPaymentForm(prev => ({ ...prev, notes: e.target.value }))}
+                  className="w-full min-h-[80px] rounded-xl border border-slate-200 bg-slate-50 p-3 font-bold text-right text-sm focus:border-emerald-500 focus:bg-white transition-all outline-none"
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="bg-slate-50/50 border-t border-slate-100 p-6 flex flex-row justify-start gap-3">
+              <Button 
+                onClick={handleRegisterManualPayment} 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-emerald-600/20 flex-1 font-bold"
+              >
+                تأكيد سداد المبلغ
+              </Button>
+              <Button variant="ghost" className="rounded-xl font-bold h-11 px-6 border border-slate-200 hover:bg-slate-100 font-bold" onClick={() => setShowManualPaymentModal(false)}>إلغاء</Button>
             </CardFooter>
           </Card>
         </div>
@@ -13623,10 +14159,29 @@ const PayrollView = React.memo(function PayrollView({
       const deduction = Math.min(loan.remainingAmount, remainingDeduction);
       const newRemaining = loan.remainingAmount - deduction;
       const newPaidAlready = (loan.paidAlready || 0) + deduction;
+      
+      const existingPayments = loan.payments || [];
+      let finalPayments = [...existingPayments];
+      if (finalPayments.length === 0 && (loan.paidAlready || 0) > 0) {
+        finalPayments = [{
+          date: loan.date,
+          amount: loan.paidAlready || 0,
+          type: 'initial' as const,
+          notes: 'دفعة مقدمة عند استلام السلفة'
+        }];
+      }
+      finalPayments.push({
+        date: format(new Date(), 'yyyy-MM-dd'),
+        amount: deduction,
+        type: 'payroll' as const,
+        notes: `خصم تلقائي من راتب الأسبوع ${payroll.weekNumber || 1}`
+      });
+
       batch.update(doc(db, 'loans', loan.id), {
         remainingAmount: newRemaining,
         paidAlready: newPaidAlready,
-        status: newRemaining <= 0 ? 'مسدد' : 'نشط'
+        status: newRemaining <= 0 ? 'مسدد' : 'نشط',
+        payments: finalPayments
       });
       remainingDeduction -= deduction;
     }

@@ -332,6 +332,13 @@ export interface FinancialTransaction {
   overtimeRate?: 1.33 | 1.5 | 2;
 }
 
+export interface LoanPayment {
+  date: string;
+  amount: number;
+  type: 'initial' | 'payroll' | 'manual';
+  notes?: string;
+}
+
 export interface Loan {
   id: string;
   employeeId: string;
@@ -343,6 +350,7 @@ export interface Loan {
   notes?: string;
   status: 'نشط' | 'مسدد';
   deductionMode?: 'auto_percentage' | 'auto_installment' | 'manual';
+  payments?: LoanPayment[];
 }
 
 export interface ProductionRecord {
