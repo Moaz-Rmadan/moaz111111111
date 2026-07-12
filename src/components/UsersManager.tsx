@@ -178,8 +178,9 @@ export function UsersManager() {
   const [loading, setLoading] = useState(true);
   
   // Create Form State
-  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserIdentifier, setNewUserIdentifier] = useState('');
   const [newUserName, setNewUserName] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('custom');
   const [customPermissions, setCustomPermissions] = useState<UserProfile['permissions']>({
     dashboard: true,
@@ -208,6 +209,7 @@ export function UsersManager() {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editName, setEditName] = useState('');
   const [editIsAdmin, setEditIsAdmin] = useState(false);
+  const [editPassword, setEditPassword] = useState('');
   const [editPermissions, setEditPermissions] = useState<UserProfile['permissions']>({
     dashboard: true,
     inventory: false,
@@ -256,27 +258,31 @@ export function UsersManager() {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
-    if (!newUserEmail || !newUserName) {
+    if (!newUserIdentifier || !newUserName) {
       setError('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
     
     setIsAdding(true);
     try {
-      const uid = newUserEmail.toLowerCase().trim();
+      const uid = newUserIdentifier.toLowerCase().trim();
 
       // Check if user already exists
       if (users.some(u => u.uid === uid)) {
-        throw new Error('هذا البريد الإلكتروني مسجل بالفعل');
+        throw new Error('هذا البريد أو رقم الهاتف مسجل بالفعل');
       }
 
       // Determine permissions based on template
       const permissions = getActivePermissions(selectedTemplate);
 
+      const isEmail = uid.includes('@');
+
       // Create profile
       const newProfile: UserProfile = {
         uid,
-        email: uid,
+        email: isEmail ? uid : '',
+        phone: isEmail ? '' : uid,
+        password: newUserPassword || '', // Optional if they choose to log in with Google
         name: newUserName,
         isAdmin: false,
         permissions
@@ -286,7 +292,8 @@ export function UsersManager() {
       
       setUsers([...users, newProfile]);
       setSuccessMsg('تم إضافة المستخدم وتعيين الصلاحيات بنجاح!');
-      setNewUserEmail('');
+      setNewUserIdentifier('');
+      setNewUserPassword('');
       setNewUserName('');
       setSelectedTemplate('custom');
       setCustomPermissions({
@@ -318,6 +325,7 @@ export function UsersManager() {
     setEditName(user.name);
     setEditIsAdmin(user.isAdmin);
     setEditPermissions({ ...user.permissions });
+    setEditPassword(user.password || '');
   };
 
   const handleApplyTemplateToEdit = (templateKey: string) => {
@@ -337,6 +345,7 @@ export function UsersManager() {
       ...editingUser,
       name: editName,
       isAdmin: editIsAdmin,
+      password: editPassword,
       permissions: editIsAdmin ? {
         dashboard: true,
         inventory: true,
@@ -650,17 +659,30 @@ export function UsersManager() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600">البريد الإلكتروني (Google Account)</label>
+                  <label className="text-xs font-bold text-slate-600">البريد الإلكتروني أو رقم الهاتف (المعرف)</label>
                   <input
-                    type="email"
+                    type="text"
                     required
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    value={newUserIdentifier}
+                    onChange={(e) => setNewUserIdentifier(e.target.value)}
                     className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3.5 font-bold text-slate-800 shadow-sm text-left focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
-                    placeholder="name@gmail.com"
+                    placeholder="example@gmail.com أو 0100000000"
                     dir="ltr"
                   />
-                  <p className="text-[10px] text-slate-400 font-bold">يجب أن يكون حساب Google حقيقي ليتمكن الموظف من تسجيل الدخول به.</p>
+                  <p className="text-[10px] text-slate-400 font-bold">يمكن للمستخدم استخدام هذا المعرف لتسجيل الدخول.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">كلمة المرور الحالية/المؤقتة</label>
+                  <input
+                    type="text"
+                    required
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3.5 font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                    placeholder="أدخل كلمة مرور قوية"
+                  />
+                  <p className="text-[10px] text-slate-400 font-bold">يجب تزويد الموظف بكلمة المرور هذه ليتمكن من الدخول إلى حسابه.</p>
                 </div>
 
                 <div className="border-t border-slate-100 my-4 pt-4 space-y-3">
@@ -889,7 +911,12 @@ export function UsersManager() {
                                         </span>
                                       )}
                                     </div>
-                                    <span className="font-bold text-slate-400 text-[11px] truncate" dir="ltr">{user.email}</span>
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="font-bold text-slate-400 text-[11px] truncate" dir="ltr">{user.email || user.phone || user.uid}</span>
+                                      {user.password && (
+                                        <span className="text-[10px] text-indigo-500 font-bold">كلمة المرور: <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-indigo-600">{user.password}</span></span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </TableCell>
@@ -1049,7 +1076,7 @@ export function UsersManager() {
               {/* Modal Body */}
               <div className="p-6 overflow-y-auto space-y-6 flex-1">
                 {/* User Basics Form */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-600">اسم الموظف بالكامل</label>
                     <input
@@ -1086,6 +1113,17 @@ export function UsersManager() {
                         <span className="text-xs font-black text-slate-800">موظف بصلاحيات مخصصة</span>
                       </label>
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600">كلمة المرور الحالية/الجديدة</label>
+                    <input
+                      type="text"
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3.5 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm"
+                      placeholder="تعديل كلمة المرور"
+                    />
                   </div>
                 </div>
 

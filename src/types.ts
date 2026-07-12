@@ -485,6 +485,8 @@ export interface ProductRecipe {
 export interface UserProfile {
   uid: string;
   email: string;
+  phone?: string;
+  password?: string;
   name: string;
   isAdmin: boolean;
   permissions: {
@@ -568,6 +570,17 @@ export interface CompanySettings {
   taxId?: string;
   logoUrl?: string;
   managerName?: string;
+  numberSystem?: 'western' | 'eastern'; // نظام عرض الأرقام: غربي (123) أو شرقي (١٢٣)
+  currencyStyle?: 'standard' | 'badge' | 'abbreviated'; // نمط عرض العملة
+  currencySymbol?: string; // رمز العملة (مثال: ج.م، ر.س، د.إ)
+  vatRate?: number; // نسبة ضريبة القيمة المضافة %
+  defaultProfitMargin?: number; // هامش الربح الافتراضي %
+  defaultScrapTolerance?: number; // نسبة الهدر المسموح بها %
+  laborHourlyRate?: number; // تكلفة ساعة العمل الافتراضية
+  overtimeMultiplier?: number; // مضاعف ساعة العمل الإضافي
+  lowStockThreshold?: number; // حد الإنذار بنقص المخزون
+  invoiceFooterNote?: string; // تذييل الفواتير المطبوعة
+  invoiceTerms?: string; // شروط وأحكام الفاتورة
 }
 
 export interface ByproductSale {

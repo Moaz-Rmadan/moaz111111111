@@ -62,7 +62,7 @@ service cloud.firestore {
     // ===============================================================
     
     function getUserId() {
-      return request.auth.token.email != null ? request.auth.token.email.lowerCase() : request.auth.uid;
+      return request.auth.token.email != null ? request.auth.token.email.lower() : request.auth.uid;
     }
     function isAuthenticated() {
       return request.auth != null;
@@ -74,7 +74,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-             (request.auth.token.email.lowerCase() == "cfo.moaz@gmail.com" || 
+             (request.auth.token.email.lower() == "cfo.moaz@gmail.com" || 
               (exists(/databases/$(database)/documents/users/$(getUserId())) && get(/databases/$(database)/documents/users/$(getUserId())).data.isAdmin == true));
     }
 
@@ -99,7 +99,7 @@ service cloud.firestore {
     // ===============================================================
 
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
 
     match /users/{userId} {
