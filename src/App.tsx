@@ -15384,38 +15384,103 @@ const PayrollView = React.memo(function PayrollView({
       )}
 
       {showGenerate && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="font-black text-2xl">إصدار رواتب أسبوعية</CardTitle>
-              <CardDescription className="font-bold">سيتم احتساب الرواتب لجميع الموظفين النشطين بناءً على الحركات المالية والسلف المسجلة في الفترة المحددة.</CardDescription>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto" dir="rtl">
+          <Card className="dribbble-card w-full max-w-md text-right">
+            <CardHeader className="pb-4">
+              <CardTitle className="font-black text-2xl text-slate-900 block text-right">إصدار رواتب أسبوعية</CardTitle>
+              <CardDescription className="font-bold text-slate-500 block text-right mt-1">سيتم احتساب الرواتب لجميع الموظفين النشطين بناءً على الحركات المالية والسلف المسجلة في الفترة المحددة.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">من تاريخ</label>
-                  <Input type="date" className="rounded-xl h-11 text-right font-bold" value={genData.startDate} onChange={e => setGenData({...genData, startDate: e.target.value})} />
+              {/* Presets Helper */}
+              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 space-y-2 text-right">
+                <span className="text-xs font-bold text-slate-500 block text-right">تعبئة تلقائية سريعة للفترة (السبت - الجمعة):</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 text-xs rounded-xl border-slate-200 bg-white hover:bg-slate-50 hover:text-blue-600 font-bold"
+                    onClick={() => {
+                      const today = new Date();
+                      const day = today.getDay(); // 0 = Sun, 1 = Mon, ... 6 = Sat
+                      const diffToSat = day === 6 ? 0 : -(day + 1);
+                      const sat = new Date(today);
+                      sat.setDate(today.getDate() + diffToSat);
+                      const fri = new Date(sat);
+                      fri.setDate(sat.getDate() + 6);
+                      
+                      const formatDate = (d: Date) => d.toISOString().split('T')[0];
+                      
+                      const startOfYear = new Date(sat.getFullYear(), 0, 1);
+                      const pastDays = (sat.getTime() - startOfYear.getTime()) / 86400000;
+                      const weekNum = Math.ceil((pastDays + startOfYear.getDay() + 1) / 7);
+
+                      setGenData({
+                        startDate: formatDate(sat),
+                        endDate: formatDate(fri),
+                        weekNumber: weekNum,
+                        year: sat.getFullYear()
+                      });
+                    }}
+                  >
+                    الأسبوع الحالي
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 text-xs rounded-xl border-slate-200 bg-white hover:bg-slate-50 hover:text-blue-600 font-bold"
+                    onClick={() => {
+                      const today = new Date();
+                      const day = today.getDay();
+                      const diffToSat = day === 6 ? 0 : -(day + 1);
+                      const sat = new Date(today);
+                      sat.setDate(today.getDate() + diffToSat - 7);
+                      const fri = new Date(sat);
+                      fri.setDate(sat.getDate() + 6);
+                      
+                      const formatDate = (d: Date) => d.toISOString().split('T')[0];
+                      
+                      const startOfYear = new Date(sat.getFullYear(), 0, 1);
+                      const pastDays = (sat.getTime() - startOfYear.getTime()) / 86400000;
+                      const weekNum = Math.ceil((pastDays + startOfYear.getDay() + 1) / 7);
+
+                      setGenData({
+                        startDate: formatDate(sat),
+                        endDate: formatDate(fri),
+                        weekNumber: weekNum,
+                        year: sat.getFullYear()
+                      });
+                    }}
+                  >
+                    الأسبوع الماضي
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">إلى تاريخ</label>
-                  <Input type="date" className="rounded-xl h-11 text-right font-bold" value={genData.endDate} onChange={e => setGenData({...genData, endDate: e.target.value})} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 text-right">
+                  <label className="text-sm font-bold text-slate-700 block text-right">من تاريخ</label>
+                  <Input type="date" className="rounded-xl h-11 text-right font-bold border-slate-200" value={genData.startDate} onChange={e => setGenData({...genData, startDate: e.target.value})} />
+                </div>
+                <div className="space-y-2 text-right">
+                  <label className="text-sm font-bold text-slate-700 block text-right">إلى تاريخ</label>
+                  <Input type="date" className="rounded-xl h-11 text-right font-bold border-slate-200" value={genData.endDate} onChange={e => setGenData({...genData, endDate: e.target.value})} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">رقم الأسبوع</label>
-                  <Input type="number" className="rounded-xl h-11" value={genData.weekNumber} onChange={e => setGenData({...genData, weekNumber: Number(e.target.value)})} />
+                <div className="space-y-2 text-right">
+                  <label className="text-sm font-bold text-slate-700 block text-right">رقم الأسبوع</label>
+                  <Input type="number" className="rounded-xl h-11 text-right font-bold border-slate-200" value={genData.weekNumber} onChange={e => setGenData({...genData, weekNumber: Number(e.target.value)})} />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700">السنة</label>
-                  <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={genData.year} onChange={e => setGenData({...genData, year: Number(e.target.value)})}>
-                    {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+                <div className="space-y-2 text-right">
+                  <label className="text-sm font-bold text-slate-700 block text-right">السنة</label>
+                  <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right outline-none" value={genData.year} onChange={e => setGenData({...genData, year: Number(e.target.value)})}>
+                    {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-6">
-                <Button variant="ghost" className="btn-ghost" onClick={() => setShowGenerate(false)}>إلغاء</Button>
-                <Button onClick={handleGenerate} className="btn-primary px-10 h-12">بدء الإصدار</Button>
+                <Button variant="ghost" className="rounded-xl font-bold border border-slate-200 px-6 h-11" onClick={() => setShowGenerate(false)}>إلغاء</Button>
+                <Button onClick={handleGenerate} className="btn-primary px-10 h-11">بدء الإصدار</Button>
               </div>
             </CardContent>
           </Card>
