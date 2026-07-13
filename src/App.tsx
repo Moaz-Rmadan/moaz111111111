@@ -15336,7 +15336,7 @@ const PayrollView = React.memo(function PayrollView({
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow>
-                <TableHead className="w-12 text-center py-5">
+                <TableHead className="w-12 text-center py-5 print:hidden">
                   <input 
                     type="checkbox"
                     className="w-5 h-5 rounded-lg border-slate-300 text-primary focus:ring-primary transition-all cursor-pointer accent-indigo-600"
@@ -15363,13 +15363,13 @@ const PayrollView = React.memo(function PayrollView({
               <TableHead className="text-right font-black text-slate-900">سلف</TableHead>
               <TableHead className="text-right font-black text-slate-900">صافي الراتب</TableHead>
               <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
-              <TableHead className="text-right font-black text-slate-900">إجراءات</TableHead>
+              <TableHead className="text-right font-black text-slate-900 print:hidden">إجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {processedPayrolls.slice().sort((a, b) => b.year - a.year || b.weekNumber - a.weekNumber).map(p => (
               <TableRow key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                <TableCell className="text-center w-12">
+                <TableCell className="text-center w-12 print:hidden">
                   <input 
                     type="checkbox"
                     className="w-5 h-5 rounded-lg border-slate-300 text-primary focus:ring-primary transition-all cursor-pointer accent-indigo-600"
@@ -15442,7 +15442,7 @@ const PayrollView = React.memo(function PayrollView({
                     {p.status}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="print:hidden">
                   <div className="flex items-center gap-2">
                     <Button onClick={() => handleArchive(p.id)} variant="outline" size="sm" className="rounded-lg font-bold border-primary text-primary hover:bg-primary hover:text-white">
                       أرشفة وقبض
