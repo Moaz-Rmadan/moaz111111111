@@ -298,6 +298,19 @@ export const companyInfo = {
   managerName: 'أ. محمد النجار'
 };
 
+export const safePrint = () => {
+  try {
+    window.focus();
+    window.print();
+    if (window.self !== window.top) {
+      window.dispatchEvent(new CustomEvent('show-print-iframe-warning'));
+    }
+  } catch (err) {
+    console.warn("Print error or blocked:", err);
+    window.dispatchEvent(new CustomEvent('show-print-iframe-warning'));
+  }
+};
+
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
   
@@ -873,6 +886,15 @@ function PayrollMasterReport({
             </div>
           </div>
           
+          <Button 
+            onClick={() => safePrint()}
+            variant="outline" 
+            className="h-12 px-6 rounded-2xl font-black border-slate-200 bg-white hover:bg-slate-50 flex items-center gap-2 print:hidden shadow-xl shadow-slate-200/30 transition-all hover:-translate-y-0.5 active:scale-95"
+          >
+            <Printer size={18} className="text-slate-600" />
+            طباعة كشف الأجور المجمع
+          </Button>
+          
           {reportMode === 'archived' && (
             <div className="flex items-center justify-end gap-2 px-2">
               <span className="text-xs font-bold text-slate-500">تضمين الرواتب المعلقة (المسودة)</span>
@@ -1126,6 +1148,14 @@ function PayrollMasterReport({
               <Download size={18} />
               تصدير XLSX
             </Button>
+            <Button
+              onClick={() => safePrint()}
+              variant="outline"
+              className="h-10 px-5 rounded-xl font-bold border-slate-200 hover:bg-slate-50 flex items-center gap-2 print:hidden"
+            >
+              <Printer size={18} />
+              طباعة الكشف
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
@@ -1288,6 +1318,18 @@ function MainApp({
   const [safeAudits, setSafeAudits] = useState<SafeAudit[]>([]);
   const [hrMenuOpen, setHrMenuOpen] = useState(false);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
+
+  const [showPrintIframeWarning, setShowPrintIframeWarning] = useState(false);
+
+  useEffect(() => {
+    const handlePrintWarning = () => {
+      setShowPrintIframeWarning(true);
+    };
+    window.addEventListener('show-print-iframe-warning', handlePrintWarning);
+    return () => {
+      window.removeEventListener('show-print-iframe-warning', handlePrintWarning);
+    };
+  }, []);
 
   const [showItemAdd, setShowItemAdd] = useState(false);
   const [showSupplierAdd, setShowSupplierAdd] = useState(false);
@@ -3154,6 +3196,59 @@ function MainApp({
         onConfirm={handleDeleteEntity}
         onCancel={() => setShowDeleteConfirmBase(null)}
       />
+
+      {/* Print Iframe Warning Dialog */}
+      {showPrintIframeWarning && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] print:hidden" dir="rtl">
+          <Card className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border-none overflow-hidden p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200 text-right">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center shadow-lg shadow-blue-100">
+                <Printer size={32} />
+              </div>
+              <h3 className="font-black text-2xl text-slate-900">طريقة تشغيل الطباعة</h3>
+              <p className="text-slate-500 text-sm font-bold leading-relaxed max-w-md">
+                يقوم المتصفح بحظر نوافذ الطباعة التلقائية داخل شاشات المعاينة المباشرة (Iframe) لدواعي الأمان. 
+                لتفعيل الطباعة فوراً وبشكل كامل، يرجى فتح التطبيق في نافذة مستقلة ومباشرة.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-3 text-right">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</div>
+                <p className="text-xs font-black text-slate-700 leading-normal">
+                  افتح التطبيق في نافذة مستقلة عبر الزر الأزرق أدناه.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</div>
+                <p className="text-xs font-black text-slate-700 leading-normal">
+                  اذهب إلى كشوف الرواتب أو أي صفحة واضغط على "طباعة" وستعمل فوراً وبكل سهولة.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button 
+                onClick={() => {
+                  window.open(window.location.href, '_blank');
+                  setShowPrintIframeWarning(false);
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-12 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
+              >
+                <ArrowUpRight size={18} />
+                فتح في نافذة مستقلة
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setShowPrintIframeWarning(false)}
+                className="flex-1 rounded-2xl h-12 font-bold border-slate-200 text-slate-500 hover:bg-slate-50"
+              >
+                إغلاق التنبيه
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
@@ -3552,7 +3647,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
           <p className="text-slate-500 font-bold text-lg max-w-lg mt-2">عرض دفتر أستاذ المخزون لكل صنف للرقابة وتتبع الحركات</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => window.print()} className="h-14 px-8 rounded-2xl font-black text-slate-700 bg-white hover:bg-slate-50 shadow-xl shadow-slate-200/50 border border-slate-100 transition-all hover:-translate-y-1">
+          <Button onClick={() => safePrint()} className="h-14 px-8 rounded-2xl font-black text-slate-700 bg-white hover:bg-slate-50 shadow-xl shadow-slate-200/50 border border-slate-100 transition-all hover:-translate-y-1">
             <Printer size={20} className="ml-2" />
             طباعة كارت الصنف
           </Button>
@@ -4735,7 +4830,7 @@ function Inventory({
                 إضافة مركز تكلفة
               </DropdownMenuItem>
               <div className="h-px bg-slate-50 my-2" />
-              <DropdownMenuItem onClick={() => window.print()} className="rounded-xl p-4 font-black gap-3 text-slate-700 md:flex hidden hover:bg-slate-50">
+              <DropdownMenuItem onClick={() => safePrint()} className="rounded-xl p-4 font-black gap-3 text-slate-700 md:flex hidden hover:bg-slate-50">
                 <Printer size={18} className="text-slate-400" />
                 طباعة جرد المخزن
               </DropdownMenuItem>
@@ -5300,7 +5395,7 @@ function Inventory({
                     </div>
                  </div>
                  <div className="flex gap-4 relative z-10">
-                   <Button variant="outline" className="h-16 px-10 rounded-3xl border-slate-200 font-black gap-3 text-slate-900 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all" onClick={() => window.print()}>
+                   <Button variant="outline" className="h-16 px-10 rounded-3xl border-slate-200 font-black gap-3 text-slate-900 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all" onClick={() => safePrint()}>
                       <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
                          <Printer size={18} />
                       </div>
@@ -6364,7 +6459,7 @@ const ProductionLine = React.memo(function ProductionLine({
                                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setViewingJobId(job.id); }} className="h-7 w-7 rounded-lg text-slate-300 hover:text-primary hover:bg-blue-50">
                                           <FileText size={14} />
                                         </Button>
-                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setPrintingJob(job); setTimeout(() => window.print(), 100); }} className="h-7 w-7 rounded-lg text-slate-300 hover:text-primary hover:bg-blue-50">
+                                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setPrintingJob(job); setTimeout(() => safePrint(), 100); }} className="h-7 w-7 rounded-lg text-slate-300 hover:text-primary hover:bg-blue-50">
                                           <Printer size={14} />
                                         </Button>
                                         <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingJob(job); }} className="h-7 w-7 rounded-lg text-slate-300 hover:text-primary hover:bg-blue-50">
@@ -7320,7 +7415,7 @@ function LoadingManifests({
                   <CardDescription className="font-bold text-primary text-lg">{companyInfo.name}</CardDescription>
                 </div>
                 <div className="flex gap-3">
-                  <Button onClick={() => window.print()} className="btn-primary rounded-xl font-black px-6">
+                  <Button onClick={() => safePrint()} className="btn-primary rounded-xl font-black px-6">
                     <Printer size={18} className="ml-2" />
                     طباعة
                   </Button>
@@ -7734,7 +7829,7 @@ function DeliveryReceipts({
                   <CardDescription className="font-bold text-primary text-lg">{companyInfo.name}</CardDescription>
                 </div>
                 <div className="flex gap-3">
-                  <Button onClick={() => window.print()} className="btn-primary rounded-xl font-black px-6">
+                  <Button onClick={() => safePrint()} className="btn-primary rounded-xl font-black px-6">
                     <Printer size={18} className="ml-2" />
                     طباعة
                   </Button>
@@ -9185,7 +9280,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
             <Download size={18} className="ml-2" />
             تصدير إكسيل
           </Button>
-          <Button onClick={() => window.print()} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl border-slate-200 hover:bg-slate-50 font-bold">
+          <Button onClick={() => safePrint()} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl border-slate-200 hover:bg-slate-50 font-bold">
             <Printer size={18} className="ml-2" />
             طباعة
           </Button>
@@ -9566,7 +9661,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
             <Download size={20} className="ml-2" />
             تصدير البيانات
           </Button>
-          <Button onClick={() => window.print()} variant="outline" className="h-14 px-6 rounded-2xl border-slate-200 hover:bg-slate-50 font-black text-slate-600 bg-white shadow-sm transition-all hover:-translate-y-1">
+          <Button onClick={() => safePrint()} variant="outline" className="h-14 px-6 rounded-2xl border-slate-200 hover:bg-slate-50 font-black text-slate-600 bg-white shadow-sm transition-all hover:-translate-y-1">
             <Printer size={20} className="ml-2" />
             طباعة الكشف
           </Button>
@@ -10056,7 +10151,7 @@ function Suppliers({
                   </div>
                 </div>
                 <div className="flex items-center gap-3 print:hidden">
-                  <Button variant="outline" onClick={() => window.print()} className="h-12 px-6 rounded-2xl border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
+                  <Button variant="outline" onClick={() => safePrint()} className="h-12 px-6 rounded-2xl border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
                     <Printer size={18} className="ml-2" />
                     طباعة الكشف
                   </Button>
@@ -11318,7 +11413,7 @@ function OldReportsView({
             <Download size={18} className="ml-2" />
             تصدير XLSX
           </Button>
-          <Button onClick={() => window.print()} className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1">
+          <Button onClick={() => safePrint()} className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1">
             <Printer size={20} className="ml-2" />
             طباعة PDF
           </Button>
@@ -14925,7 +15020,7 @@ const PayrollView = React.memo(function PayrollView({
   } catch (err) { console.error(err); } };
 
   const handlePrint = () => {
-    window.print();
+    safePrint();
   };
 
   const handleWhatsApp = (p: Payroll) => {
@@ -15121,8 +15216,8 @@ const PayrollView = React.memo(function PayrollView({
   };
 
   return (
-    <div className="space-y-8 print:hidden">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
         <div>
           <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">كشوف الرواتب</h2>
           <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">إصدار ومراجعة كشوف الرواتب الأسبوعية (باليومية)</p>
@@ -15179,7 +15274,7 @@ const PayrollView = React.memo(function PayrollView({
       </div>
 
       {/* Sub tabs inside PayrollView */}
-      <div className="flex border-b border-slate-200 gap-4 mb-2">
+      <div className="flex border-b border-slate-200 gap-4 mb-2 print:hidden">
         <button
           onClick={() => setPayrollSubTab('weekly')}
           className={`pb-3 px-6 font-bold text-base transition-all relative ${payrollSubTab === 'weekly' ? 'text-blue-600 border-b-2 border-blue-600 font-black' : 'text-slate-400 hover:text-slate-600'}`}
@@ -15196,7 +15291,7 @@ const PayrollView = React.memo(function PayrollView({
 
       {payrollSubTab === 'weekly' ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
             <DollarSign className="text-blue-600" size={24} />
@@ -15376,7 +15471,7 @@ const PayrollView = React.memo(function PayrollView({
   ) : (
     <>
       {/* Daily Payroll View */}
-      <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 space-y-6">
+      <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 space-y-6 print:hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h3 className="font-black text-xl text-slate-800">تحديد تاريخ أو فترة الكشف اليومي</h3>
@@ -15442,7 +15537,7 @@ const PayrollView = React.memo(function PayrollView({
             
             <Button 
               onClick={() => {
-                window.print();
+                safePrint();
               }}
               variant="outline" 
               className="h-11 px-5 rounded-xl font-bold border-slate-200 print:hidden"
@@ -15453,7 +15548,7 @@ const PayrollView = React.memo(function PayrollView({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 print:hidden">
           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي أجور {dailyMode === 'range' ? 'الفترة' : 'اليوم'}</p>
             <p className="text-2xl font-black font-mono tracking-tight text-slate-900 mt-1">{filteredDailyTotal.toLocaleString('en-US')} ج.م</p>
@@ -15482,6 +15577,17 @@ const PayrollView = React.memo(function PayrollView({
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Print-only elegant header */}
+      <div className="hidden print:block text-center mb-6 pb-6 border-b border-slate-200">
+        <h2 className="text-2xl font-black text-slate-900">
+          {dailyMode === 'range' 
+            ? `كشف مستحقات العاملين للفترة من ${dailyStartDate} إلى ${dailyEndDate}` 
+            : `كشف مستحقات العاملين ليوم ${selectedDailyDate}`
+          }
+        </h2>
+        <p className="text-xs font-bold text-slate-500 mt-1">القسم: {selectedDept === 'الكل' ? 'كل الأقسام' : selectedDept} | {companyInfo?.name || 'مصنع النجار للأثاث'}</p>
       </div>
 
       <Card className="dribbble-card border-none overflow-hidden print:shadow-none print:border-none">
@@ -15592,14 +15698,13 @@ const PayrollView = React.memo(function PayrollView({
           {/* Custom print CSS styles to guarantee zero layout leaks and A4 size */}
           <style dangerouslySetInnerHTML={{ __html: `
             @media print {
-              /* Hide everything in the body except our print container */
-              body > div:not(.vouchers-print-only-container),
-              #root > *:not(.vouchers-print-only-container),
-              #root > div:not(.vouchers-print-only-container),
-              .no-print,
-              aside,
-              main > div:not(.vouchers-print-only-container) {
-                display: none !important;
+              /* Hide all elements visually except our vouchers print container and its contents */
+              body * {
+                visibility: hidden !important;
+              }
+              .vouchers-print-only-container,
+              .vouchers-print-only-container * {
+                visibility: visible !important;
               }
               
               .vouchers-print-only-container {
@@ -16345,7 +16450,7 @@ const PayrollView = React.memo(function PayrollView({
                   <MessageSquare size={16} />
                   إرسال واتساب
                 </Button>
-                <Button onClick={() => window.print()} className="bg-primary hover:bg-primary/95 text-white rounded-xl font-black px-6 flex items-center gap-2">
+                <Button onClick={() => safePrint()} className="bg-primary hover:bg-primary/95 text-white rounded-xl font-black px-6 flex items-center gap-2">
                   <Printer size={16} />
                   طباعة القسيمة
                 </Button>
