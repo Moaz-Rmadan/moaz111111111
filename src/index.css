@@ -246,8 +246,8 @@
 
 @media print {
   @page {
-    size: A4 landscape;
-    margin: 6mm 5mm 6mm 5mm;
+    size: auto;
+    margin: 5mm;
   }
   
   .print-only {
@@ -293,8 +293,6 @@
   #root, 
   main, 
   .allow-print,
-  .flex,
-  .grid,
   .space-y-8 {
     display: block !important;
     width: 100% !important;
@@ -377,11 +375,11 @@
     height: auto !important;
   }
 
-  /* Remove card stylings (shadows, rounded borders, animations) during print */
-  .dribbble-card,
-  .premium-card,
-  .card,
-  [class*="rounded-"] {
+  /* Remove card stylings (shadows, rounded borders, animations) during print, excluding vouchers print area */
+  .dribbble-card:not(.vouchers-print-only-container *),
+  .premium-card:not(.vouchers-print-only-container *),
+  .card:not(.vouchers-print-only-container *),
+  [class*="rounded-"]:not(.vouchers-print-only-container *) {
     border: none !important;
     box-shadow: none !important;
     background: transparent !important;
@@ -395,6 +393,98 @@
   /* Render simple, crisp black/dark colors instead of colorful badges in table */
   .text-purple-600, .text-green-600, .text-blue-600, .text-red-600, .text-orange-600, .text-amber-500 {
     color: #0f172a !important;
-    font-weight: bold !important;
+    font-weight: bold;
+  }
+
+  /* Exquisite high-fidelity voucher styles exclusively for print */
+  .vouchers-print-only-container {
+    display: block !important;
+    background-color: white !important;
+  }
+
+  .voucher-print-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    padding: 8mm !important;
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-rows: repeat(5, 1fr) !important;
+    gap: 10px !important;
+    background-color: white !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    overflow: hidden !important;
+  }
+
+  .voucher-print-card {
+    border: 1.5px solid #0f172a !important;
+    border-radius: 12px !important;
+    padding: 10px !important;
+    background-color: white !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  .voucher-print-card-header {
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .voucher-print-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin: auto 0 !important;
+  }
+
+  .voucher-print-section-left {
+    border-left: 1px dashed #cbd5e1 !important;
+    padding-left: 8px !important;
+  }
+
+  .voucher-print-section-right {
+    padding-right: 8px !important;
+  }
+
+  .voucher-print-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding: 3px 0 !important;
+    font-size: 8px !important;
+  }
+
+  .voucher-print-row:last-child {
+    border-bottom: none !important;
+  }
+
+  .voucher-print-net {
+    background-color: #f1f5f9 !important;
+    border: 1px solid #0f172a !important;
+    border-radius: 6px !important;
+    padding: 4px 8px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 4px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .voucher-print-signatures {
+    border-top: 1px solid #e2e8f0 !important;
+    padding-top: 6px !important;
+    margin-top: 6px !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4px !important;
   }
 }
