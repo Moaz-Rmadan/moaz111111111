@@ -123,7 +123,7 @@ async function startServer() {
           startDate: genData.startDate,
           endDate: genData.endDate,
           dailyRate: emp.payMethod === 'daily' ? emp.dailyRate : (emp.pieceRate || 0),
-          daysWorked: emp.payMethod === 'daily' ? daysWorked : 0,
+          daysWorked: daysWorked,
           baseSalary,
           totalBonuses,
           totalOvertime,

@@ -411,7 +411,7 @@ const calculateLivePayroll = (
   const emp = employees.find(e => e.id === p.employeeId);
   if (!emp) return p;
 
-  const empAttendance = attendance.filter(a => a.employeeId === emp.id && a.date >= p.startDate && a.date <= p.endDate);
+  const empAttendance = attendance.filter(a => a && a.employeeId === emp.id && (a.status === 'حضور' || a.status === 'تأخير') && a.date >= p.startDate && a.date <= p.endDate);
   const empTransactions = transactions.filter(t => t.employeeId === emp.id && t.date >= p.startDate && t.date <= p.endDate);
   const empProduction = productionRecords.filter(r => r.employeeId === emp.id && r.date >= p.startDate && r.date <= p.endDate);
 
@@ -500,6 +500,7 @@ function PayrollMasterReport({
   loans: Loan[], 
   productionRecords: ProductionRecord[] 
 }) {
+  const [reportMode, setReportMode] = useState<'live' | 'archived'>('live');
   const [includeDrafts, setIncludeDrafts] = useState(false);
   const [reportSearch, setReportSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
@@ -509,14 +510,41 @@ function PayrollMasterReport({
   });
 
   const filteredPayrolls = useMemo(() => {
-    return payrolls.filter(p => {
-      // 1. Status Filter
-      if (!includeDrafts && p.status !== 'مدفوع') return false;
-      
-      // 2. Date Range Filter: check if payroll falls inside or overlaps the selected date range
-      return p.startDate >= dateRange.start && p.endDate <= dateRange.end;
-    }).map(p => calculateLivePayroll(p, employees, attendance, hrTransactions, loans, productionRecords));
-  }, [payrolls, includeDrafts, dateRange, employees, attendance, hrTransactions, loans, productionRecords]);
+    if (reportMode === 'live') {
+      // Dynamic live payrolls for all employees for the selected date range
+      return employees.map(emp => {
+        const virtualPayroll: Payroll = {
+          id: `live-${emp.id}`,
+          employeeId: emp.id,
+          startDate: dateRange.start,
+          endDate: dateRange.end,
+          status: 'مسودة', // This forces calculateLivePayroll to calculate it dynamically
+          payMethod: emp.payMethod || 'daily',
+          dailyRate: emp.dailyRate || 0,
+          weekNumber: 0,
+          year: 0,
+          baseSalary: 0,
+          daysWorked: 0,
+          totalBonuses: 0,
+          totalOvertime: 0,
+          totalProduction: 0,
+          totalDeductions: 0,
+          totalExpenses: 0,
+          totalLoans: 0,
+          netSalary: 0,
+        };
+        return calculateLivePayroll(virtualPayroll, employees, attendance, hrTransactions, loans, productionRecords);
+      });
+    } else {
+      return payrolls.filter(p => {
+        // 1. Status Filter
+        if (!includeDrafts && p.status !== 'مدفوع') return false;
+        
+        // 2. Date Range Filter: check if payroll falls inside or overlaps the selected date range
+        return p.startDate >= dateRange.start && p.endDate <= dateRange.end;
+      }).map(p => calculateLivePayroll(p, employees, attendance, hrTransactions, loans, productionRecords));
+    }
+  }, [reportMode, payrolls, includeDrafts, dateRange, employees, attendance, hrTransactions, loans, productionRecords]);
 
   const departments = useMemo(() => {
     return ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
@@ -531,15 +559,24 @@ function PayrollMasterReport({
   }, [filteredPayrolls, selectedDept, employees]);
 
   const paidEmployeeCount = useMemo(() => {
+    if (reportMode === 'live') {
+      // Count active employees who have some earnings, days worked, or production
+      return departmentFilteredPayrolls.filter(p => p.daysWorked > 0 || p.totalProduction > 0 || p.netSalary > 0).length;
+    }
     return new Set(departmentFilteredPayrolls.map(py => py.employeeId)).size;
-  }, [departmentFilteredPayrolls]);
+  }, [departmentFilteredPayrolls, reportMode]);
 
   const sortedPayrolls = useMemo(() => {
     return [...departmentFilteredPayrolls].sort((a, b) => {
+      if (reportMode === 'live') {
+        const empA = employees.find(e => e.id === a.employeeId);
+        const empB = employees.find(e => e.id === b.employeeId);
+        return (empA?.name || '').localeCompare(empB?.name || '');
+      }
       if (a.year !== b.year) return a.year - b.year;
       return a.weekNumber - b.weekNumber;
     });
-  }, [departmentFilteredPayrolls]);
+  }, [departmentFilteredPayrolls, reportMode, employees]);
   
   const totalWages = useMemo(() => {
     return departmentFilteredPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
@@ -587,29 +624,177 @@ function PayrollMasterReport({
     }, []);
   }, [employees, filteredPayrolls]);
 
-  // Trend Data (Weekly)
+  // Trend Data (Daily, Weekly or Monthly depending on Date Range)
   const trendData = useMemo(() => {
-    return sortedPayrolls.reduce((acc: any[], p) => {
-      const weekLabel = `أسبوع ${p.weekNumber}/${p.year}`;
-      const existing = acc.find(a => a.name === weekLabel);
-      if (existing) {
-        existing.wages += p.netSalary;
+    if (reportMode === 'archived') {
+      return sortedPayrolls.reduce((acc: any[], p) => {
+        const weekLabel = `أسبوع ${p.weekNumber}/${p.year}`;
+        const existing = acc.find(a => a.name === weekLabel);
+        if (existing) {
+          existing.wages += p.netSalary;
+        } else {
+          acc.push({ name: weekLabel, wages: p.netSalary });
+        }
+        return acc;
+      }, []);
+    } else {
+      // Live mode groupings
+      const start = new Date(dateRange.start);
+      const end = new Date(dateRange.end);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+      if (diffDays <= 14) {
+        // Group by Day
+        const days: string[] = [];
+        let current = new Date(dateRange.start);
+        while (current <= end) {
+          days.push(current.toISOString().split('T')[0]);
+          current.setDate(current.getDate() + 1);
+        }
+        return days.map(day => {
+          let dailyWages = 0;
+          departmentFilteredPayrolls.forEach(p => {
+            const emp = employees.find(e => e.id === p.employeeId);
+            if (!emp) return;
+            const virtualPayroll: Payroll = {
+              id: `temp-${emp.id}-${day}`,
+              employeeId: emp.id,
+              startDate: day,
+              endDate: day,
+              status: 'مسودة',
+              payMethod: emp.payMethod || 'daily',
+              dailyRate: emp.dailyRate || 0,
+              weekNumber: 0,
+              year: 0,
+              baseSalary: 0,
+              daysWorked: 0,
+              totalBonuses: 0,
+              totalOvertime: 0,
+              totalProduction: 0,
+              totalDeductions: 0,
+              totalExpenses: 0,
+              totalLoans: 0,
+              netSalary: 0,
+            };
+            const calc = calculateLivePayroll(virtualPayroll, employees, attendance, hrTransactions, loans, productionRecords);
+            dailyWages += calc.netSalary;
+          });
+          return { name: day, wages: dailyWages };
+        });
+      } else if (diffDays <= 60) {
+        // Group by Week
+        const weeks: { start: string; end: string; label: string }[] = [];
+        let current = new Date(dateRange.start);
+        let weekIdx = 1;
+        while (current <= end) {
+          const wStart = current.toISOString().split('T')[0];
+          const nextWeek = new Date(current);
+          nextWeek.setDate(current.getDate() + 6);
+          const wEnd = nextWeek > end ? end.toISOString().split('T')[0] : nextWeek.toISOString().split('T')[0];
+          weeks.push({
+            start: wStart,
+            end: wEnd,
+            label: `أسبوع ${weekIdx} (${wStart.substring(5)})`
+          });
+          current.setDate(current.getDate() + 7);
+          weekIdx++;
+        }
+        return weeks.map(week => {
+          let weeklyWages = 0;
+          departmentFilteredPayrolls.forEach(p => {
+            const emp = employees.find(e => e.id === p.employeeId);
+            if (!emp) return;
+            const virtualPayroll: Payroll = {
+              id: `temp-${emp.id}-${week.start}`,
+              employeeId: emp.id,
+              startDate: week.start,
+              endDate: week.end,
+              status: 'مسودة',
+              payMethod: emp.payMethod || 'daily',
+              dailyRate: emp.dailyRate || 0,
+              weekNumber: 0,
+              year: 0,
+              baseSalary: 0,
+              daysWorked: 0,
+              totalBonuses: 0,
+              totalOvertime: 0,
+              totalProduction: 0,
+              totalDeductions: 0,
+              totalExpenses: 0,
+              totalLoans: 0,
+              netSalary: 0,
+            };
+            const calc = calculateLivePayroll(virtualPayroll, employees, attendance, hrTransactions, loans, productionRecords);
+            weeklyWages += calc.netSalary;
+          });
+          return { name: week.label, wages: weeklyWages };
+        });
       } else {
-        acc.push({ name: weekLabel, wages: p.netSalary });
+        // Group by Month
+        const months: { year: number; month: number; label: string }[] = [];
+        let current = new Date(dateRange.start);
+        while (current <= end) {
+          const year = current.getFullYear();
+          const month = current.getMonth();
+          const label = `${year}-${String(month + 1).padStart(2, '0')}`;
+          if (!months.some(m => m.label === label)) {
+            months.push({ year, month, label });
+          }
+          current.setMonth(current.getMonth() + 1);
+        }
+        return months.map(m => {
+          let monthlyWages = 0;
+          const mStart = `${m.year}-${String(m.month + 1).padStart(2, '0')}-01`;
+          const mEnd = `${m.year}-${String(m.month + 1).padStart(2, '0')}-31`;
+          departmentFilteredPayrolls.forEach(p => {
+            const emp = employees.find(e => e.id === p.employeeId);
+            if (!emp) return;
+            const virtualPayroll: Payroll = {
+              id: `temp-${emp.id}-${m.label}`,
+              employeeId: emp.id,
+              startDate: mStart,
+              endDate: mEnd,
+              status: 'مسودة',
+              payMethod: emp.payMethod || 'daily',
+              dailyRate: emp.dailyRate || 0,
+              weekNumber: 0,
+              year: 0,
+              baseSalary: 0,
+              daysWorked: 0,
+              totalBonuses: 0,
+              totalOvertime: 0,
+              totalProduction: 0,
+              totalDeductions: 0,
+              totalExpenses: 0,
+              totalLoans: 0,
+              netSalary: 0,
+            };
+            const calc = calculateLivePayroll(virtualPayroll, employees, attendance, hrTransactions, loans, productionRecords);
+            monthlyWages += calc.netSalary;
+          });
+          return { name: m.label, wages: monthlyWages };
+        });
       }
-      return acc;
-    }, []);
-  }, [sortedPayrolls]);
+    }
+  }, [reportMode, departmentFilteredPayrolls, dateRange, employees, attendance, hrTransactions, loans, productionRecords, sortedPayrolls]);
 
   const COLORS = ['#2563eb', '#3b82f6', '#60a5fa', '#10b981', '#34d399', '#8b5cf6', '#a78bfa'];
 
   const tableData = useMemo(() => {
     return departmentFilteredPayrolls.filter(p => {
       const emp = employees.find(e => e.id === p.employeeId);
-      return emp?.name.toLowerCase().includes(reportSearch.toLowerCase()) || 
-             emp?.department?.toLowerCase().includes(reportSearch.toLowerCase());
+      const matchesSearch = emp?.name.toLowerCase().includes(reportSearch.toLowerCase()) || 
+                            emp?.department?.toLowerCase().includes(reportSearch.toLowerCase());
+      if (!matchesSearch) return false;
+      
+      if (reportMode === 'live') {
+        // Only show active employees with actual work or transactions
+        return p.daysWorked > 0 || p.totalProduction > 0 || p.netSalary > 0;
+      }
+      return true;
     });
-  }, [departmentFilteredPayrolls, employees, reportSearch]);
+  }, [departmentFilteredPayrolls, employees, reportSearch, reportMode]);
 
   // Top 5 Earners
   const topEarners = useMemo(() => {
@@ -635,12 +820,37 @@ function PayrollMasterReport({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 print:hidden">
         <div>
           <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">تقرير الأجور الشامل</h2>
-          <p className="text-slate-500 mt-2 font-bold text-lg">تحليل استراتيجي متكامل لكافة النفقات البشرية</p>
+          <p className="text-slate-500 mt-2 font-bold text-lg">تحليل استراتيجي وحساب فوري لنفقات الموظفين والرواتب</p>
+          
+          {/* Mode Selector */}
+          <div className="flex items-center gap-2 mt-4">
+            <button
+              onClick={() => setReportMode('live')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                reportMode === 'live'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              الحساب التلقائي الحي للبيانات ⚡
+            </button>
+            <button
+              onClick={() => setReportMode('archived')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+                reportMode === 'archived'
+                  ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/10'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              الكشوفات المؤرشفة والمعتمدة 📁
+            </button>
+          </div>
         </div>
-        <div className="flex flex-col gap-3">
+        
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
           <div className="flex bg-white p-2 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 items-center gap-3">
             <div className="flex items-center gap-2 px-3">
               <span className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">من</span>
@@ -662,15 +872,18 @@ function PayrollMasterReport({
               />
             </div>
           </div>
-          <div className="flex items-center justify-end gap-2 px-2">
-            <span className="text-xs font-bold text-slate-500">تضمين الرواتب المعلقة (المسودة)</span>
-            <input 
-              type="checkbox" 
-              checked={includeDrafts} 
-              onChange={e => setIncludeDrafts(e.target.checked)}
-              className="w-5 h-5 accent-primary rounded-lg cursor-pointer transition-all hover:scale-110"
-            />
-          </div>
+          
+          {reportMode === 'archived' && (
+            <div className="flex items-center justify-end gap-2 px-2">
+              <span className="text-xs font-bold text-slate-500">تضمين الرواتب المعلقة (المسودة)</span>
+              <input 
+                type="checkbox" 
+                checked={includeDrafts} 
+                onChange={e => setIncludeDrafts(e.target.checked)}
+                className="w-5 h-5 accent-primary rounded-lg cursor-pointer transition-all hover:scale-110"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -3724,10 +3937,10 @@ function Dashboard({
   }, 0);
 
   // Workforce Attendance Ratio Today (or the last available date in database)
-  const lastAttendanceDate = useMemo(() => {
+  const lastAttendanceDate = React.useMemo(() => {
     if (attendance && attendance.length > 0) {
-      const sorted = [...attendance].sort((a, b) => b.date.localeCompare(a.date));
-      return sorted[0].date;
+      const sorted = [...attendance].filter(a => a && a.date).sort((a, b) => b.date.localeCompare(a.date));
+      return sorted[0]?.date || new Date().toISOString().split('T')[0];
     }
     return new Date().toISOString().split('T')[0];
   }, [attendance]);
@@ -14347,18 +14560,30 @@ const PayrollView = React.memo(function PayrollView({
   const [payrollSubTab, setPayrollSubTab] = useState<'weekly' | 'daily'>('weekly');
   const [selectedDailyDate, setSelectedDailyDate] = useState<string>(() => {
     if (attendance && attendance.length > 0) {
-      const sorted = [...attendance].sort((a, b) => b.date.localeCompare(a.date));
-      return sorted[0].date;
+      const sorted = [...attendance].filter(a => a && a.date).sort((a, b) => b.date.localeCompare(a.date));
+      return sorted[0]?.date || new Date().toISOString().split('T')[0];
     }
     return new Date().toISOString().split('T')[0];
   });
 
+  const [dailyMode, setDailyMode] = useState<'single' | 'range'>('single');
+  const [dailyStartDate, setDailyStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 2);
+    return d.toISOString().split('T')[0];
+  });
+  const [dailyEndDate, setDailyEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+
   const dailyPayrollData = React.useMemo(() => {
     return employees.map(emp => {
-      const att = attendance.find(a => a.employeeId === emp.id && a.date === selectedDailyDate);
-      const dayProd = productionRecords.filter(r => r.employeeId === emp.id && r.date === selectedDailyDate);
+      const isRange = dailyMode === 'range';
+      const startD = isRange ? dailyStartDate : selectedDailyDate;
+      const endD = isRange ? dailyEndDate : selectedDailyDate;
+
+      const empAtts = attendance.filter(a => a.employeeId === emp.id && a.date >= startD && a.date <= endD);
+      const dayProd = productionRecords.filter(r => r.employeeId === emp.id && r.date >= startD && r.date <= endD);
       const totalProduction = dayProd.reduce((sum, r) => sum + (r.total || 0), 0);
-      const dayTxs = transactions.filter(t => t.employeeId === emp.id && t.date === selectedDailyDate);
+      const dayTxs = transactions.filter(t => t.employeeId === emp.id && t.date >= startD && t.date <= endD);
 
       const totalOvertime = dayTxs.filter(t => t.type === 'إضافي' || t.type === 'أوفرتايم').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
       const totalBonuses = dayTxs.filter(t => t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -14368,50 +14593,92 @@ const PayrollView = React.memo(function PayrollView({
 
       let daysWorked = 0;
       let timeDeduction = 0;
-      let attendanceStatus = 'غياب';
+      let attendanceStatus = isRange ? 'متعدد' : 'غياب';
       let checkInOutStr = '--';
 
-      if (att) {
-        attendanceStatus = att.status || 'حضور';
-        if (att.checkIn && att.checkOut) {
-          checkInOutStr = `${att.checkIn} - ${att.checkOut}`;
-        }
+      if (isRange) {
+        const presentAtts = empAtts.filter(a => a.status === 'حضور' || a.status === 'تأخير');
+        const absentAtts = empAtts.filter(a => a.status === 'غياب');
+        const leaveAtts = empAtts.filter(a => a.status === 'إجازة');
+        attendanceStatus = `حضور: ${presentAtts.length}، غياب: ${absentAtts.length}، إجازة: ${leaveAtts.length}`;
+        checkInOutStr = `مسجل لـ ${empAtts.length} أيام`;
 
-        if (attendanceStatus === 'حضور' || attendanceStatus === 'تأخير') {
-          if (!att.checkIn || !att.checkOut) {
-            daysWorked = 1;
-          } else {
-            const [inH, inM] = att.checkIn.split(':').map(Number);
-            const [outH, outM] = att.checkOut.split(':').map(Number);
-            const checkInMins = inH * 60 + inM;
-            const checkOutMins = outH * 60 + outM;
-
-            const shiftStartStr = emp.shiftStart || '08:00';
-            const shiftEndStr = emp.shiftEnd || '18:00';
-            const [sH, sM] = shiftStartStr.split(':').map(Number);
-            const [eH, eM] = shiftEndStr.split(':').map(Number);
-            const officialStart = sH * 60 + sM;
-            const officialEnd = eH * 60 + eM;
-            const shiftDurationMins = officialEnd - officialStart;
-            const gracePeriod = 15;
-
-            if (checkInMins <= officialStart + gracePeriod && att.checkOut === '12:00' && officialStart <= 12 * 60) {
-              daysWorked = 0.5;
+        empAtts.forEach(att => {
+          const status = att.status || 'حضور';
+          if (status === 'حضور' || status === 'تأخير') {
+            if (!att.checkIn || !att.checkOut) {
+              daysWorked += 1;
             } else {
-              let lateMins = 0;
-              if (checkInMins > officialStart + gracePeriod) lateMins = checkInMins - officialStart;
-              const earlyMins = Math.max(0, officialEnd - checkOutMins);
-              daysWorked = 1;
-              timeDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+              const [inH, inM] = att.checkIn.split(':').map(Number);
+              const [outH, outM] = att.checkOut.split(':').map(Number);
+              const checkInMins = inH * 60 + inM;
+              const checkOutMins = outH * 60 + outM;
+
+              const shiftStartStr = emp.shiftStart || '08:00';
+              const shiftEndStr = emp.shiftEnd || '18:00';
+              const [sH, sM] = shiftStartStr.split(':').map(Number);
+              const [eH, eM] = shiftEndStr.split(':').map(Number);
+              const officialStart = sH * 60 + sM;
+              const officialEnd = eH * 60 + eM;
+              const shiftDurationMins = officialEnd - officialStart;
+              const gracePeriod = 15;
+
+              if (checkInMins <= officialStart + gracePeriod && att.checkOut === '12:00' && officialStart <= 12 * 60) {
+                daysWorked += 0.5;
+              } else {
+                let lateMins = 0;
+                if (checkInMins > officialStart + gracePeriod) lateMins = checkInMins - officialStart;
+                const earlyMins = Math.max(0, officialEnd - checkOutMins);
+                daysWorked += 1;
+                timeDeduction += (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+              }
             }
           }
-        } else if (attendanceStatus === 'إجازة') {
-          daysWorked = 0;
-        } else {
-          daysWorked = 0;
-        }
+        });
       } else {
-        attendanceStatus = 'لم يسجل';
+        const att = empAtts[0];
+        if (att) {
+          attendanceStatus = att.status || 'حضور';
+          if (att.checkIn && att.checkOut) {
+            checkInOutStr = `${att.checkIn} - ${att.checkOut}`;
+          }
+
+          if (attendanceStatus === 'حضور' || attendanceStatus === 'تأخير') {
+            if (!att.checkIn || !att.checkOut) {
+              daysWorked = 1;
+            } else {
+              const [inH, inM] = att.checkIn.split(':').map(Number);
+              const [outH, outM] = att.checkOut.split(':').map(Number);
+              const checkInMins = inH * 60 + inM;
+              const checkOutMins = outH * 60 + outM;
+
+              const shiftStartStr = emp.shiftStart || '08:00';
+              const shiftEndStr = emp.shiftEnd || '18:00';
+              const [sH, sM] = shiftStartStr.split(':').map(Number);
+              const [eH, eM] = shiftEndStr.split(':').map(Number);
+              const officialStart = sH * 60 + sM;
+              const officialEnd = eH * 60 + eM;
+              const shiftDurationMins = officialEnd - officialStart;
+              const gracePeriod = 15;
+
+              if (checkInMins <= officialStart + gracePeriod && att.checkOut === '12:00' && officialStart <= 12 * 60) {
+                daysWorked = 0.5;
+              } else {
+                let lateMins = 0;
+                if (checkInMins > officialStart + gracePeriod) lateMins = checkInMins - officialStart;
+                const earlyMins = Math.max(0, officialEnd - checkOutMins);
+                daysWorked = 1;
+                timeDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+              }
+            }
+          } else if (attendanceStatus === 'إجازة') {
+            daysWorked = 0;
+          } else {
+            daysWorked = 0;
+          }
+        } else {
+          attendanceStatus = 'لم يسجل';
+        }
       }
 
       let baseSalary = 0;
@@ -14443,7 +14710,7 @@ const PayrollView = React.memo(function PayrollView({
         netSalary
       };
     });
-  }, [employees, attendance, transactions, productionRecords, selectedDailyDate]);
+  }, [employees, attendance, transactions, productionRecords, selectedDailyDate, dailyMode, dailyStartDate, dailyEndDate]);
 
   const filteredDailyPayroll = React.useMemo(() => {
     return dailyPayrollData.filter(d => {
@@ -15110,51 +15377,106 @@ const PayrollView = React.memo(function PayrollView({
     <>
       {/* Daily Payroll View */}
       <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-            <h3 className="font-black text-lg text-slate-800">تحديد تاريخ الكشف اليومي</h3>
-            <p className="text-xs text-slate-400 mt-0.5">اختر اليوم لعرض مستحقات العمال فيه بالتفصيل</p>
+            <h3 className="font-black text-xl text-slate-800">تحديد تاريخ أو فترة الكشف اليومي</h3>
+            <p className="text-xs text-slate-400 mt-1">اختر اليوم أو حدد فترة مخصصة لعرض مستحقات العمال بالتفصيل</p>
+            
+            <div className="flex items-center gap-2 mt-4 print:hidden">
+              <button
+                onClick={() => setDailyMode('single')}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                  dailyMode === 'single'
+                    ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                عرض يوم واحد
+              </button>
+              <button
+                onClick={() => setDailyMode('range')}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                  dailyMode === 'range'
+                    ? 'bg-slate-900 text-white shadow-md shadow-slate-900/10'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                عرض فترة مخصصة (تجميع)
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-slate-500">التاريخ:</span>
-            <Input 
-              type="date" 
-              value={selectedDailyDate} 
-              onChange={e => setSelectedDailyDate(e.target.value)} 
-              className="w-48 h-11 text-right font-black rounded-xl border-slate-200 animate-pulse-once"
-            />
+          
+          <div className="flex flex-wrap items-center gap-4">
+            {dailyMode === 'single' ? (
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-slate-500">اليوم:</span>
+                <Input 
+                  type="date" 
+                  value={selectedDailyDate} 
+                  onChange={e => setSelectedDailyDate(e.target.value)} 
+                  className="w-48 h-11 text-right font-black rounded-xl border-slate-200 animate-pulse-once"
+                />
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-slate-500">من:</span>
+                  <Input 
+                    type="date" 
+                    value={dailyStartDate} 
+                    onChange={e => setDailyStartDate(e.target.value)} 
+                    className="w-40 h-11 text-right font-black rounded-xl border-slate-200"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-slate-500">إلى:</span>
+                  <Input 
+                    type="date" 
+                    value={dailyEndDate} 
+                    onChange={e => setDailyEndDate(e.target.value)} 
+                    className="w-40 h-11 text-right font-black rounded-xl border-slate-200"
+                  />
+                </div>
+              </div>
+            )}
+            
             <Button 
               onClick={() => {
                 window.print();
               }}
               variant="outline" 
-              className="h-11 px-5 rounded-xl font-bold border-slate-200"
+              className="h-11 px-5 rounded-xl font-bold border-slate-200 print:hidden"
             >
               <Printer size={16} className="ml-2" />
-              طباعة الكشف اليومي
+              طباعة الكشف
             </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي أجور اليوم</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي أجور {dailyMode === 'range' ? 'الفترة' : 'اليوم'}</p>
             <p className="text-2xl font-black font-mono tracking-tight text-slate-900 mt-1">{filteredDailyTotal.toLocaleString('en-US')} ج.م</p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">العمال المتواجدين</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{dailyMode === 'range' ? 'عدد الموظفين الفعّالين' : 'العمال المتواجدين'}</p>
             <p className="text-2xl font-black text-blue-600 mt-1">
-              <span className="font-mono tracking-tight font-black">{filteredDailyPayroll.filter(d => d.attendanceStatus === 'حضور' || d.attendanceStatus === 'تأخير').length}</span> موظف
+              <span className="font-mono tracking-tight font-black">
+                {dailyMode === 'range' 
+                  ? filteredDailyPayroll.filter(d => d.daysWorked > 0 || d.totalProduction > 0).length
+                  : filteredDailyPayroll.filter(d => d.attendanceStatus === 'حضور' || d.attendanceStatus === 'تأخير').length
+                }
+              </span> موظف
             </p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي إضافي وحوافز اليوم</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي إضافي وحوافز {dailyMode === 'range' ? 'الفترة' : 'اليوم'}</p>
             <p className="text-2xl font-black font-mono tracking-tight text-emerald-600 mt-1">
               {filteredDailyPayroll.reduce((sum, d) => sum + d.totalOvertime + d.totalBonuses, 0).toLocaleString('en-US')} ج.م
             </p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي خصومات ومصروف اليوم</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي خصومات ومصروف {dailyMode === 'range' ? 'الفترة' : 'اليوم'}</p>
             <p className="text-2xl font-black font-mono tracking-tight text-rose-600 mt-1">
               {filteredDailyPayroll.reduce((sum, d) => sum + d.totalDeductions + d.totalExpenses + d.totalLoans, 0).toLocaleString('en-US')} ج.م
             </p>
@@ -15165,8 +15487,18 @@ const PayrollView = React.memo(function PayrollView({
       <Card className="dribbble-card border-none overflow-hidden print:shadow-none print:border-none">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 print:hidden">
           <div>
-            <h3 className="font-black text-xl text-slate-800">تفاصيل مستحقات يوم {selectedDailyDate}</h3>
-            <p className="text-xs text-slate-400 mt-0.5">مستند إلى سجل الحضور والانصراف والمعاملات المسجلة لهذا اليوم</p>
+            <h3 className="font-black text-xl text-slate-800">
+              {dailyMode === 'range' 
+                ? `تفاصيل مستحقات الفترة من ${dailyStartDate} إلى ${dailyEndDate}` 
+                : `تفاصيل مستحقات يوم ${selectedDailyDate}`
+              }
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {dailyMode === 'range'
+                ? 'مستند إلى تجميع سجلات الحضور والانصراف والمعاملات المسجلة للفترة المحددة'
+                : 'مستند إلى سجل الحضور والانصراف والمعاملات المسجلة لهذا اليوم'
+              }
+            </p>
           </div>
           <Badge variant="outline" className="font-bold text-xs px-3 py-1 rounded-lg">
             {selectedDept === 'الكل' ? 'كل الأقسام' : selectedDept}
