@@ -15957,94 +15957,93 @@ const PayrollView = React.memo(function PayrollView({
                       key={p.id} 
                       className="voucher-print-card"
                     >
-                      {/* Card Header */}
-                      <div className="voucher-print-card-header flex justify-between items-start">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 bg-slate-900 text-white rounded flex items-center justify-center font-black text-[9px]">
-                            N
+                      {/* Card Header matching screen style precisely */}
+                      <div className="voucher-print-card-header">
+                        {/* Left-side indicators */}
+                        <div className="voucher-print-header-left">
+                          <div className="voucher-print-check-circle">
+                            <svg className="w-2.5 h-2.5 text-white stroke-[3.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+                            </svg>
                           </div>
-                          <div>
-                            <h4 className="font-extrabold text-[9px] text-slate-900 leading-none">{companyInfo.name}</h4>
-                            <p className="text-[6px] font-bold text-slate-400 mt-0.5 leading-none">قسيمة صرف راتب أسبوعي</p>
+                          <div className="voucher-print-chat-circle">
+                            <svg className="w-2.5 h-2.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
                           </div>
                         </div>
-                        <div className="text-left leading-none">
-                          <p className="font-black text-slate-900 text-[8px]">#W{p.weekNumber}-{p.id.slice(-4)}</p>
-                          <p className="font-bold text-slate-500 text-[6px] mt-0.5">أسبوع {p.weekNumber} / {p.year}</p>
+
+                        {/* Right-side brand group */}
+                        <div className="voucher-print-header-right">
+                          <div className="voucher-print-brand-text">
+                            <h4 className="voucher-print-company-name">{companyInfo.name}</h4>
+                            <p className="voucher-print-subtitle">قسيمة راتب أسبوعي - أسبوع {p.weekNumber} / {p.year}</p>
+                          </div>
+                          <div className="voucher-print-package-icon">
+                            <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                          </div>
                         </div>
                       </div>
 
                       {/* Main breakdown body */}
                       <div className="voucher-print-grid">
-                        {/* Employee Details (Left column) */}
-                        <div className="voucher-print-section-left flex flex-col justify-center gap-1">
+                        {/* Employee Details (Right column in RTL) */}
+                        <div className="voucher-print-section-right">
                           <div className="voucher-print-row">
-                            <span className="text-slate-400 font-bold text-[7px]">الاسم:</span>
-                            <span className="font-black text-slate-800 text-[8px] truncate max-w-[70px]" title={emp?.name}>{emp?.name}</span>
+                            <span className="voucher-print-value font-black text-slate-800 truncate max-w-[80px]" title={emp?.name}>{emp?.name}</span>
+                            <span className="voucher-print-label text-slate-400">الاسم:</span>
                           </div>
                           <div className="voucher-print-row">
-                            <span className="text-slate-400 font-bold text-[7px]">القسم:</span>
-                            <span className="font-bold text-slate-600 text-[7px] truncate max-w-[70px]">{emp?.department || 'عام'}</span>
+                            <span className="voucher-print-value font-bold text-slate-600 truncate max-w-[80px]">{emp?.department || 'عام'}</span>
+                            <span className="voucher-print-label text-slate-400">القسم:</span>
                           </div>
                           <div className="voucher-print-row">
-                            <span className="text-slate-400 font-bold text-[7px]">الوظيفة:</span>
-                            <span className="font-bold text-slate-600 text-[7px] truncate max-w-[70px]">{emp?.position || 'عامل'}</span>
+                            <span className="voucher-print-value font-bold text-slate-600 truncate max-w-[80px]">{emp?.position || 'عامل'}</span>
+                            <span className="voucher-print-label text-slate-400">الوظيفة:</span>
                           </div>
                           <div className="voucher-print-row">
-                            <span className="text-slate-400 font-bold text-[7px]">أيام العمل:</span>
-                            <span className="font-black font-mono tracking-tight text-blue-600 text-[7px]">{(p.daysWorked || 0).toFixed(2)} ي</span>
+                            <span className="voucher-print-value font-black text-blue-600 font-mono">{(p.daysWorked || 0).toFixed(2)} ي</span>
+                            <span className="voucher-print-label text-slate-400">الأيام:</span>
                           </div>
                         </div>
 
-                        {/* Financial Details (Right column) */}
-                        <div className="voucher-print-section-right flex flex-col justify-center gap-0.5">
+                        {/* Financial Details (Left column in RTL) */}
+                        <div className="voucher-print-section-left">
                           <div className="voucher-print-row">
-                            <span className="text-slate-500">المرتب الأساسي:</span>
-                            <span className="font-mono font-bold tracking-tight text-slate-800">{p.baseSalary.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-value font-mono font-bold text-slate-800">{p.baseSalary.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-label text-slate-500">الأساسي:</span>
                           </div>
                           <div className="voucher-print-row text-blue-600">
-                            <span className="font-medium">إضافي (+):</span>
-                            <span className="font-mono font-black tracking-tight">+{p.totalOvertime.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-value font-mono font-black">+{p.totalOvertime.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-label font-medium">إضافي (+):</span>
                           </div>
                           <div className="voucher-print-row text-emerald-600">
-                            <span className="font-medium">مكافآت (+):</span>
-                            <span className="font-mono font-black tracking-tight">+{p.totalBonuses.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-value font-mono font-black">+{p.totalBonuses.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-label font-medium">مكافآت (+):</span>
                           </div>
                           <div className="voucher-print-row text-red-500">
-                            <span className="font-medium">خصومات (-):</span>
-                            <span className="font-mono font-black tracking-tight">-{p.totalDeductions.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-value font-mono font-black">-{p.totalDeductions.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-label font-medium">خصومات (-):</span>
                           </div>
                           <div className="voucher-print-row text-orange-500">
-                            <span className="font-medium">مصاريف (-):</span>
-                            <span className="font-mono font-black tracking-tight">-{p.totalExpenses.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-value font-mono font-black">-{p.totalExpenses.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-label font-medium">مصاريف (-):</span>
                           </div>
                           <div className="voucher-print-row text-amber-600">
-                            <span className="font-medium">سداد سلف (-):</span>
-                            <span className="font-mono font-black tracking-tight">-{p.totalLoans.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-value font-mono font-black">-{p.totalLoans.toLocaleString('en-US')}</span>
+                            <span className="voucher-print-label font-medium">سلف (-):</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Net Salary Highlight Box */}
+                      {/* Net Salary Highlight Footer stripe */}
                       <div className="voucher-print-net">
-                        <span className="font-black text-slate-900 text-[8px]">صافي الراتب:</span>
-                        <span className="text-[10px] font-mono font-black tracking-tight text-primary">{p.netSalary.toLocaleString('en-US')} ج.م</span>
-                      </div>
-
-                      {/* Footer signatures */}
-                      <div className="voucher-print-signatures text-center">
-                        <div>
-                          <span className="text-[5px] font-black text-slate-500 leading-none block">توقيع الموظف</span>
-                          <div className="border-b border-dashed border-slate-300 w-full mt-1.5"></div>
+                        <div className="voucher-print-net-badge">
+                          {p.netSalary.toLocaleString('en-US')} ج.م
                         </div>
-                        <div>
-                          <span className="text-[5px] font-black text-slate-500 leading-none block">المحاسب</span>
-                          <div className="border-b border-dashed border-slate-300 w-full mt-1.5"></div>
-                        </div>
-                        <div>
-                          <span className="text-[5px] font-black text-slate-500 leading-none block">الاعتماد</span>
-                          <div className="border-b border-dashed border-slate-300 w-full mt-1.5"></div>
-                        </div>
+                        <span className="voucher-print-net-label">الصافي للموظف:</span>
                       </div>
                     </div>
                   );
@@ -16055,9 +16054,9 @@ const PayrollView = React.memo(function PayrollView({
                   <div 
                     key={`empty-${emptyIdx}`} 
                     className="voucher-print-card border-dashed border-slate-300 flex items-center justify-center bg-slate-50/10"
-                    style={{ borderStyle: 'dashed', borderWidth: '1.5px' }}
+                    style={{ borderStyle: 'dashed', borderWidth: '1.5px', borderRadius: '2rem' }}
                   >
-                    <span className="text-[8px] font-black text-slate-300 tracking-wider">متاح لقسيمة إضافية</span>
+                    <span className="text-[10px] font-black text-slate-300 tracking-wider">متاح لقسيمة إضافية</span>
                   </div>
                 ))}
               </div>
