@@ -458,7 +458,13 @@ const calculateLivePayroll = (
     return acc;
   }, { daysWorked: 0, timeDeduction: 0 });
 
-  const totalOvertime = empTransactions.filter(t => t.type === 'إضافي' || t.type === 'أوفرتايم').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const totalOvertime = empTransactions.filter(t => t.type === 'إضافي' || t.type === 'أوفرتايم').reduce((sum, t) => {
+    if (t.overtimeHours && t.overtimeHours > 0) {
+      const hourlyRate = emp.dailyRate / 10;
+      return sum + (t.overtimeHours * (t.overtimeRate || 1.5) * hourlyRate);
+    }
+    return sum + (Number(t.amount) || 0);
+  }, 0);
   const totalBonuses = empTransactions.filter(t => t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const totalExpenses = empTransactions.filter(t => t.type === 'مصروف' || t.type === 'سلفة' || t.type === 'عهدة').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const manualLoanDeductions = empTransactions.filter(t => t.type === 'خصم سلف' || t.type === 'سلفة مستردة').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -15829,7 +15835,7 @@ const PayrollView = React.memo(function PayrollView({
                               prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]
                             );
                           }}
-                          className={`cursor-pointer group relative bg-white p-6 rounded-[2rem] border-2 transition-all duration-300 flex flex-col justify-between h-72 ${
+                          className={`cursor-pointer group relative bg-white p-6 rounded-[2rem] border-2 transition-all duration-300 flex flex-col justify-between min-h-[21rem] ${
                             isSelected 
                               ? 'border-blue-600 shadow-xl shadow-blue-100/50 scale-[1.02]' 
                               : 'border-slate-200/60 hover:border-slate-300 shadow-sm opacity-75 hover:opacity-100'
@@ -15868,19 +15874,54 @@ const PayrollView = React.memo(function PayrollView({
                               </div>
                             </div>
 
-                            {/* Info Rows */}
-                            <div className="space-y-2 mb-4">
-                              <div className="flex justify-between border-b border-slate-100 pb-1">
-                                <span className="text-slate-400 font-bold text-xs">الاسم:</span>
-                                <span className="font-extrabold text-slate-900 text-xs truncate max-w-[150px]">{emp?.name}</span>
+                            {/* Info Columns Grid */}
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                              {/* Employee Details */}
+                              <div className="space-y-1.5 pr-2 border-r border-slate-100 flex flex-col justify-center text-right">
+                                <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                                  <span className="text-slate-400 font-bold text-[10px]">الاسم:</span>
+                                  <span className="font-extrabold text-slate-800 text-[10px] truncate max-w-[90px]" title={emp?.name}>{emp?.name}</span>
+                                </div>
+                                <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                                  <span className="text-slate-400 font-bold text-[10px]">القسم:</span>
+                                  <span className="font-bold text-slate-600 text-[10px] truncate max-w-[90px]">{emp?.department || 'عام'}</span>
+                                </div>
+                                <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                                  <span className="text-slate-400 font-bold text-[10px]">الوظيفة:</span>
+                                  <span className="font-bold text-slate-600 text-[10px] truncate max-w-[90px]">{emp?.position || 'موظف'}</span>
+                                </div>
+                                <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                                  <span className="text-slate-400 font-bold text-[10px]">الأيام:</span>
+                                  <span className="font-black text-blue-600 text-[10px]">{(p.daysWorked || 0).toFixed(2)} ي</span>
+                                </div>
                               </div>
-                              <div className="flex justify-between border-b border-slate-100 pb-1">
-                                <span className="text-slate-400 font-bold text-xs">المهنة:</span>
-                                <span className="font-bold text-slate-700 text-xs">{emp?.position || 'موظف'}</span>
-                              </div>
-                              <div className="flex justify-between border-b border-slate-100 pb-1">
-                                <span className="text-slate-400 font-bold text-xs">أيام العمل:</span>
-                                <span className="font-black text-blue-600 text-xs">{(p.daysWorked || 0).toFixed(2)} يوم</span>
+
+                              {/* Financial Details */}
+                              <div className="space-y-1 text-[10px] text-right">
+                                <div className="flex justify-between leading-none text-slate-600 border-b border-slate-50 pb-0.5">
+                                  <span className="font-medium">الأساسي:</span>
+                                  <span className="font-mono font-bold">{p.baseSalary.toLocaleString('en-US')}</span>
+                                </div>
+                                <div className="flex justify-between leading-none text-blue-600 border-b border-slate-50 pb-0.5">
+                                  <span className="font-medium">إضافي (+):</span>
+                                  <span className="font-mono font-bold">+{p.totalOvertime.toLocaleString('en-US')}</span>
+                                </div>
+                                <div className="flex justify-between leading-none text-emerald-600 border-b border-slate-50 pb-0.5">
+                                  <span className="font-medium">مكافآت (+):</span>
+                                  <span className="font-mono font-bold">+{p.totalBonuses.toLocaleString('en-US')}</span>
+                                </div>
+                                <div className="flex justify-between leading-none text-red-500 border-b border-slate-50 pb-0.5">
+                                  <span className="font-medium">خصومات (-):</span>
+                                  <span className="font-mono font-bold">-{p.totalDeductions.toLocaleString('en-US')}</span>
+                                </div>
+                                <div className="flex justify-between leading-none text-orange-500 border-b border-slate-50 pb-0.5">
+                                  <span className="font-medium">مصاريف (-):</span>
+                                  <span className="font-mono font-bold">-{p.totalExpenses.toLocaleString('en-US')}</span>
+                                </div>
+                                <div className="flex justify-between leading-none text-amber-600 border-b border-slate-50 pb-0.5">
+                                  <span className="font-medium">سلف (-):</span>
+                                  <span className="font-mono font-bold">-{p.totalLoans.toLocaleString('en-US')}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -15976,36 +16017,26 @@ const PayrollView = React.memo(function PayrollView({
                             <span>المرتب الأساسي:</span>
                             <span className="font-mono font-bold tracking-tight">{p.baseSalary.toLocaleString('en-US')}</span>
                           </div>
-                          {p.totalOvertime > 0 && (
-                            <div className="flex justify-between leading-none text-blue-600">
-                              <span>إضافي (+):</span>
-                              <span className="font-mono font-black tracking-tight">+{p.totalOvertime.toLocaleString('en-US')}</span>
-                            </div>
-                          )}
-                          {p.totalBonuses > 0 && (
-                            <div className="flex justify-between leading-none text-emerald-600">
-                              <span>مكافآت (+):</span>
-                              <span className="font-mono font-black tracking-tight">+{p.totalBonuses.toLocaleString('en-US')}</span>
-                            </div>
-                          )}
-                          {p.totalDeductions > 0 && (
-                            <div className="flex justify-between leading-none text-red-500">
-                              <span>خصومات (-):</span>
-                              <span className="font-mono font-black tracking-tight">-{p.totalDeductions.toLocaleString('en-US')}</span>
-                            </div>
-                          )}
-                          {p.totalExpenses > 0 && (
-                            <div className="flex justify-between leading-none text-orange-500">
-                              <span>مصاريف (-):</span>
-                              <span className="font-mono font-black tracking-tight">-{p.totalExpenses.toLocaleString('en-US')}</span>
-                            </div>
-                          )}
-                          {p.totalLoans > 0 && (
-                            <div className="flex justify-between leading-none text-amber-600">
-                              <span>سداد سلف (-):</span>
-                              <span className="font-mono font-black tracking-tight">-{p.totalLoans.toLocaleString('en-US')}</span>
-                            </div>
-                          )}
+                          <div className="flex justify-between leading-none text-blue-600">
+                            <span>إضافي (+):</span>
+                            <span className="font-mono font-black tracking-tight">+{p.totalOvertime.toLocaleString('en-US')}</span>
+                          </div>
+                          <div className="flex justify-between leading-none text-emerald-600">
+                            <span>مكافآت (+):</span>
+                            <span className="font-mono font-black tracking-tight">+{p.totalBonuses.toLocaleString('en-US')}</span>
+                          </div>
+                          <div className="flex justify-between leading-none text-red-500">
+                            <span>خصومات (-):</span>
+                            <span className="font-mono font-black tracking-tight">-{p.totalDeductions.toLocaleString('en-US')}</span>
+                          </div>
+                          <div className="flex justify-between leading-none text-orange-500">
+                            <span>مصاريف (-):</span>
+                            <span className="font-mono font-black tracking-tight">-{p.totalExpenses.toLocaleString('en-US')}</span>
+                          </div>
+                          <div className="flex justify-between leading-none text-amber-600">
+                            <span>سداد سلف (-):</span>
+                            <span className="font-mono font-black tracking-tight">-{p.totalLoans.toLocaleString('en-US')}</span>
+                          </div>
                           <div className="pt-1 border-t border-slate-300 flex justify-between items-center mt-1">
                             <span className="font-black text-slate-900 text-[8px]">صافي الراتب:</span>
                             <span className="text-[10px] font-mono font-black tracking-tight text-primary">{p.netSalary.toLocaleString('en-US')} ج.م</span>
