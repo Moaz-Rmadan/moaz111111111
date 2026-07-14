@@ -1267,6 +1267,10 @@ export const MonthlyStipendsModule: React.FC = () => {
     }
   };
 
+  const handlePrintCards = () => {
+    window.print();
+  };
+
   const handleCreateDisbursementRun = async () => {
     const existing = disbursementRuns.find(r => r.monthYear === runMonth);
     if (existing) {
@@ -3233,6 +3237,13 @@ export const MonthlyStipendsModule: React.FC = () => {
                           حذف المحددين نهائياً
                         </button>
                         <button
+                          onClick={handlePrintCards}
+                          className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-colors flex items-center gap-1.5"
+                        >
+                          <Printer size={14} />
+                          طباعة بطاقات
+                        </button>
+                        <button
                           onClick={() => setSelectedBeneficiaryIds([])}
                           className="px-3 py-2 bg-white/10 hover:bg-white/15 text-slate-300 rounded-xl text-xs font-bold transition-colors"
                         >
@@ -3920,6 +3931,24 @@ export const MonthlyStipendsModule: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Printable Cards (Hidden normally) */}
+      <div id="printable-cards" className="hidden print:block">
+        <style>{`
+          @media print {
+            body > *:not(#printable-cards) { display: none !important; }
+            #printable-cards { display: block !important; }
+            .card { page-break-after: always; padding: 20px; border: 1px solid #ccc; margin: 10px; box-sizing: border-box; font-family: sans-serif; direction: rtl; text-align: right; }
+          }
+        `}</style>
+        {beneficiaries.filter(b => selectedBeneficiaryIds.includes(b.id)).map(b => (
+          <div key={b.id} className="card">
+            <h2 className="font-bold text-lg mb-2">{b.name}</h2>
+            <p className="text-sm"><strong>العنوان:</strong> {b.address}</p>
+            <p className="text-sm"><strong>الهاتف:</strong> {b.phone || 'لا يوجد'}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
