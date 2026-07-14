@@ -1268,7 +1268,78 @@ export const MonthlyStipendsModule: React.FC = () => {
   };
 
   const handlePrintCards = () => {
-    window.print();
+    const selected = beneficiaries.filter(b => selectedBeneficiaryIds.includes(b.id));
+    if (selected.length === 0) {
+      alert("يرجى اختيار مستفيدين للطباعة");
+      return;
+    }
+
+    // Chunk beneficiaries into groups of 20 (2 columns * 10 rows)
+    const pages = [];
+    for (let i = 0; i < selected.length; i += 20) {
+      pages.push(selected.slice(i, i + 20));
+    }
+
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      alert("يرجى السماح بفتح النوافذ المنبثقة للطباعة");
+      return;
+    }
+
+    const content = `
+      <html dir="rtl">
+        <head>
+          <title>طباعة بطاقات المستفيدين</title>
+          <style>
+            body { font-family: sans-serif; padding: 0; margin: 0; }
+            @page { size: A4; margin: 10mm; }
+            .page {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              grid-template-rows: repeat(10, 27.5mm);
+              gap: 2mm;
+              height: 277mm;
+              width: 190mm;
+              page-break-after: always;
+            }
+            .card {
+              border: 1px solid #333;
+              padding: 5px;
+              border-radius: 4px;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              overflow: hidden;
+            }
+            h2 { font-size: 13px; margin: 0 0 2px 0; font-weight: bold; }
+            p { font-size: 10px; margin: 1px 0; }
+            strong { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          ${pages.map(pageBeneficiaries => `
+            <div class="page">
+              ${pageBeneficiaries.map(b => `
+                <div class="card">
+                  <h2>${b.name}</h2>
+                  <p><strong>العنوان:</strong> ${b.address}</p>
+                  <p><strong>الهاتف:</strong> ${b.phone || 'لا يوجد'}</p>
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
+          <script>
+            window.onload = () => {
+              window.print();
+              window.close();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
   };
 
   const handleCreateDisbursementRun = async () => {
@@ -3931,24 +4002,6 @@ export const MonthlyStipendsModule: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
-
-      {/* Printable Cards (Hidden normally) */}
-      <div id="printable-cards" className="hidden print:block">
-        <style>{`
-          @media print {
-            body > *:not(#printable-cards) { display: none !important; }
-            #printable-cards { display: block !important; }
-            .card { page-break-after: always; padding: 20px; border: 1px solid #ccc; margin: 10px; box-sizing: border-box; font-family: sans-serif; direction: rtl; text-align: right; }
-          }
-        `}</style>
-        {beneficiaries.filter(b => selectedBeneficiaryIds.includes(b.id)).map(b => (
-          <div key={b.id} className="card">
-            <h2 className="font-bold text-lg mb-2">{b.name}</h2>
-            <p className="text-sm"><strong>العنوان:</strong> {b.address}</p>
-            <p className="text-sm"><strong>الهاتف:</strong> {b.phone || 'لا يوجد'}</p>
-          </div>
-        ))}
-      </div>
     </div>
   );
 };
