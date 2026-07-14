@@ -1291,28 +1291,30 @@ export const MonthlyStipendsModule: React.FC = () => {
         <head>
           <title>طباعة بطاقات المستفيدين</title>
           <style>
-            body { font-family: sans-serif; padding: 0; margin: 0; }
             @page { size: A4; margin: 10mm; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; margin: 0; }
             .page {
               display: grid;
               grid-template-columns: repeat(2, 1fr);
-              grid-template-rows: repeat(10, 27.5mm);
-              gap: 2mm;
+              grid-template-rows: repeat(10, 27mm);
+              gap: 5mm;
               height: 277mm;
               width: 190mm;
               page-break-after: always;
             }
             .card {
               border: 1px solid #333;
-              padding: 5px;
-              border-radius: 4px;
+              padding: 10px;
+              border-radius: 8px;
               display: flex;
               flex-direction: column;
               justify-content: center;
+              align-items: center;
+              text-align: center;
               overflow: hidden;
             }
-            h2 { font-size: 13px; margin: 0 0 2px 0; font-weight: bold; }
-            p { font-size: 10px; margin: 1px 0; }
+            h2 { font-size: 14px; margin: 0 0 4px 0; font-weight: bold; color: #000; }
+            p { font-size: 11px; margin: 2px 0; color: #333; }
             strong { font-weight: bold; }
           </style>
         </head>
@@ -1322,8 +1324,9 @@ export const MonthlyStipendsModule: React.FC = () => {
               ${pageBeneficiaries.map(b => `
                 <div class="card">
                   <h2>${b.name}</h2>
-                  <p><strong>العنوان:</strong> ${b.address}</p>
+                  <p><strong>العنوان:</strong> ${b.address || 'غير محدد'}</p>
                   <p><strong>الهاتف:</strong> ${b.phone || 'لا يوجد'}</p>
+                  <p><strong>تفاصيل الصرف:</strong> ${b.paymentDetails || 'لا يوجد'}</p>
                 </div>
               `).join('')}
             </div>
