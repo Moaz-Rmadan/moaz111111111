@@ -17,7 +17,7 @@ import { ar } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell as RechartsCell, AreaChart, Area, ComposedChart } from 'recharts';
 import {
   Check, AlertCircle, Package, DollarSign, Users, LayoutGrid, Plus, BarChart3, Search, Download, ShoppingCart, Truck, Settings as SettingsIcon,
-  LayoutDashboard, ChevronDown, Layers, Wrench, Building2, ShoppingBag, ShieldAlert,
+  LayoutDashboard, ChevronDown, Layers, Wrench, Building2, ShoppingBag, ShieldAlert, HeartHandshake,
   Activity, Printer, ArrowDownLeft, ArrowUpRight, Menu, ChevronLeft, Calendar, PieChartIcon,
   TrendingUp, Filter, Edit2, MessageSquare, FileText, CheckCircle2, PackageCheck, RotateCcw,
   ReceiptText, ClipboardCheck, PlusCircle, FileCheck, CreditCard, Scale, Wallet, Coins, ArrowRight,
@@ -69,6 +69,8 @@ import { UsersManager } from './components/UsersManager';
 import { ByproductSalesView } from './components/ByproductSalesView';
 import { SalesModule } from './components/SalesModule';
 import { NumberDisplay, formatNumber, formatCurrencyParts } from './lib/numberUtils';
+import { FactoryResetModal } from './components/FactoryResetModal';
+import { MonthlyStipendsModule } from './components/MonthlyStipendsModule';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
 const logout = () => signOut(auth);
@@ -1350,6 +1352,7 @@ function MainApp({
   const [isResettingWarehouse, setIsResettingWarehouse] = useState(false);
   const [showAttendanceResetConfirm, setShowAttendanceResetConfirm] = useState(false);
   const [isResettingAttendance, setIsResettingAttendance] = useState(false);
+  const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
 
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
@@ -2363,6 +2366,7 @@ function MainApp({
                 <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
               </div>
               <NavButton active={activeTab === 'safe'} onClick={() => handleNavClick('safe')} icon={<Building2 size={20} />} label="المالية والخزنة" permission="finance" profile={profile} />
+              <NavButton active={activeTab === 'monthlyStipends'} onClick={() => handleNavClick('monthlyStipends')} icon={<HeartHandshake size={20} />} label="الشهريات والمساعدات" permission="finance" profile={profile} />
             </div>
           )}
 
@@ -2729,6 +2733,9 @@ function MainApp({
           />
         )}
         {activeTab === 'userManagement' && <UsersManager />}
+        {activeTab === 'monthlyStipends' && (
+          <MonthlyStipendsModule />
+        )}
         {activeTab === 'safe' && (
           <Finance 
             safes={safes} 
@@ -2808,6 +2815,8 @@ function MainApp({
             handleDeleteEntity={handleDeleteEntity}
             handleResetAllData={handleResetAllData}
             handleImportExcel={handleImportExcel}
+            showFactoryResetConfirm={showFactoryResetConfirm}
+            setShowFactoryResetConfirm={setShowFactoryResetConfirm}
           />
         )}
             </motion.div>
@@ -3201,6 +3210,11 @@ function MainApp({
         message="هل أنت متأكد من حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء."
         onConfirm={handleDeleteEntity}
         onCancel={() => setShowDeleteConfirmBase(null)}
+      />
+
+      <FactoryResetModal 
+        isOpen={showFactoryResetConfirm}
+        onClose={() => setShowFactoryResetConfirm(false)}
       />
 
       {/* Print Iframe Warning Dialog */}
@@ -16889,7 +16903,9 @@ function Settings({
   handleAddCostCenter,
   handleDeleteEntity,
   handleResetAllData,
-  handleImportExcel
+  handleImportExcel,
+  showFactoryResetConfirm,
+  setShowFactoryResetConfirm
 }: { 
   settings: CompanySettings,
   setSettings: (v: CompanySettings) => void,
@@ -16952,7 +16968,9 @@ function Settings({
   handleAddCostCenter: () => Promise<void>,
   handleDeleteEntity: () => Promise<void>,
   handleResetAllData: () => Promise<void>,
-  handleImportExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>
+  handleImportExcel: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>,
+  showFactoryResetConfirm: boolean,
+  setShowFactoryResetConfirm: (v: boolean) => void
 }) {
   const [settingsTab, setSettingsTab] = useState<'general' | 'company' | 'baseData' | 'items' | 'suppliers' | 'about' | 'security' | 'users'>('general');
 
@@ -17930,15 +17948,35 @@ function Settings({
                   {/* Complete Reset */}
                   <div className="bg-white p-6 rounded-2xl border border-red-100 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="text-right">
-                      <h4 className="font-black text-slate-900 text-lg">تصفير كافة بيانات البرنامج</h4>
-                      <p className="text-slate-500 text-sm mt-1">سيؤدي هذا الإجراء إلى مسح كافة الأصناف، الموردين، الفواتير، والعمليات نهائياً. لا يمكن التراجع عن هذا الإجراء.</p>
+                      <h4 className="font-black text-slate-900 text-lg">تصفير حركات ومعاملات البرنامج</h4>
+                      <p className="text-slate-500 text-sm mt-1">سيؤدي هذا الإجراء إلى مسح كافة الفواتير، الحسابات، والعمليات والقيود المسجلة نهائياً مع الاحتفاظ ببيانات الموظفين والأصناف والموردين كبنية أساسية.</p>
                     </div>
                     <Button 
                       variant="destructive" 
                       className="shrink-0 h-12 px-8 rounded-2xl font-black bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/20"
                       onClick={() => setShowResetConfirm(true)}
                     >
-                      تصفير الكل نهائياً
+                      تصفير العمليات فقط
+                    </Button>
+                  </div>
+
+                  {/* Factory Reset (Requested by User) */}
+                  <div className="bg-white p-6 rounded-2xl border border-red-200 bg-red-50/20 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="text-right">
+                      <h4 className="font-black text-red-700 text-lg flex items-center gap-2">
+                        <ShieldAlert size={20} className="text-red-600 animate-pulse" />
+                        إعادة ضبط المصنع بالكامل (فرمتة شاملة وجذرية)
+                      </h4>
+                      <p className="text-slate-600 text-sm mt-1 font-medium">
+                        سيؤدي هذا الإجراء الحساس للغاية إلى حذف <strong className="text-red-700 font-black">كل شيء بالكامل</strong> في التطبيق (الأصناف، الموردين، المخازن، الخزائن المالية، الحركات الحسابية، الموظفين، الحضور والغياب، والرواتب) لتبدأ من الصفر تماماً. <strong className="text-red-700">يتطلب هذا الإجراء إثبات هوية المدير عن طريق كتابة كلمة المرور أو البريد الإلكتروني الإداري.</strong>
+                      </p>
+                    </div>
+                    <Button 
+                      variant="destructive" 
+                      className="shrink-0 h-12 px-8 rounded-2xl font-black bg-slate-950 text-white hover:bg-red-600 transition-all shadow-lg hover:shadow-red-600/25 border border-slate-800"
+                      onClick={() => setShowFactoryResetConfirm(true)}
+                    >
+                      البدء من الصفر كلياً
                     </Button>
                   </div>
                 </CardContent>
