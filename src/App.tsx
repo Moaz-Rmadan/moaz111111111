@@ -873,6 +873,13 @@ function PayrollMasterReport({
         
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
           <div className="flex bg-white p-2 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 items-center gap-3">
+            <Input 
+              placeholder="بحث بالاسم..."
+              value={reportSearch}
+              onChange={e => setReportSearch(e.target.value)}
+              className="border-none bg-transparent font-bold h-8 text-slate-800 focus-visible:ring-0 focus-visible:ring-offset-0 w-40 text-right"
+            />
+            <div className="w-px h-6 bg-slate-200" />
             <div className="flex items-center gap-2 px-3">
               <span className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">من</span>
               <Input 
