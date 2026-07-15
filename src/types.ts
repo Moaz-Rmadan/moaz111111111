@@ -581,6 +581,8 @@ export interface CompanySettings {
   lowStockThreshold?: number; // حد الإنذار بنقص المخزون
   invoiceFooterNote?: string; // تذييل الفواتير المطبوعة
   invoiceTerms?: string; // شروط وأحكام الفاتورة
+  deductLateArrival?: boolean; // تفعيل خصم التأخر
+  deductEarlyDeparture?: boolean; // تفعيل خصم الانصراف المبكر
 }
 
 export interface ByproductSale {

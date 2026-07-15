@@ -68,6 +68,7 @@ import { FinancialReports } from './components/FinancialReports';
 import { UsersManager } from './components/UsersManager';
 import { ByproductSalesView } from './components/ByproductSalesView';
 import { SalesModule } from './components/SalesModule';
+import { DeductionsView } from './components/DeductionsView';
 import { NumberDisplay, formatNumber, formatCurrencyParts } from './lib/numberUtils';
 import { FactoryResetModal } from './components/FactoryResetModal';
 import { MonthlyStipendsModule } from './components/MonthlyStipendsModule';
@@ -344,7 +345,9 @@ function AppContent() {
       overtimeMultiplier: 1.5,
       lowStockThreshold: 10,
       invoiceFooterNote: 'نشكركم لتعاملكم مع مصنع النجار للأثاث الراقي',
-      invoiceTerms: 'البضاعة المباعة لا ترد ولا تستبدل بعد مرور 14 يوماً من الاستلام. الضمان يسري فقط على عيوب التصنيع.'
+      invoiceTerms: 'البضاعة المباعة لا ترد ولا تستبدل بعد مرور 14 يوماً من الاستلام. الضمان يسري فقط على عيوب التصنيع.',
+      deductLateArrival: true,
+      deductEarlyDeparture: true
     };
   });
 
@@ -419,12 +422,25 @@ const calculateLivePayroll = (
   attendance: Attendance[], 
   transactions: FinancialTransaction[], 
   loans: Loan[], 
-  productionRecords: ProductionRecord[]
+  productionRecords: ProductionRecord[],
+  companySettings?: CompanySettings
 ) => {
   if (p.status !== 'مسودة') return p;
   
   const emp = employees.find(e => e.id === p.employeeId);
   if (!emp) return p;
+
+  let currentSettings: CompanySettings | null = companySettings || null;
+  if (!currentSettings) {
+    const saved = localStorage.getItem('company_settings');
+    if (saved) {
+      try {
+        currentSettings = JSON.parse(saved);
+      } catch (e) {
+        // Fallback
+      }
+    }
+  }
 
   const empAttendance = attendance.filter(a => a && a.employeeId === emp.id && (a.status === 'حضور' || a.status === 'تأخير') && a.date >= p.startDate && a.date <= p.endDate);
   const empTransactions = transactions.filter(t => t.employeeId === emp.id && t.date >= p.startDate && t.date <= p.endDate);
@@ -453,10 +469,15 @@ const calculateLivePayroll = (
       return acc;
     }
     let lateMins = 0;
-    if (checkInMins > officialStart + gracePeriod) lateMins = checkInMins - officialStart;
-    const earlyMins = Math.max(0, officialEnd - checkOutMins);
+    const deductLate = currentSettings?.deductLateArrival !== false;
+    if (deductLate && checkInMins > officialStart + gracePeriod) {
+      lateMins = checkInMins - officialStart;
+    }
+    const deductEarly = currentSettings?.deductEarlyDeparture !== false;
+    const earlyMins = deductEarly ? Math.max(0, officialEnd - checkOutMins) : 0;
     acc.daysWorked += 1;
-    acc.timeDeduction += (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+    const dayDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+    acc.timeDeduction += Math.min(emp.dailyRate, dayDeduction);
     return acc;
   }, { daysWorked: 0, timeDeduction: 0 });
 
@@ -14679,7 +14700,7 @@ const PayrollView = React.memo(function PayrollView({
 }) {
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
   const [searchTerm, setSearchTerm] = useState('');
-  const [payrollSubTab, setPayrollSubTab] = useState<'weekly' | 'daily'>('weekly');
+  const [payrollSubTab, setPayrollSubTab] = useState<'weekly' | 'daily' | 'deductions'>('weekly');
   const [selectedDailyDate, setSelectedDailyDate] = useState<string>(() => {
     if (attendance && attendance.length > 0) {
       const sorted = [...attendance].filter(a => a && a.date).sort((a, b) => b.date.localeCompare(a.date));
@@ -14749,10 +14770,15 @@ const PayrollView = React.memo(function PayrollView({
                 daysWorked += 0.5;
               } else {
                 let lateMins = 0;
-                if (checkInMins > officialStart + gracePeriod) lateMins = checkInMins - officialStart;
-                const earlyMins = Math.max(0, officialEnd - checkOutMins);
+                const deductLate = companyInfo?.deductLateArrival !== false;
+                if (deductLate && checkInMins > officialStart + gracePeriod) {
+                  lateMins = checkInMins - officialStart;
+                }
+                const deductEarly = companyInfo?.deductEarlyDeparture !== false;
+                const earlyMins = deductEarly ? Math.max(0, officialEnd - checkOutMins) : 0;
                 daysWorked += 1;
-                timeDeduction += (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+                const dayDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+                timeDeduction += Math.min(emp.dailyRate, dayDeduction);
               }
             }
           }
@@ -14787,10 +14813,15 @@ const PayrollView = React.memo(function PayrollView({
                 daysWorked = 0.5;
               } else {
                 let lateMins = 0;
-                if (checkInMins > officialStart + gracePeriod) lateMins = checkInMins - officialStart;
-                const earlyMins = Math.max(0, officialEnd - checkOutMins);
+                const deductLate = companyInfo?.deductLateArrival !== false;
+                if (deductLate && checkInMins > officialStart + gracePeriod) {
+                  lateMins = checkInMins - officialStart;
+                }
+                const deductEarly = companyInfo?.deductEarlyDeparture !== false;
+                const earlyMins = deductEarly ? Math.max(0, officialEnd - checkOutMins) : 0;
                 daysWorked = 1;
-                timeDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+                const dayDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
+                timeDeduction = Math.min(emp.dailyRate, dayDeduction);
               }
             }
           } else if (attendanceStatus === 'إجازة') {
@@ -15090,11 +15121,11 @@ const PayrollView = React.memo(function PayrollView({
     });
   }, [draftPayrolls, employees, selectedDept, searchTerm]);
 
-  const getLivePayroll = (p: Payroll) => calculateLivePayroll(p, employees, attendance, transactions, loans, productionRecords);
+  const getLivePayroll = (p: Payroll) => calculateLivePayroll(p, employees, attendance, transactions, loans, productionRecords, companyInfo);
 
   const processedPayrolls = React.useMemo(() => {
     return filteredDraftPayrolls.map(getLivePayroll);
-  }, [filteredDraftPayrolls, employees, attendance, transactions, loans, productionRecords]);
+  }, [filteredDraftPayrolls, employees, attendance, transactions, loans, productionRecords, companyInfo]);
 
   const filteredModalVouchers = React.useMemo(() => {
     return processedPayrolls.filter(p => {
@@ -15314,6 +15345,12 @@ const PayrollView = React.memo(function PayrollView({
         >
           رواتب الموظفين يوم بيومه (كشف يومي)
         </button>
+        <button
+          onClick={() => setPayrollSubTab('deductions')}
+          className={`pb-3 px-6 font-bold text-base transition-all relative ${payrollSubTab === 'deductions' ? 'text-blue-600 border-b-2 border-blue-600 font-black' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          🔍 كشف الاستقطاعات والجزاءات التفصيلي
+        </button>
       </div>
 
       {payrollSubTab === 'weekly' ? (
@@ -15495,7 +15532,7 @@ const PayrollView = React.memo(function PayrollView({
       </div>
     </Card>
     </>
-  ) : (
+  ) : payrollSubTab === 'daily' ? (
     <>
       {/* Daily Payroll View */}
       <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 space-y-6 print:hidden">
@@ -15718,6 +15755,14 @@ const PayrollView = React.memo(function PayrollView({
         </div>
       </Card>
     </>
+  ) : (
+    <DeductionsView
+      employees={employees}
+      attendance={attendance}
+      transactions={transactions}
+      loans={loans}
+      companyInfo={companyInfo}
+    />
   )}
 
       {showVouchers && (
@@ -17439,6 +17484,41 @@ function Settings({
                             onChange={e => setLocalSettings({ ...localSettings, lowStockThreshold: parseFloat(e.target.value) || 0 })}
                             placeholder="10"
                           />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
+                        <div className="md:col-span-2">
+                          <h4 className="font-black text-slate-800 text-sm mb-1">إعدادات الأجور واستقطاعات الحضور والانصراف</h4>
+                          <p className="text-xs text-slate-400 font-medium">التحكم في تفعيل أو إلغاء خصومات التأخير أو الانصراف المبكر للعمال والحد الأقصى اليومي للخصم</p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700">احتساب خصم التأخر عن الحضور</label>
+                          <select
+                            className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                            value={localSettings.deductLateArrival !== false ? 'true' : 'false'}
+                            onChange={e => setLocalSettings({ ...localSettings, deductLateArrival: e.target.value === 'true' })}
+                          >
+                            <option value="true">تفعيل خصم التأخر (حساب بالدقائق)</option>
+                            <option value="false">إيقاف خصم التأخر (عدم الخصم)</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700">احتساب خصم الانصراف المبكر</label>
+                          <select
+                            className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                            value={localSettings.deductEarlyDeparture !== false ? 'true' : 'false'}
+                            onChange={e => setLocalSettings({ ...localSettings, deductEarlyDeparture: e.target.value === 'true' })}
+                          >
+                            <option value="true">تفعيل خصم الانصراف المبكر (حساب بالدقائق)</option>
+                            <option value="false">إيقاف خصم الانصراف المبكر (احتساب اليوم كاملاً)</option>
+                          </select>
+                        </div>
+
+                        <div className="md:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs text-slate-600 font-bold leading-relaxed">
+                          ⚠️ ملاحظة نظام الحماية التلقائية: تم تفعيل ميزة حد أقصى تلقائي للخصم اليومي، بحيث لا يتجاوز إجمالي الخصم بسبب التأخر والانصراف المبكر قيمة "يومية الموظف" في اليوم الواحد إطلاقاً، وذلك لعدم الإجحاف بحقوق الموظف.
                         </div>
                       </div>
 
