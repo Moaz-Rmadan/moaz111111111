@@ -3,6 +3,31 @@ import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/a
 import { auth, db } from './firebase';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn("Storage access denied:", e);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn("Storage access denied:", e);
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.warn("Storage access denied:", e);
+    }
+  }
+};
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -52,8 +77,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let unsubscribeProfile: (() => void) | null = null;
     let unsubscribeAuth: (() => void) | null = null;
 
-    const savedUid = localStorage.getItem('custom_uid');
-    const savedPassword = localStorage.getItem('custom_password');
+    const savedUid = safeStorage.getItem('custom_uid');
+    const savedPassword = safeStorage.getItem('custom_password');
 
     const setupCustomSession = async (uid: string, psw: string) => {
       try {
@@ -86,8 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // If setup fails, clear custom storage and fallback to auth
-      localStorage.removeItem('custom_uid');
-      localStorage.removeItem('custom_password');
+      safeStorage.removeItem('custom_uid');
+      safeStorage.removeItem('custom_password');
       return false;
     };
 
@@ -198,8 +223,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Set credentials to localStorage
-      localStorage.setItem('custom_uid', data.uid);
-      localStorage.setItem('custom_password', psw);
+      safeStorage.setItem('custom_uid', data.uid);
+      safeStorage.setItem('custom_password', psw);
 
       setUser({
         uid: data.uid,
@@ -217,8 +242,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    localStorage.removeItem('custom_uid');
-    localStorage.removeItem('custom_password');
+    safeStorage.removeItem('custom_uid');
+    safeStorage.removeItem('custom_password');
     setUser(null);
     setProfile(null);
     await firebaseSignOut(auth);

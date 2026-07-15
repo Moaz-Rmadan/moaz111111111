@@ -319,7 +319,12 @@ function AppContent() {
   
   // Load initial settings from localStorage if available
   const [settings, setSettings] = useState<CompanySettings>(() => {
-    const saved = localStorage.getItem('company_settings');
+    let saved = null;
+    try {
+      saved = localStorage.getItem('company_settings');
+    } catch (e) {
+      console.warn("localStorage access denied:", e);
+    }
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -358,7 +363,11 @@ function AppContent() {
       if (docSnap.exists()) {
         const data = docSnap.data() as CompanySettings;
         setSettings(data);
-        localStorage.setItem('company_settings', JSON.stringify(data));
+        try {
+          localStorage.setItem('company_settings', JSON.stringify(data));
+        } catch (e) {
+          console.warn("localStorage access denied:", e);
+        }
         // Force trigger storage event to sync other files/components if needed
         window.dispatchEvent(new Event('storage'));
 
@@ -393,7 +402,11 @@ function AppContent() {
           throw err;
         }
       });
-      localStorage.setItem('company_settings', JSON.stringify(settingsToSave));
+      try {
+        localStorage.setItem('company_settings', JSON.stringify(settingsToSave));
+      } catch (e) {
+        console.warn("localStorage access denied:", e);
+      }
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new Event('company-settings-updated'));
     } catch (err) {
@@ -432,7 +445,12 @@ const calculateLivePayroll = (
 
   let currentSettings: CompanySettings | null = companySettings || null;
   if (!currentSettings) {
-    const saved = localStorage.getItem('company_settings');
+    let saved = null;
+    try {
+      saved = localStorage.getItem('company_settings');
+    } catch (e) {
+      console.warn("localStorage access denied:", e);
+    }
     if (saved) {
       try {
         currentSettings = JSON.parse(saved);

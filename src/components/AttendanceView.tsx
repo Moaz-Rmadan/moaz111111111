@@ -243,14 +243,17 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
 
   const filteredEmployeeStatus = employeeStatus.filter(e => {
     const matchesDept = selectedDept === 'الكل' || e.department === selectedDept;
-    const matchesSearch = e.name.toLowerCase().includes(searchTerm.trim().toLowerCase());
+    const empName = e.name ? String(e.name).toLowerCase() : '';
+    const matchesSearch = empName.includes(searchTerm.trim().toLowerCase());
     return matchesDept && matchesSearch;
   });
 
   const filteredHistory = attendanceHistory.filter(att => {
+    if (!att) return false;
     const emp = employees.find(e => e.id === att.employeeId);
     const matchesDept = selectedDept === 'الكل' || emp?.department === selectedDept;
-    const matchesSearch = emp ? emp.name.toLowerCase().includes(searchTerm.trim().toLowerCase()) : false;
+    const empName = emp?.name ? String(emp.name).toLowerCase() : '';
+    const matchesSearch = empName.includes(searchTerm.trim().toLowerCase());
     
     let matchesDateRange = true;
     if (searchStartDate) {

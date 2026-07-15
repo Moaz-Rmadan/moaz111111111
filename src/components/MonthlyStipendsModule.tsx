@@ -947,41 +947,304 @@ export const MonthlyStipendsModule: React.FC = () => {
     const totalAmount = filtered.reduce((sum, b) => sum + b.monthlyAmount, 0);
     const avgAmount = filtered.length > 0 ? Math.round(totalAmount / filtered.length) : 0;
 
+    const getAddress = (b: any) => {
+      const details = b.paymentDetails ? b.paymentDetails.trim() : '';
+      const phone = b.phone ? b.phone.trim() : '';
+      const notes = b.notes ? b.notes.trim() : '';
+      
+      if (details && details !== phone) {
+        return details;
+      }
+      
+      if (notes && !notes.includes('مستورد من كشف')) {
+        return notes;
+      }
+      
+      return '';
+    };
+
+    const isDigitalRemittance = categoryFilter === 'حوالات رقمية' || methodFilter === 'انستا باي' || methodFilter === 'فودافون كاش';
+    const reportTitle = isDigitalRemittance 
+      ? 'كشف الحوالات الشهرية الرقمية المعتمد' 
+      : 'كشف مستفيدي الشهريات والمساعدات المنتظمة';
+
     let html = `
       <html dir="rtl">
         <head>
-          <title>كشف مستفيدي الشهريات - نظام الإدارة المالي</title>
+          <title>${reportTitle} - نظام الإدارة المالي</title>
           <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 25px; color: #1e293b; background: #fff; }
-            .header-container { border-bottom: 3px double #cbd5e1; padding-bottom: 15px; margin-bottom: 25px; text-align: center; }
-            h2 { margin: 0 0 5px 0; font-weight: 900; font-size: 24px; color: #0f172a; }
-            h4 { margin: 0; color: #475569; font-size: 14px; }
-            .meta-info { display: flex; justify-content: space-between; margin-top: 15px; font-size: 12px; color: #64748b; font-weight: 600; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #cbd5e1; padding: 10px 12px; text-align: right; font-size: 11px; }
-            th { background-color: #f8fafc; font-weight: 800; color: #0f172a; }
-            tr:nth-child(even) { background-color: #f8fafc; }
-            .amount { font-family: monospace; font-weight: 900; text-align: left; font-size: 12px; color: #0f172a; }
-            .badge { padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; display: inline-block; }
-            .badge-active { background-color: #dcfce7; color: #15803d; }
-            .badge-suspended { background-color: #fee2e2; color: #b91c1c; }
-            .summary-cards { display: grid; grid-template-cols: repeat(3, 1fr); gap: 15px; margin-top: 25px; }
-            .card { border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; background: #f8fafc; }
-            .card-title { font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 4px; }
-            .card-value { font-size: 16px; font-weight: 900; color: #0f172a; }
-            .signatures { display: grid; grid-template-cols: repeat(3, 1fr); gap: 20px; margin-top: 50px; text-align: center; font-size: 12px; }
-            .sig-box { border-top: 1px dashed #94a3b8; padding-top: 10px; margin-top: 40px; font-weight: bold; color: #475569; }
-            .footer { margin-top: 60px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap');
+            
+            * {
+              box-sizing: border-box;
+            }
+            
+            body {
+              font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+              padding: 30px;
+              color: #1e1b18;
+              background-color: #faf5ee; /* Warm sand paper-like background tint */
+              margin: 0;
+              direction: rtl;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            
+            .header-container {
+              border-bottom: 3px double #000000;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+              text-align: center;
+            }
+            
+            h2 {
+              margin: 0 0 8px 0;
+              font-weight: 900;
+              font-size: 28px;
+              color: #000000;
+              letter-spacing: -0.5px;
+            }
+            
+            h4 {
+              margin: 0;
+              color: #4a3c31;
+              font-size: 15px;
+              font-weight: 700;
+            }
+            
+            .meta-info {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 20px;
+              font-size: 13px;
+              color: #332211;
+              font-weight: 800;
+              background-color: #eedcc3;
+              padding: 8px 15px;
+              border-radius: 8px;
+              border: 1px solid rgba(0,0,0,0.08);
+            }
+            
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+              border: 2.5px solid #000000; /* Crisp dark border */
+              background-color: #ffffff;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            }
+            
+            th, td {
+              border: 1.5px solid #000000; /* Dark thick borders matching the image */
+              padding: 16px 12px;
+              text-align: center; /* Center everything */
+              vertical-align: middle;
+            }
+            
+            th {
+              background-color: #e6d5be; /* Peach/beige header background */
+              font-weight: 900;
+              color: #000000;
+              font-size: 15px;
+              letter-spacing: 0.5px;
+              padding: 18px 12px;
+            }
+            
+            tr:nth-child(even) {
+              background-color: #fcf4e8; /* Alternating light peach background */
+            }
+            
+            tr:hover {
+              background-color: #f9ede0;
+            }
+            
+            .serial-col {
+              font-size: 18px;
+              font-weight: 900;
+              color: #000000;
+            }
+            
+            .name-col {
+              padding: 14px 10px;
+            }
+            
+            .name-text {
+              font-size: 22px; /* Very large bold name, centered as requested */
+              font-weight: 900;
+              color: #000000;
+              display: block;
+              line-height: 1.3;
+            }
+            
+            .address-text {
+              font-size: 13px;
+              font-weight: 700;
+              color: #4a3e3d;
+              display: inline-block;
+              background-color: rgba(255, 255, 255, 0.85);
+              padding: 4px 12px;
+              border-radius: 6px;
+              border: 1px dashed rgba(0, 0, 0, 0.25);
+              margin-top: 6px;
+              max-width: 95%;
+              word-wrap: break-word;
+            }
+            
+            .address-text-empty {
+              font-size: 11px;
+              font-weight: 600;
+              color: #8c7e7d;
+              display: inline-block;
+              background-color: rgba(0, 0, 0, 0.03);
+              padding: 3px 10px;
+              border-radius: 6px;
+              border: 1px dotted rgba(0, 0, 0, 0.15);
+              margin-top: 6px;
+            }
+            
+            .phone-col {
+              font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+              font-size: 18px;
+              font-weight: 800;
+              color: #000000;
+              letter-spacing: 0.5px;
+            }
+            
+            .phone-text {
+              margin-bottom: 4px;
+            }
+            
+            .method-badge {
+              font-family: 'Cairo', sans-serif;
+              display: inline-block;
+              padding: 2px 8px;
+              border-radius: 5px;
+              font-size: 11px;
+              font-weight: 800;
+              border: 1px solid rgba(0,0,0,0.15);
+              margin-top: 2px;
+            }
+            
+            .method-instapay {
+              background-color: #e6fcf5;
+              color: #0ca678;
+              border-color: #b2f2bb;
+            }
+            
+            .method-vodafone {
+              background-color: #fff5f5;
+              color: #fa5252;
+              border-color: #ffc9c9;
+            }
+            
+            .method-other {
+              background-color: #f8f9fa;
+              color: #495057;
+              border-color: #dee2e6;
+            }
+            
+            .amount-col {
+              font-family: 'JetBrains Mono', sans-serif;
+              font-size: 20px;
+              font-weight: 900;
+              color: #000000;
+            }
+            
+            .amount-value {
+              letter-spacing: -0.5px;
+            }
+            
+            .amount-currency {
+              font-family: 'Cairo', sans-serif;
+              font-size: 13px;
+              font-weight: 800;
+              margin-right: 4px;
+              color: #495057;
+            }
+            
+            .summary-cards {
+              display: grid;
+              grid-template-cols: repeat(3, 1fr);
+              gap: 20px;
+              margin-top: 35px;
+              page-break-inside: avoid;
+            }
+            
+            .card {
+              border: 2px solid #000000;
+              padding: 15px;
+              border-radius: 12px;
+              background: #fdfaf2;
+              text-align: center;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            }
+            
+            .card-title {
+              font-size: 12px;
+              color: #4a3c31;
+              font-weight: 800;
+              margin-bottom: 6px;
+              text-transform: uppercase;
+            }
+            
+            .card-value {
+              font-size: 20px;
+              font-weight: 900;
+              color: #000000;
+              font-family: 'JetBrains Mono', 'Cairo', sans-serif;
+            }
+            
+            .signatures {
+              display: grid;
+              grid-template-cols: repeat(3, 1fr);
+              gap: 30px;
+              margin-top: 50px;
+              text-align: center;
+              font-size: 13px;
+              page-break-inside: avoid;
+            }
+            
+            .signatures p {
+              margin: 0;
+              font-weight: 800;
+              color: #000000;
+            }
+            
+            .sig-box {
+              border-top: 1.5px dashed #000000;
+              padding-top: 12px;
+              margin-top: 45px;
+              font-weight: 900;
+              color: #2c2520;
+              font-size: 14px;
+            }
+            
+            .footer {
+              margin-top: 60px;
+              text-align: center;
+              font-size: 11px;
+              color: #7a6e67;
+              border-top: 1px solid rgba(0,0,0,0.1);
+              padding-top: 15px;
+              font-weight: 700;
+            }
+            
             @media print {
-              body { padding: 0; }
-              @page { size: A4 portrait; margin: 1.5cm; }
+              body {
+                padding: 0;
+                background-color: #faf5ee; /* Force warm sand paper look in printing */
+              }
+              @page {
+                size: A4 portrait;
+                margin: 1.2cm;
+              }
             }
           </style>
         </head>
         <body>
           <div class="header-container">
-            <h2>كشف مستفيدي الشهريات والمساعدات المنتظمة</h2>
-            <h4>بوابة الإدارة المالية والضمان الاجتماعي الموحد</h4>
+            <h2>${reportTitle}</h2>
+            <h4>بوابة الإدارة المالية والضمان الاجتماعي الموحد للمصنع</h4>
             <div class="meta-info">
               <span>التصنيف المفلتر: ${categoryFilter}</span>
               <span>طريقة الصرف: ${methodFilter}</span>
@@ -992,31 +1255,48 @@ export const MonthlyStipendsModule: React.FC = () => {
           <table>
             <thead>
               <tr>
-                <th style="width: 5%">#</th>
-                <th style="width: 25%">اسم المستفيد</th>
-                <th style="width: 15%">التصنيف</th>
-                <th style="width: 15%">طريقة الصرف</th>
-                <th style="width: 12%">المبلغ الشهري</th>
-                <th style="width: 13%">رقم الهاتف</th>
-                <th style="width: 15%">الحالة</th>
+                <th style="width: 7%">م</th>
+                <th style="width: 53%">الاسم والعنوان المستفيد</th>
+                <th style="width: 25%">رقم الهاتف / المحفظة</th>
+                <th style="width: 15%">المبلغ</th>
               </tr>
             </thead>
             <tbody>
     `;
 
     filtered.forEach((b, index) => {
+      const address = getAddress(b);
+      const displayAddress = address 
+        ? `<div class="address-text">📍 العنوان: ${address}</div>`
+        : `<div class="address-text-empty">📍 لم يتم تحديد العنوان بعد</div>`;
+
+      // Format payment method and phone
+      let displayMethodPhone = '';
+      if (b.phone) {
+        displayMethodPhone = `<div class="phone-text">${b.phone}</div>`;
+      } else {
+        displayMethodPhone = `<div class="phone-text">-</div>`;
+      }
+
+      if (b.paymentMethod) {
+        const methodClass = b.paymentMethod === 'انستا باي' ? 'method-instapay' : 
+                            b.paymentMethod === 'فودافون كاش' ? 'method-vodafone' : 'method-other';
+        displayMethodPhone += `<div class="method-badge ${methodClass}">${b.paymentMethod}</div>`;
+      }
+
       html += `
         <tr>
-          <td>${index + 1}</td>
-          <td><strong>${b.name}</strong><br/><span style="font-size: 9px; color: #64748b; font-weight: normal;">${b.notes || ''}</span></td>
-          <td>${b.category}</td>
-          <td>${b.paymentMethod} ${b.paymentDetails ? `(${b.paymentDetails})` : ''}</td>
-          <td class="amount">${b.monthlyAmount.toLocaleString()} ج.م</td>
-          <td>${b.phone || '-'}</td>
-          <td>
-            <span class="badge ${b.status === 'نشط' ? 'badge-active' : 'badge-suspended'}">
-              ${b.status}
-            </span>
+          <td class="serial-col">${index + 1}</td>
+          <td class="name-col">
+            <span class="name-text">${b.name}</span>
+            ${displayAddress}
+          </td>
+          <td class="phone-col">
+            ${displayMethodPhone}
+          </td>
+          <td class="amount-col">
+            <span class="amount-value">${b.monthlyAmount.toLocaleString('en-US')}</span>
+            <span class="amount-currency">ج.م</span>
           </td>
         </tr>
       `;
@@ -1028,36 +1308,36 @@ export const MonthlyStipendsModule: React.FC = () => {
 
           <div class="summary-cards">
             <div class="card">
-              <div class="card-title">إجمالي عدد المستفيدين المدرجين</div>
-              <div class="card-value">${filtered.length} مستفيد</div>
+              <div class="card-title">إجمالي الحوالات المخططة</div>
+              <div class="card-value">${filtered.length} حوالة مستفيدة</div>
             </div>
             <div class="card">
-              <div class="card-title">إجمالي المخصص المالي الشهري</div>
-              <div class="card-value">${totalAmount.toLocaleString()} ج.م</div>
+              <div class="card-title">إجمالي القيمة المالية للحوالات</div>
+              <div class="card-value">${totalAmount.toLocaleString('en-US')} ج.م</div>
             </div>
             <div class="card">
-              <div class="card-title">متوسط المخصص المالي للفرد</div>
-              <div class="card-value">${avgAmount.toLocaleString()} ج.م</div>
+              <div class="card-title">متوسط قيمة الحوالة الواحدة</div>
+              <div class="card-value">${avgAmount.toLocaleString('en-US')} ج.م</div>
             </div>
           </div>
 
           <div class="signatures">
             <div>
-              <p>توقيع المحاسب المختص</p>
+              <p>إعداد المحاسب المختص</p>
               <div class="sig-box">أ/ معاذ المحاسب</div>
             </div>
             <div>
-              <p>توقيع المراجعة والرقابة</p>
+              <p>مراجعة الحسابات والرقابة</p>
               <div class="sig-box">أ/ إسماعيل نبهان</div>
             </div>
             <div>
-              <p>اعتماد وتفويض الصرف</p>
-              <div class="sig-box">المدير العام للمركز</div>
+              <p>اعتماد وتفويض الصرف المالي</p>
+              <div class="sig-box">المدير العام للمصنع</div>
             </div>
           </div>
 
           <div class="footer">
-            النظام المالي الإلكتروني المتكامل للمصنع - تم توليد وطباعة هذا التقرير آلياً - صفحة 1 من 1
+            النظام المالي الإلكتروني المتكامل للمصنع - تم توليد وتحسين وطباعة هذا الكشف تلقائياً باحترافية - صفحة 1 من 1
           </div>
         </body>
       </html>
@@ -1637,32 +1917,42 @@ export const MonthlyStipendsModule: React.FC = () => {
   };
 
   // Helper values for display stats
-  const totalActiveBeneficiaries = beneficiaries.filter(b => b.status === 'نشط').length;
+  const totalActiveBeneficiaries = beneficiaries.filter(b => b && b.status === 'نشط').length;
   const totalMonthlyAllocations = beneficiaries
-    .filter(b => b.status === 'نشط')
-    .reduce((sum, b) => sum + b.monthlyAmount, 0);
+    .filter(b => b && b.status === 'نشط')
+    .reduce((sum, b) => sum + (Number(b.monthlyAmount) || 0), 0);
 
   const statsByMethod = {
-    envelope: beneficiaries.filter(b => b.status === 'نشط' && b.paymentMethod === 'ظرف مالي').length,
-    envelopeAmount: beneficiaries.filter(b => b.status === 'نشط' && b.paymentMethod === 'ظرف مالي').reduce((sum, b) => sum + b.monthlyAmount, 0),
-    instapay: beneficiaries.filter(b => b.status === 'نشط' && b.paymentMethod === 'انستا باي').length,
-    instapayAmount: beneficiaries.filter(b => b.status === 'نشط' && b.paymentMethod === 'انستا باي').reduce((sum, b) => sum + b.monthlyAmount, 0),
-    vodafone: beneficiaries.filter(b => b.status === 'نشط' && b.paymentMethod === 'فودافون كاش').length,
-    vodafoneAmount: beneficiaries.filter(b => b.status === 'نشط' && b.paymentMethod === 'فودافون كاش').reduce((sum, b) => sum + b.monthlyAmount, 0),
-    hand: beneficiaries.filter(b => b.status === 'نشط' && b.paymentMethod === 'نقدي باليد').length,
-    handAmount: beneficiaries.filter(b => b.status === 'نشط' && b.paymentMethod === 'نقدي باليد').reduce((sum, b) => sum + b.monthlyAmount, 0),
+    envelope: beneficiaries.filter(b => b && b.status === 'نشط' && b.paymentMethod === 'ظرف مالي').length,
+    envelopeAmount: beneficiaries.filter(b => b && b.status === 'نشط' && b.paymentMethod === 'ظرف مالي').reduce((sum, b) => sum + (Number(b.monthlyAmount) || 0), 0),
+    instapay: beneficiaries.filter(b => b && b.status === 'نشط' && b.paymentMethod === 'انستا باي').length,
+    instapayAmount: beneficiaries.filter(b => b && b.status === 'نشط' && b.paymentMethod === 'انستا باي').reduce((sum, b) => sum + (Number(b.monthlyAmount) || 0), 0),
+    vodafone: beneficiaries.filter(b => b && b.status === 'نشط' && b.paymentMethod === 'فودافون كاش').length,
+    vodafoneAmount: beneficiaries.filter(b => b && b.status === 'نشط' && b.paymentMethod === 'فودافون كاش').reduce((sum, b) => sum + (Number(b.monthlyAmount) || 0), 0),
+    hand: beneficiaries.filter(b => b && b.status === 'نشط' && b.paymentMethod === 'نقدي باليد').length,
+    handAmount: beneficiaries.filter(b => b && b.status === 'نشط' && b.paymentMethod === 'نقدي باليد').reduce((sum, b) => sum + (Number(b.monthlyAmount) || 0), 0),
   };
 
   const filteredBeneficiaries = beneficiaries.filter(b => {
-    const matchesSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          b.phone.includes(searchTerm) || 
-                          (b.paymentDetails && b.paymentDetails.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (b.notes && b.notes.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = categoryFilter === 'الكل' || b.category === categoryFilter;
-    const matchesMethod = methodFilter === 'الكل' || b.paymentMethod === methodFilter;
-    const matchesStatus = statusFilter === 'الكل' || b.status === statusFilter;
-    const matchesMinAmount = minAmount === '' || b.monthlyAmount >= Number(minAmount);
-    const matchesMaxAmount = maxAmount === '' || b.monthlyAmount <= Number(maxAmount);
+    if (!b) return false;
+    const bName = b.name ? String(b.name).toLowerCase() : '';
+    const bPhone = b.phone ? String(b.phone) : '';
+    const bDetails = b.paymentDetails ? String(b.paymentDetails).toLowerCase() : '';
+    const bNotes = b.notes ? String(b.notes).toLowerCase() : '';
+    const bCategory = b.category || '';
+    const bMethod = b.paymentMethod || '';
+    const bStatus = b.status || 'نشط';
+    const bAmount = Number(b.monthlyAmount) || 0;
+
+    const matchesSearch = bName.includes(searchTerm.toLowerCase()) || 
+                          bPhone.includes(searchTerm) || 
+                          bDetails.includes(searchTerm.toLowerCase()) ||
+                          bNotes.includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'الكل' || bCategory === categoryFilter;
+    const matchesMethod = methodFilter === 'الكل' || bMethod === methodFilter;
+    const matchesStatus = statusFilter === 'الكل' || bStatus === statusFilter;
+    const matchesMinAmount = minAmount === '' || bAmount >= Number(minAmount);
+    const matchesMaxAmount = maxAmount === '' || bAmount <= Number(maxAmount);
     return matchesSearch && matchesCategory && matchesMethod && matchesStatus && matchesMinAmount && matchesMaxAmount;
   });
 
@@ -1940,14 +2230,14 @@ export const MonthlyStipendsModule: React.FC = () => {
 
                                 <div className="text-left">
                                   <span className="text-[10px] font-bold text-slate-400 block">إجمالي الدورة</span>
-                                  <span className="text-lg font-black font-mono text-primary">{latestRun.totalAmount.toLocaleString()} ج.م</span>
+                                  <span className="text-lg font-black font-mono text-primary">{(Number(latestRun.totalAmount) || 0).toLocaleString()} ج.م</span>
                                 </div>
                               </div>
 
                               <div className="space-y-1.5">
                                 <div className="flex justify-between text-xs font-bold text-slate-500">
                                   <span>معدل الصرف والتحويل الكلي:</span>
-                                  <span className="font-mono">{percent}% ({latestRun.paidAmount.toLocaleString()} من {latestRun.totalAmount.toLocaleString()} ج.م)</span>
+                                  <span className="font-mono">{percent}% ({(Number(latestRun.paidAmount) || 0).toLocaleString()} من {(Number(latestRun.totalAmount) || 0).toLocaleString()} ج.م)</span>
                                 </div>
                                 <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
                                   <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${percent}%` }} />
@@ -2021,9 +2311,9 @@ export const MonthlyStipendsModule: React.FC = () => {
                   
                   <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
                     {(['تبع معتز', 'تبع كريمة ابو العنين', 'تبع وليد العدوي', 'تبع اسماعيل نبهان', 'تبع معاذ', 'تبع محمد سليم', 'أخرى'] as const).map(cat => {
-                      const count = beneficiaries.filter(b => b.category === cat).length;
-                      const activeCount = beneficiaries.filter(b => b.category === cat && b.status === 'نشط').length;
-                      const sumAmount = beneficiaries.filter(b => b.category === cat && b.status === 'نشط').reduce((sum, b) => sum + b.monthlyAmount, 0);
+                      const count = beneficiaries.filter(b => b && b.category === cat).length;
+                      const activeCount = beneficiaries.filter(b => b && b.category === cat && b.status === 'نشط').length;
+                      const sumAmount = beneficiaries.filter(b => b && b.category === cat && b.status === 'نشط').reduce((sum, b) => sum + (Number(b.monthlyAmount) || 0), 0);
 
                       return (
                         <div key={cat} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 text-right space-y-1">
@@ -3109,8 +3399,8 @@ export const MonthlyStipendsModule: React.FC = () => {
                   </button>
 
                   {(['تبع معتز', 'تبع كريمة ابو العنين', 'تبع وليد العدوي', 'تبع اسماعيل نبهان', 'تبع معاذ', 'تبع محمد سليم', 'حوالات رقمية', 'أخرى'] as const).map((cat) => {
-                    const count = beneficiaries.filter(b => b.category === cat).length;
-                    const amount = beneficiaries.filter(b => b.category === cat).reduce((sum, b) => sum + b.monthlyAmount, 0);
+                    const count = beneficiaries.filter(b => b && b.category === cat).length;
+                    const amount = beneficiaries.filter(b => b && b.category === cat).reduce((sum, b) => sum + (Number(b.monthlyAmount) || 0), 0);
                     const isActive = categoryFilter === cat;
 
                     return (
@@ -3394,7 +3684,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                                 <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-slate-600 font-bold">{b.category}</span>
                               </td>
                               <td className="py-4 px-6">
-                                <span className="font-mono text-slate-900 font-black text-sm">{b.monthlyAmount.toLocaleString()} ج.م</span>
+                                <span className="font-mono text-slate-900 font-black text-sm">{(Number(b.monthlyAmount) || 0).toLocaleString()} ج.م</span>
                               </td>
                               <td className="py-4 px-6">
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black ${
