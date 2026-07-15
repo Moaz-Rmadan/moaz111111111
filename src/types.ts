@@ -319,6 +319,7 @@ export interface Attendance {
   checkIn: string;
   checkOut: string;
   status: 'حضور' | 'غياب' | 'تأخير' | 'إجازة';
+  isExcused?: boolean;
 }
 
 export interface FinancialTransaction {

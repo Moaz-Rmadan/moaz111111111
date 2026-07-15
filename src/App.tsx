@@ -469,11 +469,11 @@ const calculateLivePayroll = (
       return acc;
     }
     let lateMins = 0;
-    const deductLate = currentSettings?.deductLateArrival !== false;
+    const deductLate = currentSettings?.deductLateArrival !== false && !a.isExcused;
     if (deductLate && checkInMins > officialStart + gracePeriod) {
       lateMins = checkInMins - officialStart;
     }
-    const deductEarly = currentSettings?.deductEarlyDeparture !== false;
+    const deductEarly = currentSettings?.deductEarlyDeparture !== false && !a.isExcused;
     const earlyMins = deductEarly ? Math.max(0, officialEnd - checkOutMins) : 0;
     acc.daysWorked += 1;
     const dayDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
@@ -14770,11 +14770,11 @@ const PayrollView = React.memo(function PayrollView({
                 daysWorked += 0.5;
               } else {
                 let lateMins = 0;
-                const deductLate = companyInfo?.deductLateArrival !== false;
+                const deductLate = companyInfo?.deductLateArrival !== false && !att.isExcused;
                 if (deductLate && checkInMins > officialStart + gracePeriod) {
                   lateMins = checkInMins - officialStart;
                 }
-                const deductEarly = companyInfo?.deductEarlyDeparture !== false;
+                const deductEarly = companyInfo?.deductEarlyDeparture !== false && !att.isExcused;
                 const earlyMins = deductEarly ? Math.max(0, officialEnd - checkOutMins) : 0;
                 daysWorked += 1;
                 const dayDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
@@ -14813,11 +14813,11 @@ const PayrollView = React.memo(function PayrollView({
                 daysWorked = 0.5;
               } else {
                 let lateMins = 0;
-                const deductLate = companyInfo?.deductLateArrival !== false;
+                const deductLate = companyInfo?.deductLateArrival !== false && !att.isExcused;
                 if (deductLate && checkInMins > officialStart + gracePeriod) {
                   lateMins = checkInMins - officialStart;
                 }
-                const deductEarly = companyInfo?.deductEarlyDeparture !== false;
+                const deductEarly = companyInfo?.deductEarlyDeparture !== false && !att.isExcused;
                 const earlyMins = deductEarly ? Math.max(0, officialEnd - checkOutMins) : 0;
                 daysWorked = 1;
                 const dayDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Clock, CheckCircle2, Calendar, Edit2, Trash2, Users, Settings, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, Calendar, Edit2, Trash2, Users, Settings, AlertCircle, RefreshCw, Search, X } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, limit, writeBatch, startAfter, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Attendance, Employee } from '../types';
@@ -14,6 +14,10 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
   const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchStartDate, setSearchStartDate] = useState<string>('');
+  const [searchEndDate, setSearchEndDate] = useState<string>('');
+  const [allLoaded, setAllLoaded] = useState<boolean>(false);
   
   // Custom shift/grace settings (initialized to standard values)
   const [shiftStart, setShiftStart] = useState<string>('08:00');
@@ -80,32 +84,41 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
     }
   };
 
-  const fetchAttendanceHistory = async (isInitial = false) => {
+  const fetchAttendanceHistory = async (isInitial = false, loadAll = false) => {
     if (loading) return;
-    if (!isInitial && !hasMore) return;
+    if (!isInitial && !hasMore && !loadAll) return;
     setLoading(true);
 
     try {
       let q = query(
         collection(db, 'attendance'), 
-        orderBy('date', 'desc'),
-        limit(40)
+        orderBy('date', 'desc')
       );
 
-      if (!isInitial && lastVisible) {
+      if (!loadAll) {
+        q = query(q, limit(150));
+      }
+
+      if (!isInitial && lastVisible && !loadAll) {
         q = query(q, startAfter(lastVisible));
       }
 
       const snap = await getDocs(q);
       const newDocs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance));
       
-      if (snap.docs.length < 40) setHasMore(false);
-      setLastVisible(snap.docs[snap.docs.length - 1]);
-      
-      if (isInitial) {
+      if (loadAll) {
+        setHasMore(false);
+        setAllLoaded(true);
         setAttendanceHistory(newDocs);
       } else {
-        setAttendanceHistory(prev => [...prev, ...newDocs]);
+        if (snap.docs.length < 150) setHasMore(false);
+        setLastVisible(snap.docs[snap.docs.length - 1]);
+        
+        if (isInitial) {
+          setAttendanceHistory(newDocs);
+        } else {
+          setAttendanceHistory(prev => [...prev, ...newDocs]);
+        }
       }
     } catch (err) {
       console.error("Error fetching attendance history:", err);
@@ -205,6 +218,7 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
         status: finalStatus,
         checkIn: finalStatus === 'غياب' || finalStatus === 'إجازة' ? '' : editingAttendance.checkIn,
         checkOut: finalStatus === 'غياب' || finalStatus === 'إجازة' ? '' : editingAttendance.checkOut,
+        isExcused: finalStatus === 'غياب' || finalStatus === 'إجازة' ? false : (editingAttendance.isExcused || false),
       });
 
       setEditingAttendance(null);
@@ -227,13 +241,27 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
     }
   };
 
-  const filteredEmployeeStatus = selectedDept === 'الكل' ? employeeStatus : employeeStatus.filter(e => e.department === selectedDept);
-  const filteredHistory = selectedDept === 'الكل'
-    ? attendanceHistory
-    : attendanceHistory.filter(att => {
-        const emp = employees.find(e => e.id === att.employeeId);
-        return emp?.department === selectedDept;
-      });
+  const filteredEmployeeStatus = employeeStatus.filter(e => {
+    const matchesDept = selectedDept === 'الكل' || e.department === selectedDept;
+    const matchesSearch = e.name.toLowerCase().includes(searchTerm.trim().toLowerCase());
+    return matchesDept && matchesSearch;
+  });
+
+  const filteredHistory = attendanceHistory.filter(att => {
+    const emp = employees.find(e => e.id === att.employeeId);
+    const matchesDept = selectedDept === 'الكل' || emp?.department === selectedDept;
+    const matchesSearch = emp ? emp.name.toLowerCase().includes(searchTerm.trim().toLowerCase()) : false;
+    
+    let matchesDateRange = true;
+    if (searchStartDate) {
+      matchesDateRange = matchesDateRange && att.date >= searchStartDate;
+    }
+    if (searchEndDate) {
+      matchesDateRange = matchesDateRange && att.date <= searchEndDate;
+    }
+    
+    return matchesDept && matchesSearch && matchesDateRange;
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -363,6 +391,115 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
         </Card>
       </div>
 
+      {/* Search & Filters Row */}
+      <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col xl:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col lg:flex-row gap-4 items-center w-full xl:w-auto">
+          {/* Employee Name Search */}
+          <div className="relative w-full lg:w-72">
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <Search size={18} />
+            </span>
+            <Input
+              type="text"
+              placeholder="البحث باسم الموظف..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pr-10 pl-10 h-11 rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-all font-bold text-sm text-right"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Date Range: From Date */}
+          <div className="relative w-full lg:w-48">
+            <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 h-11 w-full text-slate-700">
+              <span className="text-[10px] font-black text-slate-400 ml-2 shrink-0">من تاريخ:</span>
+              <input
+                type="date"
+                value={searchStartDate}
+                onChange={(e) => setSearchStartDate(e.target.value)}
+                className="bg-transparent border-none text-xs font-black text-slate-700 outline-none w-full cursor-pointer text-right"
+                title="تصفية من تاريخ"
+              />
+              {searchStartDate && (
+                <button
+                  onClick={() => setSearchStartDate('')}
+                  className="mr-2 text-slate-400 hover:text-slate-600 font-bold text-xs"
+                >
+                  X
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Date Range: To Date */}
+          <div className="relative w-full lg:w-48">
+            <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 h-11 w-full text-slate-700">
+              <span className="text-[10px] font-black text-slate-400 ml-2 shrink-0">إلى تاريخ:</span>
+              <input
+                type="date"
+                value={searchEndDate}
+                onChange={(e) => setSearchEndDate(e.target.value)}
+                className="bg-transparent border-none text-xs font-black text-slate-700 outline-none w-full cursor-pointer text-right"
+                title="تصفية إلى تاريخ"
+              />
+              {searchEndDate && (
+                <button
+                  onClick={() => setSearchEndDate('')}
+                  className="mr-2 text-slate-400 hover:text-slate-600 font-bold text-xs"
+                >
+                  X
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Load all data button if not loaded yet */}
+          {!allLoaded ? (
+            <Button
+              onClick={() => fetchAttendanceHistory(true, true)}
+              disabled={loading}
+              variant="outline"
+              className="h-11 rounded-xl border-dashed border-primary/40 hover:border-primary text-primary hover:bg-primary/5 font-bold text-xs px-4 w-full lg:w-auto"
+            >
+              {loading ? (
+                <>جاري جلب السجل...</>
+              ) : (
+                <>جلب كامل السجل التاريخي للبحث المتقدم</>
+              )}
+            </Button>
+          ) : (
+            <Badge className="bg-green-50 text-green-700 border border-green-200 font-bold text-xs py-2 px-3 rounded-xl">
+              تم تحميل كامل السجل التاريخي بنجاح
+            </Badge>
+          )}
+        </div>
+
+        {/* Info indicators */}
+        <div className="flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-400 bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100 w-full xl:w-auto justify-center xl:justify-start">
+          <span>نتائج البحث الحالية:</span>
+          <span className="text-primary font-black bg-white px-2 py-0.5 rounded-lg border border-slate-200">
+            {filteredHistory.length} حركة مسجلة
+          </span>
+          {searchTerm && (
+            <span className="text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">
+              الموظف: "{searchTerm}"
+            </span>
+          )}
+          {(searchStartDate || searchEndDate) && (
+            <span className="text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">
+              الفترة: {searchStartDate || 'البداية'} ⟸ {searchEndDate || 'النهاية'}
+            </span>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Today's Checklist Panel */}
@@ -389,15 +526,26 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
                 </div>
                 
                 {emp.attendance ? (
-                  <Badge className={`border-none font-bold text-[10px] px-2 py-0.5 ${
-                    emp.attendance.status === 'حضور' ? 'bg-green-50 text-green-700 hover:bg-green-100' :
-                    emp.attendance.status === 'تأخير' ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' :
-                    emp.attendance.status === 'إجازة' ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' :
-                    'bg-red-50 text-red-700 hover:bg-red-100'
-                  }`}>
-                    {emp.attendance.status}
-                    {emp.attendance.checkIn && ` (${emp.attendance.checkIn})`}
-                  </Badge>
+                  <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+                    <Badge className={`border-none font-bold text-[10px] px-2 py-0.5 ${
+                      emp.attendance.status === 'حضور' ? 'bg-green-50 text-green-700' :
+                      emp.attendance.status === 'تأخير' ? 'bg-amber-50 text-amber-700' :
+                      emp.attendance.status === 'إجازة' ? 'bg-blue-50 text-blue-700' :
+                      'bg-red-50 text-red-700'
+                    }`}>
+                      {emp.attendance.status}
+                      {emp.attendance.checkIn && ` (${emp.attendance.checkIn})`}
+                    </Badge>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="w-7 h-7 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors"
+                      onClick={() => setEditingAttendance(emp.attendance!)}
+                      title="تعديل حركة اليوم"
+                    >
+                      <Edit2 size={10} />
+                    </Button>
+                  </div>
                 ) : (
                   <Button 
                     size="sm" 
@@ -619,6 +767,16 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
               <CardDescription className="text-slate-400 text-xs font-bold font-sans">تحديث تفاصيل الرصد وتصحيح الحركات لتسجيلها بشكل دقيق</CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-extrabold flex items-center justify-center text-xs animate-pulse">
+                  {employees.find(e => e.id === editingAttendance.employeeId)?.name.charAt(0) || 'م'}
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-slate-400">اسم الموظف</h4>
+                  <p className="text-xs font-black text-slate-800">{employees.find(e => e.id === editingAttendance.employeeId)?.name || 'موظف غير معروف'}</p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700">التاريخ</label>
@@ -640,24 +798,39 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
               </div>
 
               {editingAttendance.status !== 'غياب' && editingAttendance.status !== 'إجازة' && (
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">وقت الحضور</label>
-                    <Input 
-                      type="time" 
-                      value={editingAttendance.checkIn} 
-                      onChange={e => handleCheckInTime(e.target.value, true, editingAttendance)} 
-                      className="h-10 rounded-lg bg-white font-black" 
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">وقت الحضور</label>
+                      <Input 
+                        type="time" 
+                        value={editingAttendance.checkIn} 
+                        onChange={e => handleCheckInTime(e.target.value, true, editingAttendance)} 
+                        className="h-10 rounded-lg bg-white font-black" 
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">وقت الانصراف</label>
+                      <Input 
+                        type="time" 
+                        value={editingAttendance.checkOut} 
+                        onChange={e => setEditingAttendance({...editingAttendance, checkOut: e.target.value})} 
+                        className="h-10 rounded-lg bg-white font-black" 
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">وقت الانصراف</label>
-                    <Input 
-                      type="time" 
-                      value={editingAttendance.checkOut} 
-                      onChange={e => setEditingAttendance({...editingAttendance, checkOut: e.target.value})} 
-                      className="h-10 rounded-lg bg-white font-black" 
+
+                  <div className="flex items-center gap-2 bg-amber-50/50 p-3 rounded-xl border border-amber-100/50">
+                    <input
+                      type="checkbox"
+                      id="isExcusedCheck"
+                      checked={editingAttendance.isExcused || false}
+                      onChange={e => setEditingAttendance({...editingAttendance, isExcused: e.target.checked})}
+                      className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 accent-amber-600 cursor-pointer"
                     />
+                    <label htmlFor="isExcusedCheck" className="text-xs font-bold text-amber-900 cursor-pointer select-none">
+                      إعفاء الموظف من استقطاعات هذا اليوم (التأخير والانصراف المبكر)
+                    </label>
                   </div>
                 </div>
               )}

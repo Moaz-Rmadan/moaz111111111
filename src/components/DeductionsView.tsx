@@ -180,11 +180,11 @@ export function DeductionsView({
           const gracePeriod = 15;
 
           let lateMins = 0;
-          const deductLate = companyInfo?.deductLateArrival !== false;
+          const deductLate = companyInfo?.deductLateArrival !== false && !att.isExcused;
           if (deductLate && checkInMins > officialStart + gracePeriod) {
             lateMins = checkInMins - officialStart;
           }
-          const deductEarly = companyInfo?.deductEarlyDeparture !== false;
+          const deductEarly = companyInfo?.deductEarlyDeparture !== false && !att.isExcused;
           const earlyMins = deductEarly ? Math.max(0, officialEnd - checkOutMins) : 0;
 
           if (lateMins > 0 || earlyMins > 0) {
