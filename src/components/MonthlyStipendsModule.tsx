@@ -941,7 +941,9 @@ export const MonthlyStipendsModule: React.FC = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const filtered = filteredBeneficiaries;
+    const filtered = [...filteredBeneficiaries];
+    filtered.sort((a, b) => (Number(a.monthlyAmount) || 0) - (Number(b.monthlyAmount) || 0));
+    
     const totalAmount = filtered.reduce((sum, b) => sum + b.monthlyAmount, 0);
     const avgAmount = filtered.length > 0 ? Math.round(totalAmount / filtered.length) : 0;
 
@@ -1269,6 +1271,14 @@ export const MonthlyStipendsModule: React.FC = () => {
 
   const handlePrintCards = () => {
     const selected = beneficiaries.filter(b => selectedBeneficiaryIds.includes(b.id));
+    selected.sort((a, b) => {
+      // @ts-ignore - amount might not be in the interface but might be in the data
+      const amountA = Number(a.monthlyAmount || a.amount || 0);
+      // @ts-ignore
+      const amountB = Number(b.monthlyAmount || b.amount || 0);
+      return amountA - amountB;
+    });
+    
     if (selected.length === 0) {
       alert("يرجى اختيار مستفيدين للطباعة");
       return;
