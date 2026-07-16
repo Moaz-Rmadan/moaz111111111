@@ -14894,7 +14894,8 @@ const PayrollView = React.memo(function PayrollView({
     });
   }, [employees, attendance, transactions, productionRecords, selectedDailyDate, dailyMode, dailyStartDate, dailyEndDate]);
 
-  const filteredDailyPayroll = React.useMemo(() => {
+  // Renamed to avoid collision
+  const filteredDailyPayrollForView = React.useMemo(() => {
     return dailyPayrollData.filter(d => {
       const matchesDept = selectedDept === 'الكل' || d.employee.department === selectedDept;
       const matchesSearch = d.employee.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -14903,8 +14904,8 @@ const PayrollView = React.memo(function PayrollView({
   }, [dailyPayrollData, selectedDept, searchTerm]);
 
   const filteredDailyTotal = React.useMemo(() => {
-    return filteredDailyPayroll.reduce((sum, d) => sum + d.netSalary, 0);
-  }, [filteredDailyPayroll]);
+    return filteredDailyPayrollForView.reduce((sum, d) => sum + d.netSalary, 0);
+  }, [filteredDailyPayrollForView]);
 
   const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
   const [showGenerate, setShowGenerate] = useState(false);
@@ -15164,6 +15165,31 @@ const PayrollView = React.memo(function PayrollView({
     }));
   }, [filteredDraftPayrolls, employees, attendance, transactions, loans, productionRecords, companyInfo, roundSalaries]);
 
+  const processedDailyPayrolls = React.useMemo(() => {
+    const raw = dailyPayrollData.map(d => ({
+        ...d,
+        netSalary: d.netSalary
+    }));
+    if (!roundSalaries) return raw;
+    
+    return raw.map(d => ({
+        ...d,
+        netSalary: Math.ceil(d.netSalary / 5) * 5
+    }));
+  }, [dailyPayrollData, roundSalaries]);
+
+  const filteredDailyPayroll = React.useMemo(() => {
+    return processedDailyPayrolls.filter(d => {
+      const matchesDept = selectedDept === 'الكل' || d.employee.department === selectedDept;
+      const matchesSearch = d.employee.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesDept && matchesSearch;
+    });
+  }, [processedDailyPayrolls, selectedDept, searchTerm]);
+
+  const filteredTotalWeekly = React.useMemo(() => {
+    return processedPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+  }, [processedPayrolls]);
+
   const filteredModalVouchers = React.useMemo(() => {
     return processedPayrolls.filter(p => {
       const emp = employees.find(e => e.id === p.employeeId);
@@ -15172,10 +15198,6 @@ const PayrollView = React.memo(function PayrollView({
       return matchesDept && matchesSearch;
     });
   }, [processedPayrolls, employees, voucherDept, voucherSearch]);
-
-  const filteredTotalWeekly = React.useMemo(() => {
-    return processedPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
-  }, [processedPayrolls]);
 
   const voucherChunks = React.useMemo(() => {
     const selectedPayrolls = processedPayrolls.filter(p => selectedVoucherIds.includes(p.id));
@@ -15403,7 +15425,11 @@ const PayrollView = React.memo(function PayrollView({
           </div>
           <Button 
             variant={roundSalaries ? 'default' : 'outline'}
-            onClick={() => setRoundSalaries(!roundSalaries)}
+            onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setRoundSalaries(!roundSalaries);
+            }}
             className="h-10 rounded-xl font-black"
           >
             {roundSalaries ? 'إلغاء التقريب' : 'تقريب صافي الرواتب (لأقرب 5)'}
