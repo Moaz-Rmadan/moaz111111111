@@ -72,6 +72,7 @@ import { DeductionsView } from './components/DeductionsView';
 import { NumberDisplay, formatNumber, formatCurrencyParts } from './lib/numberUtils';
 import { FactoryResetModal } from './components/FactoryResetModal';
 import { MonthlyStipendsModule } from './components/MonthlyStipendsModule';
+import { MaterialCalculatorView } from './components/MaterialCalculatorView';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
 const logout = () => signOut(auth);
@@ -439,6 +440,14 @@ const calculateLivePayroll = (
   companySettings?: CompanySettings
 ) => {
   if (p.status !== 'مسودة') return p;
+  
+  // Stored draft payrolls in Firestore are pre-calculated and manually editable.
+  // Recalculating them dynamically in the UI causes them to be cleared out to zero if historical records
+  // aren't loaded or match differently, and overwrites manual user edits.
+  // Therefore, only recalculate virtual/temporary payrolls (id starts with 'live-' or 'temp-').
+  if (p.id && !p.id.startsWith('live-') && !p.id.startsWith('temp-')) {
+    return p;
+  }
   
   const emp = employees.find(e => e.id === p.employeeId);
   if (!emp) return p;
@@ -1911,7 +1920,7 @@ function MainApp({
 
     // 18. unsubPayrolls
     if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
-      const q = query(collection(db, 'payrolls'), where('status', '==', 'مسودة'));
+      const q = collection(db, 'payrolls');
       unsubPayrolls = onSnapshot(
         q,
         (snap) => {
@@ -2365,13 +2374,13 @@ function MainApp({
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setProductionMenuOpen(!productionMenuOpen)}
                   className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                    ['production', 'productionCosts', 'loading', 'deliveryReceipts'].includes(activeTab) 
+                    ['production', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator'].includes(activeTab) 
                     ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' 
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Layers size={20} className={['production', 'productionCosts', 'loading', 'deliveryReceipts'].includes(activeTab) ? 'text-primary' : ''} />
+                    <Layers size={20} className={['production', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator'].includes(activeTab) ? 'text-primary' : ''} />
                     <span className="font-black text-sm">خط الإنتاج</span>
                   </div>
                   <ChevronDown size={14} className={`transition-transform duration-300 ${productionMenuOpen ? 'rotate-180' : ''}`} />
@@ -2388,6 +2397,7 @@ function MainApp({
                       <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
                         <SubNavButton active={activeTab === 'production'} onClick={() => handleNavClick('production')} label="أوامر الشغل" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'productRecipes'} onClick={() => handleNavClick('productRecipes')} label="نماذج التكاليف" permission="production" profile={profile} />
+                        <SubNavButton active={activeTab === 'materialCalculator'} onClick={() => handleNavClick('materialCalculator')} label="حاسبة الخامات والقياسات" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'productionCosts'} onClick={() => handleNavClick('productionCosts')} label="تحليل التكاليف" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'loading'} onClick={() => handleNavClick('loading')} label="بيان التحميل" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'deliveryReceipts'} onClick={() => handleNavClick('deliveryReceipts')} label="محاضر الاستلام" permission="production" profile={profile} />
@@ -2700,6 +2710,7 @@ function MainApp({
             profile={profile}
           />
         )}
+        {activeTab === 'materialCalculator' && <MaterialCalculatorView />}
         {activeTab === 'issuances' && <Issuances items={items} issuances={issuances} costCenters={costCenters} />}
         {activeTab === 'stockAudit' && <StockAuditView items={items} warehouses={warehouses} audits={stockAudits} />}
         {activeTab === 'returns' && <Returns items={items} suppliers={suppliers} costCenters={costCenters} />}
@@ -15139,11 +15150,19 @@ const PayrollView = React.memo(function PayrollView({
     });
   }, [draftPayrolls, employees, selectedDept, searchTerm]);
 
+  const [roundSalaries, setRoundSalaries] = useState(false);
+
   const getLivePayroll = (p: Payroll) => calculateLivePayroll(p, employees, attendance, transactions, loans, productionRecords, companyInfo);
 
   const processedPayrolls = React.useMemo(() => {
-    return filteredDraftPayrolls.map(getLivePayroll);
-  }, [filteredDraftPayrolls, employees, attendance, transactions, loans, productionRecords, companyInfo]);
+    const raw = filteredDraftPayrolls.map(getLivePayroll);
+    if (!roundSalaries) return raw;
+    
+    return raw.map(p => ({
+        ...p,
+        netSalary: Math.ceil(p.netSalary / 5) * 5
+    }));
+  }, [filteredDraftPayrolls, employees, attendance, transactions, loans, productionRecords, companyInfo, roundSalaries]);
 
   const filteredModalVouchers = React.useMemo(() => {
     return processedPayrolls.filter(p => {
@@ -15382,6 +15401,13 @@ const PayrollView = React.memo(function PayrollView({
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">إجمالي رواتب {selectedDept === 'الكل' ? 'الأسبوع' : selectedDept}</p>
             <p className="text-2xl font-black font-mono tracking-tight text-slate-900">{filteredTotalWeekly.toLocaleString('en-US')} ج.م</p>
           </div>
+          <Button 
+            variant={roundSalaries ? 'default' : 'outline'}
+            onClick={() => setRoundSalaries(!roundSalaries)}
+            className="h-10 rounded-xl font-black"
+          >
+            {roundSalaries ? 'إلغاء التقريب' : 'تقريب صافي الرواتب (لأقرب 5)'}
+          </Button>
         </div>
         
         <div className="md:col-span-2 flex items-center justify-end gap-3 flex-wrap">
