@@ -2284,10 +2284,9 @@ function MainApp({
             <motion.div 
               whileHover={{ rotate: 12, scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/20 text-white relative overflow-hidden"
+              className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/20 text-white relative overflow-hidden"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-transparent opacity-60" />
-              <Package size={24} className="relative z-10" />
+              <img src="/logo.png" alt="النجار ديزاين" className="w-full h-full object-cover" />
             </motion.div>
             <div className="flex flex-col text-right">
               <h1 className="font-extrabold text-base text-slate-900 leading-none">
