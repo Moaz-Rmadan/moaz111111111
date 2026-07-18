@@ -2262,44 +2262,44 @@ function MainApp({
       </AnimatePresence>
 
       <aside className={`
-        fixed inset-y-0 right-0 w-80 bg-white border-l border-slate-100 flex flex-col z-50 transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)
-        md:relative md:translate-x-0 no-print shadow-2xl shadow-slate-200/20
+        fixed inset-y-0 right-0 w-72 bg-white border-l border-slate-100 flex flex-col z-50 transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)
+        md:relative md:translate-x-0 no-print shadow-xl shadow-slate-200/20
         ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
       `}>
         {/* Mobile Sidebar Close Button */}
-        <div className="md:hidden absolute left-4 top-8 z-[60]">
+        <div className="md:hidden absolute left-4 top-6 z-[60]">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => setMobileMenuOpen(false)}
-            className="w-12 h-12 rounded-2xl bg-white shadow-xl border border-slate-100 text-slate-400 hover:text-slate-900"
+            className="w-10 h-10 rounded-xl bg-white shadow-lg border border-slate-100 text-slate-400 hover:text-slate-900"
           >
-            <X size={20} />
+            <X size={18} />
           </Button>
         </div>
 
         {/* Brand Header */}
-        <div className="p-10 pb-6">
-          <div className="flex items-center gap-5 group cursor-pointer" onClick={() => handleNavClick('dashboard')}>
+        <div className="p-6 pb-4">
+          <div className="flex items-center gap-4 group cursor-pointer" onClick={() => handleNavClick('dashboard')}>
             <motion.div 
-              whileHover={{ rotate: 12, scale: 1.15 }}
+              whileHover={{ rotate: 12, scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="w-16 h-16 bg-slate-900 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-slate-900/40 text-white relative overflow-hidden"
+              className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/20 text-white relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-transparent opacity-60" />
-              <Package size={32} className="relative z-10" />
+              <Package size={24} className="relative z-10" />
             </motion.div>
             <div className="flex flex-col text-right">
-              <h1 className="font-extrabold text-lg text-slate-900 leading-none">
+              <h1 className="font-extrabold text-base text-slate-900 leading-none">
                 النجار ديزاين
               </h1>
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex gap-1">
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <div className="flex gap-0.5">
                   <span className="w-1 h-1 rounded-full bg-primary animate-pulse" />
                   <span className="w-1 h-1 rounded-full bg-primary/60 animate-pulse delay-75" />
                   <span className="w-1 h-1 rounded-full bg-primary/30 animate-pulse delay-150" />
                 </div>
-                <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em]">المنظومة المتكاملة</p>
+                <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.2em]">المنظومة المتكاملة</p>
               </div>
             </div>
           </div>
@@ -3338,16 +3338,16 @@ function NavButton({ active, onClick, icon, label, permission, profile }: { acti
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-4 px-5 py-4 rounded-[2rem] transition-all duration-500 group relative overflow-hidden",
+        "w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-500 group relative overflow-hidden",
         active 
-          ? "bg-slate-900 text-white shadow-2xl shadow-slate-900/20" 
-          : "text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-xl hover:shadow-slate-200/50"
+          ? "bg-slate-900 text-white shadow-xl shadow-slate-900/20" 
+          : "text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-lg hover:shadow-slate-200/50"
       )}
     >
       <div className={cn(
-        "flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-700 relative z-10",
+        "flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-700 relative z-10",
         active 
-          ? "bg-primary text-white shadow-lg shadow-primary/30 rotate-[8deg] scale-110" 
+          ? "bg-primary text-white shadow-lg shadow-primary/30 rotate-[8deg] scale-105" 
           : "bg-slate-100 text-slate-400 group-hover:bg-primary/10 group-hover:text-primary group-hover:rotate-[-8deg]"
       )}>
         {icon}
@@ -3384,19 +3384,19 @@ function SubNavButton({ active, onClick, label, permission, profile }: { active:
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
       className={cn(
-        "w-full flex items-center px-5 py-3 rounded-2xl transition-all duration-500 text-[11px] font-black relative overflow-hidden group",
+        "w-full flex items-center px-4 py-2 rounded-xl transition-all duration-300 text-[11px] font-black relative overflow-hidden group",
         active 
-          ? "bg-white text-primary shadow-lg shadow-slate-200/50 border border-slate-100" 
+          ? "bg-white text-primary shadow-sm shadow-slate-200/50 border border-slate-100" 
           : "text-slate-400 hover:text-slate-900 hover:bg-white/50"
       )}
     >
       <div className={cn(
-        "w-2 h-2 rounded-full ml-4 transition-all duration-700",
-        active ? "bg-primary shadow-[0_0_8px_rgba(37,99,235,0.4)] scale-125" : "bg-slate-200 group-hover:bg-primary/40"
+        "w-1.5 h-1.5 rounded-full ml-3 transition-all duration-300",
+        active ? "bg-primary shadow-[0_0_6px_rgba(37,99,235,0.4)] scale-125" : "bg-slate-200 group-hover:bg-primary/40"
       )} />
       <span className="flex-1 text-right tracking-tight">{label}</span>
       {active && (
-         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-primary rounded-l-full" />
+         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-3 bg-primary rounded-l-full" />
       )}
     </motion.button>
   );
@@ -3746,7 +3746,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
                 className="w-full pl-6 pr-12 h-16 rounded-2xl border-2 border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-primary/20 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 font-bold text-lg text-slate-700 appearance-none cursor-pointer transition-all outline-none"
               >
                 <option value="">--- اضغط هنا للاختيار من القائمة ---</option>
-                {items.slice().sort((a,b) => a.name.localeCompare(b.name)).map(item => (
+                {items.slice().sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(item => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
               </select>
@@ -8114,7 +8114,7 @@ const Finance = React.memo(function Finance({
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'safeSettlements'), (snapshot) => {
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SafeSettlement));
-      setSafeSettlements(list.sort((a, b) => b.date.localeCompare(a.date)));
+      setSafeSettlements(list.sort((a, b) => (b.date || '').localeCompare(a.date || '')));
     }, error => {
       console.error("Error loading safe settlements:", error);
     });
@@ -8168,7 +8168,7 @@ const Finance = React.memo(function Finance({
     const matchesSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (t.category && t.category.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesSafe && (matchesSearch || !searchTerm);
-  }).sort((a, b) => b.date.localeCompare(a.date));
+  }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   const totalIn = filteredTransactions.filter(t => t.type === 'إيداع' || t.type === 'مبيعات').reduce((sum, t) => sum + t.amount, 0);
   const totalOut = filteredTransactions.filter(t => t.type !== 'إيداع' && t.type !== 'مبيعات' && t.type !== 'تحويل').reduce((sum, t) => sum + t.amount, 0);
@@ -11846,7 +11846,7 @@ function OldReportsView({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.sort((a, b) => a.name.localeCompare(b.name)).map(item => (
+                  {items.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(item => (
                     <TableRow key={item.id} className="h-24 border-slate-50 hover:bg-slate-50/30 transition-all">
                       <TableCell className="px-10">
                          <p className="font-black text-slate-900 text-xl tracking-tight">{item.name}</p>
@@ -14747,15 +14747,37 @@ const PayrollView = React.memo(function PayrollView({
   const [dailyEndDate, setDailyEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   const dailyPayrollData = React.useMemo(() => {
-    return employees.map(emp => {
-      const isRange = dailyMode === 'range';
-      const startD = isRange ? dailyStartDate : selectedDailyDate;
-      const endD = isRange ? dailyEndDate : selectedDailyDate;
+    const isRange = dailyMode === 'range';
+    const startD = isRange ? dailyStartDate : selectedDailyDate;
+    const endD = isRange ? dailyEndDate : selectedDailyDate;
 
-      const empAtts = attendance.filter(a => a.employeeId === emp.id && a.date >= startD && a.date <= endD);
-      const dayProd = productionRecords.filter(r => r.employeeId === emp.id && r.date >= startD && r.date <= endD);
+    const filteredAtt = (attendance || []).filter(a => a && a.date >= startD && a.date <= endD);
+    const filteredProd = (productionRecords || []).filter(r => r && r.date >= startD && r.date <= endD);
+    const filteredTxs = (transactions || []).filter(t => t && t.date >= startD && t.date <= endD);
+
+    const attMap = new Map();
+    filteredAtt.forEach(a => {
+        if (!attMap.has(a.employeeId)) attMap.set(a.employeeId, []);
+        attMap.get(a.employeeId).push(a);
+    });
+
+    const prodMap = new Map();
+    filteredProd.forEach(r => {
+        if (!prodMap.has(r.employeeId)) prodMap.set(r.employeeId, []);
+        prodMap.get(r.employeeId).push(r);
+    });
+
+    const txMap = new Map();
+    filteredTxs.forEach(t => {
+        if (!txMap.has(t.employeeId)) txMap.set(t.employeeId, []);
+        txMap.get(t.employeeId).push(t);
+    });
+
+    return employees.map(emp => {
+      const empAtts = attMap.get(emp.id) || [];
+      const dayProd = prodMap.get(emp.id) || [];
       const totalProduction = dayProd.reduce((sum, r) => sum + (r.total || 0), 0);
-      const dayTxs = transactions.filter(t => t.employeeId === emp.id && t.date >= startD && t.date <= endD);
+      const dayTxs = txMap.get(emp.id) || [];
 
       const totalOvertime = dayTxs.filter(t => t.type === 'إضافي' || t.type === 'أوفرتايم').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
       const totalBonuses = dayTxs.filter(t => t.type === 'مكافأة' || t.type === 'مكافآت' || t.type === 'بدل').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -14776,6 +14798,7 @@ const PayrollView = React.memo(function PayrollView({
         checkInOutStr = `مسجل لـ ${empAtts.length} أيام`;
 
         empAtts.forEach(att => {
+          if (!att) return;
           const status = att.status || 'حضور';
           if (status === 'حضور' || status === 'تأخير') {
             if (!att.checkIn || !att.checkOut) {
@@ -14783,31 +14806,22 @@ const PayrollView = React.memo(function PayrollView({
             } else {
               const [inH, inM] = att.checkIn.split(':').map(Number);
               const [outH, outM] = att.checkOut.split(':').map(Number);
-              const checkInMins = inH * 60 + inM;
-              const checkOutMins = outH * 60 + outM;
+              const checkInMins = (inH || 0) * 60 + (inM || 0);
+              const checkOutMins = (outH || 0) * 60 + (outM || 0);
 
               const shiftStartStr = emp.shiftStart || '08:00';
               const shiftEndStr = emp.shiftEnd || '18:00';
               const [sH, sM] = shiftStartStr.split(':').map(Number);
               const [eH, eM] = shiftEndStr.split(':').map(Number);
-              const officialStart = sH * 60 + sM;
-              const officialEnd = eH * 60 + eM;
+              const officialStart = (sH || 0) * 60 + (sM || 0);
+              const officialEnd = (eH || 0) * 60 + (eM || 0);
               const shiftDurationMins = officialEnd - officialStart;
               const gracePeriod = 15;
 
               if (checkInMins <= officialStart + gracePeriod && att.checkOut === '12:00' && officialStart <= 12 * 60) {
                 daysWorked += 0.5;
               } else {
-                let lateMins = 0;
-                const deductLate = companyInfo?.deductLateArrival !== false && !att.isExcused;
-                if (deductLate && checkInMins > officialStart + gracePeriod) {
-                  lateMins = checkInMins - officialStart;
-                }
-                const deductEarly = companyInfo?.deductEarlyDeparture !== false && !att.isExcused;
-                const earlyMins = deductEarly ? Math.max(0, officialEnd - checkOutMins) : 0;
                 daysWorked += 1;
-                const dayDeduction = (lateMins + earlyMins) * (emp.dailyRate / (shiftDurationMins > 0 ? shiftDurationMins : 600));
-                timeDeduction += Math.min(emp.dailyRate, dayDeduction);
               }
             }
           }
@@ -14826,15 +14840,15 @@ const PayrollView = React.memo(function PayrollView({
             } else {
               const [inH, inM] = att.checkIn.split(':').map(Number);
               const [outH, outM] = att.checkOut.split(':').map(Number);
-              const checkInMins = inH * 60 + inM;
-              const checkOutMins = outH * 60 + outM;
+              const checkInMins = (inH || 0) * 60 + (inM || 0);
+              const checkOutMins = (outH || 0) * 60 + (outM || 0);
 
               const shiftStartStr = emp.shiftStart || '08:00';
               const shiftEndStr = emp.shiftEnd || '18:00';
               const [sH, sM] = shiftStartStr.split(':').map(Number);
               const [eH, eM] = shiftEndStr.split(':').map(Number);
-              const officialStart = sH * 60 + sM;
-              const officialEnd = eH * 60 + eM;
+              const officialStart = (sH || 0) * 60 + (sM || 0);
+              const officialEnd = (eH || 0) * 60 + (eM || 0);
               const shiftDurationMins = officialEnd - officialStart;
               const gracePeriod = 15;
 
@@ -14892,7 +14906,7 @@ const PayrollView = React.memo(function PayrollView({
         netSalary
       };
     });
-  }, [employees, attendance, transactions, productionRecords, selectedDailyDate, dailyMode, dailyStartDate, dailyEndDate]);
+  }, [employees, attendance, productionRecords, transactions, dailyMode, dailyStartDate, dailyEndDate, selectedDailyDate]);
 
   // Renamed to avoid collision
   const filteredDailyPayrollForView = React.useMemo(() => {
