@@ -443,7 +443,7 @@ export function ProductRecipesView({
 
                 <CardTitle className="text-2xl font-black text-slate-900">{recipe.name}</CardTitle>
                 
-                <CardDescription asChild>
+                <CardDescription>
                   <div className="mt-2 space-y-1">
                     <div className="font-bold text-slate-900 flex items-center justify-between text-base">
                       <span className="text-slate-500 font-medium text-sm">التكلفة المحسوبة:</span>

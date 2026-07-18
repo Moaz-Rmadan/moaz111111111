@@ -73,6 +73,7 @@ import { NumberDisplay, formatNumber, formatCurrencyParts } from './lib/numberUt
 import { FactoryResetModal } from './components/FactoryResetModal';
 import { MonthlyStipendsModule } from './components/MonthlyStipendsModule';
 import { MaterialCalculatorView } from './components/MaterialCalculatorView';
+import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
 const logout = () => signOut(auth);
@@ -2286,7 +2287,7 @@ function MainApp({
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/20 text-white relative overflow-hidden"
             >
-              <img src="/logo.png" alt="النجار ديزاين" className="w-full h-full object-cover" />
+              <img src={elNaggarLogo} alt="النجار ديزاين" className="w-full h-full object-cover" />
             </motion.div>
             <div className="flex flex-col text-right">
               <h1 className="font-extrabold text-base text-slate-900 leading-none">
@@ -8668,7 +8669,7 @@ const Finance = React.memo(function Finance({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {safeAudits.sort((a, b) => b.date.localeCompare(a.date)).map(audit => (
+                  {safeAudits.sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(audit => (
                     <TableRow key={audit.id} className="group border-slate-50">
                       <TableCell className="font-bold text-slate-500">{audit.date}</TableCell>
                       <TableCell className="font-black text-slate-700">{safes.find(s => s.id === audit.safeId)?.name}</TableCell>
@@ -8830,7 +8831,7 @@ const Finance = React.memo(function Finance({
                       onChange={e => setNewExpense({...newExpense, manifestId: e.target.value})}
                     >
                       <option value="">بيان؟</option>
-                      {loadingManifests.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 20).map(m => (
+                      {loadingManifests.slice().sort((a,b) => (b.date || '').localeCompare(a.date || '')).slice(0, 20).map(m => (
                         <option key={m.id} value={m.id}>{m.driverName}</option>
                       ))}
                     </select>
@@ -9159,7 +9160,7 @@ const Finance = React.memo(function Finance({
                     onChange={e => setTransactionForm({...transactionForm, manifestId: e.target.value})}
                   >
                     <option value="">ربط ببيان تحميل...</option>
-                    {loadingManifests.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 50).map(manifest => (
+                    {loadingManifests.slice().sort((a,b) => (b.date || '').localeCompare(a.date || '')).slice(0, 50).map(manifest => (
                       <option key={manifest.id} value={manifest.id}>{manifest.date} | {manifest.driverName} ({manifest.clientName})</option>
                     ))}
                   </select>
@@ -13236,7 +13237,7 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
 
                 let running = 0;
                 const sortedLedger = [...ledger]
-                  .sort((a, b) => a.date.localeCompare(b.date))
+                  .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
                   .map(item => {
                     running = running + item.debit - item.credit;
                     return { ...item, runningBalance: running };
@@ -14484,7 +14485,7 @@ const ProductionView = React.memo(function ProductionView({ employees, productio
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRecords.slice().sort((a, b) => b.date.localeCompare(a.date)).map(record => (
+            {filteredRecords.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '')).map(record => (
               <TableRow key={record.id} className="hover:bg-slate-50/50 transition-colors">
                 <TableCell className="font-bold text-slate-500">{record.date}</TableCell>
                 <TableCell className="font-black text-slate-900">{employees.find(e => e.id === record.employeeId)?.name}</TableCell>

@@ -21,6 +21,8 @@ import type {
   SalesOrder
 } from '../types';
 
+import { InventoryReports } from './InventoryReports';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -66,7 +68,7 @@ export function FinancialReports({
 }: FinancialReportsProps) {
   // Tabs management
   const [activeReportTab, setActiveReportTab] = useState<
-    'dashboard' | 'warehouse' | 'purchases' | 'suppliers' | 'ledger' | 'journal' | 'income_statement' | 'balance_sheet' | 'trial_balance' | 'production_costs' | 'sales_analytics'
+    'dashboard' | 'warehouse' | 'purchases' | 'suppliers' | 'ledger' | 'journal' | 'income_statement' | 'balance_sheet' | 'trial_balance' | 'production_costs' | 'sales_analytics' | 'inventory_analytics'
   >('dashboard');
 
   // General Ledger States
@@ -256,7 +258,7 @@ export function FinancialReports({
         r.description.toLowerCase().includes(ledgerSearch.toLowerCase()) || 
         r.reference.toLowerCase().includes(ledgerSearch.toLowerCase());
       return matchesFrom && matchesTo && matchesSearch;
-    }).sort((a, b) => a.date.localeCompare(b.date));
+    }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   }, [ledgerAccount, safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, maintenanceOrders, ledgerDateFrom, ledgerDateTo, ledgerSearch]);
 
   const runningLedgerBalances = useMemo(() => {
@@ -460,9 +462,9 @@ export function FinancialReports({
     });
 
     return rows.sort((a, b) => {
-      const dateCompare = a.date.localeCompare(b.date);
+      const dateCompare = (a.date || '').localeCompare(b.date || '');
       if (dateCompare !== 0) return dateCompare;
-      const docCompare = a.docNo.localeCompare(b.docNo);
+      const docCompare = (a.docNo || '').localeCompare(b.docNo || '');
       if (docCompare !== 0) return docCompare;
       return b.debit - a.debit; 
     });
@@ -775,6 +777,7 @@ export function FinancialReports({
           { id: 'dashboard', label: 'لوحة القيادة الموحدة', icon: <Box size={16} /> },
           { id: 'journal', label: 'دفتر اليومية العامة', icon: <BookOpen size={16} /> },
           { id: 'ledger', label: 'دفتر الأستاذ المساعد', icon: <FileText size={16} /> },
+          { id: 'inventory_analytics', label: 'تحليلات المخازن', icon: <Box size={16} /> },
           { id: 'income_statement', label: 'قائمة الدخل P&L', icon: <TrendingUp size={16} /> },
           { id: 'balance_sheet', label: 'الميزانية والمركز المالي', icon: <Scale size={16} /> },
           { id: 'trial_balance', label: 'ميزان المراجعة الذكي', icon: <Layers size={16} /> },
@@ -1274,6 +1277,18 @@ export function FinancialReports({
 
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {activeReportTab === 'inventory_analytics' && (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <InventoryReports 
+            items={items} 
+            warehouses={warehouses} 
+            purchases={purchases} 
+            issuances={issuances} 
+            wasteRecords={wasteRecords} 
+          />
         </div>
       )}
 
@@ -1839,7 +1854,7 @@ export function FinancialReports({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.sort((a, b) => a.name.localeCompare(b.name)).map(item => (
+                  {items.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(item => (
                     <TableRow key={item.id} className="hover:bg-slate-50/30 transition-all font-bold text-xs">
                       <TableCell className="py-3.5 px-8">
                         <p className="font-black text-slate-900 text-sm">{item.name}</p>
