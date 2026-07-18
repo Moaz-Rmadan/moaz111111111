@@ -4863,6 +4863,26 @@ function Inventory({
 
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      {/* PROFESSIONAL SUMMARY CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'إجمالي قيمة المخزون', value: items.reduce((sum, item) => sum + (item.currentBalance * (item.price || 0)), 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 }), icon: DollarSign, color: 'text-emerald-500' },
+          { label: 'إجمالي الأصناف', value: items.length.toString(), icon: Package, color: 'text-blue-500' },
+          { label: 'أصناف منخفضة الرصيد', value: items.filter(i => i.currentBalance <= i.safetyLimit).length.toString(), icon: AlertCircle, color: 'text-amber-500' },
+          { label: 'أصناف معدومة', value: items.filter(i => i.currentBalance === 0).length.toString(), icon: AlertTriangle, color: 'text-rose-500' },
+        ].map((stat, i) => (
+          <Card key={i} className="p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{stat.label}</p>
+                <p className="text-2xl font-black text-slate-900 tracking-tighter">{stat.value}</p>
+              </div>
+              <stat.icon className={cn("w-6 h-6", stat.color)} />
+            </div>
+          </Card>
+        ))}
+      </div>
+
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10 pb-6 relative">
         <div className="space-y-6 relative z-10">
           <div className="flex items-center gap-3 text-primary font-black text-xs uppercase tracking-[0.3em] px-5 py-2.5 bg-primary/5 border border-primary/10 rounded-full w-fit shadow-sm">
@@ -4874,9 +4894,6 @@ function Inventory({
             المركز <br />
             <span className="text-slate-300">اللوجستي</span>
           </h2>
-          <p className="text-slate-400 font-bold text-xl max-w-xl mt-6 leading-relaxed italic">
-            مـنصة مـتكاملة لمـراقبة الأرصـدة والـتحليل الـمالي لـمجمل حـركة الخـامات والمـنتج النهـائي.
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-5 bg-white/50 backdrop-blur-xl p-4 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-white/60 relative z-10">
           <div className="flex bg-slate-100/50 p-2 rounded-2xl border border-slate-200/50">
@@ -4915,6 +4932,8 @@ function Inventory({
           </DropdownMenu>
         </div>
       </div>
+
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
          <Card className="lg:col-span-2 dribbble-card border-none overflow-hidden bg-slate-900 text-white shadow-2xl rounded-[3rem] relative p-10 flex flex-col justify-between min-h-[320px]">
