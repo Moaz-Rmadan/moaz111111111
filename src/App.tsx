@@ -2192,7 +2192,7 @@ function MainApp({
 
     issuances.filter(iss => iss.itemId === itemId).forEach(iss => {
       const isReturn = iss.jobOrderNo === 'RETURN';
-      const isReturnFromCostCenter = iss.costCenter.startsWith('مرتجع من:');
+      const isReturnFromCostCenter = iss.costCenter?.startsWith('مرتجع من:') ?? false;
       
       if (isReturn) {
         if (isReturnFromCostCenter) {
@@ -4181,7 +4181,7 @@ function Dashboard({
 
   // 4. Safe Consumption (Last 6 months)
   const safeOutgoingsData = months.map(m => ({
-    amount: safeTransactions.filter(t => t.date.startsWith(m) && (t.type === 'سحب' || t.type === 'مصروفات' || t.type === 'رواتب' || t.type === 'مشتريات')).reduce((sum, t) => sum + t.amount, 0)
+    amount: safeTransactions.filter(t => t.date?.startsWith(m) && (t.type === 'سحب' || t.type === 'مصروفات' || t.type === 'رواتب' || t.type === 'مشتريات')).reduce((sum, t) => sum + t.amount, 0)
   }));
 
   // Greeting Message based on time of day
@@ -15137,7 +15137,8 @@ const PayrollView = React.memo(function PayrollView({
 شكراً لعملكم معنا.`;
 
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${emp.phone.startsWith('0') ? '2' + emp.phone : emp.phone}?text=${encodedMessage}`;
+    const phone = emp.phone || '';
+    const whatsappUrl = `https://wa.me/${phone.startsWith('0') ? '2' + phone : phone}?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
 
@@ -15439,6 +15440,10 @@ const PayrollView = React.memo(function PayrollView({
         <div className="md:col-span-2 flex items-center justify-end gap-3 flex-wrap">
           {selectedPayrollIds.length > 0 ? (
             <>
+              <Button onClick={() => window.print()} className="h-14 px-8 rounded-2xl font-black text-base bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200">
+                <Printer size={18} className="ml-2" />
+                طباعة القسائم
+              </Button>
               <span className="text-sm font-black text-slate-500 bg-slate-100 px-4 py-2.5 rounded-xl border border-slate-200">
                 تم تحديد {selectedPayrollIds.length} كشف
               </span>
@@ -16792,6 +16797,9 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
             <CardHeader className="border-b border-slate-100 pb-4">
               <div className="flex justify-between items-center">
                 <CardTitle className="font-black text-2xl">تفاصيل كشف الراتب</CardTitle>
+                <Button variant="ghost" size="icon" onClick={() => window.print()} className="rounded-full hover:bg-slate-100">
+                  <Printer size={20} />
+                </Button>
                 <Button variant="ghost" size="icon" onClick={() => setSelectedPayroll(null)} className="rounded-full hover:bg-slate-100">
                   <X size={20} />
                 </Button>
