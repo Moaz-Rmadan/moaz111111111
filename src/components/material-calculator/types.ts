@@ -83,6 +83,26 @@ export interface PlywoodCalculation {
   totalCost: number;
 }
 
+export interface FabricCalculation {
+  id: string;
+  type: string; // e.g. Velvet, Cotton, etc.
+  widthM: number; // Fabric roll width
+  lengthM: number; // Required length
+  pricePerMeter: number;
+  quantity: number;
+  totalCost: number;
+  label: string;
+}
+
+export interface HardwareCalculation {
+  id: string;
+  itemName: string;
+  quantity: number;
+  pricePerUnit: number;
+  totalCost: number;
+  label: string;
+}
+
 export interface EstimationProject {
   id?: string;
   projectName: string;
@@ -92,6 +112,15 @@ export interface EstimationProject {
   marbleCalcs: MarbleCalculation[];
   glassCalcs: GlassCalculation[];
   plywoodCalcs: PlywoodCalculation | null;
-  totalCost: number;
+  fabricCalcs: FabricCalculation[];
+  hardwareCalcs: HardwareCalculation[];
+  totalCost: number; // Total Material Cost
+  laborCost: number;
+  packagingCost: number;
+  shippingCost: number;
+  overheadPercent: number;
+  profitPercent: number;
+  taxPercent: number;
+  finalPrice: number;
   notes: string;
 }

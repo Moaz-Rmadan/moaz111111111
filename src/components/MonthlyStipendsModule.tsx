@@ -914,6 +914,21 @@ export const MonthlyStipendsModule: React.FC = () => {
     }
   };
 
+  const handleUpdatePaymentMethod = async (beneficiary: Beneficiary, newMethod: 'ظرف مالي' | 'انستا باي' | 'فودافون كاش' | 'نقدي باليد') => {
+    if (!beneficiary.id) return;
+    setActionLoading(true);
+    try {
+      await updateDoc(doc(db, 'beneficiaries', beneficiary.id), {
+        paymentMethod: newMethod
+      });
+      setSuccessMessage('تم تحديث طريقة الصرف بنجاح.');
+    } catch (err: any) {
+      setErrorMessage(`حدث خطأ أثناء تحديث طريقة الصرف: ${err.message || err}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleBatchDelete = async () => {
     if (selectedBeneficiaryIds.length === 0) return;
     const confirmMsg = `⚠️ تحذير نهائي:\n\nهل أنت متأكد من رغبتك في حذف عدد ${selectedBeneficiaryIds.length} مستفيدين نهائياً من قاعدة البيانات؟ لا يمكن التراجع عن هذا الإجراء!`;

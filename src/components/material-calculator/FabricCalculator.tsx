@@ -1,33 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { GlassCalculation } from "./types";
+import { FabricCalculation } from "./types";
 import { v4 as uuidv4 } from "uuid";
-import {
-  Ruler,
-  Layers,
-  DollarSign,
-  Box,
-  PlusCircle,
-  Maximize,
-} from "lucide-react";
+import { Ruler, DollarSign, Box, PlusCircle, Scissors } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const GlassCalculator = ({
+export const FabricCalculator = ({
   onAdd,
   products,
 }: {
-  onAdd: (calc: GlassCalculation) => void;
+  onAdd: (calc: FabricCalculation) => void;
   products?: any[];
 }) => {
   const [mode, setMode] = useState<"manual" | "automatic">("manual");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [type, setType] = useState<GlassCalculation["type"]>("plain");
-  const [thicknessMm, setThicknessMm] = useState<number>(6);
-  const [length, setLength] = useState<number>(100);
-  const [width, setWidth] = useState<number>(100);
+  const [type, setType] = useState<string>("مخمل");
+  const [widthM, setWidthM] = useState<number>(1.5);
+  const [lengthM, setLengthM] = useState<number>(1);
   const [quantity, setQuantity] = useState<number>(1);
-  const [pricePerM2, setPricePerM2] = useState<number>(500);
+  const [pricePerMeter, setPricePerMeter] = useState<number>(200);
 
-  const [calcResult, setCalcResult] = useState<GlassCalculation | null>(null);
+  const [calcResult, setCalcResult] = useState<FabricCalculation | null>(null);
 
   const handleProductSelect = (productId: string) => {
     const product = products?.find((p) => p.id === productId);
@@ -35,39 +27,27 @@ export const GlassCalculator = ({
     if (!product) return;
     const item = product.departments
       .flatMap((d: any) => d.items)
-      .find((i: any) => i.name.includes("زجاج") || i.name.includes("مرايا"));
+      .find((i: any) => i.name.includes("قماش") || i.name.includes("تنجيد"));
     if (item) {
       setQuantity(item.quantity);
-      setType(item.name.includes("مرايا") ? "mirror" : "plain");
+      setType(item.name);
     }
   };
 
   useEffect(() => {
-    const netAreaM2 = (length * width) / 10000;
-    const totalAreaM2 = netAreaM2 * quantity;
-    const materialCost = totalAreaM2 * pricePerM2;
-    const totalCost = materialCost; // Simple for now
+    const totalCost = lengthM * pricePerMeter * quantity;
 
     setCalcResult({
       id: uuidv4(),
       type,
-      thicknessMm,
-      length,
-      width,
+      widthM,
+      lengthM,
+      pricePerMeter,
       quantity,
-      pricePerM2,
-      bevelingRate: 0,
-      boringRate: 0,
-      boringCount: 0,
-      netAreaM2: totalAreaM2,
-      weightKg: totalAreaM2 * thicknessMm * 2.5, // 2.5kg per mm per m2
-      perimeterM: ((length + width) * 2) / 100,
-      materialCost,
-      laborCost: 0,
       totalCost,
-      label: `${type} - ${length}x${width}cm (${thicknessMm}mm)`,
+      label: `${type} - ${lengthM}م (${quantity} قطعة)`,
     });
-  }, [type, thicknessMm, length, width, quantity, pricePerM2]);
+  }, [type, widthM, lengthM, quantity, pricePerMeter]);
 
   const InputField = ({ label, icon: Icon, ...props }: any) => (
     <div className="space-y-2">
@@ -88,7 +68,7 @@ export const GlassCalculator = ({
     <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 space-y-8">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-black text-slate-900 tracking-tighter">
-          حاسبة الزجاج
+          حاسبة القماش
         </h2>
         <div className="flex bg-slate-100 p-1.5 rounded-2xl">
           <button
@@ -136,41 +116,27 @@ export const GlassCalculator = ({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <label className="text-xs font-black text-slate-500 uppercase tracking-widest">
-            نوع الزجاج
-          </label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as any)}
-            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900"
-          >
-            <option value="plain">عادي</option>
-            <option value="tinted">ملون</option>
-            <option value="securit">سيكوريت</option>
-            <option value="double">دابل</option>
-          </select>
-        </div>
         <InputField
-          label="السماكة (mm)"
-          icon={Layers}
-          type="number"
-          value={thicknessMm}
-          onChange={(e: any) => setThicknessMm(Number(e.target.value))}
+          label="نوع القماش"
+          icon={Scissors}
+          type="text"
+          placeholder="مخمل..."
+          value={type}
+          onChange={(e: any) => setType(e.target.value)}
         />
         <InputField
-          label="الطول (cm)"
+          label="عرض الرول (متر)"
           icon={Ruler}
           type="number"
-          value={length}
-          onChange={(e: any) => setLength(Number(e.target.value))}
+          value={widthM}
+          onChange={(e: any) => setWidthM(Number(e.target.value))}
         />
         <InputField
-          label="العرض (cm)"
+          label="الطول المطلوب (متر)"
           icon={Ruler}
           type="number"
-          value={width}
-          onChange={(e: any) => setWidth(Number(e.target.value))}
+          value={lengthM}
+          onChange={(e: any) => setLengthM(Number(e.target.value))}
         />
         <InputField
           label="الكمية"
@@ -180,11 +146,11 @@ export const GlassCalculator = ({
           onChange={(e: any) => setQuantity(Number(e.target.value))}
         />
         <InputField
-          label="سعر المتر المربع"
+          label="سعر المتر"
           icon={DollarSign}
           type="number"
-          value={pricePerM2}
-          onChange={(e: any) => setPricePerM2(Number(e.target.value))}
+          value={pricePerMeter}
+          onChange={(e: any) => setPricePerMeter(Number(e.target.value))}
         />
       </div>
 
