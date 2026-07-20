@@ -82,12 +82,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const setupCustomSession = async (uid: string, psw: string) => {
       try {
-        const userDocRef = doc(db, 'users', uid.toLowerCase().trim());
+        const cleanUid = uid.toLowerCase().trim();
+        const cleanPsw = psw.trim();
+        const userDocRef = doc(db, 'users', cleanUid);
         const docSnap = await getDoc(userDocRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data() as UserProfile;
-          if (data.password === psw) {
+          if (data.password?.trim() === cleanPsw) {
             setUser({
               uid: data.uid,
               email: data.email || data.uid,
@@ -205,12 +207,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithEmailOrPhone = async (identifier: string, psw: string) => {
     setLoading(true);
     try {
+      // 1. Clean and normalize inputs
       const uid = identifier.toLowerCase().trim();
+      const cleanPsw = psw.trim();
+      
+      if (!uid || !cleanPsw) {
+        throw new Error('يرجى إدخال اسم المستخدم وكلمة المرور.');
+      }
+
       const userDocRef = doc(db, 'users', uid);
       const docSnap = await getDoc(userDocRef);
 
       if (!docSnap.exists()) {
-        throw new Error('المستخدم غير مسجل في النظام. يرجى التواصل مع الإدارة.');
+        throw new Error('المستخدم غير مسجل في النظام. يرجى التأكد من كتابة البريد أو الرقم بشكل صحيح.');
       }
 
       const data = docSnap.data() as UserProfile;
@@ -218,13 +227,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('هذا الحساب مهيأ لتسجيل الدخول باستخدام جوجل فقط.');
       }
 
-      if (data.password !== psw) {
-        throw new Error('كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى.');
+      // 2. Strict password comparison (trimmed)
+      if (data.password.trim() !== cleanPsw) {
+        throw new Error('كلمة المرور غير صحيحة. يرجى التأكد من لغة لوحة المفاتيح وحالة الأحرف.');
       }
 
       // Set credentials to localStorage
       safeStorage.setItem('custom_uid', data.uid);
-      safeStorage.setItem('custom_password', psw);
+      safeStorage.setItem('custom_password', cleanPsw);
 
       setUser({
         uid: data.uid,

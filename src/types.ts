@@ -612,3 +612,91 @@ export interface ByproductSale {
   }[];
 }
 
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  type: 'أفراد' | 'شركات' | 'مقاولين' | 'تجار' | 'مهندسين ديكور';
+  status: 'نشط' | 'غير نشط' | 'محتمل' | 'محظور';
+  balance: number; // Positive means they owe us (debt), negative means they paid in advance (credit)
+  creditLimit?: number; // Maximum debt allowed
+  taxId?: string; // For companies
+  notes?: string;
+  createdAt: string;
+}
+
+export interface CustomerPayment {
+  id: string;
+  customerId: string;
+  date: string;
+  amount: number;
+  paymentMethod: 'نقدي' | 'شيك' | 'تحويل بنكي' | 'فيزا';
+  referenceNumber?: string;
+  safeId?: string; // The safe where money was deposited
+  safeTransactionId?: string;
+  notes: string;
+}
+
+export interface FurnitureWorkOrder {
+  id: string;
+  orderNumber: string; // رقم أمر الشغل
+  customerId: string;
+  customerName: string;
+  roomCode: string; // كود الغرفة / اسم الموديل (كود افتراضي أو رئيسي)
+  contractDate: string;
+  deliveryDate: string;
+  salesPerson?: string; // اسم مسؤول المبيعات (السيلز)
+  attachmentImage?: string; // صورة أمر الشغل (مرفق)
+  
+  // البنود/الغرف المتعددة
+  rooms?: {
+    roomCode: string;
+    generalSpecs: string;
+    dimensionsAndStructure: string;
+    paintSpecs: string;
+    upholsterySpecs: string;
+    status?: string;
+  }[];
+  
+  // المواصفات والتفاصيل الافتراضية
+  generalSpecs: string; // المواصفات العامة
+  dimensionsAndStructure: string; // التفاصيل (مقاسات، تقسيم داخلي، إلخ)
+  paintSpecs: string; // مواصفات الدهان
+  upholsterySpecs: string; // مواصفات التنجيد
+  
+  // التتبع وحالة التشغيل
+  status: string; // 'بانتظار التعميد' | 'في أحد مراكز التكلفة' | 'في المخزن تام التشطيب' | 'تم إرساله للمعارض' | 'سلم للعميل' | 'ملغى'
+  costCenterId?: string; // مركز التكلفة المرتبط إذا كان في أحد مراكز التكلفة
+  
+  // المالية (ارتباط بأمر البيع)
+  totalAmount: number;
+  depositPaid?: number; // العربون المدفوع
+  remainingAmount?: number; // المتبقي
+  
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface WarehouseTransferItem {
+  sourceItemId: string;
+  destinationItemId: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  price: number;
+}
+
+export interface WarehouseTransfer {
+  id: string;
+  date: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  items: WarehouseTransferItem[];
+  notes: string;
+  createdBy: string;
+}
+

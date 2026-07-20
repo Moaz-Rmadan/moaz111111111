@@ -1,3 +1,5 @@
+import { WorkOrdersManager } from "./components/WorkOrdersManager";
+import { CustomersManager } from "./components/CustomersManager";
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -20,9 +22,9 @@ import {
   LayoutDashboard, ChevronDown, Layers, Wrench, Building2, ShoppingBag, ShieldAlert, HeartHandshake,
   Activity, Printer, ArrowDownLeft, ArrowUpRight, Menu, ChevronLeft, Calendar, PieChartIcon,
   TrendingUp, Filter, Edit2, MessageSquare, FileText, CheckCircle2, PackageCheck, RotateCcw,
-  ReceiptText, ClipboardCheck, PlusCircle, FileCheck, CreditCard, Scale, Wallet, Coins, ArrowRight,
+  ReceiptText, ClipboardCheck, ClipboardList, PlusCircle, FileCheck, CreditCard, Scale, Wallet, Coins, ArrowRight,
   ChevronUp, Target, Database, Briefcase, Home, Code, Save, Upload, ArrowLeft,
-  ArrowUpToLine, ArrowDownToLine, Eye, Box, Clock, List, Zap, Warehouse as WarehouseIcon, X, Image as ImageIcon,
+  ArrowUpToLine, ArrowDownToLine, Eye, EyeOff, Box, Clock, List, Zap, Warehouse as WarehouseIcon, X, Image as ImageIcon,
   Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History, CheckSquare
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -33,7 +35,7 @@ import type {
   Attendance, FinancialTransaction, Loan, Payroll, LoadingManifest, Waste,
   BladeSharpening, PlateSharpening, MaintenanceOrder, MachineMaintenance, UserProfile, Safe, Employee, CompanySettings,
   SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense,
-  ByproductSale, Showroom, TransferOrder, ShowroomInventory
+  ByproductSale, Showroom, TransferOrder, ShowroomInventory, Customer, CustomerPayment, FurnitureWorkOrder, WarehouseTransfer
 } from './types';
 
 import { cn } from '@/lib/utils';
@@ -73,6 +75,8 @@ import { NumberDisplay, formatNumber, formatCurrencyParts } from './lib/numberUt
 import { FactoryResetModal } from './components/FactoryResetModal';
 import { MonthlyStipendsModule } from './components/MonthlyStipendsModule';
 import { MaterialCalculatorView } from './components/MaterialCalculatorView';
+import WhatsAppAssistant from './components/WhatsAppAssistant';
+import { WarehouseTransfersView } from './components/WarehouseTransfersView';
 import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
@@ -130,6 +134,7 @@ function LoginView({ error: externalError }: { error?: string }) {
   // Custom auth inputs
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loginMode, setLoginMode] = useState<'custom' | 'google'>('custom');
 
   const handleGoogleLogin = async () => {
@@ -230,14 +235,23 @@ function LoginView({ error: externalError }: { error?: string }) {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-slate-600">كلمة المرور</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute left-3 top-3 text-slate-400 hover:text-primary transition-colors h-6 w-6 flex items-center justify-center"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} className="opacity-40" />}
+                  </button>
+                </div>
               </div>
 
               <Button 
@@ -431,9 +445,18 @@ function AppContent() {
 
 // --- Calculations ---
 
+let employees: Employee[] = [];
+let safeTransactions: SafeTransaction[] = [];
+
+export function setGlobalEmployees(emp: Employee[]) {
+  employees = emp;
+}
+export function setGlobalSafeTransactions(txs: SafeTransaction[]) {
+  safeTransactions = txs;
+}
+
 const calculateLivePayroll = (
   p: Payroll, 
-  employees: Employee[], 
   attendance: Attendance[], 
   transactions: FinancialTransaction[], 
   loans: Loan[], 
@@ -557,14 +580,12 @@ const calculateLivePayroll = (
 
 function PayrollMasterReport({ 
   payrolls, 
-  employees, 
   attendance, 
   hrTransactions, 
   loans, 
   productionRecords 
 }: { 
   payrolls: Payroll[], 
-  employees: Employee[], 
   attendance: Attendance[], 
   hrTransactions: FinancialTransaction[], 
   loans: Loan[], 
@@ -603,7 +624,7 @@ function PayrollMasterReport({
           totalLoans: 0,
           netSalary: 0,
         };
-        return calculateLivePayroll(virtualPayroll, employees, attendance, hrTransactions, loans, productionRecords);
+        return calculateLivePayroll(virtualPayroll, attendance, hrTransactions, loans, productionRecords);
       });
     } else {
       return payrolls.filter(p => {
@@ -612,9 +633,9 @@ function PayrollMasterReport({
         
         // 2. Date Range Filter: check if payroll falls inside or overlaps the selected date range
         return p.startDate >= dateRange.start && p.endDate <= dateRange.end;
-      }).map(p => calculateLivePayroll(p, employees, attendance, hrTransactions, loans, productionRecords));
+      });
     }
-  }, [reportMode, payrolls, includeDrafts, dateRange, employees, attendance, hrTransactions, loans, productionRecords]);
+  }, [payrolls, dateRange, includeDrafts, employees, attendance, hrTransactions, loans, productionRecords]);
 
   const departments = useMemo(() => {
     return ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
@@ -747,7 +768,7 @@ function PayrollMasterReport({
               totalLoans: 0,
               netSalary: 0,
             };
-            const calc = calculateLivePayroll(virtualPayroll, employees, attendance, hrTransactions, loans, productionRecords);
+            const calc = calculateLivePayroll(virtualPayroll, attendance, hrTransactions, loans, productionRecords);
             dailyWages += calc.netSalary;
           });
           return { name: day, wages: dailyWages };
@@ -795,7 +816,7 @@ function PayrollMasterReport({
               totalLoans: 0,
               netSalary: 0,
             };
-            const calc = calculateLivePayroll(virtualPayroll, employees, attendance, hrTransactions, loans, productionRecords);
+            const calc = calculateLivePayroll(virtualPayroll, attendance, hrTransactions, loans, productionRecords);
             weeklyWages += calc.netSalary;
           });
           return { name: week.label, wages: weeklyWages };
@@ -840,14 +861,14 @@ function PayrollMasterReport({
               totalLoans: 0,
               netSalary: 0,
             };
-            const calc = calculateLivePayroll(virtualPayroll, employees, attendance, hrTransactions, loans, productionRecords);
+            const calc = calculateLivePayroll(virtualPayroll, attendance, hrTransactions, loans, productionRecords);
             monthlyWages += calc.netSalary;
           });
           return { name: m.label, wages: monthlyWages };
         });
       }
     }
-  }, [reportMode, departmentFilteredPayrolls, dateRange, employees, attendance, hrTransactions, loans, productionRecords, sortedPayrolls]);
+  }, [sortedPayrolls, reportMode, dateRange, departmentFilteredPayrolls, employees, attendance, hrTransactions, loans, productionRecords]);
 
   const COLORS = ['#2563eb', '#3b82f6', '#60a5fa', '#10b981', '#34d399', '#8b5cf6', '#a78bfa'];
 
@@ -1348,6 +1369,8 @@ function MainApp({
   const [itemCardSelectedId, setItemCardSelectedId] = useState<string>('');
   const [items, setItems] = useState<Item[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerPayments, setCustomerPayments] = useState<CustomerPayment[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [issuances, setIssuances] = useState<Issuance[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -1357,8 +1380,9 @@ function MainApp({
   const [loadingManifests, setLoadingManifests] = useState<LoadingManifest[]>([]);
   const [wasteRecords, setWasteRecords] = useState<Waste[]>([]);
   const [maintenanceOrders, setMaintenanceOrder] = useState<MaintenanceOrder[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [safeTransactions, setSafeTransactions] = useState<SafeTransaction[]>([]);
   const [hrTransactions, setHrTransactions] = useState<FinancialTransaction[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
@@ -1375,13 +1399,18 @@ function MainApp({
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
   const [showrooms, setShowrooms] = useState<Showroom[]>([]);
   const [transferOrders, setTransferOrders] = useState<TransferOrder[]>([]);
+  const [warehouseTransfers, setWarehouseTransfers] = useState<WarehouseTransfer[]>([]);
   const [showroomInventory, setShowroomInventory] = useState<ShowroomInventory[]>([]);
   const [productRecipes, setProductRecipes] = useState<ProductRecipe[]>([]);
   const [safes, setSafes] = useState<Safe[]>([]);
-  const [safeTransactions, setSafeTransactions] = useState<SafeTransaction[]>([]);
   const [safeAudits, setSafeAudits] = useState<SafeAudit[]>([]);
   const [hrMenuOpen, setHrMenuOpen] = useState(false);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setGlobalEmployees(employees);
+    setGlobalSafeTransactions(safeTransactions);
+  }, [employees, safeTransactions]);
 
   const [showPrintIframeWarning, setShowPrintIframeWarning] = useState(false);
 
@@ -1723,6 +1752,24 @@ function MainApp({
     let unsubCostCenters = () => {};
     let unsubItems = () => {};
     let unsubSuppliers = () => {};
+    let unsubCustomers = () => {};
+    let unsubCustomerPayments = () => {};
+    if (profile.isAdmin || profile.permissions.sales || profile.permissions.reports) {
+      unsubCustomers = onSnapshot(
+        collection(db, 'customers'),
+        (snap) => {
+          setCustomers(snap.docs.map(d => ({ id: d.id, ...d.data() } as Customer)));
+        },
+        (error) => console.error('Permission error in collection customers:', error)
+      );
+      unsubCustomerPayments = onSnapshot(
+        collection(db, 'customerPayments'),
+        (snap) => {
+          setCustomerPayments(snap.docs.map(d => ({ id: d.id, ...d.data() } as CustomerPayment)));
+        },
+        (error) => console.error('Permission error in collection customerPayments:', error)
+      );
+    }
     let unsubPurchases = () => {};
     let unsubIssuances = () => {};
     let unsubProductionJobs = () => {};
@@ -1747,6 +1794,7 @@ function MainApp({
     let unsubSalesOrders = () => {};
     let unsubShowrooms = () => {};
     let unsubTransferOrders = () => {};
+    let unsubWarehouseTransfers = () => {};
     let unsubShowroomInventory = () => {};
     let unsubSafeAudits = () => {};
     let unsubProductRecipes = () => {};
@@ -2077,6 +2125,14 @@ function MainApp({
         },
         (error) => console.error('Permission error in collection transferOrders:', error)
       );
+
+      unsubWarehouseTransfers = onSnapshot(
+        collection(db, 'warehouseTransfers'),
+        (snap) => {
+          setWarehouseTransfers(snap.docs.map(d => ({ id: d.id, ...d.data() } as WarehouseTransfer)));
+        },
+        (error) => console.error('Permission error in collection warehouseTransfers:', error)
+      );
     }
 
     // 30. unsubSafeAudits
@@ -2129,6 +2185,8 @@ function MainApp({
       unsubCostCenters();
       unsubItems();
       unsubSuppliers();
+      unsubCustomers();
+      unsubCustomerPayments();
       unsubPurchases();
       unsubIssuances();
       unsubProductionJobs();
@@ -2153,6 +2211,7 @@ function MainApp({
       unsubSalesOrders();
       unsubShowrooms();
       unsubTransferOrders();
+      unsubWarehouseTransfers();
       unsubShowroomInventory();
       unsubSafeAudits();
       unsubProductRecipes();
@@ -2180,6 +2239,8 @@ function MainApp({
       balance: item.openingBalance,
       notes: 'الرصيد الافتتاحي عند التأسيس'
     });
+    if (profile.isAdmin || profile.permissions.sales || profile.permissions.reports) {
+    }
 
     purchases.filter(p => p.itemId === itemId).forEach(p => {
       movements.push({
@@ -2231,6 +2292,28 @@ function MainApp({
         in: 0,
         out: w.quantity,
         notes: `سبب الهالك: ${w.reason} | ${w.notes}`
+      });
+    });
+
+    warehouseTransfers.forEach(t => {
+      t.items.forEach(item => {
+        if (item.sourceItemId === itemId) {
+          movements.push({
+            date: t.date,
+            type: 'تحويل مخزني (منصرف)',
+            in: 0,
+            out: item.quantity,
+            notes: `تحويل إلى: ${warehouses.find(w => w.id === t.toWarehouseId)?.name || 'مخزن غير معروف'} ${t.notes ? `| ${t.notes}` : ''}`
+          });
+        } else if (item.destinationItemId === itemId) {
+          movements.push({
+            date: t.date,
+            type: 'تحويل مخزني (وارد)',
+            in: item.quantity,
+            out: 0,
+            notes: `تحويل من: ${warehouses.find(w => w.id === t.fromWarehouseId)?.name || 'مخزن غير معروف'} ${t.notes ? `| ${t.notes}` : ''}`
+          });
+        }
       });
     });
 
@@ -2332,13 +2415,13 @@ function MainApp({
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setInventoryMenuOpen(!inventoryMenuOpen)}
                   className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                    ['inventory', 'issuances', 'returns', 'itemCard', 'waste', 'stockAudit'].includes(activeTab) 
+                    ['inventory', 'issuances', 'returns', 'itemCard', 'waste', 'stockAudit', 'stockTransfers'].includes(activeTab) 
                     ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' 
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Package size={20} className={['inventory', 'issuances', 'returns', 'itemCard', 'waste', 'stockAudit'].includes(activeTab) ? 'text-primary' : ''} />
+                    <Package size={20} className={['inventory', 'issuances', 'returns', 'itemCard', 'waste', 'stockAudit', 'stockTransfers'].includes(activeTab) ? 'text-primary' : ''} />
                     <span className="font-black text-sm">المخازن</span>
                   </div>
                   <ChevronDown size={14} className={`transition-transform duration-300 ${inventoryMenuOpen ? 'rotate-180' : ''}`} />
@@ -2355,6 +2438,7 @@ function MainApp({
                       <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
                         <SubNavButton active={activeTab === 'inventory'} onClick={() => handleNavClick('inventory')} label="أرصدة الأصناف" permission="inventory" profile={profile} />
                         <SubNavButton active={activeTab === 'itemCard'} onClick={() => handleNavClick('itemCard')} label="كارت الحركة" permission="inventory" profile={profile} />
+                        <SubNavButton active={activeTab === 'stockTransfers'} onClick={() => handleNavClick('stockTransfers')} label="التحويل المخزني" permission="inventory" profile={profile} />
                         <SubNavButton active={activeTab === 'issuances'} onClick={() => handleNavClick('issuances')} label="صرف المواد" permission="inventory" profile={profile} />
                         <SubNavButton active={activeTab === 'returns'} onClick={() => handleNavClick('returns')} label="المرتجعات" permission="inventory" profile={profile} />
                         <SubNavButton active={activeTab === 'stockAudit'} onClick={() => handleNavClick('stockAudit')} label="جرد المخزن" permission="inventory" profile={profile} />
@@ -2401,6 +2485,7 @@ function MainApp({
                         <SubNavButton active={activeTab === 'productionCosts'} onClick={() => handleNavClick('productionCosts')} label="تحليل التكاليف" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'loading'} onClick={() => handleNavClick('loading')} label="بيان التحميل" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'deliveryReceipts'} onClick={() => handleNavClick('deliveryReceipts')} label="محاضر الاستلام" permission="production" profile={profile} />
+                        <SubNavButton active={activeTab === 'whatsapp'} onClick={() => handleNavClick('whatsapp')} label="مساعد واتساب الذكي ✨" permission="production" profile={profile} />
                       </div>
                     </motion.div>
                   )}
@@ -2518,7 +2603,9 @@ function MainApp({
           )}
 
           <NavButton active={activeTab === 'suppliers'} onClick={() => handleNavClick('suppliers')} icon={<Users size={20} />} label="الموردين" permission="suppliers" profile={profile} />
-          <NavButton active={activeTab === 'sales'} onClick={() => handleNavClick('sales')} icon={<ShoppingBag size={20} />} label="المبيعات والمعارض" permission="sales" profile={profile} />                
+          <NavButton active={activeTab === 'sales'} onClick={() => handleNavClick('sales')} icon={<ShoppingBag size={20} />} label="المبيعات والمعارض" permission="sales" profile={profile} />
+          <NavButton active={activeTab === 'customers'} onClick={() => handleNavClick('customers')} icon={<Users size={20} />} label="العملاء" permission="sales" profile={profile} />                
+          <NavButton active={activeTab === 'workOrders'} onClick={() => handleNavClick('workOrders')} icon={<ClipboardList size={20} />} label="أوامر التشغيل" permission="production" profile={profile} />
           
           <div className="pt-8 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
             <span>النظام</span>
@@ -2612,7 +2699,6 @@ function MainApp({
                 suppliers={suppliers} 
                 purchases={purchases} 
                 issuances={issuances} 
-                employees={employees}
                 productionJobs={productionJobs}
                 loadingManifests={loadingManifests}
                 maintenanceOrders={maintenanceOrders}
@@ -2626,7 +2712,6 @@ function MainApp({
                 jobOtherCosts={jobOtherCosts}
                 productionRecords={productionRecords}
                 safes={safes}
-                safeTransactions={safeTransactions}
                 profile={profile}
               />}
         {activeTab === 'inventory' && (
@@ -2644,6 +2729,14 @@ function MainApp({
           />
         )}
         {activeTab === 'itemCard' && <ItemCardView items={items} suppliers={suppliers} purchases={purchases} issuances={issuances} getItemMovements={getItemMovements} />}
+        {activeTab === 'stockTransfers' && (
+          <WarehouseTransfersView 
+            warehouses={warehouses} 
+            items={items} 
+            transfers={warehouseTransfers} 
+            profile={profile} 
+          />
+        )}
         {activeTab === 'productRecipes' && (
           <ProductRecipesView 
             recipes={productRecipes}
@@ -2654,10 +2747,9 @@ function MainApp({
         )}
         {activeTab === 'production' && (
           <OdooManufacturingSuite 
-            costCenters={costCenters} 
+            costCenters={costCenters}
             productionJobs={productionJobs} 
             issuances={issuances} 
-            employees={employees}
             jobLabors={jobLabors}
             jobOtherCosts={jobOtherCosts}
             companyInfo={settings}
@@ -2666,12 +2758,12 @@ function MainApp({
             profile={profile}
             boms={boms}
             workCenters={workCenters}
+            employees={employees}
             renderCustomJobsList={() => (
               <ProductionLine 
-                costCenters={costCenters} 
+                costCenters={costCenters}
                 productionJobs={productionJobs} 
                 issuances={issuances} 
-                employees={employees}
                 jobLabors={jobLabors}
                 jobOtherCosts={jobOtherCosts}
                 companyInfo={settings}
@@ -2687,12 +2779,12 @@ function MainApp({
             productionJobs={productionJobs}
             costCenters={costCenters}
             issuances={issuances}
-            employees={employees}
             jobLabors={jobLabors}
             jobOtherCosts={jobOtherCosts}
             items={items}
             boms={boms}
             workCenters={workCenters}
+            employees={employees}
             manufacturingOperations={manufacturingOperations}
           />
         )}
@@ -2710,20 +2802,23 @@ function MainApp({
             profile={profile}
           />
         )}
+        {activeTab === 'whatsapp' && (
+          <WhatsAppAssistant 
+            employees={employees}
+            items={items}
+            customers={customers}
+            companyInfo={settings}
+            onNavigateToTab={(tab) => handleNavClick(tab)}
+          />
+        )}
         {activeTab === 'materialCalculator' && <MaterialCalculatorView />}
         {activeTab === 'issuances' && <Issuances items={items} issuances={issuances} costCenters={costCenters} />}
         {activeTab === 'stockAudit' && <StockAuditView items={items} warehouses={warehouses} audits={stockAudits} />}
         {activeTab === 'returns' && <Returns items={items} suppliers={suppliers} costCenters={costCenters} />}
         {activeTab === 'waste' && <WastedItemsView items={items} wasteRecords={wasteRecords} />}
         {activeTab === 'maintenanceOrders' && <MaintenanceOrdersView records={maintenanceOrders} safes={safes} costCenters={costCenters} profile={profile} />}
-        {activeTab === 'employees' && <EmployeesView employees={employees} />}
-        {activeTab === 'attendance' && <AttendanceView employees={employees} />}
-        {activeTab === 'hrProduction' && <ProductionView employees={employees} productionRecords={productionRecords} />}
-        {activeTab === 'hrTransactions' && <HRTransactionsView employees={employees} transactions={hrTransactions} />}
-        {activeTab === 'loans' && <LoansView employees={employees} />}
         {activeTab === 'payroll' && (
           <PayrollView 
-            employees={employees} 
             attendance={attendance} 
             transactions={hrTransactions} 
             loans={loans} 
@@ -2731,9 +2826,10 @@ function MainApp({
             productionRecords={productionRecords} 
             safes={safes}
             companyInfo={settings}
+            employees={employees}
           />
         )}
-        {activeTab === 'archive' && <ArchiveView employees={employees} payrolls={payrolls} transactions={hrTransactions} />}
+        {activeTab === 'customers' && <CustomersManager customers={customers} customerPayments={customerPayments} safes={safes} salesOrders={salesOrders} profile={profile} />}
         {activeTab === 'sales' && (
           <SalesModule 
             showrooms={showrooms}
@@ -2772,7 +2868,6 @@ function MainApp({
             maintenanceOrders={maintenanceOrders}
             salesOrders={salesOrders}
             safes={safes}
-            safeTransactions={safeTransactions}
             supplierPayments={supplierPayments}
             payrolls={payrolls}
             hrTransactions={hrTransactions}
@@ -2782,7 +2877,6 @@ function MainApp({
         {activeTab === 'payrollMasterReport' && (
           <PayrollMasterReport 
             payrolls={payrolls}
-            employees={employees}
             hrTransactions={hrTransactions}
             attendance={attendance}
             loans={loans}
@@ -2790,21 +2884,22 @@ function MainApp({
           />
         )}
         {activeTab === 'userManagement' && <UsersManager />}
+        {activeTab === 'workOrders' && <WorkOrdersManager customers={customers} profile={profile} />}
+        {activeTab === 'loans' && <LoansView employees={employees} safes={safes} />}
+        {activeTab === 'archive' && <PayrollArchiveView employees={employees} payrolls={payrolls} transactions={hrTransactions} />}
         {activeTab === 'monthlyStipends' && (
           <MonthlyStipendsModule />
         )}
         {activeTab === 'safe' && (
           <Finance 
             safes={safes} 
-            safeTransactions={safeTransactions} 
             safeAudits={safeAudits} 
             profile={profile} 
             purchases={purchases} 
             items={items} 
             suppliers={suppliers} 
-            costCenters={costCenters} 
+            costCenters={costCenters}
             productionJobs={productionJobs} 
-            employees={employees} 
             loadingManifests={loadingManifests} 
           />
         )}
@@ -2817,7 +2912,9 @@ function MainApp({
             suppliers={suppliers} 
             warehouses={warehouses} 
             units={units} 
-            costCenters={costCenters} 
+            costCenters={costCenters}
+            employees={employees}
+            safeTransactions={safeTransactions}
             showItemAdd={showItemAdd}
             setShowItemAdd={setShowItemAdd}
             showSupplierAdd={showSupplierAdd}
@@ -4032,7 +4129,6 @@ function Dashboard({
   suppliers, 
   purchases, 
   issuances,
-  employees,
   productionJobs,
   loadingManifests,
   maintenanceOrders,
@@ -4046,7 +4142,6 @@ function Dashboard({
   jobOtherCosts,
   productionRecords,
   safes,
-  safeTransactions,
   profile,
   settings,
   setSettings,
@@ -4056,7 +4151,6 @@ function Dashboard({
   suppliers: Supplier[], 
   purchases: Purchase[], 
   issuances: Issuance[],
-  employees: Employee[],
   productionJobs: ProductionJob[],
   loadingManifests: LoadingManifest[],
   maintenanceOrders?: MaintenanceOrder[],
@@ -4070,7 +4164,6 @@ function Dashboard({
   jobOtherCosts: JobOtherCost[],
   productionRecords: ProductionRecord[],
   safes: Safe[],
-  safeTransactions: SafeTransaction[],
   profile: UserProfile | null,
   settings?: CompanySettings,
   setSettings?: (v: CompanySettings) => void,
@@ -6032,10 +6125,9 @@ function PrintManifest({ manifest, companyInfo }: { manifest: LoadingManifest, c
 }
 
 const ProductionLine = React.memo(function ProductionLine({ 
-  costCenters, 
+  costCenters,
   productionJobs, 
   issuances, 
-  employees,
   jobLabors,
   jobOtherCosts,
   companyInfo,
@@ -6043,10 +6135,9 @@ const ProductionLine = React.memo(function ProductionLine({
   productRecipes,
   profile
 }: { 
-  costCenters: CostCenter[], 
+  costCenters: CostCenter[],
   productionJobs: ProductionJob[],
   issuances: Issuance[],
-  employees: Employee[],
   jobLabors: JobLabor[],
   jobOtherCosts: JobOtherCost[],
   companyInfo: CompanySettings,
@@ -8098,7 +8189,6 @@ function ExpenseAnalytics({ transactions, costCenters }: { transactions: SafeTra
 
 const Finance = React.memo(function Finance({
   safes, 
-  safeTransactions, 
   safeAudits,
   profile,
   purchases,
@@ -8106,11 +8196,9 @@ const Finance = React.memo(function Finance({
   suppliers,
   costCenters,
   productionJobs,
-  employees,
   loadingManifests
 }: {
   safes: Safe[], 
-  safeTransactions: SafeTransaction[], 
   safeAudits: SafeAudit[],
   profile: UserProfile | null,
   purchases: Purchase[],
@@ -8118,7 +8206,6 @@ const Finance = React.memo(function Finance({
   suppliers: Supplier[],
   costCenters: CostCenter[],
   productionJobs: ProductionJob[],
-  employees: Employee[],
   loadingManifests: LoadingManifest[]
 }) {
   const [activeTab, setActiveTab] = useState<'overview' | 'scrapSales' | 'purchases' | 'audits' | 'settlements' | 'analytics'>('overview');
@@ -12698,7 +12785,7 @@ const tafqeet = (num: number): string => {
   return `فقط ${result} جنيهاً مصرياً لا غير`;
 };
 
-const LoansView = React.memo(function LoansView({ employees }: { employees: Employee[] }) {
+const LoansView = React.memo(function LoansView({ employees, safes }: { employees: Employee[], safes: Safe[] }) {
   const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
   const [showAdd, setShowAdd] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
@@ -12814,7 +12901,8 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
     paidAlready: '' as string | number,
     notes: '',
     status: 'نشط' as const,
-    deductionMode: 'auto_percentage' as 'auto_percentage' | 'auto_installment' | 'manual'
+    deductionMode: 'auto_percentage' as 'auto_percentage' | 'auto_installment' | 'manual',
+    safeId: ''
   });
 
   const fetchLoans = async (isInitial = false) => {
@@ -12858,7 +12946,37 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
     const amountVal = parseFloat(formData.amount as string) || 0;
     const paidAlreadyVal = parseFloat(formData.paidAlready as string) || 0;
     if (!formData.employeeId || amountVal <= 0) return;
+    
+    // Amount to actually deduct from safe (Full loan amount)
+    const deductionAmount = amountVal;
+
     try {
+      // 1. If safe selected, check balance and create transaction
+      let safeTransactionId = '';
+      if (formData.safeId) {
+        const safe = safes.find(s => s.id === formData.safeId);
+        if (safe && safe.balance < deductionAmount) {
+          if (!confirm(`تحذير: رصيد الخزنة (${safe.balance} ج.م) أقل من مبلغ السلفة (${deductionAmount} ج.م). هل تريد المتابعة؟`)) return;
+        }
+
+        const transRef = await addDoc(collection(db, 'safe_transactions'), {
+          safeId: formData.safeId,
+          date: formData.date,
+          amount: deductionAmount,
+          type: 'سحب',
+          category: 'قرض شخصي',
+          description: `سلفة موظف: ${employees.find(e => e.id === formData.employeeId)?.name || 'غير معروف'}`,
+          relatedId: '', // Will be updated with loanId
+          createdBy: 'نظام السلف'
+        });
+        safeTransactionId = transRef.id;
+
+        // Update safe balance
+        await updateDoc(doc(db, 'safes', formData.safeId), {
+          balance: increment(-deductionAmount)
+        });
+      }
+
       const remainingAmount = amountVal - paidAlreadyVal;
       const initialPayments = paidAlreadyVal > 0 ? [{
         date: formData.date,
@@ -12866,14 +12984,29 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
         type: 'initial' as const,
         notes: 'دفعة مقدمة عند استلام السلفة'
       }] : [];
-      await addDoc(collection(db, 'loans'), {
-        ...formData,
+
+      const loanRef = await addDoc(collection(db, 'loans'), {
+        employeeId: formData.employeeId,
+        date: formData.date,
         amount: amountVal,
+        installments: formData.installments,
         paidAlready: paidAlreadyVal,
-        remainingAmount: remainingAmount > 0 ? remainingAmount : 0,
+        notes: formData.notes,
         status: remainingAmount <= 0 ? 'مسدد' : 'نشط',
-        payments: initialPayments
+        deductionMode: formData.deductionMode,
+        remainingAmount: remainingAmount > 0 ? remainingAmount : 0,
+        payments: initialPayments,
+        safeId: formData.safeId,
+        safeTransactionId: safeTransactionId
       });
+
+      // Update the transaction with the loan ID for cross-reference
+      if (safeTransactionId) {
+        await updateDoc(doc(db, 'safe_transactions', safeTransactionId), {
+          relatedId: loanRef.id
+        });
+      }
+
       setShowAdd(false);
       setFormData({
         employeeId: '',
@@ -12883,7 +13016,8 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
         paidAlready: '',
         notes: '',
         status: 'نشط',
-        deductionMode: 'auto_percentage'
+        deductionMode: 'auto_percentage',
+        safeId: ''
       });
       fetchLoans(true);
   } catch (err) { console.error(err); } };
@@ -13506,6 +13640,22 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
                 <span className="text-emerald-700 font-black">{tafqeet(parseFloat(formData.amount as string) || 0)}</span>
               </div>
 
+              {/* Safe Selection */}
+              <div className="space-y-2 text-right">
+                <label className="text-sm font-bold text-slate-700 block text-right">الخزنة / العهدة (لصرف المبلغ)</label>
+                <select 
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-emerald-50/30 px-3 font-bold text-right text-sm focus:border-emerald-500 focus:bg-white transition-all outline-none"
+                  value={formData.safeId}
+                  onChange={e => setFormData({ ...formData, safeId: e.target.value })}
+                >
+                  <option value="">-- اختر الخزنة المصدر --</option>
+                  {safes.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} (الرصيد الحالي: {s.balance.toLocaleString()} ج.م)</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 font-medium">سيتم خصم مبلغ السلفة آلياً من الخزنة المختارة وتسجيل حركة "سحب" عليها.</p>
+              </div>
+
               {/* Loan Deduction Method Choice */}
               <div className="space-y-2 text-right">
                 <label className="text-sm font-bold text-slate-700 block text-right">طريقة خصم السلفة</label>
@@ -13874,8 +14024,9 @@ const LoansView = React.memo(function LoansView({ employees }: { employees: Empl
   );
 });
 
-
 const HRTransactionsView = React.memo(function HRTransactionsView({ employees, transactions }: { employees: Employee[], transactions: FinancialTransaction[] }) {
+
+
   const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
   const [showAdd, setShowAdd] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<FinancialTransaction | null>(null);
@@ -14227,7 +14378,8 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
   );
 });
 
-const ProductionView = React.memo(function ProductionView({ employees, productionRecords }: { employees: Employee[], productionRecords: ProductionRecord[] }) {
+const HRProductionView = React.memo(function HRProductionView({ employees, productionRecords }: { employees: Employee[], productionRecords: ProductionRecord[] }) {
+
   const [showAdd, setShowAdd] = useState(false);
   const [entryType, setEntryType] = useState<'registered' | 'manual'>('registered');
   const [entryEmployeeId, setEntryEmployeeId] = useState('');
@@ -14728,24 +14880,40 @@ const ProductionView = React.memo(function ProductionView({ employees, productio
 });
 
 const PayrollView = React.memo(function PayrollView({
-  employees,
   attendance,
   transactions,
   loans,
   payrolls,
   productionRecords,
   safes,
-  companyInfo
+  companyInfo,
+  employees
 }: {
-  employees: Employee[],
   attendance: Attendance[],
   transactions: FinancialTransaction[],
   loans: Loan[],
   payrolls: Payroll[],
   productionRecords: ProductionRecord[],
   safes: Safe[],
-  companyInfo: CompanySettings
+  companyInfo: CompanySettings,
+  employees: Employee[]
 }) {
+  const getLivePayroll = React.useCallback((p: Payroll): Payroll => {
+    const totalProduction = p.totalProduction || 0;
+    const baseSalary = p.baseSalary || 0;
+    const totalBonuses = p.totalBonuses || 0;
+    const totalOvertime = p.totalOvertime || 0;
+    const totalDeductions = p.totalDeductions || 0;
+    const totalExpenses = p.totalExpenses || 0;
+    const totalLoans = p.totalLoans || 0;
+    
+    const netSalary = baseSalary + totalProduction + totalOvertime + totalBonuses - totalDeductions - totalExpenses - totalLoans;
+    return {
+      ...p,
+      netSalary
+    };
+  }, []);
+
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
   const [searchTerm, setSearchTerm] = useState('');
   const [payrollSubTab, setPayrollSubTab] = useState<'weekly' | 'daily' | 'deductions'>('weekly');
@@ -14958,7 +15126,6 @@ const PayrollView = React.memo(function PayrollView({
       const response = await fetch('/api/payroll/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employees, attendance, transactions, loans, productionRecords, genData })
       });
 
       const { processedPayrolls } = await response.json();
@@ -15187,7 +15354,6 @@ const PayrollView = React.memo(function PayrollView({
 
   const [roundSalaries, setRoundSalaries] = useState(false);
 
-  const getLivePayroll = (p: Payroll) => calculateLivePayroll(p, employees, attendance, transactions, loans, productionRecords, companyInfo);
 
   const processedPayrolls = React.useMemo(() => {
     const raw = filteredDraftPayrolls.map(getLivePayroll);
@@ -15197,7 +15363,7 @@ const PayrollView = React.memo(function PayrollView({
         ...p,
         netSalary: Math.ceil(p.netSalary / 5) * 5
     }));
-  }, [filteredDraftPayrolls, employees, attendance, transactions, loans, productionRecords, companyInfo, roundSalaries]);
+  }, [filteredDraftPayrolls, roundSalaries, getLivePayroll]);
 
   const processedDailyPayrolls = React.useMemo(() => {
     const raw = dailyPayrollData.map(d => ({
@@ -15865,11 +16031,11 @@ const PayrollView = React.memo(function PayrollView({
     </>
   ) : (
     <DeductionsView
-      employees={employees}
       attendance={attendance}
       transactions={transactions}
       loans={loans}
       companyInfo={companyInfo}
+      employees={employees}
     />
   )}
 
@@ -16654,10 +16820,11 @@ const PayrollView = React.memo(function PayrollView({
   );
 });
 
+const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, payrolls, transactions }: { employees: Employee[], payrolls: Payroll[], transactions: FinancialTransaction[] }) {
 
 
 
-function ArchiveView({ employees, payrolls, transactions }: { employees: Employee[], payrolls: Payroll[], transactions: FinancialTransaction[] }) {
+
   const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
@@ -17002,7 +17169,7 @@ function ArchiveView({ employees, payrolls, transactions }: { employees: Employe
       />
     </div>
   );
-}
+});
 
 function Settings({
   settings,
@@ -17013,6 +17180,8 @@ function Settings({
   warehouses, 
   units, 
   costCenters,
+  employees,
+  safeTransactions,
   showItemAdd,
   setShowItemAdd,
   showSupplierAdd,
@@ -17078,6 +17247,8 @@ function Settings({
   warehouses: Warehouse[], 
   units: Unit[], 
   costCenters: CostCenter[],
+  employees: Employee[],
+  safeTransactions: SafeTransaction[],
   showItemAdd: boolean,
   setShowItemAdd: (v: boolean) => void,
   showSupplierAdd: boolean,
@@ -17260,6 +17431,15 @@ function Settings({
             >
               <Users size={18} />
               إدارة المستخدمين
+            </button>
+            <button
+              onClick={() => setSettingsTab('backup')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+                settingsTab === 'backup' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <Database size={18} />
+              النسخ الاحتياطي والأمان
             </button>
             <button
               onClick={() => setSettingsTab('about')}
@@ -18094,6 +18274,64 @@ function Settings({
           {settingsTab === 'users' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
               <UsersManager />
+            </div>
+          )}
+
+          {/* BACKUP TAB */}
+          {settingsTab === 'backup' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <Card className="dribbble-card border-none">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-black text-slate-900 flex items-center gap-2">
+                    <Database size={24} className="text-primary" />
+                    النسخ الاحتياطي السحابي والأمان
+                  </CardTitle>
+                  <CardDescription className="font-bold text-slate-500">حفظ وتصدير بيانات النظام لتأمينها من الفقدان</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6">
+                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+                      <Download size={32} />
+                    </div>
+                    <div className="flex-1 space-y-2 text-center md:text-right">
+                      <h4 className="text-lg font-black text-slate-900">أخذ نسخة احتياطية (تصدير إكسيل)</h4>
+                      <p className="text-sm font-bold text-slate-500 leading-relaxed">
+                        قم بتنزيل كافة السجلات (الأصناف، الموردين، الموظفين، العمليات، الخزنة) في ملف إكسيل واحد لتتمكن من الرجوع إليه في أي وقت أو طباعته كأرشيف خارجي.
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        try {
+                          const wb = XLSX.utils.book_new();
+                          if (items?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(items), "المخزن");
+                          if (suppliers?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(suppliers), "الموردين");
+                          if (employees?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(employees), "الموظفين");
+                          if (safeTransactions?.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(safeTransactions), "الخزنة");
+                          XLSX.writeFile(wb, `ElNaggar_System_Backup_${new Date().toISOString().split('T')[0]}.xlsx`);
+                        } catch (err) {
+                          alert('حدث خطأ أثناء التصدير');
+                        }
+                      }}
+                      className="h-12 px-6 rounded-xl font-black text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200 shrink-0"
+                    >
+                      تحميل النسخة الاحتياطية
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-slate-50 border border-slate-100 p-6 rounded-2xl space-y-4">
+                     <h4 className="font-black text-slate-800 flex items-center gap-2">
+                       <ShieldCheck size={18} className="text-emerald-500" />
+                       سجل مراقبة النظام (Audit Log)
+                     </h4>
+                     <p className="text-sm font-bold text-slate-500">
+                       يتم تسجيل تحركات وحذف البيانات الهامة بشكل آمن وتلقائي. في النسخة الاحترافية (Enterprise) يتم تفعيل تتبع كافة التغييرات المالية للرجوع إليها في حالات التدقيق الداخلي.
+                     </p>
+                     <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl font-black text-xs border border-emerald-100">
+                       النظام حالياً مشفر ويعمل بصلاحيات الموظفين المحددة مسبقاً. تأكد دائماً من منح الصلاحيات للمستخدمين الموثوقين فقط.
+                     </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 

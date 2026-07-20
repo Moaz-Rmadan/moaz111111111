@@ -1,6 +1,95 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
+import { GoogleGenAI, Type } from '@google/genai';
+
+function cleanTrailingJunk(str: string): string {
+  let s = str.trim();
+  // Remove trailing commas
+  if (s.endsWith(',')) {
+    s = s.slice(0, -1).trim();
+  }
+  // If it ends with partial property definitions, remove them
+  while (true) {
+    const prev = s;
+    s = s.replace(/,\s*"[^"]*"\s*:\s*$/, ''); // remove trailing ,"key":
+    s = s.replace(/{\s*"[^"]*"\s*:\s*$/, '{'); // remove trailing {"key":
+    s = s.replace(/:\s*$/, ''); // remove trailing :
+    s = s.replace(/,\s*$/, ''); // remove trailing ,
+    s = s.trim();
+    if (s === prev) break;
+  }
+  return s;
+}
+
+function repairTruncatedJson(jsonStr: string): string {
+  let str = jsonStr.trim();
+  if (!str) return '{}';
+
+  // Handle unclosed quotes
+  let insideQuote = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (escaped) {
+      escaped = false;
+    } else if (char === '\\') {
+      escaped = true;
+    } else if (char === '"') {
+      insideQuote = !insideQuote;
+    }
+  }
+
+  if (insideQuote) {
+    if (str.endsWith('\\') && !escaped) {
+      str = str.slice(0, -1);
+    }
+    str += '"';
+  }
+
+  // Balance brackets and braces
+  const stack: ('{' | '[')[] = [];
+  insideQuote = false;
+  escaped = false;
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (escaped) {
+      escaped = false;
+    } else if (char === '\\') {
+      escaped = true;
+    } else if (char === '"') {
+      insideQuote = !insideQuote;
+    } else if (!insideQuote) {
+      if (char === '{') {
+        stack.push('{');
+      } else if (char === '[') {
+        stack.push('[');
+      } else if (char === '}') {
+        if (stack[stack.length - 1] === '{') {
+          stack.pop();
+        }
+      } else if (char === ']') {
+        if (stack[stack.length - 1] === '[') {
+          stack.pop();
+        }
+      }
+    }
+  }
+
+  while (stack.length > 0) {
+    const last = stack.pop();
+    if (last === '{') {
+      str = cleanTrailingJunk(str);
+      str += '}';
+    } else if (last === '[') {
+      str = cleanTrailingJunk(str);
+      str += ']';
+    }
+  }
+
+  return str;
+}
 
 async function startServer() {
   const app = express();
@@ -8,6 +97,184 @@ async function startServer() {
 
   // Middleware to parse large JSON payloads for heavy computations
   app.use(express.json({ limit: '50mb' }));
+
+  // WhatsApp Smart Parser Endpoint
+  app.post('/api/whatsapp/parse', async (req, res) => {
+    try {
+      const { text, file } = req.body;
+      if (!text && !file) {
+        return res.status(400).json({ error: 'من فضلك أدخل نصاً أو قم برفع ملف (صورة / PDF) للتحليل.' });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: 'من فضلك قم بضبط مفتاح API لـ Gemini في الإعدادات' });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+
+      const systemInstruction = `
+You are a highly professional Arabic/Egyptian industry data extraction assistant. 
+Your task is to parse unstructured WhatsApp group chat messages, screenshots, receipts, or PDF orders and extract structured database records for either:
+1. "loading" (بون تحميل سيارة / حمولة عربية)
+2. "delivery" (إذن استلام عميل / أمر استلام)
+3. "production" (أمر تشغيل / أمر إنتاج)
+
+Analyze the provided input (which can be a text message, screenshot image, invoice photo, or PDF document) and:
+1. Detect which of these 3 types is the best fit (type 'loading', 'delivery', or 'production').
+2. Extract the corresponding fields in Arabic where applicable.
+3. Keep the values literal as mentioned in the text or document. Translate colloquial terms to formal terms if needed, but preserve product names and numbers precisely. If quantities are listed for products, parse those numbers as integers.
+4. If some fields are not mentioned or can't be found, return empty strings or sensible defaults.
+
+Output must be in JSON format matching the schema provided.
+`;
+
+      const contents: any[] = [];
+      if (text) {
+        contents.push(`User text context or message: ${text}`);
+      }
+      if (file && file.base64 && file.mimeType) {
+        contents.push({
+          inlineData: {
+            data: file.base64,
+            mimeType: file.mimeType
+          }
+        });
+        contents.push("Extract the data from this attached file (image or PDF document). Look for driver names, customer details, products, and quantities.");
+      } else {
+        contents.push("Extract the data from this WhatsApp message text.");
+      }
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents,
+        config: {
+          systemInstruction,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              detectedType: {
+                type: Type.STRING,
+                description: "The detected document type: 'loading' for Loading Manifest, 'delivery' for Delivery Receipt, 'production' for Work/Production Order."
+              },
+              confidence: {
+                type: Type.NUMBER,
+                description: "Confidence score from 0.0 to 1.0"
+              },
+              loadingData: {
+                type: Type.OBJECT,
+                description: "Extracted data if detectedType is 'loading'",
+                properties: {
+                  driverName: { type: Type.STRING },
+                  carNumber: { type: Type.STRING },
+                  destinationType: { type: Type.STRING, description: "Must be 'عميل' or 'معرض'" },
+                  clientName: { type: Type.STRING },
+                  orderNumbers: { type: Type.STRING },
+                  loaderName: { type: Type.STRING },
+                  notes: { type: Type.STRING },
+                  products: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        name: { type: Type.STRING },
+                        components: { type: Type.STRING },
+                        notes: { type: Type.STRING },
+                        salesPerson: { type: Type.STRING },
+                        additions: { type: Type.STRING },
+                        quantity: { type: Type.NUMBER }
+                      },
+                      required: ["name"]
+                    }
+                  }
+                }
+              },
+              deliveryData: {
+                type: Type.OBJECT,
+                description: "Extracted data if detectedType is 'delivery'",
+                properties: {
+                  receiptNumber: { type: Type.STRING },
+                  orderNumber: { type: Type.STRING },
+                  clientName: { type: Type.STRING },
+                  salesPerson: { type: Type.STRING },
+                  deliveryTeam: { type: Type.STRING },
+                  branch: { type: Type.STRING },
+                  address: { type: Type.STRING },
+                  phone: { type: Type.STRING },
+                  nationalId: { type: Type.STRING },
+                  products: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        name: { type: Type.STRING },
+                        quantity: { type: Type.NUMBER },
+                        notes: { type: Type.STRING }
+                      },
+                      required: ["name", "quantity"]
+                    }
+                  },
+                  notes: { type: Type.STRING }
+                }
+              },
+              productionData: {
+                type: Type.OBJECT,
+                description: "Extracted data if detectedType is 'production'",
+                properties: {
+                  workOrderNumber: { type: Type.STRING },
+                  clientName: { type: Type.STRING },
+                  contractDate: { type: Type.STRING, description: "تاريخ التعاقد (YYYY-MM-DD) or readable date" },
+                  deliveryDate: { type: Type.STRING, description: "تاريخ التسليم المتوقع (YYYY-MM-DD) or readable date" },
+                  status: { type: Type.STRING, description: "الحالة (مثل: قيد الانتظار، قيد التشغيل، جاهز، تم التسليم)" },
+                  products: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        name: { type: Type.STRING },
+                        quantity: { type: Type.NUMBER },
+                        notes: { type: Type.STRING }
+                      },
+                      required: ["name", "quantity"]
+                    }
+                  },
+                  notes: { type: Type.STRING }
+                }
+              }
+            },
+            required: ["detectedType"]
+          }
+        }
+      });
+
+      const textResponse = response.text || '{}';
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(textResponse);
+      } catch (jsonErr) {
+        console.warn("Initial JSON parsing failed. Attempting robust JSON recovery:", jsonErr);
+        try {
+          const repaired = repairTruncatedJson(textResponse);
+          parsedResponse = JSON.parse(repaired);
+        } catch (repairErr: any) {
+          console.error("Robust JSON recovery also failed:", repairErr);
+          throw new Error("فشل في تحليل بيانات الاستجابة من الذكاء الاصطناعي. الرجاء المحاولة مرة أخرى بملف أو نص أصغر. التفاصيل: " + repairErr.message);
+        }
+      }
+      res.status(200).json(parsedResponse);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // Payroll Calculation Engine Endpoint
   app.post('/api/payroll/generate', (req, res) => {

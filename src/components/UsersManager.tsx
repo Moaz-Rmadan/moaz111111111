@@ -266,6 +266,7 @@ export function UsersManager() {
     setIsAdding(true);
     try {
       const uid = newUserIdentifier.toLowerCase().trim();
+      const cleanPassword = newUserPassword.trim();
 
       // Check if user already exists
       if (users.some(u => u.uid === uid)) {
@@ -282,8 +283,8 @@ export function UsersManager() {
         uid,
         email: isEmail ? uid : '',
         phone: isEmail ? '' : uid,
-        password: newUserPassword || '', // Optional if they choose to log in with Google
-        name: newUserName,
+        password: cleanPassword, // Optional if they choose to log in with Google
+        name: newUserName.trim(),
         isAdmin: false,
         permissions
       };
@@ -343,9 +344,9 @@ export function UsersManager() {
 
     const updatedProfile: UserProfile = {
       ...editingUser,
-      name: editName,
+      name: editName.trim(),
       isAdmin: editIsAdmin,
-      password: editPassword,
+      password: editPassword.trim(),
       permissions: editIsAdmin ? {
         dashboard: true,
         inventory: true,
