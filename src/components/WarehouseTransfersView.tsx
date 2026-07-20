@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Plus, ArrowLeftRight, Calendar, User, Warehouse as WarehouseIcon, 
   FileText, Search, Trash2, Printer, Eye, X, ChevronDown, Check, AlertTriangle, ArrowRightLeft
@@ -10,6 +10,7 @@ import { Warehouse, Item, WarehouseTransfer, UserProfile, WarehouseTransferItem 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { SearchableSelect } from './SearchableSelect';
 
 interface WarehouseTransfersViewProps {
   warehouses: Warehouse[];
@@ -42,9 +43,19 @@ export function WarehouseTransfersView({
   const [errorMessage, setErrorMessage] = useState('');
 
   // Source warehouse items filter (only items with current balance > 0)
-  const availableSourceItems = items.filter(
-    item => item.warehouseId === fromWarehouseId && item.currentBalance > 0
-  );
+  const availableSourceItems = useMemo(() => {
+    return items.filter(
+      item => item.warehouseId === fromWarehouseId && item.currentBalance > 0
+    );
+  }, [items, fromWarehouseId]);
+
+  const itemOptions = useMemo(() => {
+    return availableSourceItems.map(i => ({
+      id: i.id,
+      name: i.name,
+      subtext: `المتاح: ${i.currentBalance} ${i.unit}`
+    }));
+  }, [availableSourceItems]);
 
   const handleAddRow = () => {
     setTransferItems([...transferItems, { itemId: '', quantity: 1 }]);
@@ -664,22 +675,12 @@ export function WarehouseTransfersView({
                             {/* Item Selector */}
                             <div className="md:col-span-6 space-y-1.5 text-right">
                               <label className="text-[10px] font-black text-slate-400 uppercase">اسم الصنف</label>
-                              <div className="relative">
-                                <select
-                                  required
-                                  value={row.itemId}
-                                  onChange={e => handleItemChange(index, e.target.value)}
-                                  className="w-full h-12 pr-4 pl-10 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm appearance-none"
-                                >
-                                  <option value="">اختر الصنف المراد تحويله...</option>
-                                  {availableSourceItems.map(i => (
-                                    <option key={i.id} value={i.id}>
-                                      {i.name} (المتاح: {i.currentBalance} {i.unit})
-                                    </option>
-                                  ))}
-                                </select>
-                                <ChevronDown size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                              </div>
+                              <SearchableSelect
+                                options={itemOptions}
+                                selectedValue={row.itemId}
+                                onChange={(val) => handleItemChange(index, val)}
+                                placeholder="اختر الصنف المراد تحويله..."
+                              />
                             </div>
 
                             {/* Unit (Readonly info) */}

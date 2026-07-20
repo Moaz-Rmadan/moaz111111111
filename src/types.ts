@@ -82,6 +82,8 @@ export interface SalesOrder {
   totalCOGS: number; // إجمالي التكلفة المباشرة
   totalLogisticsCost: number;
   totalCommission: number;
+  totalTips?: number; // إكراميات السيلز
+  salesPersonId?: string; // الموظف المسؤول عن البيع
   operationalOverheadRate: number; // نسبة التحميل الإداري (مثلاً 0.15 للمصاريف التشغيلية)
   totalOperationalOverhead: number; // المبلغ الفعلي للمصاريف التشغيلية
   netProfit: number; // صافي الربح الحقيقي
@@ -649,6 +651,12 @@ export interface FurnitureWorkOrder {
   contractDate: string;
   deliveryDate: string;
   salesPerson?: string; // اسم مسؤول المبيعات (السيلز)
+  salesPersonId?: string; // معرف الموظف (لربط العمولات)
+  contractNumber?: string; // رقم العقد
+  isContracted?: boolean; // هل تم تحويله لعقد؟
+  contractManagerId?: string; // المدير الذي اعتمد العقد
+  contractImage?: string; // صورة العقد المعتمد
+  tipAmount?: number; // إكراميات السيلز المخصصة لهذا الأوردر
   attachmentImage?: string; // صورة أمر الشغل (مرفق)
   
   // البنود/الغرف المتعددة

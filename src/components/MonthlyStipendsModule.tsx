@@ -77,6 +77,7 @@ interface StipendPayment {
   transactionId?: string; // Reference number for InstaPay/Vodafone Cash
   paidAt?: string;
   paidFromSafeId?: string;
+  notes?: string;
 }
 
 interface DisbursementRun {
@@ -882,7 +883,7 @@ export const MonthlyStipendsModule: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('الكل');
   const [methodFilter, setMethodFilter] = useState('الكل');
   const [runSearchTerm, setRunSearchTerm] = useState('');
-  const [runStatusFilter, setRunStatusFilter] = useState('معلق'); // For payment filtering within active run
+  const [runStatusFilter, setRunStatusFilter] = useState('الكل'); // For payment filtering within active run
 
   // Advanced Filters
   const [statusFilter, setStatusFilter] = useState('الكل'); // 'الكل', 'نشط', 'موقوف'
@@ -1688,6 +1689,7 @@ export const MonthlyStipendsModule: React.FC = () => {
         amount: b.monthlyAmount,
         paymentMethod: b.paymentMethod,
         paymentDetails: b.paymentDetails || '',
+        notes: b.notes || '',
         status: 'معلق'
       }));
 
@@ -4008,7 +4010,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                                       </span>
                                     </td>
                                     <td className="py-4 px-6 font-mono text-slate-500">
-                                      {p.paymentDetails || '-'}
+                                      {p.paymentDetails || '-'}{p.notes ? ` - ${p.notes}` : ''}
                                     </td>
                                     <td className="py-4 px-6">
                                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${

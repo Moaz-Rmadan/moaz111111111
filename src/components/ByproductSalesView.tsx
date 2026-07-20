@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ByproductSale, Safe, UserProfile } from '../types';
+import { SearchableSelect } from './SearchableSelect';
 
 interface ByproductSalesViewProps {
   safes: Safe[];
@@ -28,6 +29,14 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
   const [filterMaterial, setFilterMaterial] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+
+  const safeOptions = useMemo(() => {
+    return safes.map(s => ({
+      id: s.id,
+      name: s.name,
+      subtext: `رصيد: ${s.balance.toLocaleString()} ج.م`
+    }));
+  }, [safes]);
 
   // Collect installment transaction state
   const [collectionSafeIds, setCollectionSafeIds] = useState<{ [key: string]: string }>({});
@@ -567,15 +576,13 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
               {/* Safe selection (only visible if paidAmount > 0) */}
               <div className={`space-y-2 transition-all duration-300 ${paidAmount > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-30 pointer-events-none'}`}>
                 <label className="text-xs font-black text-slate-500 block">الخزينة المستلمة للمقدم</label>
-                <select 
-                  value={safeId}
-                  onChange={e => setSafeId(e.target.value)}
+                <SearchableSelect 
+                  options={safeOptions}
+                  selectedValue={safeId}
+                  onChange={setSafeId}
                   disabled={paidAmount === 0}
-                  className="w-full h-11 px-3 bg-slate-50 rounded-xl font-bold text-sm border-none focus:ring-1 focus:ring-primary focus:bg-white"
-                >
-                  <option value="">اختر الخزينة...</option>
-                  {safes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance.toLocaleString()} ج.م)</option>)}
-                </select>
+                  placeholder="اختر الخزينة..."
+                />
               </div>
 
             </div>

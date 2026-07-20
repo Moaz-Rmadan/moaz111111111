@@ -1,15 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Clock, CheckCircle2, Calendar, Edit2, Trash2, Users, Settings, AlertCircle, RefreshCw, Search, X } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, limit, writeBatch, startAfter, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Attendance, Employee } from '../types';
+import { SearchableSelect } from './SearchableSelect';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 
-export function AttendanceView({ employees }: { employees: Employee[] }) {
+export function AttendanceView({ employees, attendance }: { employees: Employee[], attendance: Attendance[] }) {
+  const employeeOptions = useMemo(() => {
+    return employees.filter(e => e.status === 'نشط').map(emp => ({
+      id: emp.id,
+      name: emp.name,
+      subtext: emp.department || ''
+    }));
+  }, [employees]);
+
   const [showAdd, setShowAdd] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -32,7 +41,11 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
     status: 'حضور' as 'حضور' | 'غياب' | 'تأخير' | 'إجازة'
   });
 
-  const [attendanceHistory, setAttendanceHistory] = useState<Attendance[]>([]);
+  const [attendanceHistory, setAttendanceHistory] = useState<Attendance[]>(attendance);
+  
+  useEffect(() => {
+    setAttendanceHistory(attendance);
+  }, [attendance]);
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -695,16 +708,12 @@ export function AttendanceView({ employees }: { employees: Employee[] }) {
             <CardContent className="p-5 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">الموظف</label>
-                <select 
-                  className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  value={formData.employeeId} 
-                  onChange={e => setFormData({...formData, employeeId: e.target.value})}
-                >
-                  <option value="">-- اختر موظف --</option>
-                  {employees.filter(e => e.status === 'نشط').map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name}</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  options={employeeOptions}
+                  selectedValue={formData.employeeId}
+                  onChange={(val) => setFormData({...formData, employeeId: val})}
+                  placeholder="اختر موظف..."
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

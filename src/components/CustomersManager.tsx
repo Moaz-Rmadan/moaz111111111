@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { SearchableSelect } from './SearchableSelect';
 import { Customer, CustomerPayment, Safe, UserProfile, SalesOrder } from '../types';
 import {
   Users,
@@ -36,6 +37,14 @@ interface CustomersManagerProps {
 }
 
 export function CustomersManager({ customers, customerPayments, safes, salesOrders, profile }: CustomersManagerProps) {
+  const customerOptions = useMemo(() => {
+    return customers.map(c => ({
+      id: c.id,
+      name: c.name,
+      subtext: c.balance > 0 ? `${c.balance.toLocaleString('ar-EG')} ج` : ''
+    }));
+  }, [customers]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('الكل');
   
@@ -330,58 +339,64 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-none shadow-sm bg-gradient-to-br from-indigo-50 to-white">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-bold text-indigo-600/80 mb-1">إجمالي العملاء</p>
-                <h3 className="text-3xl font-black text-indigo-900">{customers.length}</h3>
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex justify-between items-start gap-3">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-indigo-600/80 mb-1">إجمالي العملاء</p>
+                <h3 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-black text-indigo-900 break-all">{customers.length}</h3>
               </div>
-              <div className="p-3 bg-indigo-100/50 text-indigo-600 rounded-2xl">
-                <Users size={24} />
+              <div className="p-2.5 sm:p-3 bg-indigo-100/50 text-indigo-600 rounded-2xl shrink-0">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
             </div>
           </CardContent>
         </Card>
         
         <Card className="border-none shadow-sm bg-gradient-to-br from-emerald-50 to-white">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-bold text-emerald-600/80 mb-1">عملاء نشطين</p>
-                <h3 className="text-3xl font-black text-emerald-900">{activeCount}</h3>
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex justify-between items-start gap-3">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-emerald-600/80 mb-1">عملاء نشطين</p>
+                <h3 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-black text-emerald-900 break-all">{activeCount}</h3>
               </div>
-              <div className="p-3 bg-emerald-100/50 text-emerald-600 rounded-2xl">
-                <CheckCircle2 size={24} />
+              <div className="p-2.5 sm:p-3 bg-emerald-100/50 text-emerald-600 rounded-2xl shrink-0">
+                <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-sm bg-gradient-to-br from-red-50 to-white">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-bold text-red-600/80 mb-1">إجمالي المديونيات لنا</p>
-                <h3 className="text-2xl font-black text-red-900">{totalDebt.toLocaleString('ar-EG')} <span className="text-sm">ج.م</span></h3>
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex justify-between items-start gap-3">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-red-600/80 mb-1">إجمالي المديونيات لنا</p>
+                <div className="flex items-baseline gap-1 flex-wrap">
+                  <h3 className="text-base sm:text-lg md:text-2xl font-black text-red-900 break-all">{totalDebt.toLocaleString('ar-EG')}</h3>
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400">ج.م</span>
+                </div>
               </div>
-              <div className="p-3 bg-red-100/50 text-red-600 rounded-2xl">
-                <TrendingUp size={24} />
+              <div className="p-2.5 sm:p-3 bg-red-100/50 text-red-600 rounded-2xl shrink-0">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-sm bg-gradient-to-br from-blue-50 to-white">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-bold text-blue-600/80 mb-1">أرصدة دائنة (دفعات مقدمة)</p>
-                <h3 className="text-2xl font-black text-blue-900">{totalCredit.toLocaleString('ar-EG')} <span className="text-sm">ج.م</span></h3>
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex justify-between items-start gap-3">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-blue-600/80 mb-1">أرصدة دائنة (دفعات مقدمة)</p>
+                <div className="flex items-baseline gap-1 flex-wrap">
+                  <h3 className="text-base sm:text-lg md:text-2xl font-black text-blue-900 break-all">{totalCredit.toLocaleString('ar-EG')}</h3>
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-400">ج.م</span>
+                </div>
               </div>
-              <div className="p-3 bg-blue-100/50 text-blue-600 rounded-2xl">
-                <TrendingDown size={24} />
+              <div className="p-2.5 sm:p-3 bg-blue-100/50 text-blue-600 rounded-2xl shrink-0">
+                <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
             </div>
           </CardContent>
@@ -673,21 +688,15 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">العميل</label>
-                  <select className="flex h-10 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-bold bg-slate-50" value={paymentData.customerId} onChange={(e: any) => { const val = e.target.value;
-                    const c = customers.find(x => x.id === val);
-                    setPaymentData({...paymentData, customerId: val, amount: c && c.balance > 0 ? c.balance : 0});
-                  }}>
-                    
-                      
-                    
-                    
-                      {customers.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} {c.balance > 0 ? `(عليه ${c.balance.toLocaleString('ar-EG')} ج)` : ''}
-                        </option>
-                      ))}
-                    
-                  </select>
+                  <SearchableSelect
+                    options={customerOptions}
+                    selectedValue={paymentData.customerId}
+                    onChange={(val) => {
+                      const c = customers.find(x => x.id === val);
+                      setPaymentData({...paymentData, customerId: val, amount: c && c.balance > 0 ? c.balance : 0});
+                    }}
+                    placeholder="ابحث واختر العميل..."
+                  />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">

@@ -91,6 +91,68 @@ function repairTruncatedJson(jsonStr: string): string {
   return str;
 }
 
+async function generateWithRetry(ai: GoogleGenAI, params: any) {
+  const modelsToTry = [
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-latest"
+  ];
+  
+  let lastError: any = null;
+  
+  for (const model of modelsToTry) {
+    let attempts = 2;
+    let delay = 500;
+    
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        console.log(`[AI] Attempting generateContent using model: ${model} (attempt ${attempt}/${attempts})`);
+        const response = await ai.models.generateContent({
+          ...params,
+          model: model
+        });
+        console.log(`[AI] Successfully generated content using model: ${model}`);
+        return response;
+      } catch (err: any) {
+        lastError = err;
+        const errMsg = err.message || JSON.stringify(err);
+        
+        const isOverloadedOrUnavailable = 
+          errMsg.includes("503") || 
+          errMsg.includes("UNAVAILABLE") || 
+          errMsg.includes("overloaded") ||
+          errMsg.includes("demand") ||
+          errMsg.includes("high demand") ||
+          errMsg.includes("temporary");
+        
+        console.log(`[AI Status] Model ${model} status (attempt ${attempt}/${attempts}): ${isOverloadedOrUnavailable ? 'unavailable / high load' : 'non-transient status'}`);
+        
+        if (isOverloadedOrUnavailable) {
+          console.log(`[AI] Model ${model} is temporarily unavailable. Failing over to next options...`);
+          break;
+        }
+
+        const isTransient = 
+          errMsg.includes("429") || 
+          errMsg.includes("500") || 
+          errMsg.includes("RESOURCE_EXHAUSTED");
+        
+        if (!isTransient && attempt === 1) {
+          throw err;
+        }
+        
+        if (attempt < attempts) {
+          console.log(`[AI] Waiting ${delay}ms before retrying...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2;
+        }
+      }
+    }
+  }
+  
+  throw lastError || new Error("Failed to generate content after trying multiple models.");
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -152,8 +214,7 @@ Output must be in JSON format matching the schema provided.
         contents.push("Extract the data from this WhatsApp message text.");
       }
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+      const response = await generateWithRetry(ai, {
         contents,
         config: {
           systemInstruction,
@@ -234,6 +295,13 @@ Output must be in JSON format matching the schema provided.
                   contractDate: { type: Type.STRING, description: "تاريخ التعاقد (YYYY-MM-DD) or readable date" },
                   deliveryDate: { type: Type.STRING, description: "تاريخ التسليم المتوقع (YYYY-MM-DD) or readable date" },
                   status: { type: Type.STRING, description: "الحالة (مثل: قيد الانتظار، قيد التشغيل، جاهز، تم التسليم)" },
+                  roomCode: { type: Type.STRING, description: "اسم الغرفة أو كود الموديل الرئيسي (مثال: غرفة نوم رئيسية، غرفة أطفال، صالون)" },
+                  salesPerson: { type: Type.STRING, description: "اسم مسؤول المبيعات (السيلز) إن وجد" },
+                  generalSpecs: { type: Type.STRING, description: "مكونات الغرفة أو البنود العامة (سرير، دولاب، تسريحة، كمودينو، باف، ملة...)" },
+                  dimensionsAndStructure: { type: Type.STRING, description: "المقاسات والتفاصيل الفنية والنجارة والهيكل والمواصفات الخشبية" },
+                  paintSpecs: { type: Type.STRING, description: "مواصفات الدهان ولون الدهان والتشطيب" },
+                  upholsterySpecs: { type: Type.STRING, description: "مواصفات التنجيد ولون القماش والنوع" },
+                  totalAmount: { type: Type.NUMBER, description: "المبلغ المالي الإجمالي لأمر الشغل بالكامل إن وجد" },
                   products: {
                     type: Type.ARRAY,
                     items: {
@@ -405,6 +473,97 @@ Output must be in JSON format matching the schema provided.
       }
 
       res.status(200).json({ processedPayrolls: newPayrolls });
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Sales Insights AI Endpoint
+  app.post('/api/sales/insights', async (req, res) => {
+    try {
+      const { salesData, inventoryData, showrooms, target } = req.body;
+      
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: 'من فضلك قم بضبط مفتاح API لـ Gemini في الإعدادات' });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+
+      const systemInstruction = `
+You are a strategic business analyst for a high-end furniture company in Egypt.
+Your task is to analyze sales performance, inventory health, and achievement towards targets.
+Provide professional, actionable insights in Arabic.
+
+Focus on:
+1. Sales Trends: Identify which models are performing best and why.
+2. Inventory Health: Flag slow-moving (ageing) items and suggest promotions or clearance.
+3. Target Gap Analysis: If targets aren't met, suggest specific actions (marketing, sales training, branch-specific incentives).
+4. Profitability: Analyze margins and suggest ways to optimize logistics or production costs.
+
+Keep the tone professional, encouraging, and highly practical. Use Egyptian business context where appropriate.
+Output should be a JSON object with:
+- summary: A high-level summary of performance.
+- keyInsights: An array of 3-4 specific observations.
+- recommendations: An array of 3-4 actionable steps.
+- riskAlerts: Any critical issues (e.g., specific showroom underperforming, critical stock out).
+`;
+
+      const prompt = `
+Current Stats:
+- Total Sales: ${salesData.totalSales} EGP
+- Total Profit: ${salesData.totalProfit} EGP
+- Sales Count: ${salesData.salesCount}
+- Monthly Target: ${target} EGP
+- Inventory Valuation: ${salesData.inventoryValuation} EGP
+- Showrooms: ${showrooms.map((s: any) => s.name).join(', ')}
+
+Inventory Data (Sample):
+${JSON.stringify(inventoryData.slice(0, 10))}
+
+Recent Sales Data (Sample):
+${JSON.stringify(salesData.recentSales?.slice(0, 10))}
+
+Provide the analysis based on this data.
+`;
+
+      const response = await generateWithRetry(ai, {
+        contents: [prompt],
+        config: {
+          systemInstruction,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              summary: { type: Type.STRING },
+              keyInsights: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+              },
+              recommendations: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+              },
+              riskAlerts: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+              }
+            },
+            required: ["summary", "keyInsights", "recommendations"]
+          }
+        }
+      });
+
+      const textResponse = response.text || '{}';
+      res.status(200).json(JSON.parse(textResponse));
     } catch (err: any) {
       console.error(err);
       res.status(500).json({ error: err.message });

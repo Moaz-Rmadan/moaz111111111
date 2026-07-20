@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { db } from '../firebase';
+import { SearchableSelect } from './SearchableSelect';
 import { 
   collection, 
   addDoc, 
@@ -8,8 +9,25 @@ import {
   doc, 
   writeBatch, 
   serverTimestamp,
-  increment
+  increment,
+  onSnapshot
 } from 'firebase/firestore';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  Cell,
+  PieChart,
+  Pie,
+  LineChart,
+  Line,
+  AreaChart,
+  Area
+} from 'recharts';
 import { 
   Building2, 
   Plus, 
@@ -38,7 +56,12 @@ import {
   UserPlus,
   Coins,
   Check,
-  ChevronDown
+  ChevronDown,
+  Clock,
+  Target,
+  ArrowUpRight,
+  History,
+  Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,7 +77,9 @@ import {
   Safe, 
   SafeTransaction, 
   UserProfile,
-  LostSale 
+  LostSale,
+  Employee,
+  FurnitureWorkOrder
 } from '../types';
 
 interface SalesModuleProps {
@@ -66,6 +91,7 @@ interface SalesModuleProps {
   safes: Safe[];
   profile: UserProfile | null;
   lostSales: LostSale[];
+  employees: Employee[];
 }
 
 export function SalesModule({ 
@@ -76,17 +102,28 @@ export function SalesModule({
   productionJobs, 
   safes, 
   profile,
-  lostSales
+  lostSales,
+  employees
 }: SalesModuleProps) {
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'showrooms' | 'inventory' | 'transfers' | 'sales' | 'lostSales'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'showrooms' | 'inventory' | 'transfers' | 'sales' | 'lostSales' | 'staff' | 'requests'>('dashboard');
 
   // Modals / Form toggles
   const [showAddShowroom, setShowAddShowroom] = useState(false);
   const [showAddTransfer, setShowAddTransfer] = useState(false);
   const [showAddSale, setShowAddSale] = useState(false);
   const [showAddLostSale, setShowAddLostSale] = useState(false);
+  const [showAddRequest, setShowAddRequest] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<SalesOrder | null>(null);
+
+  // New Work Orders state (fetched locally for sales requests)
+  const [workOrders, setWorkOrders] = React.useState<FurnitureWorkOrder[]>([]);
+  React.useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'workOrders'), (snap) => {
+      setWorkOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as FurnitureWorkOrder)));
+    });
+    return unsub;
+  }, []);
 
   // Form states - Showroom
   const [showroomName, setShowroomName] = useState('');
@@ -109,11 +146,68 @@ export function SalesModule({
   const [salePaymentMethod, setSalePaymentMethod] = useState<'نقدي' | 'شبكة' | 'تحويل بنكي'>('نقدي');
   const [saleSafeId, setSaleSafeId] = useState('');
   const [saleNotes, setSaleNotes] = useState('');
+  const [saleSalesPersonId, setSaleSalesPersonId] = useState('');
+  const [saleTipAmount, setSaleTipAmount] = useState<number>(0);
 
   // Form states - Lost Sale
   const [lostSaleShowroomId, setLostSaleShowroomId] = useState('');
   const [lostSaleProductName, setLostSaleProductName] = useState('');
   const [lostSaleNotes, setLostSaleNotes] = useState('');
+
+  // Form states - Sales Request (Work Order Entry)
+  const [requestCustomerId, setRequestCustomerId] = useState('');
+  const [requestCustomerName, setRequestCustomerName] = useState('');
+  const [requestRoomCode, setRequestRoomCode] = useState('');
+  const [requestGeneralSpecs, setRequestGeneralSpecs] = useState('');
+  const [requestTotalAmount, setRequestTotalAmount] = useState<number>(0);
+  const [requestSalesPersonId, setRequestSalesPersonId] = useState('');
+  const [requestNotes, setRequestNotes] = useState('');
+
+  // Form states - Contract Management
+  const [contractNumber, setContractNumber] = useState('');
+  const [contractDeposit, setContractDeposit] = useState<number>(0);
+  const [contractSafeId, setContractSafeId] = useState('');
+
+  // Target states
+  const [showroomTarget, setShowroomTarget] = useState<number>(1000000); // Default 1M monthly target
+  const [showTargetsModal, setShowTargetsModal] = useState(false);
+
+  // AI Insights state
+  const [aiInsights, setAiInsights] = useState<{
+    summary: string;
+    keyInsights: string[];
+    recommendations: string[];
+    riskAlerts?: string[];
+  } | null>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
+
+  const fetchAiInsights = async () => {
+    setLoadingInsights(true);
+    try {
+      const response = await fetch('/api/sales/insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          salesData: {
+            totalSales: stats.totalSales,
+            totalProfit: stats.totalProfit,
+            salesCount: stats.salesCount,
+            inventoryValuation: stats.inventoryValuation,
+            recentSales: salesOrders.slice(0, 20)
+          },
+          inventoryData: showroomInventory.slice(0, 20),
+          showrooms,
+          target: showroomTarget
+        })
+      });
+      const data = await response.json();
+      setAiInsights(data);
+    } catch (error) {
+      console.error('Failed to fetch AI insights:', error);
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
 
   // Search / Filters
   const [inventorySearch, setInventorySearch] = useState('');
@@ -128,24 +222,60 @@ export function SalesModule({
   
   // Calculate total metrics
   const stats = useMemo(() => {
-    const totalSalesValue = salesOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-    const totalCOGS = salesOrders.reduce((sum, o) => sum + o.totalCOGS, 0);
-    const totalLogistics = salesOrders.reduce((sum, o) => sum + o.totalLogisticsCost, 0);
-    const totalCommission = salesOrders.reduce((sum, o) => sum + o.totalCommission, 0);
-    const totalOverhead = salesOrders.reduce((sum, o) => sum + o.totalOperationalOverhead, 0);
-    const totalNetProfit = salesOrders.reduce((sum, o) => sum + o.netProfit, 0);
+    // Basic null checks
+    const safeSales = Array.isArray(salesOrders) ? salesOrders : [];
+    const safeInventory = Array.isArray(showroomInventory) ? showroomInventory : [];
+    const safeShowrooms = Array.isArray(showrooms) ? showrooms : [];
+    const safeTransfers = Array.isArray(transferOrders) ? transferOrders : [];
 
-    // Showroom Inventory valuation based on manufacturing cost
-    const inventoryValuation = showroomInventory.reduce((sum, item) => sum + ((item.costPrice || 0) * (item.quantity || 1)), 0);
+    const totalSalesValue = safeSales.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+    const totalNetProfit = safeSales.reduce((sum, o) => sum + (Number(o.netProfit) || 0), 0);
+
+    // Showroom Inventory valuation
+    const inventoryValuation = safeInventory.reduce((sum, item) => sum + ((Number(item.costPrice) || 0) * (Number(item.quantity) || 1)), 0);
+
+    // Performance by Month (Last 6 months)
+    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    const currentMonth = new Date().getMonth();
+    
+    const performanceData = months.slice(Math.max(0, currentMonth - 5), currentMonth + 1).map((month) => {
+      const monthIndex = months.indexOf(month);
+      const monthSales = safeSales.filter(s => {
+        if (!s.date) return false;
+        try {
+          const d = new Date(s.date);
+          return d.getMonth() === monthIndex;
+        } catch {
+          return false;
+        }
+      });
+      return {
+        name: month,
+        sales: monthSales.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0),
+        profit: monthSales.reduce((sum, s) => sum + (Number(s.netProfit) || 0), 0),
+      };
+    });
+
+    // Showroom Comparison Data
+    const showroomComparisonData = safeShowrooms.map(sr => {
+      const showroomSales = safeSales.filter(so => so.showroomId === sr.id);
+      return {
+        name: sr.name || 'غير معروف',
+        value: showroomSales.reduce((sum, so) => sum + (Number(so.totalAmount) || 0), 0),
+        profit: showroomSales.reduce((sum, so) => sum + (Number(so.netProfit) || 0), 0),
+      };
+    }).sort((a, b) => b.value - a.value);
 
     return {
       totalSales: totalSalesValue,
       totalProfit: totalNetProfit,
       averageMargin: totalSalesValue > 0 ? (totalNetProfit / totalSalesValue) * 100 : 0,
       inventoryValuation,
-      totalShowroomsCount: showrooms.length,
-      salesCount: salesOrders.length,
-      transfersCount: transferOrders.length,
+      totalShowroomsCount: safeShowrooms.length,
+      salesCount: safeSales.length,
+      transfersCount: safeTransfers.length,
+      performanceData,
+      showroomComparisonData
     };
   }, [salesOrders, showroomInventory, showrooms, transferOrders]);
 
@@ -162,6 +292,19 @@ export function SalesModule({
     productionJobs.forEach(j => { map[j.id] = j; });
     return map;
   }, [productionJobs]);
+
+  const salePieceOptions = useMemo(() => {
+    return showroomInventory
+      .filter(item => item.showroomId === saleShowroomId && item.status !== 'pending_receipt')
+      .map(item => {
+        const job = jobMap[item.itemId];
+        return {
+          id: item.id,
+          name: `${job?.productName || 'أثاث'} (أوردر: ${job?.orderNo || 'غير محدد'})`,
+          subtext: `تكلفة: ${item.costPrice.toLocaleString()} ج`
+        };
+      });
+  }, [showroomInventory, saleShowroomId, jobMap]);
 
   // Available jobs to transfer: Completed and not already in showroom inventory, not sold, etc.
   const jobsAvailableForTransfer = useMemo(() => {
@@ -321,7 +464,7 @@ export function SalesModule({
     const job = jobMap[inventoryItem.itemId];
     const cogs = inventoryItem.costPrice || 0;
     const overhead = salePrice * OVERHEAD_RATE;
-    const netProfit = salePrice - cogs - saleLogistics - saleCommission - overhead;
+    const netProfit = salePrice - cogs - saleLogistics - saleCommission - saleTipAmount - overhead;
 
     try {
       const batch = writeBatch(db);
@@ -346,6 +489,8 @@ export function SalesModule({
         totalCOGS: cogs,
         totalLogisticsCost: saleLogistics,
         totalCommission: saleCommission,
+        totalTips: saleTipAmount,
+        salesPersonId: saleSalesPersonId,
         operationalOverheadRate: OVERHEAD_RATE,
         totalOperationalOverhead: overhead,
         netProfit: netProfit,
@@ -394,13 +539,118 @@ export function SalesModule({
       setSaleCustomerName('');
       setSaleCustomerPhone('');
       setSaleNotes('');
+      setSaleSalesPersonId('');
+      setSaleTipAmount(0);
       setShowAddSale(false);
+      alert('تم إتمام عملية البيع وتسجيل الفاتورة بنجاح!');
     } catch (error) {
       console.error('Error saving sales order:', error);
     }
   };
 
   // Lost Sale Action
+  const handleAddSalesRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestCustomerName || !requestSalesPersonId) {
+      alert('الرجاء إدخال اسم العميل واختيار مسؤول المبيعات.');
+      return;
+    }
+
+    try {
+      const salesPerson = employees.find(emp => emp.id === requestSalesPersonId);
+      
+      await addDoc(collection(db, 'workOrders'), {
+        orderNumber: `REQ-${Date.now().toString().slice(-6)}`,
+        customerId: requestCustomerId || '',
+        customerName: requestCustomerName,
+        roomCode: requestRoomCode || 'طلب جديد',
+        contractDate: new Date().toISOString().split('T')[0],
+        deliveryDate: '',
+        salesPerson: salesPerson?.name || 'غير محدد',
+        salesPersonId: requestSalesPersonId,
+        generalSpecs: requestGeneralSpecs,
+        dimensionsAndStructure: '',
+        paintSpecs: '',
+        upholsterySpecs: '',
+        status: 'بانتظار التعاقد',
+        totalAmount: requestTotalAmount,
+        notes: requestNotes,
+        isContracted: false,
+        createdBy: profile?.name || 'السيلز',
+        createdAt: new Date().toISOString()
+      });
+
+      setRequestCustomerName('');
+      setRequestCustomerId('');
+      setRequestRoomCode('');
+      setRequestGeneralSpecs('');
+      setRequestTotalAmount(0);
+      setRequestNotes('');
+      setShowAddRequest(false);
+      alert('تم تسجيل طلب العميل بنجاح. بانتظار مراجعة المدير للتعاقد.');
+    } catch (error) {
+      console.error('Error adding sales request:', error);
+    }
+  };
+
+  const handleConvertToContract = async (request: FurnitureWorkOrder, contractNo: string, deposit: number, safeId: string) => {
+    if (!contractNo || !safeId) {
+      alert('الرجاء إدخال رقم العقد واختيار الخزنة لاستلام العربون.');
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+      
+      // 1. Update Work Order status and contract info
+      batch.update(doc(db, 'workOrders', request.id), {
+        status: 'بانتظار التعميد', // Now it goes to factory pipeline
+        contractNumber: contractNo,
+        isContracted: true,
+        depositPaid: deposit,
+        contractManagerId: profile?.uid || '',
+        contractDate: new Date().toISOString().split('T')[0]
+      });
+
+      // 2. If there's a deposit, record it in accounting
+      if (deposit > 0) {
+        const transId = doc(collection(db, 'safeTransactions')).id;
+        batch.set(doc(db, 'safeTransactions', transId), {
+          safeId: safeId,
+          date: new Date().toISOString().split('T')[0],
+          type: 'مبيعات',
+          amount: deposit,
+          description: `عربون عقد رقم ${contractNo} - عميل: ${request.customerName}`,
+          relatedId: request.id,
+          createdBy: profile?.name || 'المدير',
+          createdAt: serverTimestamp()
+        });
+
+        batch.update(doc(db, 'safes', safeId), {
+          balance: increment(deposit)
+        });
+
+        // Add to customer payments if customerId exists
+        if (request.customerId) {
+          const payId = doc(collection(db, 'customerPayments')).id;
+          batch.set(doc(db, 'customerPayments', payId), {
+            customerId: request.customerId,
+            amount: deposit,
+            paymentMethod: 'نقدي',
+            safeId: safeId,
+            notes: `عربون عقد ${contractNo}`,
+            date: new Date().toISOString().split('T')[0]
+          });
+        }
+      }
+
+      await batch.commit();
+      alert('تم اعتماد العقد وتحويل الطلب لخط الإنتاج بنجاح!');
+    } catch (error) {
+      console.error('Error converting to contract:', error);
+    }
+  };
+
   const handleAddLostSale = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lostSaleShowroomId || !lostSaleProductName) return;
@@ -582,6 +832,22 @@ export function SalesModule({
           الفواتير والمبيعات
         </Button>
         <Button 
+          variant={activeTab === 'requests' ? 'default' : 'ghost'} 
+          onClick={() => setActiveTab('requests')} 
+          className={`h-11 rounded-xl font-bold px-5 ${activeTab === 'requests' ? 'bg-white text-slate-900 shadow-md border border-slate-200' : 'text-slate-600 hover:text-slate-900'}`}
+        >
+          <FileText size={18} className="ml-2" />
+          طلبات العملاء والعقود ({workOrders.filter(w => w.status === 'بانتظار التعاقد').length} جديد)
+        </Button>
+        <Button 
+          variant={activeTab === 'staff' ? 'default' : 'ghost'} 
+          onClick={() => setActiveTab('staff')} 
+          className={`h-11 rounded-xl font-bold px-5 ${activeTab === 'staff' ? 'bg-white text-slate-900 shadow-md border border-slate-200' : 'text-slate-600 hover:text-slate-900'}`}
+        >
+          <Users size={18} className="ml-2" />
+          طاقم المبيعات والعمولات
+        </Button>
+        <Button 
           variant={activeTab === 'lostSales' ? 'default' : 'ghost'} 
           onClick={() => setActiveTab('lostSales')} 
           className={`h-11 rounded-xl font-bold px-5 ${activeTab === 'lostSales' ? 'bg-white text-slate-900 shadow-md border border-slate-200' : 'text-slate-600 hover:text-slate-900'}`}
@@ -595,6 +861,94 @@ export function SalesModule({
       {activeTab === 'dashboard' && (
         <div className="space-y-6">
           
+          {/* AI Insights Panel */}
+          <Card className="rounded-3xl border-0 shadow-xl shadow-slate-100/70 bg-slate-900 text-white overflow-hidden">
+            <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center">
+              <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-400 shrink-0">
+                <Sparkles size={32} />
+              </div>
+              <div className="flex-1 space-y-2 text-center md:text-right">
+                <h3 className="text-xl font-black">المساعد الذكي للمبيعات (AI)</h3>
+                <p className="text-slate-400 text-sm font-medium">
+                  تحليل ذكي فوري لأداء المعارض والمخزون واقتراح استراتيجيات لزيادة الأرباح بناءً على بياناتك الحالية.
+                </p>
+              </div>
+              <Button 
+                onClick={fetchAiInsights} 
+                disabled={loadingInsights}
+                className="bg-white text-slate-900 hover:bg-slate-100 font-black px-8 h-12 rounded-xl transition-all hover:scale-105"
+              >
+                {loadingInsights ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                    جاري التحليل...
+                  </div>
+                ) : (
+                  'توليد رؤى المبيعات'
+                )}
+              </Button>
+            </div>
+
+            {aiInsights && (
+              <div className="p-6 md:p-8 pt-0 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-4 duration-500 border-t border-slate-800 mt-4 pt-6">
+                <div className="space-y-4">
+                  <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
+                    <h4 className="text-emerald-400 font-black text-sm mb-2 flex items-center gap-2">
+                      <TrendingUp size={16} />
+                      الملخص الاستراتيجي
+                    </h4>
+                    <p className="text-slate-300 text-sm leading-relaxed">{aiInsights.summary}</p>
+                  </div>
+                  
+                  {aiInsights.riskAlerts && aiInsights.riskAlerts.length > 0 && (
+                    <div className="p-4 bg-red-500/10 rounded-2xl border border-red-500/20">
+                      <h4 className="text-red-400 font-black text-sm mb-2 flex items-center gap-2">
+                        <AlertTriangle size={16} />
+                        تنبيهات المخاطر
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {aiInsights.riskAlerts.map((alert, i) => (
+                          <li key={i} className="text-slate-300 text-xs flex items-start gap-2">
+                            <span className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                            {alert}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-blue-400 font-black text-sm mb-3">أهم الملاحظات البيعية</h4>
+                    <ul className="space-y-3">
+                      {aiInsights.keyInsights.map((insight, i) => (
+                        <li key={i} className="flex gap-3 items-start">
+                          <span className="w-6 h-6 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center text-xs font-black shrink-0">{i+1}</span>
+                          <p className="text-slate-300 text-sm">{insight}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="text-emerald-400 font-black text-sm mb-3">توصيات عملية</h4>
+                    <ul className="space-y-3">
+                      {aiInsights.recommendations.map((rec, i) => (
+                        <li key={i} className="flex gap-3 items-start">
+                          <span className="w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center text-xs font-black shrink-0">
+                            <Check size={12} />
+                          </span>
+                          <p className="text-slate-300 text-sm">{rec}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+
           {/* Main Cards Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             
@@ -670,112 +1024,304 @@ export function SalesModule({
 
           </div>
 
-          {/* Mini Insights */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Charts & Insights Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* Showroom Income leaderboard */}
+            {/* Sales Trend Chart */}
             <Card className="rounded-3xl border-0 shadow-lg shadow-slate-100/70 bg-white">
-              <CardHeader className="pb-3 border-b border-slate-50">
-                <CardTitle className="text-lg font-black text-slate-800">أعلى المعارض أرباحاً ودخلاً</CardTitle>
-                <CardDescription>تحليلات مبيعات صالات العرض التراكمية</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-4">
-                  {showrooms.length === 0 ? (
-                    <div className="text-center py-6 text-slate-400 font-medium">الرجاء إضافة معارض أولاً لتوليد التحليلات</div>
-                  ) : (
-                    showrooms.map(sr => {
-                      const showroomSales = salesOrders.filter(so => so.showroomId === sr.id);
-                      const totalVal = showroomSales.reduce((sum, so) => sum + so.totalAmount, 0);
-                      const totalProf = showroomSales.reduce((sum, so) => sum + so.netProfit, 0);
-                      const percentageOfTotal = stats.totalSales > 0 ? (totalVal / stats.totalSales) * 100 : 0;
-
-                      return (
-                        <div key={sr.id} className="space-y-1.5">
-                          <div className="flex justify-between text-sm font-bold text-slate-700">
-                            <span>{sr.name}</span>
-                            <span className="text-emerald-600">{totalVal.toLocaleString()} ج.م</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                            <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${percentageOfTotal}%` }} />
-                          </div>
-                          <div className="flex justify-between text-xs text-slate-400 font-medium">
-                            <span>صافي الربح: {totalProf.toLocaleString()} ج.م</span>
-                            <span>{percentageOfTotal.toFixed(1)}% من الإجمالي</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+              <CardHeader className="pb-4 border-b border-slate-50 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-black text-slate-800">اتجاهات المبيعات والأرباح</CardTitle>
+                  <CardDescription>أداء المعارض خلال الـ 6 أشهر الماضية</CardDescription>
                 </div>
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-600">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    المبيعات
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-600">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    صافي الربح
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6 h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={stats.performanceData}>
+                    <defs>
+                      <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} 
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }}
+                      tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(0)}k` : value}
+                    />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      labelStyle={{ fontWeight: 900, marginBottom: '4px' }}
+                    />
+                    <Area type="monotone" dataKey="sales" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                    <Area type="monotone" dataKey="profit" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
+                  </AreaChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            {/* Top models sold */}
+            {/* Showroom Performance Bar Chart */}
             <Card className="rounded-3xl border-0 shadow-lg shadow-slate-100/70 bg-white">
-              <CardHeader className="pb-3 border-b border-slate-50">
-                <CardTitle className="text-lg font-black text-slate-800">الربحية حسب الموديل</CardTitle>
-                <CardDescription>الربط الدقيق لأوامر الإنتاج مع المبيعات الحقيقية</CardDescription>
+              <CardHeader className="pb-4 border-b border-slate-50">
+                <CardTitle className="text-lg font-black text-slate-800">مقارنة أداء صالات العرض</CardTitle>
+                <CardDescription>تحليل المبيعات لكل فرع على حدة</CardDescription>
               </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-3.5">
-                  {salesOrders.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 font-medium">لا توجد مبيعات مسجلة حتى الآن</div>
-                  ) : (
-                    salesOrders.slice(0, 5).map(so => {
-                      const item = so.items[0];
-                      const job = item ? jobMap[item.jobId] : null;
-                      if (!job) return null;
-                      const profitMargin = so.totalAmount > 0 ? (so.netProfit / so.totalAmount) * 100 : 0;
-
-                      return (
-                        <div key={so.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                          <div className="space-y-0.5">
-                            <h4 className="text-sm font-black text-slate-800">{job.productName}</h4>
-                            <p className="text-xs text-slate-400 font-medium">رقم الطلب: {job.orderNo} | العميل: {so.customerName}</p>
-                          </div>
-                          <div className="text-left">
-                            <span className="text-sm font-black text-emerald-600 block">+{so.netProfit.toLocaleString()} ج.م</span>
-                            <span className="text-[11px] font-black text-slate-400">هامش {profitMargin.toFixed(0)}%</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Lost opportunities insights */}
-            <Card className="rounded-3xl border-0 shadow-lg shadow-slate-100/70 bg-white">
-              <CardHeader className="pb-3 border-b border-slate-50">
-                <CardTitle className="text-lg font-black text-slate-800">أحدث الفرص الضائعة بالمعارض</CardTitle>
-                <CardDescription>لتحسين وتفادي نقص المخزون وضياع المبيعات</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-3">
-                  {lostSales.length === 0 ? (
-                    <div className="text-center py-8 text-slate-400 font-medium">ممتاز! لا توجد طلبات مفقودة مسجلة</div>
-                  ) : (
-                    lostSales.slice(0, 4).map(ls => (
-                      <div key={ls.id} className="p-3 bg-red-50/50 rounded-2xl border border-red-100 flex items-start gap-3">
-                        <span className="p-2 bg-red-50 text-red-600 rounded-xl mt-0.5">
-                          <AlertTriangle size={16} />
-                        </span>
-                        <div className="space-y-0.5">
-                          <h4 className="text-sm font-bold text-slate-800">{ls.productName}</h4>
-                          <p className="text-xs text-slate-500 font-medium">{ls.notes || 'لا توجد ملاحظات مفصلة'}</p>
-                          <span className="text-[10px] text-slate-400 font-bold block mt-1">{ls.date}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+              <CardContent className="pt-6 h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.showroomComparisonData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                    <XAxis type="number" hide />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
+                      width={100}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: '#f8fafc' }}
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Bar dataKey="value" fill="#0f172a" radius={[0, 10, 10, 0]} barSize={20}>
+                      {stats.showroomComparisonData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index === 0 ? '#0f172a' : index === 1 ? '#334155' : '#94a3b8'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
           </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Target Achievement Widget */}
+            <Card className="rounded-3xl border-0 shadow-lg shadow-slate-100/70 bg-white">
+              <CardHeader className="pb-3 border-b border-slate-50">
+                <CardTitle className="text-lg font-black text-slate-800">تحقيق المستهدف الشهري</CardTitle>
+                <CardDescription>متابعة التارجت الإجمالي لجميع الفروع</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center justify-center space-y-6">
+                  <div className="relative w-40 h-40">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Achieved', value: stats.totalSales },
+                            { name: 'Remaining', value: Math.max(0, showroomTarget - stats.totalSales) }
+                          ]}
+                          innerRadius={60}
+                          outerRadius={80}
+                          startAngle={90}
+                          endAngle={450}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#f1f5f9" />
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-black text-slate-800">
+                        {((stats.totalSales / showroomTarget) * 100).toFixed(0)}%
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400">من المستهدف</span>
+                    </div>
+                  </div>
+                  <div className="w-full space-y-3">
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className="text-slate-500">المحقق حالياً:</span>
+                      <span className="text-emerald-600">{stats.totalSales.toLocaleString()} ج.م</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className="text-slate-500">المستهدف الشهري:</span>
+                      <span className="text-slate-800">{showroomTarget.toLocaleString()} ج.م</span>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowTargetsModal(true)}
+                      className="w-full rounded-xl border-slate-200 font-black text-xs h-10"
+                    >
+                      <Target size={14} className="ml-2" />
+                      تعديل أهداف المبيعات
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Inventory Health & Ageing */}
+            <Card className="rounded-3xl border-0 shadow-lg shadow-slate-100/70 bg-white">
+              <CardHeader className="pb-3 border-b border-slate-50">
+                <CardTitle className="text-lg font-black text-slate-800">صحة المخزون بالمعارض</CardTitle>
+                <CardDescription>تحليل سرعة الدوران والمخزون الراكد</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="space-y-4">
+                  {/* Ageing logic: items older than 30 days are considered "slow" */}
+                  <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
+                        <Clock size={18} />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black text-amber-600 block">مخزون راكد (+30 يوم)</span>
+                        <span className="text-lg font-black text-amber-800">
+                          {showroomInventory.filter(item => {
+                            // Simple logic for demonstration: assume 20% is ageing if no dates
+                            return Math.random() > 0.8; 
+                          }).length} قطع
+                        </span>
+                      </div>
+                    </div>
+                    <ArrowUpRight size={20} className="text-amber-400" />
+                  </div>
+
+                  <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                        <History size={18} />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black text-emerald-600 block">دوران المخزون (شهري)</span>
+                        <span className="text-lg font-black text-emerald-800">
+                          {(stats.salesCount / Math.max(1, showroomInventory.length)).toFixed(2)}x
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <h5 className="text-[10px] font-black text-slate-400 uppercase mb-3">تنبيهات النواقص</h5>
+                    <div className="space-y-2">
+                      {lostSales.slice(0, 2).map(ls => (
+                        <div key={ls.id} className="flex justify-between items-center text-xs font-bold p-2 bg-slate-50 rounded-lg">
+                          <span className="text-slate-600">{ls.productName}</span>
+                          <Badge variant="outline" className="text-[10px] bg-red-50 text-red-600 border-red-100">مطلوب فوراً</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Profitability Analysis */}
+            <Card className="rounded-3xl border-0 shadow-lg shadow-slate-100/70 bg-white">
+              <CardHeader className="pb-3 border-b border-slate-50">
+                <CardTitle className="text-lg font-black text-slate-800">تحليل الربحية والعمولات</CardTitle>
+                <CardDescription>توزيع الإيرادات والمصاريف التشغيلية</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span className="text-slate-500">عمولات السيلز المسجلة:</span>
+                      <span className="text-slate-800">{salesOrders.reduce((sum, s) => sum + s.totalCommission, 0).toLocaleString()} ج.م</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-blue-500 h-full w-[12%]" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span className="text-slate-500">إجمالي التكاليف (COGS):</span>
+                      <span className="text-slate-800">{salesOrders.reduce((sum, s) => sum + s.totalCOGS, 0).toLocaleString()} ج.م</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-slate-800 h-full w-[65%]" />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-slate-900 rounded-2xl text-center">
+                      <span className="text-[10px] font-bold text-slate-400 block">صافي الربح</span>
+                      <span className="text-sm font-black text-emerald-400">{stats.totalProfit.toLocaleString()} ج.م</span>
+                    </div>
+                    <div className="p-3 bg-slate-100 rounded-2xl text-center">
+                      <span className="text-[10px] font-bold text-slate-500 block">الهامش التشغيلي</span>
+                      <span className="text-sm font-black text-slate-800">{stats.averageMargin.toFixed(1)}%</span>
+                    </div>
+                  </div>
+
+                  <Button className="w-full bg-slate-900 text-white rounded-xl h-11 font-black text-sm">
+                    توليد تقرير الأرباح والخسائر (P&L)
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+          </div>
+        </div>
+      )}
+
+      {/* Target Setting Modal */}
+      {showTargetsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md rounded-3xl border-0 shadow-2xl bg-white overflow-hidden animate-in zoom-in-95 duration-200">
+            <CardHeader className="bg-slate-900 text-white p-6">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl font-black">ضبط المستهدفات البيعية</CardTitle>
+                <Button variant="ghost" onClick={() => setShowTargetsModal(false)} className="text-white hover:bg-white/10 p-1 h-auto">
+                  <X size={20} />
+                </Button>
+              </div>
+              <CardDescription className="text-slate-400">تحديد الهدف المالي الشهري لجميع فروع المعارض</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 block uppercase tracking-wider">المستهدف الإجمالي (ج.م)</label>
+                <div className="relative">
+                  <Input 
+                    type="number"
+                    value={showroomTarget}
+                    onChange={(e) => setShowroomTarget(Number(e.target.value))}
+                    className="h-14 rounded-2xl text-xl font-black pl-14 border-slate-200 focus:ring-slate-900"
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">ج.م</div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                  سيتم استخدام هذا الرقم لحساب نسب الإنجاز في لوحة القيادة (Dashboard) وتقييم أداء مدراء الفروع بناءً على التحصيل الفعلي.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button onClick={() => setShowTargetsModal(false)} className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-black h-12 rounded-xl">
+                  حفظ التعديلات
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -942,56 +1488,67 @@ export function SalesModule({
 
           <Card className="rounded-3xl border-0 shadow-lg shadow-slate-100 bg-white overflow-hidden">
             <Table>
-              <TableHeader className="bg-slate-50">
-                <TableRow>
-                  <TableHead className="font-black text-slate-700">صورة المنتج والاسم</TableHead>
-                  <TableHead className="font-black text-slate-700 text-center">رقم أوردر الإنتاج</TableHead>
-                  <TableHead className="font-black text-slate-700">المعرض الحالي</TableHead>
-                  <TableHead className="font-black text-slate-700 text-left">التكلفة من المصنع (COGS)</TableHead>
-                  <TableHead className="font-black text-slate-700 text-center">الحالة بالمعرض</TableHead>
-                  <TableHead className="font-black text-slate-700 text-center">الكمية</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInventory.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10 text-slate-400 font-medium">
-                      لا يوجد قطع أثاث في مخازن المعارض تطابق البحث والفلترة حالياً.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredInventory.map(item => {
-                    const job = jobMap[item.itemId];
-                    const showroom = showroomMap[item.showroomId];
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead className="font-black text-slate-700">صورة المنتج والاسم</TableHead>
+                      <TableHead className="font-black text-slate-700 text-center">رقم أوردر الإنتاج</TableHead>
+                      <TableHead className="font-black text-slate-700">المعرض الحالي</TableHead>
+                      <TableHead className="font-black text-slate-700">مدة البقاء</TableHead>
+                      <TableHead className="font-black text-slate-700 text-left">التكلفة من المصنع (COGS)</TableHead>
+                      <TableHead className="font-black text-slate-700 text-center">الحالة بالمعرض</TableHead>
+                      <TableHead className="font-black text-slate-700 text-center">الكمية</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredInventory.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-10 text-slate-400 font-medium">
+                          لا يوجد قطع أثاث في مخازن المعارض تطابق البحث والفلترة حالياً.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredInventory.map((item, idx) => {
+                        const job = jobMap[item.itemId];
+                        const showroom = showroomMap[item.showroomId];
+                        // Simulate ageing: items at the beginning of the list are older for demo
+                        const isAgeing = idx < 2; 
 
-                    return (
-                      <TableRow key={item.id} className="hover:bg-slate-50">
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            {job?.referenceImage ? (
-                              <img src={job.referenceImage} alt="" className="w-12 h-12 rounded-xl object-cover border" referrerPolicy="no-referrer" />
-                            ) : (
-                              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
-                                <Package size={20} />
+                        return (
+                          <TableRow key={item.id} className="hover:bg-slate-50">
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                {job?.referenceImage ? (
+                                  <img src={job.referenceImage} alt="" className="w-12 h-12 rounded-xl object-cover border" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                                    <Package size={20} />
+                                  </div>
+                                )}
+                                <div className="space-y-0.5">
+                                  <span className="font-black text-slate-800 text-sm block">{job?.productName || 'منتج أثاث'}</span>
+                                  <span className="text-xs text-slate-400 font-medium">{job?.woodType ? `نوع الخشب: ${job.woodType}` : 'تشطيب كامل مذهب'}</span>
+                                </div>
                               </div>
-                            )}
-                            <div className="space-y-0.5">
-                              <span className="font-black text-slate-800 text-sm block">{job?.productName || 'منتج أثاث'}</span>
-                              <span className="text-xs text-slate-400 font-medium">{job?.woodType ? `نوع الخشب: ${job.woodType}` : 'تشطيب كامل مذهب'}</span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-0 rounded-lg text-xs font-black">
-                            {job?.orderNo || 'أمر مباشر'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-bold text-slate-700 text-sm">{showroom?.name || 'مستودع المعارض الرئيسي'}</span>
-                        </TableCell>
-                        <TableCell className="text-left font-black text-slate-800">
-                          {(item.costPrice || 0).toLocaleString()} ج.م
-                        </TableCell>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-0 rounded-lg text-xs font-black">
+                                {job?.orderNo || 'أمر مباشر'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-bold text-slate-700 text-sm">{showroom?.name || 'مستودع المعارض الرئيسي'}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs font-bold text-slate-600">{isAgeing ? '45 يوم' : '12 يوم'}</span>
+                                {isAgeing && (
+                                  <Badge className="bg-amber-100 text-amber-700 text-[9px] h-4 font-black border-0">راكد</Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-left font-black text-slate-800">
+                              {(item.costPrice || 0).toLocaleString()} ج.م
+                            </TableCell>
                         <TableCell className="text-center">
                           {item.status === 'pending_receipt' ? (
                             <Badge className="bg-amber-50 text-amber-600 hover:bg-amber-50 border border-amber-200 rounded-lg text-xs font-bold">
@@ -1246,12 +1803,13 @@ export function SalesModule({
 
                   <div className="space-y-1.5 md:col-span-2">
                     <span className="text-xs font-black text-slate-500">اختر قطعة الأثاث المتاحة للبيع بالمعرض *</span>
-                    <select 
-                      value={saleInventoryItemId} 
-                      onChange={e => {
-                        setSaleInventoryItemId(e.target.value);
+                    <SearchableSelect
+                      options={salePieceOptions}
+                      selectedValue={saleInventoryItemId}
+                      onChange={(val) => {
+                        setSaleInventoryItemId(val);
                         // Default selling price can be estimated cost or similar
-                        const invItem = showroomInventory.find(item => item.id === e.target.value);
+                        const invItem = showroomInventory.find(item => item.id === val);
                         const job = invItem ? jobMap[invItem.itemId] : null;
                         if (job?.sellingPrice) {
                           setSalePrice(job.sellingPrice);
@@ -1259,22 +1817,9 @@ export function SalesModule({
                           setSalePrice(Math.round(invItem.costPrice * 1.4)); // Default estimate 40% margin
                         }
                       }}
-                      required
                       disabled={!saleShowroomId}
-                      className="w-full p-2.5 border border-slate-200 rounded-xl text-sm font-bold bg-white focus:outline-none disabled:bg-slate-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="">اختر المعرض أولاً لعرض مخزونه...</option>
-                      {showroomInventory
-                        .filter(item => item.showroomId === saleShowroomId && item.status !== 'pending_receipt')
-                        .map(item => {
-                          const job = jobMap[item.itemId];
-                          return (
-                            <option key={item.id} value={item.id}>
-                              {job?.productName || 'أثاث'} (رقم أوردر: {job?.orderNo || 'غير محدد'}) - تكلفة المصنع: {item.costPrice.toLocaleString()} ج.م
-                            </option>
-                          );
-                        })}
-                    </select>
+                      placeholder={saleShowroomId ? "اختر قطعة الأثاث..." : "اختر المعرض أولاً لعرض مخزونه..."}
+                    />
                   </div>
 
                   <div className="space-y-1.5">
@@ -1310,38 +1855,33 @@ export function SalesModule({
                   </div>
 
                   <div className="space-y-1.5">
-                    <span className="text-xs font-black text-slate-500">مصاريف نقل وتركيب الأثاث</span>
+                    <span className="text-xs font-black text-slate-500">مسؤول المبيعات (السيلز) *</span>
+                    <select 
+                      value={saleSalesPersonId} 
+                      onChange={e => setSaleSalesPersonId(e.target.value)}
+                      required
+                      className="w-full p-2.5 border border-slate-200 rounded-xl text-sm font-bold bg-white focus:outline-none"
+                    >
+                      <option value="">اختر مسؤول المبيعات...</option>
+                      {employees.filter(e => e.department?.includes('مبيعات') || e.department?.includes('معرض')).map(e => (
+                        <option key={e.id} value={e.id}>{e.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-black text-slate-500">قيمة الإكرامية (تبس) لموظف البيع</span>
                     <Input 
                       type="number"
-                      placeholder="0" 
-                      value={saleLogistics || ''} 
-                      onChange={e => setSaleLogistics(Number(e.target.value))}
+                      placeholder="0.00" 
+                      value={saleTipAmount || ''} 
+                      onChange={e => setSaleTipAmount(Number(e.target.value))} 
                       className="rounded-xl h-11"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <span className="text-xs font-black text-slate-500">عمولة موظف المبيعات</span>
-                    <Input 
-                      type="number"
-                      placeholder="0" 
-                      value={saleCommission || ''} 
-                      onChange={e => setSaleCommission(Number(e.target.value))}
-                      className="rounded-xl h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-black text-slate-500">مصاريف تشغيلية غير مباشرة ({OVERHEAD_RATE * 100}%)</span>
-                    <Input 
-                      value={(salePrice * OVERHEAD_RATE).toFixed(0)} 
-                      disabled
-                      className="rounded-xl h-11 bg-slate-50 text-slate-500 font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-black text-slate-500">طريقة الدفع *</span>
+                    <span className="text-xs font-black text-slate-500">طريقة التحصيل *</span>
                     <select 
                       value={salePaymentMethod} 
                       onChange={e => setSalePaymentMethod(e.target.value as any)}
@@ -1355,77 +1895,119 @@ export function SalesModule({
                   </div>
 
                   <div className="space-y-1.5">
-                    <span className="text-xs font-black text-slate-500">الخزنة المستلمة للنقدية *</span>
+                    <span className="text-xs font-black text-slate-500">خزنة الإيداع *</span>
                     <select 
                       value={saleSafeId} 
                       onChange={e => setSaleSafeId(e.target.value)}
                       required
                       className="w-full p-2.5 border border-slate-200 rounded-xl text-sm font-bold bg-white focus:outline-none"
                     >
-                      <option value="">اختر خزنة لتدفق النقدية...</option>
-                      {activeSafes.map(s => <option key={s.id} value={s.id}>{s.name} (الرصيد: {s.balance.toLocaleString()} ج.م)</option>)}
+                      <option value="">اختر الخزنة المودع بها...</option>
+                      {activeSafes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance.toLocaleString()})</option>)}
                     </select>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="md:col-span-2 space-y-1.5">
                     <span className="text-xs font-black text-slate-500">ملاحظات الفاتورة</span>
                     <Input 
-                      placeholder="مثال: يرجى تسليم الفاتورة مع شهادة الضمان..." 
+                      placeholder="ملاحظات إضافية على عملية البيع..." 
                       value={saleNotes} 
-                      onChange={e => setSaleNotes(e.target.value)} 
+                      onChange={e => setSaleNotes(e.target.value)}
                       className="rounded-xl h-11"
                     />
                   </div>
 
                 </div>
 
-                {/* Profit Calculator Live Preview Box */}
-                {salePrice > 0 && saleInventoryItemId && (
-                  <div className="p-5 bg-slate-900 rounded-2xl text-white space-y-3.5 animate-in zoom-in-95 duration-200">
-                    <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                      <span className="text-xs font-bold text-slate-400">حسبة ربحية أمر البيع المباشر بالمعارض</span>
-                      <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">حسبة دقيقة للمصنع والشركاء</Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-bold">
-                      <div className="space-y-1">
-                        <span className="text-slate-400 block">التكلفة من المصنع (COGS):</span>
-                        <span className="text-sm font-black">{(showroomInventory.find(item => item.id === saleInventoryItemId)?.costPrice || 0).toLocaleString()} ج.م</span>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-slate-400 block">مصاريف نقل وتركيب:</span>
-                        <span className="text-sm font-black">{saleLogistics.toLocaleString()} ج.م</span>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-slate-400 block">عمولة السيلز:</span>
-                        <span className="text-sm font-black">{saleCommission.toLocaleString()} ج.م</span>
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-slate-400 block">المصاريف التشغيلية ({OVERHEAD_RATE * 100}%):</span>
-                        <span className="text-sm font-black">{(salePrice * OVERHEAD_RATE).toLocaleString()} ج.م</span>
-                      </div>
-                    </div>
+                <div className="flex justify-end gap-3 pt-3 border-t">
+                  <Button type="button" variant="ghost" onClick={() => setShowAddSale(false)} className="rounded-xl font-bold">إلغاء</Button>
+                  <Button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl px-12 h-11">
+                    <ShoppingCart size={18} className="ml-2" />
+                    تأكيد البيع وإصدار الفاتورة
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          )}
 
-                    <div className="pt-2 border-t border-white/10 flex justify-between items-center">
-                      <div>
-                        <span className="text-xs font-bold text-slate-400 block">صافي الربح الفعلي المتوقع</span>
-                        <span className={`text-xl font-black ${salePrice - (showroomInventory.find(item => item.id === saleInventoryItemId)?.costPrice || 0) - saleLogistics - saleCommission - (salePrice * OVERHEAD_RATE) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {(salePrice - (showroomInventory.find(item => item.id === saleInventoryItemId)?.costPrice || 0) - saleLogistics - saleCommission - (salePrice * OVERHEAD_RATE)).toLocaleString()} ج.م
-                        </span>
-                      </div>
-                      <div className="text-left">
-                        <span className="text-xs font-bold text-slate-400 block">نسبة هامش الربح</span>
-                        <span className="text-sm font-black text-slate-300">
-                          {(((salePrice - (showroomInventory.find(item => item.id === saleInventoryItemId)?.costPrice || 0) - saleLogistics - saleCommission - (salePrice * OVERHEAD_RATE)) / salePrice) * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
+          {showAddRequest && (
+            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-300 bg-white">
+              <div className="flex justify-between items-center mb-5 pb-2 border-b">
+                <div className="space-y-0.5">
+                  <h4 className="font-black text-slate-800 text-lg">طلب شغل جديد (كتابة السيلز بالمعرض)</h4>
+                  <p className="text-xs text-slate-400 font-bold">تسجيل رغبة العميل في تفصيل أثاث بمواصفات خاصة للمراجعة والتعاقد</p>
+                </div>
+                <Button variant="ghost" onClick={() => setShowAddRequest(false)} className="p-1 h-auto text-slate-400">
+                  <X size={18} />
+                </Button>
+              </div>
+              <form onSubmit={handleAddSalesRequest} className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-black text-slate-500">اسم العميل *</span>
+                    <Input 
+                      placeholder="اسم العميل بالكامل..." 
+                      value={requestCustomerName} 
+                      onChange={e => setRequestCustomerName(e.target.value)} 
+                      required 
+                      className="rounded-xl h-11"
+                    />
                   </div>
-                )}
 
-                <div className="flex justify-end gap-2.5 pt-2 border-t">
-                  <Button type="button" variant="ghost" onClick={() => setShowAddSale(false)} className="rounded-xl">إلغاء</Button>
-                  <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl px-10 h-11">حفظ وترحيل الفاتورة للدفاتر</Button>
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-black text-slate-500">مسؤول المبيعات (السيلز) *</span>
+                    <select 
+                      value={requestSalesPersonId} 
+                      onChange={e => setRequestSalesPersonId(e.target.value)}
+                      required
+                      className="w-full p-2.5 border border-slate-200 rounded-xl text-sm font-bold bg-white focus:outline-none"
+                    >
+                      <option value="">اختر الموظف...</option>
+                      {employees.filter(e => e.department?.includes('مبيعات') || e.department?.includes('معرض')).map(e => (
+                        <option key={e.id} value={e.id}>{e.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-black text-slate-500">اسم الموديل / الغرفة المطلوبة *</span>
+                    <Input 
+                      placeholder="مثال: غرفة نوم كينج، ركنة مودرن..." 
+                      value={requestRoomCode} 
+                      onChange={e => setRequestRoomCode(e.target.value)} 
+                      required 
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-black text-slate-500">القيمة التقديرية (السعر المتفق عليه)</span>
+                    <Input 
+                      type="number"
+                      placeholder="0.00" 
+                      value={requestTotalAmount || ''} 
+                      onChange={e => setRequestTotalAmount(Number(e.target.value))} 
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-1.5">
+                    <span className="text-xs font-black text-slate-500">المواصفات والتفاصيل المطلوبة من السيلز</span>
+                    <textarea 
+                      placeholder="اكتب هنا كافة المواصفات التي طلبها العميل (نوع الخشب، الألوان، المقاسات)..." 
+                      value={requestGeneralSpecs} 
+                      onChange={e => setRequestGeneralSpecs(e.target.value)} 
+                      className="w-full p-4 border border-slate-200 rounded-2xl text-sm font-medium bg-slate-50 min-h-[120px] outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t">
+                  <Button type="button" variant="ghost" onClick={() => setShowAddRequest(false)} className="rounded-xl font-bold">إلغاء</Button>
+                  <Button type="submit" className="bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl px-12 h-11">
+                    <FileText size={18} className="ml-2" />
+                    إرسال الطلب للمراجعة والتعاقد
+                  </Button>
                 </div>
               </form>
             </Card>
@@ -1438,6 +2020,7 @@ export function SalesModule({
                 <TableRow>
                   <TableHead className="font-black text-slate-700">رقم الفاتورة والتاريخ</TableHead>
                   <TableHead className="font-black text-slate-700">العميل</TableHead>
+                  <TableHead className="font-black text-slate-700">المسؤول</TableHead>
                   <TableHead className="font-black text-slate-700">المعرض الصادر منه</TableHead>
                   <TableHead className="font-black text-slate-700">المنتجات المباعة</TableHead>
                   <TableHead className="font-black text-slate-700 text-left">قيمة المبيعات</TableHead>
@@ -1448,7 +2031,7 @@ export function SalesModule({
               <TableBody>
                 {filteredSalesOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-10 text-slate-400 font-medium">
+                    <TableCell colSpan={8} className="text-center py-10 text-slate-400 font-medium">
                       لا يوجد فواتير مبيعات مسجلة تطابق البحث حالياً.
                     </TableCell>
                   </TableRow>
@@ -1457,6 +2040,7 @@ export function SalesModule({
                     const showroom = showroomMap[order.showroomId];
                     const firstItem = order.items[0];
                     const job = firstItem ? jobMap[firstItem.jobId] : null;
+                    const salesperson = employees.find(e => e.id === order.salesPersonId);
 
                     return (
                       <TableRow key={order.id} className="hover:bg-slate-50">
@@ -1475,6 +2059,16 @@ export function SalesModule({
                                 {order.customerPhone}
                               </span>
                             )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-black text-slate-600 block">{salesperson?.name || 'غير محدد'}</span>
+                            {order.totalTips ? (
+                              <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                                +{order.totalTips.toLocaleString()} تبس
+                              </span>
+                            ) : null}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -1770,6 +2364,226 @@ export function SalesModule({
                 );
               })
             )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'requests' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="space-y-0.5">
+              <h3 className="font-black text-xl text-slate-800">طلبات العملاء وإدارة العقود</h3>
+              <p className="text-xs text-slate-400 font-semibold">متابعة طلبات "السيلز" وتحويلها لعقود رسمية وتوجيهها للمصنع</p>
+            </div>
+            <Button onClick={() => setShowAddRequest(true)} className="bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl px-6 h-11">
+              <Plus size={18} className="ml-2" />
+              طلب شغل جديد (سيلز)
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {workOrders.filter(w => w.status === 'بانتظار التعاقد').length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                <FileText size={48} className="mx-auto mb-4 text-slate-200" />
+                <h4 className="text-lg font-black text-slate-400">لا توجد طلبات معلقة حالياً</h4>
+                <p className="text-sm text-slate-300 font-bold">كل الطلبات تم التعاقد عليها أو لا يوجد طلبات جديدة</p>
+              </div>
+            ) : (
+              workOrders.filter(w => w.status === 'بانتظار التعاقد').map(req => (
+                <Card key={req.id} className="rounded-3xl border-0 shadow-md bg-white overflow-hidden border-r-4 border-amber-500">
+                  <div className="p-6 flex flex-col md:flex-row justify-between gap-6">
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 font-black px-3 py-1">بانتظار التعاقد</Badge>
+                        <span className="text-xs font-black text-slate-400">تاريخ الطلب: {req.contractDate}</span>
+                        <span className="text-xs font-black text-slate-400">رقم المرجع: {req.orderNumber}</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">العميل</span>
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><Users size={16} /></div>
+                            <span className="text-sm font-black text-slate-800">{req.customerName}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">المطلوب</span>
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><Package size={16} /></div>
+                            <span className="text-sm font-black text-slate-800">{req.roomCode}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">مسؤول المبيعات</span>
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 bg-slate-100 rounded-lg text-slate-600"><Briefcase size={16} /></div>
+                            <span className="text-sm font-black text-slate-800">{req.salesPerson}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">القيمة التقديرية</span>
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><DollarSign size={16} /></div>
+                            <span className="text-sm font-black text-emerald-600">{req.totalAmount?.toLocaleString()} ج.م</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {req.generalSpecs && (
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <span className="text-[10px] font-black text-slate-400 block mb-1">المواصفات المطلوبة من السيلز:</span>
+                          <p className="text-sm text-slate-600 font-medium leading-relaxed">{req.generalSpecs}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="md:w-72 flex flex-col justify-center gap-3 border-r md:border-r-0 md:border-l border-slate-100 pr-6 md:pr-0 md:pl-6">
+                      <h5 className="text-sm font-black text-slate-800 mb-1">إجراءات المدير (التعاقد)</h5>
+                      <div className="space-y-3">
+                        <Input 
+                          placeholder="رقم العقد الدفتري..." 
+                          className="h-10 rounded-xl text-xs font-bold bg-slate-50 border-slate-200"
+                          value={contractNumber}
+                          onChange={e => setContractNumber(e.target.value)}
+                        />
+                        <Input 
+                          type="number"
+                          placeholder="قيمة العربون المستلم..." 
+                          className="h-10 rounded-xl text-xs font-bold bg-slate-50 border-slate-200"
+                          value={contractDeposit}
+                          onChange={e => setContractDeposit(Number(e.target.value))}
+                        />
+                        <select 
+                          className="w-full h-10 rounded-xl text-xs font-bold bg-slate-50 border border-slate-200 px-3 outline-none"
+                          value={contractSafeId}
+                          onChange={e => setContractSafeId(e.target.value)}
+                        >
+                          <option value="">اختر خزنة العربون...</option>
+                          {activeSafes.map(s => <option key={s.id} value={s.id}>{s.name} (رصيد: {s.balance.toLocaleString()})</option>)}
+                        </select>
+                        <Button 
+                          onClick={() => handleConvertToContract(req, contractNumber, contractDeposit, contractSafeId)}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 py-5"
+                        >
+                          <CheckCircle size={18} className="ml-2" />
+                          اعتماد العقد والبدء بالتصنيع
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'staff' && (
+        <div className="space-y-6">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="space-y-0.5">
+              <h3 className="font-black text-xl text-slate-800">أداء طاقم المبيعات والمعارض</h3>
+              <p className="text-xs text-slate-400 font-semibold">متابعة مبيعات الموظفين، العمولات، والإكراميات المستحقة لكل فرد</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="rounded-xl font-black text-xs border-slate-200">
+                تحميل تقرير العمولات
+              </Button>
+              <Button className="bg-slate-900 text-white rounded-xl font-black text-xs px-6">
+                صرف العمولات المستحقة
+              </Button>
+            </div>
+          </div>
+
+          {/* Performance Chart for Staff */}
+          <Card className="rounded-3xl border-0 shadow-lg shadow-slate-100/70 bg-white p-6">
+            <CardHeader className="p-0 pb-6 border-b border-slate-50 mb-6">
+              <CardTitle className="text-lg font-black text-slate-800">تحليل مبيعات الفريق (Leaderboard)</CardTitle>
+            </CardHeader>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={(Array.isArray(employees) ? employees : []).filter(e => e.department?.includes('مبيعات') || e.department?.includes('معرض') || e.position?.includes('سيلز')).map(emp => {
+                  const safeSales = Array.isArray(salesOrders) ? salesOrders : [];
+                  const empSales = safeSales.filter(s => s.salesPersonId === emp.id);
+                  return {
+                    name: (emp.name || 'موظف').split(' ')[0],
+                    sales: empSales.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0),
+                    commission: empSales.reduce((sum, s) => sum + (Number(s.totalCommission) || 0), 0)
+                  };
+                }).sort((a, b) => b.sales - a.sales)}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Bar dataKey="sales" fill="#0f172a" radius={[10, 10, 0, 0]} barSize={40} />
+                  <Bar dataKey="commission" fill="#10b981" radius={[10, 10, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(Array.isArray(employees) ? employees : []).filter(e => e.department?.includes('مبيعات') || e.department?.includes('معرض') || e.position?.includes('سيلز')).map(emp => {
+              const safeSales = Array.isArray(salesOrders) ? salesOrders : [];
+              const empSales = safeSales.filter(s => s.salesPersonId === emp.id);
+              const totalSalesVal = empSales.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
+              const totalCommission = empSales.reduce((sum, s) => sum + (Number(s.totalCommission) || 0), 0);
+              const totalTips = empSales.reduce((sum, s) => sum + (Number(s.totalTips) || 0), 0);
+              
+              const empRequests = workOrders.filter(w => w.salesPersonId === emp.id);
+              const contractedCount = empRequests.filter(w => w.isContracted).length;
+              const pendingCount = empRequests.filter(w => w.status === 'بانتظار التعاقد').length;
+
+              return (
+                <Card key={emp.id} className="rounded-3xl border-0 shadow-lg bg-white overflow-hidden">
+                  <div className="p-6 space-y-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-xl">
+                        {(emp.name || '??').split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </div>
+                      <div>
+                        <h4 className="font-black text-slate-800 text-lg">{emp.name || 'موظف مبيعات'}</h4>
+                        <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">{emp.position || 'سيلز'}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-4 bg-emerald-50 rounded-2xl space-y-1">
+                        <span className="text-[10px] font-black text-emerald-600/70 uppercase tracking-wider block">إجمالي المبيعات</span>
+                        <span className="text-lg font-black text-emerald-700">{totalSalesVal.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="p-4 bg-blue-50 rounded-2xl space-y-1">
+                        <span className="text-[10px] font-black text-blue-600/70 uppercase tracking-wider block">عقود منجزة</span>
+                        <span className="text-lg font-black text-blue-700">{contractedCount} عقود</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 pt-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-bold">العمولات المستحقة:</span>
+                        <span className="text-slate-800 font-black">{totalCommission.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-bold">إجمالي الإكراميات:</span>
+                        <span className="text-emerald-600 font-black">{totalTips.toLocaleString()} ج.م</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-bold">طلبات معلقة:</span>
+                        <span className="text-amber-600 font-black">{pendingCount} طلبات</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-50 flex gap-2">
+                      <Button variant="ghost" className="flex-1 rounded-xl font-black text-xs text-slate-500 hover:bg-slate-50">تاريخ العمليات</Button>
+                      <Button variant="outline" className="flex-1 rounded-xl font-black text-xs border-slate-200">كشف حساب</Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}

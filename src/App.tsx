@@ -80,7 +80,6 @@ import { WarehouseTransfersView } from './components/WarehouseTransfersView';
 import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
-const logout = () => signOut(auth);
 
 // --- Components ---
 
@@ -144,7 +143,19 @@ function LoginView({ error: externalError }: { error?: string }) {
       await loginWithGoogle();
     } catch (err: any) {
       console.error("Login error:", err);
-      setLocalError('فشل تسجيل الدخول باستخدام جوجل.');
+      let errMsg = 'فشل تسجيل الدخول باستخدام جوجل.';
+      if (err.code === 'auth/operation-not-allowed') {
+        errMsg = 'تسجيل الدخول بجوجل غير مفعل في إعدادات Firebase Console الخاصة بك. يرجى تفعيله من قسم Authentication -> Sign-in method.';
+      } else if (err.code === 'auth/popup-blocked') {
+        errMsg = 'تم حظر النافذة المنبثقة من قبل المتصفح. يرجى السماح بالنوافذ المنبثقة أو فتح التطبيق في علامة تبويب جديدة.';
+      } else if (err.code === 'auth/cancelled-popup-request' || err.code === 'auth/popup-closed-by-user') {
+        errMsg = 'تم إغلاق نافذة تسجيل الدخول قبل إتمام العملية.';
+      } else if (window.self !== window.top) {
+        errMsg = 'تسجيل الدخول بجوجل قد يكون محظوراً داخل إطار المعاينة (iframe). يرجى فتح التطبيق في نافذة جديدة (عبر زر فتح في نافذة جديدة بجانب المعاينة) لتسجيل الدخول بنجاح، أو استخدام حساب الموظف المخصص.';
+      } else {
+        errMsg = `خطأ في تسجيل الدخول بجوجل: ${err.message || err.code || 'فشل الاتصال بجوجل'}`;
+      }
+      setLocalError(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -1360,7 +1371,7 @@ function MainApp({
   setSettings: (v: CompanySettings) => void,
   handleSaveSettings: (newSettings?: CompanySettings) => Promise<void>
 }) {
-  const { user, profile } = useAuth();
+  const { user, profile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inventoryMenuOpen, setInventoryMenuOpen] = useState(false);
@@ -2691,7 +2702,11 @@ function MainApp({
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              {activeTab === 'dashboard' && <Dashboard 
+              {activeTab === 'employees' && <EmployeesView employees={employees} />}
+        {activeTab === 'attendance' && <AttendanceView attendance={attendance} employees={employees} />}
+        {activeTab === 'hrTransactions' && <HRTransactionsView employees={employees} transactions={hrTransactions} />}
+        {activeTab === 'hrProduction' && <HRProductionView employees={employees} productionRecords={productionRecords} />}
+        {activeTab === 'dashboard' && <Dashboard 
                 settings={settings}
                 setSettings={setSettings}
                 handleSaveSettings={handleSaveSettings}
@@ -2840,6 +2855,7 @@ function MainApp({
             safes={safes}
             profile={profile}
             lostSales={lostSales}
+            employees={employees}
           />
         )}
         {activeTab === 'suppliers' && (
@@ -3516,7 +3532,29 @@ function UserManagement() {
     
     const q = query(collection(db, 'users'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+      const usersData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const basePermissions = {
+          dashboard: true,
+          inventory: false,
+          production: false,
+          maintenance: false,
+          purchases: false,
+          hr: false,
+          reports: false,
+          suppliers: false,
+          settings: false,
+          finance: false,
+          sales: false,
+          canDelete: false,
+          ...(data.permissions || {})
+        };
+        return {
+          uid: doc.id,
+          ...data,
+          permissions: basePermissions
+        } as UserProfile;
+      });
       setUsers(usersData);
     });
     return () => unsubscribe();
@@ -4396,17 +4434,17 @@ function Dashboard({
       {/* High-Impact Executive Bento Grid (5 Premium Cards with outstanding typography) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Card 1: Total Safe/Account Liquidity */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-8 flex flex-col justify-between min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
-              <Wallet size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+              <Wallet className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black tracking-wide">متوفرة حيّاً</span>
+            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-emerald-50 text-emerald-700 text-[9px] sm:text-[10px] font-black tracking-wide">متوفرة حيّاً</span>
           </div>
-          <div className="mt-6 space-y-1.5 text-right">
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">السيولة النقدية (بالخزائن والبنك)</p>
-            <h3 className="text-3xl lg:text-4xl font-extrabold leading-none flex items-baseline gap-1">
+          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+            <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">السيولة النقدية (بالخزائن والبنك)</p>
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalSafesBalance} 
                 system={settings.numberSystem} 
@@ -4418,21 +4456,21 @@ function Dashboard({
         </Card>
 
         {/* Card 2: Inventory Asset Valuation */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-8 flex flex-col justify-between min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
-              <Package size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+              <Package className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             {lowStockItems.length > 0 ? (
-              <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 text-[10px] font-black tracking-wide animate-pulse">نقص {lowStockItems.length} أصناف</span>
+              <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-rose-50 text-rose-600 text-[9px] sm:text-[10px] font-black tracking-wide animate-pulse">نقص {lowStockItems.length} أصناف</span>
             ) : (
-              <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-black tracking-wide">آمن ومكتمل</span>
+              <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-blue-50 text-blue-700 text-[9px] sm:text-[10px] font-black tracking-wide">آمن ومكتمل</span>
             )}
           </div>
-          <div className="mt-6 space-y-1.5 text-right">
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">قيمة بضاعة المخزون</p>
-            <h3 className="text-3xl lg:text-4xl font-extrabold leading-none flex items-baseline gap-1">
+          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+            <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">قيمة بضاعة المخزون</p>
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalInventoryValue} 
                 system={settings.numberSystem} 
@@ -4444,17 +4482,17 @@ function Dashboard({
         </Card>
 
         {/* Card 3: Supplier Debts */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-8 flex flex-col justify-between min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
-              <Users size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 text-[10px] font-black tracking-wide">مستحقة للدفع</span>
+            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-orange-50 text-orange-700 text-[9px] sm:text-[10px] font-black tracking-wide">مستحقة للدفع</span>
           </div>
-          <div className="mt-6 space-y-1.5 text-right">
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">مستحقات الموردين القائمة</p>
-            <h3 className="text-3xl lg:text-4xl font-extrabold leading-none flex items-baseline gap-1">
+          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+            <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">مستحقات الموردين القائمة</p>
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalSupplierDebt} 
                 system={settings.numberSystem} 
@@ -4467,17 +4505,17 @@ function Dashboard({
         </Card>
 
         {/* Card 4: Outstanding Loans & Advances */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-8 flex flex-col justify-between min-h-[190px] ${activeTab !== 'all' && activeTab !== 'hr' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'hr' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
-              <Coins size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+              <Coins className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 text-[10px] font-black tracking-wide">سلفيات العاملين</span>
+            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-purple-50 text-purple-700 text-[9px] sm:text-[10px] font-black tracking-wide">سلفيات العاملين</span>
           </div>
-          <div className="mt-6 space-y-1.5 text-right">
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">قيمة سلف العاملين النشطة</p>
-            <h3 className="text-3xl lg:text-4xl font-extrabold leading-none flex items-baseline gap-1">
+          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+            <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">قيمة سلف العاملين النشطة</p>
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalActiveLoansOwed} 
                 system={settings.numberSystem} 
@@ -4489,17 +4527,17 @@ function Dashboard({
         </Card>
 
         {/* Card 5: Current Manufacturing Cost */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-8 flex flex-col justify-between min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-red-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
-              <Wrench size={24} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+              <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-[10px] font-black tracking-wide">منهكة التشغيل</span>
+            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-red-50 text-red-700 text-[9px] sm:text-[10px] font-black tracking-wide">منهكة التشغيل</span>
           </div>
-          <div className="mt-6 space-y-1.5 text-right">
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">إجمالي تكاليف التصنيع</p>
-            <h3 className="text-3xl lg:text-4xl font-extrabold leading-none flex items-baseline gap-1">
+          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+            <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">إجمالي تكاليف التصنيع</p>
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalManufacturingCost} 
                 system={settings.numberSystem} 
@@ -10185,49 +10223,49 @@ function Suppliers({
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="relative p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-500">
+        <div className="relative p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-500">
           <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
-          <div className="flex items-center gap-5 relative z-10">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-              <ShoppingBag size={28} />
+          <div className="flex items-center gap-3 sm:gap-5 relative z-10">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner shrink-0">
+              <ShoppingBag className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <div>
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">إجمالي المشتريات</p>
-              <div className="flex items-baseline gap-1">
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">{totalPurchases.toLocaleString()}</p>
-                <span className="text-xs font-bold text-slate-400 uppercase">ج.م</span>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] mb-1">إجمالي المشتريات</p>
+              <div className="flex items-baseline gap-1 flex-wrap">
+                <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tighter break-all">{totalPurchases.toLocaleString()}</p>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase shrink-0">ج.م</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="relative p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-500">
+        <div className="relative p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-500">
           <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-emerald-50 rounded-full blur-2xl group-hover:bg-emerald-100 transition-colors" />
-          <div className="flex items-center gap-5 relative z-10">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
-              <CreditCard size={28} />
+          <div className="flex items-center gap-3 sm:gap-5 relative z-10">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner shrink-0">
+              <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <div>
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">إجمالي المدفوعات</p>
-              <div className="flex items-baseline gap-1">
-                <p className="text-3xl font-black text-emerald-600 tracking-tighter">{totalPayments.toLocaleString()}</p>
-                <span className="text-xs font-bold text-slate-400 uppercase">ج.م</span>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] mb-1">إجمالي المدفوعات</p>
+              <div className="flex items-baseline gap-1 flex-wrap">
+                <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-emerald-600 tracking-tighter break-all">{totalPayments.toLocaleString()}</p>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase shrink-0">ج.م</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="relative p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group border-r-4 border-r-orange-500 hover:-translate-y-1 transition-all duration-500">
+        <div className="relative p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group border-r-4 border-r-orange-500 hover:-translate-y-1 transition-all duration-500">
           <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-orange-50 rounded-full blur-2xl group-hover:bg-orange-100 transition-colors" />
-          <div className="flex items-center gap-5 relative z-10">
-            <div className="w-16 h-16 rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 shadow-inner">
-              <Scale size={28} />
+          <div className="flex items-center gap-3 sm:gap-5 relative z-10">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 shadow-inner shrink-0">
+              <Scale className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <div>
-              <p className="text-[11px] font-black text-orange-600 uppercase tracking-[0.2em] mb-1">صافي المديونية للموردين</p>
-              <div className="flex items-baseline gap-1">
-                <p className="text-3xl font-black text-orange-600 tracking-tighter">{totalBalance.toLocaleString()}</p>
-                <span className="text-xs font-bold text-slate-400 uppercase">ج.م</span>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-black text-orange-600 uppercase tracking-wider sm:tracking-[0.2em] mb-1">صافي المديونية للموردين</p>
+              <div className="flex items-baseline gap-1 flex-wrap">
+                <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-orange-600 tracking-tighter break-all">{totalBalance.toLocaleString()}</p>
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase shrink-0">ج.م</span>
               </div>
             </div>
           </div>
@@ -11220,36 +11258,39 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-         <div className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-inner">
-               <AlertTriangle size={28} />
+         <div className="p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-3 sm:gap-5">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-inner shrink-0">
+               <AlertTriangle className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <div>
-               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي الحركات</p>
-               <p className="text-3xl font-black text-slate-900 tracking-tighter">{wasteRecords.length}</p>
-            </div>
-         </div>
-         <div className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-inner">
-               <Scale size={28} />
-            </div>
-            <div>
-               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي الكميات</p>
-               <p className="text-3xl font-black text-slate-900 tracking-tighter">{wasteRecords.reduce((acc, r) => acc + r.quantity, 0).toLocaleString()}</p>
+            <div className="min-w-0">
+               <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي الحركات</p>
+               <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tighter break-all">{wasteRecords.length}</p>
             </div>
          </div>
-         <div className="p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-5 border-r-4 border-r-rose-500">
-            <div className="w-16 h-16 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-inner">
-               <DollarSign size={28} />
+         <div className="p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-3 sm:gap-5">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-inner shrink-0">
+               <Scale className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <div>
-               <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest mb-1">القيمة المحملة</p>
-               <p className="text-3xl font-black text-rose-600 tracking-tighter">
-                  {wasteRecords.reduce((acc, r) => {
-                    const itm = items.find(i => i.id === r.itemId);
-                    return acc + (r.quantity * (itm?.price || 0));
-                  }, 0).toLocaleString()} <span className="text-xs font-bold text-slate-300">ج.م</span>
-               </p>
+            <div className="min-w-0">
+               <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي الكميات</p>
+               <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tighter break-all">{wasteRecords.reduce((acc, r) => acc + r.quantity, 0).toLocaleString()}</p>
+            </div>
+         </div>
+         <div className="p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-3 sm:gap-5 border-r-4 border-r-rose-500">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-inner shrink-0">
+               <DollarSign className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
+            <div className="min-w-0">
+               <p className="text-[10px] sm:text-[11px] font-black text-rose-600 uppercase tracking-widest mb-1">القيمة المحملة</p>
+               <div className="flex items-baseline gap-1 flex-wrap">
+                  <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-rose-600 tracking-tighter break-all">
+                     {wasteRecords.reduce((acc, r) => {
+                       const itm = items.find(i => i.id === r.itemId);
+                       return acc + (r.quantity * (itm?.price || 0));
+                     }, 0).toLocaleString()}
+                  </p>
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-300 shrink-0">ج.م</span>
+               </div>
             </div>
          </div>
       </div>
@@ -12291,7 +12332,8 @@ function OldReportsView({
 
 
 const EmployeesView = React.memo(function EmployeesView({ employees }: { employees: Employee[] }) {
-  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
+  const safeEmployees = employees || [];
+  const departments = ['الكل', ...new Set(safeEmployees.filter(e => e.department).map(e => e.department!))];
   const [showAdd, setShowAdd] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -12313,7 +12355,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
   });
 
 
-  const filteredEmployees = employees.filter(e => {
+  const filteredEmployees = safeEmployees.filter(e => {
     const matchesDept = selectedDept === 'الكل' || e.department === selectedDept;
     const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesDept && matchesSearch;
@@ -14432,7 +14474,7 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
 
   const productionEmployees = employees.filter(e => e.payMethod === 'production');
 
-  const filteredRecords = productionRecords.filter(r => {
+  const filteredRecords = (productionRecords || []).filter(r => {
     const employee = employees.find(e => e.id === r.employeeId);
     const displayName = r.contractorName || employee?.name || 'مقاول يدوية/أخرى';
     
@@ -14916,6 +14958,13 @@ const PayrollView = React.memo(function PayrollView({
 
   const [selectedDept, setSelectedDept] = useState<string>('الكل');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedWeek, setSelectedWeek] = useState<number>(() => {
+    const d = new Date();
+    const start = new Date(d.getFullYear(), 0, 1);
+    const days = Math.floor((d.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+    return Math.ceil((days + 1) / 7);
+  });
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [payrollSubTab, setPayrollSubTab] = useState<'weekly' | 'daily' | 'deductions'>('weekly');
   const [selectedDailyDate, setSelectedDailyDate] = useState<string>(() => {
     if (attendance && attendance.length > 0) {
@@ -15108,7 +15157,7 @@ const PayrollView = React.memo(function PayrollView({
     return filteredDailyPayrollForView.reduce((sum, d) => sum + d.netSalary, 0);
   }, [filteredDailyPayrollForView]);
 
-  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
+  const departments = ['الكل', ...new Set((employees || []).filter(e => e.department).map(e => e.department!))];
   const [showGenerate, setShowGenerate] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [genData, setGenData] = useState({
@@ -15126,14 +15175,23 @@ const PayrollView = React.memo(function PayrollView({
       const response = await fetch('/api/payroll/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employees: employees || [],
+          attendance: attendance || [],
+          transactions: transactions || [],
+          loans: loans || [],
+          productionRecords: productionRecords || [],
+          genData
+        })
       });
 
       const { processedPayrolls } = await response.json();
+      if (!processedPayrolls) throw new Error("No payrolls generated");
 
       let batch = writeBatch(db);
       let opCount = 0;
 
-      for (const p of processedPayrolls) {
+      for (const p of (processedPayrolls || [])) {
         const newRef = doc(collection(db, 'payrolls'));
         batch.set(newRef, p);
         opCount++;
@@ -15144,6 +15202,8 @@ const PayrollView = React.memo(function PayrollView({
         }
       }
       await batch.commit();
+      setSelectedWeek(genData.weekNumber);
+      setSelectedYear(genData.year);
       setShowGenerate(false);
   } catch (err) { console.error(err); } };
 
@@ -15277,8 +15337,8 @@ const PayrollView = React.memo(function PayrollView({
   } catch (err) { console.error(err); } };
 
   const draftPayrolls = React.useMemo(() => {
-    return payrolls.filter(p => p.status === 'مسودة');
-  }, [payrolls]);
+    return (payrolls || []).filter(p => p.status === 'مسودة' && p.weekNumber === selectedWeek && p.year === selectedYear);
+  }, [payrolls, selectedWeek, selectedYear]);
 
   const totalWeekly = React.useMemo(() => {
     return draftPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
@@ -15345,7 +15405,8 @@ const PayrollView = React.memo(function PayrollView({
 
   const filteredDraftPayrolls = React.useMemo(() => {
     return draftPayrolls.filter(p => {
-      const emp = employees.find(e => e.id === p.employeeId);
+      const safeEmployees = employees || [];
+      const emp = safeEmployees.find(e => e.id === p.employeeId);
       const matchesDept = selectedDept === 'الكل' || emp?.department === selectedDept;
       const matchesSearch = emp?.name.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesDept && matchesSearch;
@@ -15387,12 +15448,13 @@ const PayrollView = React.memo(function PayrollView({
   }, [processedDailyPayrolls, selectedDept, searchTerm]);
 
   const filteredTotalWeekly = React.useMemo(() => {
-    return processedPayrolls.reduce((sum, p) => sum + p.netSalary, 0);
+    return (processedPayrolls || []).reduce((sum, p) => sum + p.netSalary, 0);
   }, [processedPayrolls]);
 
   const filteredModalVouchers = React.useMemo(() => {
-    return processedPayrolls.filter(p => {
-      const emp = employees.find(e => e.id === p.employeeId);
+    return (processedPayrolls || []).filter(p => {
+      const safeEmployees = employees || [];
+      const emp = safeEmployees.find(e => e.id === p.employeeId);
       const matchesDept = voucherDept === 'الكل' || emp?.department === voucherDept;
       const matchesSearch = !voucherSearch || emp?.name.toLowerCase().includes(voucherSearch.toLowerCase());
       return matchesDept && matchesSearch;
@@ -15400,7 +15462,7 @@ const PayrollView = React.memo(function PayrollView({
   }, [processedPayrolls, employees, voucherDept, voucherSearch]);
 
   const voucherChunks = React.useMemo(() => {
-    const selectedPayrolls = processedPayrolls.filter(p => selectedVoucherIds.includes(p.id));
+    const selectedPayrolls = (processedPayrolls || []).filter(p => selectedVoucherIds.includes(p.id));
     const chunks = [];
     for (let i = 0; i < selectedPayrolls.length; i += 10) {
       chunks.push(selectedPayrolls.slice(i, i + 10));
@@ -15550,8 +15612,20 @@ const PayrollView = React.memo(function PayrollView({
             />
           </div>
           <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-2xl border border-slate-200 h-10 md:h-12">
-            <span className="text-[10px] font-bold text-slate-400 uppercase">من:</span>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">إلى:</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">أسبوع:</span>
+            <input 
+              type="number" 
+              className="w-12 h-full bg-transparent font-black text-center outline-none" 
+              value={selectedWeek} 
+              onChange={e => setSelectedWeek(Number(e.target.value))}
+            />
+            <span className="text-[10px] font-bold text-slate-400 uppercase">سنة:</span>
+            <input 
+              type="number" 
+              className="w-16 h-full bg-transparent font-black text-center outline-none" 
+              value={selectedYear} 
+              onChange={e => setSelectedYear(Number(e.target.value))}
+            />
           </div>
           <select 
             className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm"
@@ -16821,11 +16895,7 @@ const PayrollView = React.memo(function PayrollView({
 });
 
 const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, payrolls, transactions }: { employees: Employee[], payrolls: Payroll[], transactions: FinancialTransaction[] }) {
-
-
-
-
-  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
+  const departments = ['الكل', ...new Set((employees || []).filter(e => e.department).map(e => e.department!))];
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
   const [editingPayroll, setEditingPayroll] = useState<Payroll | null>(null);

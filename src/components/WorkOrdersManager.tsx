@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { SearchableSelect } from './SearchableSelect';
 import {
   ResponsiveContainer,
   BarChart,
@@ -72,6 +73,14 @@ interface WorkOrdersManagerProps {
 }
 
 export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps) {
+  const customerOptions = useMemo(() => {
+    return customers.map(c => ({
+      id: c.id,
+      name: c.name,
+      subtext: c.phone || ''
+    }));
+  }, [customers]);
+
   // Collections State
   const [workOrders, setWorkOrders] = useState<FurnitureWorkOrder[]>([]);
   const [costCenters, setCostCenters] = useState<any[]>([]);
@@ -126,6 +135,40 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
   const [editingOrder, setEditingOrder] = useState<FurnitureWorkOrder | null>(null);
   const [viewingOrder, setViewingOrder] = useState<FurnitureWorkOrder | null>(null);
   const [selectedLedgerCustomer, setSelectedLedgerCustomer] = useState<Customer | null>(null);
+
+  // States for WhatsApp Split-Screen Entry Workspace and Exhibition Price Catalog
+  const [recipes, setRecipes] = useState<any[]>([]);
+  const [recipeSearchTerm, setRecipeSearchTerm] = useState('');
+  const [showSplitScreenModal, setShowSplitScreenModal] = useState(false);
+  const [activeDraft, setActiveDraft] = useState<any | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [isAiParsingInProgress, setIsAiParsingInProgress] = useState(false);
+  const [aiParseStatusMessage, setAiParseStatusMessage] = useState('');
+  
+  // Quick Customer Creation State inside modal
+  const [quickCustomerName, setQuickCustomerName] = useState('');
+  const [quickCustomerPhone, setQuickCustomerPhone] = useState('');
+  const [quickCustomerType, setQuickCustomerType] = useState<'أفراد' | 'شركات'>('أفراد');
+  const [isCreatingQuickCustomer, setIsCreatingQuickCustomer] = useState(false);
+
+  // Split Screen Form State
+  const [splitForm, setSplitForm] = useState({
+    orderNumber: '',
+    customerId: '',
+    customerName: '',
+    roomCode: '',
+    contractDate: new Date().toISOString().split('T')[0],
+    deliveryDate: '',
+    salesPerson: '',
+    generalSpecs: '',
+    dimensionsAndStructure: '',
+    paintSpecs: '',
+    upholsterySpecs: '',
+    totalAmount: 0,
+    depositPaid: 0,
+    notes: ''
+  });
 
   // Print references
   const printRef = useRef<HTMLDivElement>(null);
@@ -193,6 +236,9 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
     const unsubReceipts = onSnapshot(collection(db, 'deliveryReceipts'), (snap) => {
       setDeliveryReceipts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
+    const unsubRecipes = onSnapshot(collection(db, 'recipes'), (snap) => {
+      setRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
 
     return () => {
       unsubOrders();
@@ -202,6 +248,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
       unsubDrafts();
       unsubManifests();
       unsubReceipts();
+      unsubRecipes();
     };
   }, []);
 
@@ -724,10 +771,121 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
     }
   };
 
-  // Create an Excel sheet row from a WhatsApp draft
-  const convertDraftToExcelRow = (draft: any) => {
-    const newRow = {
-      tempId: `temp-${Math.random()}`,
+  // Create an Excel sheet row from a WhatsApp draft with AI Extraction
+  const convertDraftToExcelRow = async (draft: any) => {
+    try {
+      await updateDoc(doc(db, 'whatsappDrafts', draft.id), { status: 'جاري التحليل بالذكاء الاصطناعي... ⏳' });
+    } catch (err) {
+      console.error(err);
+    }
+
+    try {
+      const base64Parts = draft.imageUrl.split(',');
+      const base64Data = base64Parts[1] || draft.imageUrl;
+      const mimeType = draft.imageUrl.split(';')[0]?.split(':')[1]?.split(';')[0] || 'image/jpeg';
+
+      const response = await fetch('/api/whatsapp/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: '',
+          file: {
+            base64: base64Data,
+            mimeType: mimeType
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('فشل الاتصال بـ Gemini API أو حدث خطأ أثناء التحليل.');
+      }
+
+      const data = await response.json();
+      const todayStr = new Date().toISOString().split('T')[0];
+      let resolvedCustomerId = '';
+      let resolvedCustomerName = '';
+
+      const parsedClientName = data.productionData?.clientName || data.deliveryData?.clientName || data.loadingData?.clientName || '';
+      if (parsedClientName) {
+        const matched = customers.find(c => 
+          c.name.includes(parsedClientName) || parsedClientName.includes(c.name)
+        );
+        if (matched) {
+          resolvedCustomerId = matched.id;
+          resolvedCustomerName = matched.name;
+        } else {
+          resolvedCustomerName = parsedClientName;
+        }
+      }
+
+      const pd = data.productionData || {};
+      const roomCode = pd.roomCode || pd.products?.[0]?.name || 'غرفة مخصصة';
+      const generalSpecs = pd.generalSpecs || pd.products?.[0]?.notes || pd.notes || '';
+      const dimensionsAndStructure = pd.dimensionsAndStructure || '';
+      const paintSpecs = pd.paintSpecs || '';
+      const upholsterySpecs = pd.upholsterySpecs || '';
+      const totalAmount = Number(pd.totalAmount) || 0;
+      const salesPerson = pd.salesPerson || '';
+      const contractDate = pd.contractDate || todayStr;
+      const deliveryDate = pd.deliveryDate || '';
+
+      const newRow = {
+        tempId: `temp-${Math.random()}`,
+        orderNumber: pd.workOrderNumber || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        customerId: resolvedCustomerId,
+        customerName: resolvedCustomerName,
+        roomCode: roomCode,
+        contractDate: contractDate,
+        deliveryDate: deliveryDate,
+        salesPerson: salesPerson,
+        attachmentImage: draft.imageUrl,
+        generalSpecs: generalSpecs,
+        dimensionsAndStructure: dimensionsAndStructure,
+        paintSpecs: paintSpecs,
+        upholsterySpecs: upholsterySpecs,
+        totalAmount: totalAmount,
+        status: 'بانتظار التعميد'
+      };
+
+      setExcelRows(prev => [newRow, ...prev]);
+      setActiveSubTab('whatsapp_hub');
+      await updateDoc(doc(db, 'whatsappDrafts', draft.id), { status: 'تم التفريغ للشيت ✨' });
+    } catch (err: any) {
+      console.error(err);
+      alert(`❌ فشل التفريغ التلقائي بالذكاء الاصطناعي: ${err.message || err}\nسيتم إدراج سطر فارغ يحتوي على الصورة لتعبئته يدوياً.`);
+      
+      const fallbackRow = {
+        tempId: `temp-${Math.random()}`,
+        orderNumber: `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        customerId: '',
+        customerName: '',
+        roomCode: '',
+        contractDate: new Date().toISOString().split('T')[0],
+        deliveryDate: '',
+        salesPerson: '',
+        attachmentImage: draft.imageUrl,
+        generalSpecs: '',
+        dimensionsAndStructure: '',
+        paintSpecs: '',
+        upholsterySpecs: '',
+        totalAmount: 0,
+        status: 'بانتظار التعميد'
+      };
+      setExcelRows(prev => [fallbackRow, ...prev]);
+      setActiveSubTab('whatsapp_hub');
+      await updateDoc(doc(db, 'whatsappDrafts', draft.id), { status: 'فشل التفريغ التلقائي (يدوي)' });
+    }
+  };
+
+  // Open Split-Screen Unpacker Modal
+  const handleOpenSplitUnpacker = (draft: any) => {
+    setActiveDraft(draft);
+    setZoomLevel(1);
+    setRotation(0);
+    setAiParseStatusMessage('');
+    setIsAiParsingInProgress(false);
+    
+    setSplitForm({
       orderNumber: `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       customerId: '',
       customerName: '',
@@ -735,18 +893,254 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
       contractDate: new Date().toISOString().split('T')[0],
       deliveryDate: '',
       salesPerson: '',
-      attachmentImage: draft.imageUrl,
       generalSpecs: '',
       dimensionsAndStructure: '',
       paintSpecs: '',
       upholsterySpecs: '',
       totalAmount: 0,
+      depositPaid: 0,
+      notes: ''
+    });
+    
+    setShowSplitScreenModal(true);
+  };
+
+  // Create quick customer inside the modal
+  const handleCreateQuickCustomer = async () => {
+    if (!quickCustomerName) {
+      alert('الرجاء إدخال اسم العميل');
+      return;
+    }
+    setIsCreatingQuickCustomer(true);
+    try {
+      const newCustomer = {
+        name: quickCustomerName,
+        phone: quickCustomerPhone || '01000000000',
+        email: '',
+        address: '',
+        type: quickCustomerType,
+        status: 'نشط',
+        balance: 0,
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+      const docRef = await addDoc(collection(db, 'customers'), newCustomer);
+      setSplitForm(prev => ({
+        ...prev,
+        customerId: docRef.id,
+        customerName: quickCustomerName
+      }));
+      setQuickCustomerName('');
+      setQuickCustomerPhone('');
+      alert('تم إضافة العميل الجديد وتحديده بنجاح! 🎉');
+    } catch (err) {
+      console.error(err);
+      alert('حدث خطأ أثناء إضافة العميل.');
+    } finally {
+      setIsCreatingQuickCustomer(false);
+    }
+  };
+
+  // Run AI analysis inside the split-screen modal
+  const runAiAnalysisInModal = async () => {
+    if (!activeDraft) return;
+    setIsAiParsingInProgress(true);
+    setAiParseStatusMessage('جاري تحليل الصورة بالذكاء الاصطناعي... ⏳');
+    try {
+      const base64Parts = activeDraft.imageUrl.split(',');
+      const base64Data = base64Parts[1] || activeDraft.imageUrl;
+      const mimeType = activeDraft.imageUrl.split(';')[0]?.split(':')[1]?.split(';')[0] || 'image/jpeg';
+
+      const response = await fetch('/api/whatsapp/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: '',
+          file: {
+            base64: base64Data,
+            mimeType: mimeType
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('الخوادم مشغولة حالياً.');
+      }
+
+      const data = await response.json();
+      const pd = data.productionData || {};
+      
+      const parsedClientName = pd.clientName || data.deliveryData?.clientName || '';
+      let resolvedId = '';
+      let resolvedName = parsedClientName || '';
+      
+      if (parsedClientName) {
+        const matched = customers.find(c => 
+          c.name.includes(parsedClientName) || parsedClientName.includes(c.name)
+        );
+        if (matched) {
+          resolvedId = matched.id;
+          resolvedName = matched.name;
+        }
+      }
+
+      setSplitForm(prev => ({
+        ...prev,
+        orderNumber: pd.workOrderNumber || prev.orderNumber,
+        customerId: resolvedId,
+        customerName: resolvedName,
+        roomCode: pd.roomCode || pd.products?.[0]?.name || prev.roomCode,
+        generalSpecs: pd.generalSpecs || pd.products?.[0]?.notes || pd.notes || '',
+        dimensionsAndStructure: pd.dimensionsAndStructure || '',
+        paintSpecs: pd.paintSpecs || '',
+        upholsterySpecs: pd.upholsterySpecs || '',
+        totalAmount: Number(pd.totalAmount) || prev.totalAmount,
+        depositPaid: Number(pd.depositPaid) || prev.depositPaid,
+        deliveryDate: pd.deliveryDate || prev.deliveryDate,
+        salesPerson: pd.salesPerson || prev.salesPerson,
+      }));
+
+      setAiParseStatusMessage('✨ تم التفريغ المقترح بنجاح! راجع البيانات وأكد الحفظ.');
+    } catch (err: any) {
+      console.error(err);
+      setAiParseStatusMessage('⚠️ خوادم جوجل مشغولة حالياً بالضغط الشديد. تم تفعيل التفريغ اليدوي، يمكنك ملء الخانات بنفسك فوراً.');
+    } finally {
+      setIsAiParsingInProgress(false);
+    }
+  };
+
+  // Add the unpacked form to the Excel sheet
+  const handleSaveFromSplitToExcel = async () => {
+    const customerName = splitForm.customerId 
+      ? (customers.find(c => c.id === splitForm.customerId)?.name || splitForm.customerName)
+      : splitForm.customerName;
+      
+    if (!customerName) {
+      alert('الرجاء اختيار العميل أو كتابة اسمه.');
+      return;
+    }
+
+    const newRow = {
+      tempId: `temp-${Math.random()}`,
+      orderNumber: splitForm.orderNumber || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      customerId: splitForm.customerId,
+      customerName: customerName,
+      roomCode: splitForm.roomCode,
+      contractDate: splitForm.contractDate,
+      deliveryDate: splitForm.deliveryDate,
+      salesPerson: splitForm.salesPerson,
+      attachmentImage: activeDraft.imageUrl,
+      generalSpecs: splitForm.generalSpecs,
+      dimensionsAndStructure: splitForm.dimensionsAndStructure,
+      paintSpecs: splitForm.paintSpecs,
+      upholsterySpecs: splitForm.upholsterySpecs,
+      totalAmount: splitForm.totalAmount,
+      depositPaid: splitForm.depositPaid,
+      notes: splitForm.notes,
       status: 'بانتظار التعميد'
     };
+
     setExcelRows(prev => [newRow, ...prev]);
-    setActiveSubTab('whatsapp_hub');
-    // Mark draft as processed in Firestore
-    updateDoc(doc(db, 'whatsappDrafts', draft.id), { status: 'تم التفريغ للشيت' }).catch(console.error);
+    
+    try {
+      await updateDoc(doc(db, 'whatsappDrafts', activeDraft.id), { status: 'تم التفريغ للشيت ✨' });
+    } catch (err) {
+      console.error(err);
+    }
+
+    setShowSplitScreenModal(false);
+    alert('تم إدراج البند لشيت الإدخال التفاعلي المجمع! راجعه ثم احفظ الشيت بالكامل لتثبيته بالإنتاج.');
+  };
+
+  // Save direct to production & accounting
+  const handleSaveDirectToFirestore = async () => {
+    const customerName = splitForm.customerId 
+      ? (customers.find(c => c.id === splitForm.customerId)?.name || splitForm.customerName)
+      : splitForm.customerName;
+
+    if (!customerName) {
+      alert('الرجاء اختيار العميل أو كتابة اسمه.');
+      return;
+    }
+
+    let finalCustomerId = splitForm.customerId;
+    if (!finalCustomerId && customerName) {
+      const matched = customers.find(c => c.name === customerName);
+      if (matched) {
+        finalCustomerId = matched.id;
+      } else {
+        try {
+          const newCustRef = await addDoc(collection(db, 'customers'), {
+            name: customerName,
+            phone: '01000000000',
+            email: '',
+            address: '',
+            type: 'أفراد',
+            status: 'نشط',
+            balance: 0,
+            createdAt: new Date().toISOString().split('T')[0]
+          });
+          finalCustomerId = newCustRef.id;
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
+    try {
+      const newOrder = {
+        orderNumber: splitForm.orderNumber || `WO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        customerId: finalCustomerId,
+        customerName: customerName,
+        roomCode: splitForm.roomCode,
+        contractDate: splitForm.contractDate,
+        deliveryDate: splitForm.deliveryDate,
+        salesPerson: splitForm.salesPerson,
+        attachmentImage: activeDraft.imageUrl,
+        generalSpecs: splitForm.generalSpecs,
+        dimensionsAndStructure: splitForm.dimensionsAndStructure,
+        paintSpecs: splitForm.paintSpecs,
+        upholsterySpecs: splitForm.upholsterySpecs,
+        totalAmount: splitForm.totalAmount,
+        depositPaid: splitForm.depositPaid,
+        remainingAmount: splitForm.totalAmount - splitForm.depositPaid,
+        status: 'بانتظار التعميد',
+        rooms: [
+          {
+            roomCode: splitForm.roomCode,
+            generalSpecs: splitForm.generalSpecs,
+            dimensionsAndStructure: splitForm.dimensionsAndStructure,
+            paintSpecs: splitForm.paintSpecs,
+            upholsterySpecs: splitForm.upholsterySpecs,
+            status: 'بانتظار التعميد'
+          }
+        ],
+        notes: splitForm.notes,
+        createdBy: profile?.email || 'مدير التشغيل',
+        createdAt: new Date().toISOString()
+      };
+
+      await addDoc(collection(db, 'workOrders'), newOrder);
+
+      // If deposit > 0, record in accounting
+      if (splitForm.depositPaid > 0) {
+        await addDoc(collection(db, 'customerPayments'), {
+          customerId: finalCustomerId,
+          date: splitForm.contractDate,
+          amount: splitForm.depositPaid,
+          paymentMethod: 'نقدي',
+          notes: `عربون مستلم مع أمر شغل ${newOrder.orderNumber}`,
+          safeId: safes[0]?.id || ''
+        });
+      }
+
+      await updateDoc(doc(db, 'whatsappDrafts', activeDraft.id), { status: 'مؤرشف ومثبت بالكامل 💾' });
+      
+      setShowSplitScreenModal(false);
+      alert('🎉 تم تثبيت أمر الشغل بالكامل وتوجيهه لخطوط الإنتاج، وتسجيل العربون في حساب العميل والنيابة!');
+    } catch (err: any) {
+      console.error(err);
+      alert(`حدث خطأ أثناء الحفظ المباشر: ${err.message}`);
+    }
   };
 
   // Add clean empty Excel row
@@ -1420,6 +1814,95 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                     مسح الفلاتر 🔄
                   </Button>
                 </div>
+              </div>
+
+              {/* Quick Filters Row */}
+              <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2 items-center">
+                <span className="text-[11px] font-black text-slate-500 ml-2">⚡ فلاتر سريعة:</span>
+                
+                <button
+                  onClick={() => {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const lastDay = new Date(year, today.getMonth() + 1, 0).getDate();
+                    
+                    setSearchTerm('');
+                    setSalesPersonFilter('');
+                    setStatusFilter('الكل');
+                    setMonthFilter('الكل');
+                    setYearFilter('الكل');
+                    setContractDateFrom('');
+                    setContractDateTo('');
+                    setDeliveryDateFrom(`${year}-${month}-01`);
+                    setDeliveryDateTo(`${year}-${month}-${lastDay}`);
+                  }}
+                  className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-all border border-indigo-100 cursor-pointer"
+                >
+                  📅 تسليمات مجدولة هذا الشهر
+                </button>
+
+                <button
+                  onClick={() => {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const lastDay = new Date(year, today.getMonth() + 1, 0).getDate();
+                    
+                    setSearchTerm('');
+                    setSalesPersonFilter('');
+                    setStatusFilter('سلم للعميل');
+                    setMonthFilter('الكل');
+                    setYearFilter('الكل');
+                    setContractDateFrom('');
+                    setContractDateTo('');
+                    setDeliveryDateFrom(`${year}-${month}-01`);
+                    setDeliveryDateTo(`${year}-${month}-${lastDay}`);
+                  }}
+                  className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition-all border border-emerald-100 cursor-pointer"
+                >
+                  🏠 تم تسليمه للعملاء هذا الشهر
+                </button>
+
+                <button
+                  onClick={() => {
+                    const today = new Date();
+                    const todayStr = today.toISOString().split('T')[0];
+                    const future = new Date();
+                    future.setDate(today.getDate() + 14);
+                    const futureStr = future.toISOString().split('T')[0];
+                    
+                    setSearchTerm('');
+                    setSalesPersonFilter('');
+                    setStatusFilter('الكل');
+                    setMonthFilter('الكل');
+                    setYearFilter('الكل');
+                    setContractDateFrom('');
+                    setContractDateTo('');
+                    setDeliveryDateFrom(todayStr);
+                    setDeliveryDateTo(futureStr);
+                  }}
+                  className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-bold transition-all border border-amber-100 cursor-pointer"
+                >
+                  ⏰ أوردرات تقترب من التسليم (خلال 14 يوم)
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSalesPersonFilter('');
+                    setStatusFilter('بانتظار التعميد');
+                    setMonthFilter('الكل');
+                    setYearFilter('الكل');
+                    setContractDateFrom('');
+                    setContractDateTo('');
+                    setDeliveryDateFrom('');
+                    setDeliveryDateTo('');
+                  }}
+                  className="px-3 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition-all border border-slate-200 cursor-pointer"
+                >
+                  ⏳ بانتظار التعميد
+                </button>
               </div>
             </CardContent>
           </Card>
@@ -2216,6 +2699,8 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                             <span className={`inline-block text-[9px] px-2 py-0.5 rounded-full font-black mt-1 ${
                               draft.status === 'جديد بانتظار التفريغ' 
                                 ? 'bg-amber-50 text-amber-600 border border-amber-200' 
+                                : draft.status.includes('جاري')
+                                ? 'bg-indigo-50 text-indigo-600 border border-indigo-200 animate-pulse'
                                 : 'bg-slate-100 text-slate-500'
                             }`}>
                               {draft.status}
@@ -2224,7 +2709,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                           <div className="flex flex-col gap-1">
                             {draft.status === 'جديد بانتظار التفريغ' && (
                               <button
-                                onClick={() => convertDraftToExcelRow(draft)}
+                                onClick={() => handleOpenSplitUnpacker(draft)}
                                 className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-500 hover:text-white rounded-lg text-[10px] font-black transition-all"
                               >
                                 تفريغ 📝
@@ -2240,6 +2725,59 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                         </div>
                       ))}
                     </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Showroom Exhibition Selling Price Lookup Card */}
+            <Card className="border-none shadow-sm">
+              <CardHeader className="bg-indigo-50/50 pb-3 border-b border-indigo-100/50">
+                <CardTitle className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                  🛋️ دليل أسعار الموديلات بالمعارض
+                </CardTitle>
+                <CardDescription className="text-[10px] text-slate-500 font-bold mt-1">
+                  ابحث عن الموديل لمعرفة السعر الرسمي المعتمد لتفريغه بدقة
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3 text-right" dir="rtl">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="ابحث بكود أو اسم الموديل (نوم، صالون)..."
+                    value={recipeSearchTerm}
+                    onChange={(e) => setRecipeSearchTerm(e.target.value)}
+                    className="w-full pr-3 pl-8 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <Search size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
+                </div>
+                
+                <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1">
+                  {recipes.filter((r: any) => {
+                    if (!recipeSearchTerm) return true;
+                    return r.name?.toLowerCase().includes(recipeSearchTerm.toLowerCase()) ||
+                           r.category?.toLowerCase().includes(recipeSearchTerm.toLowerCase());
+                  }).slice(0, recipeSearchTerm ? 15 : 5).length === 0 ? (
+                    <div className="text-center py-6 text-slate-400 text-[10px] font-bold">
+                      لا توجد موديلات مسجلة أو مطابقة للبحث
+                    </div>
+                  ) : (
+                    recipes.filter((r: any) => {
+                      if (!recipeSearchTerm) return true;
+                      return r.name?.toLowerCase().includes(recipeSearchTerm.toLowerCase()) ||
+                             r.category?.toLowerCase().includes(recipeSearchTerm.toLowerCase());
+                    }).slice(0, recipeSearchTerm ? 15 : 5).map((recipe: any) => (
+                      <div key={recipe.id} className="p-2 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between hover:bg-slate-100 transition-colors">
+                        <div className="text-right">
+                          <p className="text-[11px] font-black text-slate-800">{recipe.name}</p>
+                          <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold">{recipe.category || 'أخرى'}</span>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-[11px] font-black text-indigo-700">{(recipe.sellingPrice || 0).toLocaleString()} ج.م</p>
+                          <span className="text-[9px] text-slate-400 font-bold">السعر الرسمي بالمعرض</span>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </CardContent>
@@ -2307,16 +2845,12 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                             />
                           </td>
                           <td className="p-2.5">
-                            <select
-                              value={row.customerId}
-                              onChange={(e) => updateExcelRow(row.tempId, 'customerId', e.target.value)}
-                              className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-800"
-                            >
-                              <option value="">-- اختر عميل من القاعدة --</option>
-                              {customers.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </select>
+                            <SearchableSelect
+                              options={customerOptions}
+                              selectedValue={row.customerId}
+                              onChange={(id) => updateExcelRow(row.tempId, 'customerId', id)}
+                              placeholder="اختر عميل..."
+                            />
                           </td>
                           <td className="p-2.5">
                             <input
@@ -3036,19 +3570,15 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <div className="space-y-1.5">
                   <label className="text-xs font-black text-slate-500">العميل الحالي <span className="text-red-500">*</span></label>
-                  <select 
-                    value={formData.customerId}
-                    onChange={(e) => {
-                      const c = customers.find(x => x.id === e.target.value);
-                      setFormData({...formData, customerId: e.target.value, customerName: c ? c.name : ''});
+                  <SearchableSelect
+                    options={customerOptions}
+                    selectedValue={formData.customerId}
+                    onChange={(id) => {
+                      const c = customers.find(x => x.id === id);
+                      setFormData({...formData, customerId: id, customerName: c ? c.name : ''});
                     }}
-                    className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-black focus:ring-2 focus:ring-indigo-500 text-slate-800"
-                  >
-                    <option value="">اختر العميل...</option>
-                    {customers.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                    placeholder="اختر العميل..."
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -3305,16 +3835,14 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               {/* Select Customer */}
               <div className="space-y-1">
                 <label className="text-xs font-black text-slate-500">العميل المستلم منه العربون <span className="text-red-500">*</span></label>
-                <select
-                  value={paymentForm.customerId}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, customerId: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                >
-                  <option value="">-- اختر العميل --</option>
-                  {customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  options={customerOptions}
+                  selectedValue={paymentForm.customerId}
+                  onChange={(id) => {
+                    setPaymentForm({ ...paymentForm, customerId: id });
+                  }}
+                  placeholder="اختر العميل..."
+                />
               </div>
 
               {/* Amount */}
@@ -3876,6 +4404,387 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
           </div>
         </div>
       )}
+
+      {/* ======================================================== */}
+      {/* Dynamic Split Screen Unpacker & Data Extraction Console */}
+      {/* ======================================================== */}
+      {showSplitScreenModal && activeDraft && (
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-7xl flex flex-col max-h-[92vh] overflow-hidden border border-slate-200">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center border-b border-slate-800">
+              <div>
+                <h3 className="text-sm font-black flex items-center gap-2">
+                  📝 منصة تفريغ أوراق وأوامر الشغل المؤرشفة (مقسمة الشاشة)
+                </h3>
+                <p className="text-[11px] text-slate-300 font-bold mt-1">
+                  شاهد صورة الواتساب على اليسار، وانقل المواصفات الفنية والمالية على اليمين بدقة متناهية
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowSplitScreenModal(false)}
+                className="p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Split Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 flex-1 overflow-hidden h-[75vh]">
+              {/* Right Panel: Form and Details (7/12) */}
+              <div className="lg:col-span-7 p-6 overflow-y-auto space-y-5 border-l border-slate-100 text-right">
+                {/* Optional AI Assistant Button */}
+                <div className="p-3.5 bg-gradient-to-r from-indigo-50 to-indigo-100/50 rounded-xl border border-indigo-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-xs font-black text-indigo-900">🪄 المساعد الذكي لقراءة الصور بالذكاء الاصطناعي</p>
+                    <p className="text-[10px] text-slate-500 font-bold">يقوم بتحليل الصورة وتخمين البنود. يمكنك تفعيله أو تجاوزه وتعبئة البيانات يدوياً بمرونة.</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isAiParsingInProgress}
+                    onClick={runAiAnalysisInModal}
+                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-lg text-[11px] font-black transition-all flex items-center gap-1.5 shrink-0"
+                  >
+                    {isAiParsingInProgress ? 'جاري التحليل فورا... ⏳' : 'تحليل الصورة بالذكاء الاصطناعي ✨'}
+                  </button>
+                </div>
+
+                {aiParseStatusMessage && (
+                  <div className={`p-3 rounded-xl text-xs font-bold ${aiParseStatusMessage.includes('⚠️') ? 'bg-amber-50 text-amber-800 border border-amber-100' : 'bg-emerald-50 text-emerald-800 border border-emerald-100'}`}>
+                    {aiParseStatusMessage}
+                  </div>
+                )}
+
+                {/* Form Sections */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-600 mb-1">رقم أمر الشغل:</label>
+                    <input
+                      type="text"
+                      value={splitForm.orderNumber}
+                      onChange={(e) => setSplitForm(prev => ({ ...prev, orderNumber: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-600 mb-1">مسؤول المبيعات (السيلز):</label>
+                    <input
+                      type="text"
+                      placeholder="اسم موظف المعرض"
+                      value={splitForm.salesPerson}
+                      onChange={(e) => setSplitForm(prev => ({ ...prev, salesPerson: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Customer Account selection with quick add inline */}
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-[11px] font-black text-slate-700">العميل المتعاقد:</label>
+                    <span className="text-[10px] text-indigo-600 font-bold">مربوط فوراً بدفتر حسابات العملاء</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2">
+                      <SearchableSelect
+                        options={customerOptions}
+                        selectedValue={splitForm.customerId}
+                        onChange={(id) => {
+                          const name = customers.find(c => c.id === id)?.name || '';
+                          setSplitForm(prev => ({ ...prev, customerId: id, customerName: name }));
+                        }}
+                        placeholder="اختر عميل..."
+                      />
+                      {!splitForm.customerId && (
+                        <div className="mt-2">
+                          <input
+                            type="text"
+                            placeholder="أو اكتب اسم عميل جديد مباشرة هنا"
+                            value={splitForm.customerName}
+                            onChange={(e) => setSplitForm(prev => ({ ...prev, customerName: e.target.value }))}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white text-slate-800"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Fast add button/form inside modal */}
+                    <div className="border-r border-slate-200 pr-3 flex flex-col gap-1 text-right">
+                      <span className="text-[9px] text-slate-400 font-bold block">إضافة عميل سريعاً لقائمة الحسابات:</span>
+                      <input
+                        type="text"
+                        placeholder="الاسم"
+                        value={quickCustomerName}
+                        onChange={(e) => setQuickCustomerName(e.target.value)}
+                        className="px-2 py-1 border border-slate-200 rounded-lg text-[10px] font-bold"
+                      />
+                      <input
+                        type="text"
+                        placeholder="رقم الهاتف"
+                        value={quickCustomerPhone}
+                        onChange={(e) => setQuickCustomerPhone(e.target.value)}
+                        className="px-2 py-1 border border-slate-200 rounded-lg text-[10px] font-bold mt-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateQuickCustomer}
+                        disabled={isCreatingQuickCustomer}
+                        className="mt-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[9px] font-black text-center"
+                      >
+                        {isCreatingQuickCustomer ? 'جاري الحفظ...' : 'حفظ واختيار العميل ✅'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Model lookup & room description */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-600 mb-1">اسم الغرفة / الموديل:</label>
+                    <input
+                      type="text"
+                      placeholder="مثال: غرفة نوم رويال رئيسية"
+                      value={splitForm.roomCode}
+                      onChange={(e) => setSplitForm(prev => ({ ...prev, roomCode: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                    />
+                    
+                    {/* Quick selection from catalog */}
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <span className="text-[9px] text-slate-400 font-bold ml-1">تعبئة سريعة من الكتالوج:</span>
+                      {recipes.slice(0, 4).map(r => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => {
+                            setSplitForm(prev => ({
+                              ...prev,
+                              roomCode: r.name,
+                              totalAmount: r.sellingPrice || 0,
+                              generalSpecs: `موديل رسمي معتمد: ${r.name}\nالفئة: ${r.category || 'أخرى'}\nأبعاد ومواصفات المصنع القياسية`
+                            }));
+                          }}
+                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[9px] px-1.5 py-0.5 rounded font-black border border-indigo-100 transition-colors"
+                        >
+                          {r.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-600 mb-1">مسؤولية المعرض (التكلفة المتفق عليها):</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[9px] text-slate-400 font-bold block mb-0.5">القيمة التعاقدية الكاملة:</span>
+                        <input
+                          type="number"
+                          value={splitForm.totalAmount || ''}
+                          onChange={(e) => setSplitForm(prev => ({ ...prev, totalAmount: Number(e.target.value) }))}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono font-black text-indigo-800"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-slate-400 font-bold block mb-0.5">العربون / المقدم المدفوع:</span>
+                        <input
+                          type="number"
+                          value={splitForm.depositPaid || ''}
+                          onChange={(e) => setSplitForm(prev => ({ ...prev, depositPaid: Number(e.target.value) }))}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-mono font-black text-emerald-800"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dates selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-600 mb-1">تاريخ التعاقد:</label>
+                    <input
+                      type="date"
+                      value={splitForm.contractDate}
+                      onChange={(e) => setSplitForm(prev => ({ ...prev, contractDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-600 mb-1">تاريخ الاستلام المستهدف:</label>
+                    <input
+                      type="date"
+                      value={splitForm.deliveryDate}
+                      onChange={(e) => setSplitForm(prev => ({ ...prev, deliveryDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Specs Specifications (Manual Copy) */}
+                <div className="space-y-3">
+                  <span className="block text-xs font-black text-slate-700 border-r-4 border-indigo-500 pr-2">📋 التفاصيل والمواصفات الفنية (انقلها من ورقة الواتساب المقابلة):</span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 mb-0.5">مواصفات النجارة والملل والسرير والدولاب:</label>
+                      <textarea
+                        rows={3}
+                        placeholder="مثال: سرير مقاس 160 سم بالملل الزان، دولاب 3 ضلفة جرار..."
+                        value={splitForm.generalSpecs}
+                        onChange={(e) => setSplitForm(prev => ({ ...prev, generalSpecs: e.target.value }))}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 mb-0.5">الأبعاد والهيكل الخارجي والإضافات:</label>
+                      <textarea
+                        rows={3}
+                        placeholder="مقاس الباف والتسريحة والكومود بدقة..."
+                        value={splitForm.dimensionsAndStructure}
+                        onChange={(e) => setSplitForm(prev => ({ ...prev, dimensionsAndStructure: e.target.value }))}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 mb-0.5">الدهانات والألوان والتشطيب النهائي:</label>
+                      <textarea
+                        rows={3}
+                        placeholder="مثال: دهان دوكو أبيض مطعم بالذهبي، قشرة أرو طبيعي..."
+                        value={splitForm.paintSpecs}
+                        onChange={(e) => setSplitForm(prev => ({ ...prev, paintSpecs: e.target.value }))}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 mb-0.5">التنجيد والأقمشة والملاحظات المتفق عليها:</label>
+                      <textarea
+                        rows={3}
+                        placeholder="قماش قطيفة مستورد هامر رقم 45..."
+                        value={splitForm.upholsterySpecs}
+                        onChange={(e) => setSplitForm(prev => ({ ...prev, upholsterySpecs: e.target.value }))}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-500 mb-0.5">ملاحظات عامة وملحوظات العميل الخاصة:</label>
+                    <textarea
+                      rows={2}
+                      placeholder="أي ملحوظة تخص الاستلام أو فك وتوصيل القطع..."
+                      value={splitForm.notes}
+                      onChange={(e) => setSplitForm(prev => ({ ...prev, notes: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Left Panel: Image View & Tools (5/12) */}
+              <div className="lg:col-span-5 bg-slate-900 flex flex-col justify-between overflow-hidden">
+                {/* Image Toolbar */}
+                <div className="bg-slate-950 p-3 flex justify-between items-center border-b border-slate-800 text-white">
+                  <span className="text-[10px] font-bold text-slate-400">🔍 أدوات تصفح ورقة العمل الفنية</span>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel(prev => Math.max(0.5, prev - 0.25))}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-black transition-colors"
+                      title="تصغير"
+                    >
+                      ➖
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setZoomLevel(prev => Math.min(4, prev + 0.25))}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-black transition-colors"
+                      title="تكبير"
+                    >
+                      ➕
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRotation(prev => (prev + 90) % 360)}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-black transition-colors"
+                      title="تدوير 90 درجة"
+                    >
+                      🔄 تدوير
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setZoomLevel(1);
+                        setRotation(0);
+                      }}
+                      className="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-bold transition-colors"
+                      title="إعادة تعيين الافتراضي"
+                    >
+                      إعادة تعيين
+                    </button>
+                  </div>
+                </div>
+
+                {/* Active Image Box */}
+                <div className="flex-1 overflow-auto p-4 flex items-center justify-center relative bg-slate-950/70 max-h-[58vh]">
+                  <div className="relative inline-block overflow-visible">
+                    <img
+                      src={activeDraft.imageUrl}
+                      alt="WhatsApp original work order"
+                      className="max-h-[500px] object-contain rounded-lg border border-slate-800 transition-all shadow-2xl"
+                      style={{
+                        transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
+                        transformOrigin: 'center center',
+                        transition: 'transform 0.2s ease-in-out'
+                      }}
+                      draggable={false}
+                    />
+                  </div>
+                </div>
+
+                {/* Helper info banner */}
+                <div className="bg-slate-950 p-3 border-t border-slate-800 text-center text-[10px] text-slate-400 font-bold">
+                  💡 تلميح: يمكنك استخدام الفأرة للتمرير، أو أزرار التكبير والتدوير أعلاه لقراءة الملاحظات المكتوبة يدوياً بخط اليد بوضوح.
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer / Save Buttons */}
+            <div className="bg-slate-50 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-slate-200">
+              <span className="text-[11px] text-slate-500 font-bold">
+                أوامر الشغل المستوردة يتم توجيهها لخطوط الإنتاج، مع تتبع حسابات العملاء بدقة في "دفتر الحسابات"
+              </span>
+              
+              <div className="flex flex-wrap gap-2.5 justify-end w-full sm:w-auto">
+                <Button 
+                  onClick={() => setShowSplitScreenModal(false)}
+                  variant="outline"
+                  className="text-xs h-9"
+                >
+                  تراجع وإغلاق ❌
+                </Button>
+                
+                <button
+                  onClick={handleSaveFromSplitToExcel}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+                >
+                  إدراج في الشيت السريع للمراجعة المجمعة 📝
+                </button>
+                
+                <button
+                  onClick={handleSaveDirectToFirestore}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+                >
+                  🚀 حفظ فوري كأمر مـُعتمد (توجه للمصنع والمالية)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

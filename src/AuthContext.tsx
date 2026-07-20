@@ -51,6 +51,41 @@ export interface UserProfile {
   };
 }
 
+export const DEFAULT_PERMISSIONS = {
+  dashboard: true,
+  inventory: false,
+  production: false,
+  maintenance: false,
+  purchases: false,
+  hr: false,
+  reports: false,
+  suppliers: false,
+  settings: false,
+  finance: false,
+  sales: false,
+  canDelete: false
+};
+
+export const normalizeProfile = (data: any, isMasterAdmin: boolean): UserProfile => {
+  const isAdmin = data.isAdmin || isMasterAdmin;
+  const mergedPermissions = {
+    ...DEFAULT_PERMISSIONS,
+    ...(data.permissions || {})
+  };
+  
+  if (isAdmin) {
+    Object.keys(mergedPermissions).forEach(key => {
+      mergedPermissions[key as keyof typeof DEFAULT_PERMISSIONS] = true;
+    });
+  }
+  
+  return {
+    ...data,
+    isAdmin,
+    permissions: mergedPermissions
+  } as UserProfile;
+};
+
 interface AuthContextType {
   user: any;
   profile: UserProfile | null;
@@ -90,17 +125,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (docSnap.exists()) {
           const data = docSnap.data() as UserProfile;
           if (data.password?.trim() === cleanPsw) {
+            const isMasterAdmin = data.email === "cfo.moaz@gmail.com";
+            const normalized = normalizeProfile(data, isMasterAdmin);
             setUser({
-              uid: data.uid,
-              email: data.email || data.uid,
-              displayName: data.name
+              uid: normalized.uid,
+              email: normalized.email || normalized.uid,
+              displayName: normalized.name
             });
-            setProfile(data);
+            setProfile(normalized);
 
             // Subscribe to real-time changes
             unsubscribeProfile = onSnapshot(userDocRef, (snap) => {
               if (snap.exists()) {
-                setProfile(snap.data() as UserProfile);
+                setProfile(normalizeProfile(snap.data() as UserProfile, isMasterAdmin));
               }
             });
 
@@ -139,21 +176,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
               if (docSnap.exists()) {
                 const data = docSnap.data() as UserProfile;
+                const normalized = normalizeProfile(data, isMasterAdmin);
 
                 if (isMasterAdmin && !data.isAdmin) {
-                  const updatedProfile = {
-                    ...data,
-                    isAdmin: true,
-                    permissions: Object.keys(data.permissions).reduce((acc, key) => ({
-                      ...acc,
-                      [key]: true
-                    }), {} as UserProfile['permissions'])
-                  };
-                  setDoc(userDocRef, updatedProfile);
-                  setProfile(updatedProfile);
-                } else {
-                  setProfile(data);
+                  setDoc(userDocRef, normalized);
                 }
+                setProfile(normalized);
               } else {
                 const isMasterAdmin = firebaseUser.email === masterAdminEmail;
 

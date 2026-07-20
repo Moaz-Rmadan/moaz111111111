@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ProductionJob, Issuance, Employee, JobLabor, JobOtherCost, CostCenter, Item, WorkCenter, ManufacturingOperation, BOM } from '../types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { DollarSign, Search, Plus, Trash2 } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, updateDoc, increment } from 'firebase/firestore';
+import { SearchableSelect } from './SearchableSelect';
 
 import { handleFirestoreError } from '../lib/firestore-utils';
 
@@ -33,6 +34,14 @@ export function ProductionCostsView({
   workCenters: WorkCenter[],
   manufacturingOperations: ManufacturingOperation[]
 }) {
+  const employeeOptions = useMemo(() => {
+    return employees.map(emp => ({
+      id: emp.id,
+      name: emp.name,
+      subtext: emp.department || ''
+    }));
+  }, [employees]);
+
   const [selectedJob, setSelectedJob] = useState<ProductionJob | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('summary');
@@ -567,10 +576,12 @@ export function ProductionCostsView({
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold">الموظف</label>
-                      <select className="w-full h-12 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={laborForm.employeeId} onChange={e => setLaborForm({...laborForm, employeeId: e.target.value})}>
-                        <option value="">اختر الموظف</option>
-                        {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                      </select>
+                      <SearchableSelect
+                        options={employeeOptions}
+                        selectedValue={laborForm.employeeId}
+                        onChange={(val) => setLaborForm({...laborForm, employeeId: val})}
+                        placeholder="اختر الموظف..."
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold">عدد الساعات</label>
