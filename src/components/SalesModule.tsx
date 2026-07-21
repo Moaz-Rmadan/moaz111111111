@@ -43,6 +43,7 @@ import {
   Edit3, 
   CheckCircle, 
   AlertTriangle, 
+  AlertCircle,
   Info, 
   X, 
   Briefcase, 
@@ -68,6 +69,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Showroom, 
   ShowroomInventory, 
@@ -208,6 +211,86 @@ export function SalesModule({
       setLoadingInsights(false);
     }
   };
+
+  const handleProcessPayroll = async () => {
+    setPayrollLoading(true);
+    try {
+      const batch = payrollData.map(p => ({
+        employeeId: p.employee.id,
+        monthNumber: selectedPayrollMonth + 1,
+        year: selectedPayrollYear,
+        startDate: new Date(selectedPayrollYear, selectedPayrollMonth, 1).toISOString(),
+        endDate: new Date(selectedPayrollYear, selectedPayrollMonth + 1, 0).toISOString(),
+        daysWorked: 30, // Default for monthly
+        baseSalary: p.baseSalary,
+        totalCommission: p.commission,
+        totalTips: p.tips,
+        totalBonuses: p.allowances,
+        totalOvertime: 0,
+        totalProduction: 0,
+        totalDeductions: 0,
+        totalAdvance: 0,
+        netSalary: p.totalPay,
+        status: 'مدفوع' as const,
+        paymentDate: new Date().toISOString(),
+        payMethod: 'monthly' as const
+      }));
+
+      // Add each payroll record to firestore
+      for (const record of batch) {
+        await addDoc(collection(db, 'payrolls'), record);
+      }
+      
+      alert('تم اعتماد وصرف رواتب المعارض بنجاح');
+      setShowPayrollModal(false);
+    } catch (error) {
+      console.error('Failed to process payroll:', error);
+      alert('حدث خطأ أثناء صرف الرواتب');
+    } finally {
+      setPayrollLoading(false);
+    }
+  };
+
+  // Payroll state
+  const [selectedPayrollMonth, setSelectedPayrollMonth] = useState(new Date().getMonth());
+  const [selectedPayrollYear, setSelectedPayrollYear] = useState(new Date().getFullYear());
+  const [showPayrollModal, setShowPayrollModal] = useState(false);
+  const [payrollLoading, setPayrollLoading] = useState(false);
+
+  // Payroll computation
+  const payrollData = useMemo(() => {
+    const safeEmployees = (Array.isArray(employees) ? employees : []).filter(e => 
+      e.department?.includes('مبيعات') || e.department?.includes('معرض') || e.position?.includes('سيلز')
+    );
+    const safeSales = Array.isArray(salesOrders) ? salesOrders : [];
+    
+    return safeEmployees.map(emp => {
+      // Filter sales for the selected month/year
+      const monthSales = safeSales.filter(s => {
+        if (!s.date || s.salesPersonId !== emp.id) return false;
+        const d = new Date(s.date);
+        return d.getMonth() === selectedPayrollMonth && d.getFullYear() === selectedPayrollYear;
+      });
+
+      const totalSalesVal = monthSales.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
+      const totalCommission = monthSales.reduce((sum, s) => sum + (Number(s.totalCommission) || 0), 0);
+      const totalTips = monthSales.reduce((sum, s) => sum + (Number(s.totalTips) || 0), 0);
+      
+      const base = Number(emp.baseSalary) || 0;
+      const allowances = Number(emp.allowances) || 0;
+      
+      return {
+        employee: emp,
+        salesCount: monthSales.length,
+        totalSales: totalSalesVal,
+        commission: totalCommission,
+        tips: totalTips,
+        baseSalary: base,
+        allowances: allowances,
+        totalPay: base + allowances + totalCommission + totalTips
+      };
+    });
+  }, [employees, salesOrders, selectedPayrollMonth, selectedPayrollYear]);
 
   // Search / Filters
   const [inventorySearch, setInventorySearch] = useState('');
@@ -2481,17 +2564,27 @@ export function SalesModule({
 
       {activeTab === 'staff' && (
         <div className="space-y-6">
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="space-y-0.5">
-              <h3 className="font-black text-xl text-slate-800">أداء طاقم المبيعات والمعارض</h3>
-              <p className="text-xs text-slate-400 font-semibold">متابعة مبيعات الموظفين، العمولات، والإكراميات المستحقة لكل فرد</p>
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white shrink-0">
+                <Users size={28} />
+              </div>
+              <div className="space-y-0.5 text-right">
+                <h3 className="font-black text-xl text-slate-800">طاقم المبيعات والمعارض</h3>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">إدارة الأداء، الرواتب، والعمولات المستحقة</p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="rounded-xl font-black text-xs border-slate-200">
-                تحميل تقرير العمولات
+            <div className="flex flex-wrap justify-center gap-3 w-full md:w-auto">
+              <Button 
+                onClick={() => setShowPayrollModal(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm px-6 h-12 shadow-lg shadow-emerald-500/20"
+              >
+                <DollarSign size={18} className="ml-2" />
+                نظام رواتب المعارض
               </Button>
-              <Button className="bg-slate-900 text-white rounded-xl font-black text-xs px-6">
-                صرف العمولات المستحقة
+              <Button variant="outline" className="rounded-xl font-black text-sm border-slate-200 h-12 px-6">
+                <History size={18} className="ml-2" />
+                أرشيف الرواتب
               </Button>
             </div>
           </div>
@@ -2587,6 +2680,137 @@ export function SalesModule({
           </div>
         </div>
       )}
+      
+      {/* Showroom Payroll Modal */}
+      <Dialog open={showPayrollModal} onOpenChange={setShowPayrollModal}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto rounded-3xl border-0 p-0">
+          <div className="p-8 space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                  <DollarSign size={28} />
+                </div>
+                <div className="space-y-0.5 text-right">
+                  <h2 className="text-2xl font-black text-slate-800">نظام رواتب المعارض</h2>
+                  <p className="text-sm font-bold text-slate-400">احتساب الرواتب والعمولات بناءً على الأداء الشهري</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-100">
+                <Select value={selectedPayrollMonth.toString()} onValueChange={(v) => setSelectedPayrollMonth(parseInt(v))}>
+                  <SelectTrigger className="w-32 bg-white border-0 font-black text-slate-700 h-10 rounded-xl">
+                    <SelectValue placeholder="الشهر" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-100">
+                    {['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'].map((m, i) => (
+                      <SelectItem key={i} value={i.toString()} className="font-bold">{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedPayrollYear.toString()} onValueChange={(v) => setSelectedPayrollYear(parseInt(v))}>
+                  <SelectTrigger className="w-28 bg-white border-0 font-black text-slate-700 h-10 rounded-xl">
+                    <SelectValue placeholder="السنة" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-100">
+                    {[2024, 2025, 2026].map(y => (
+                      <SelectItem key={y} value={y.toString()} className="font-bold">{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+              <div className="bg-slate-900 text-white p-6 rounded-3xl space-y-1 shadow-xl shadow-slate-900/10">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">إجمالي المستحقات</span>
+                <span className="text-2xl font-black">{payrollData.reduce((sum, p) => sum + p.totalPay, 0).toLocaleString()} <span className="text-xs">ج.م</span></span>
+              </div>
+              <div className="bg-white border border-slate-100 p-6 rounded-3xl space-y-1 shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">إجمالي العمولات</span>
+                <span className="text-2xl font-black text-slate-800">{payrollData.reduce((sum, p) => sum + p.commission, 0).toLocaleString()} <span className="text-xs">ج.م</span></span>
+              </div>
+              <div className="bg-white border border-slate-100 p-6 rounded-3xl space-y-1 shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">إجمالي الإكراميات</span>
+                <span className="text-2xl font-black text-emerald-600">{payrollData.reduce((sum, p) => sum + p.tips, 0).toLocaleString()} <span className="text-xs text-slate-400">ج.م</span></span>
+              </div>
+              <div className="bg-white border border-slate-100 p-6 rounded-3xl space-y-1 shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">عدد الموظفين</span>
+                <span className="text-2xl font-black text-slate-800">{payrollData.length} <span className="text-xs text-slate-400">فرد</span></span>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="font-black text-slate-700 h-14">الموظف</TableHead>
+                    <TableHead className="font-black text-slate-700 h-14">المرتب الأساسي</TableHead>
+                    <TableHead className="font-black text-slate-700 h-14">البدلات</TableHead>
+                    <TableHead className="font-black text-slate-700 h-14 text-center">عدد البيعات</TableHead>
+                    <TableHead className="font-black text-slate-700 h-14">العمولات</TableHead>
+                    <TableHead className="font-black text-slate-700 h-14">الإكراميات</TableHead>
+                    <TableHead className="font-black text-slate-700 h-14 text-left">الصافي المستحق</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payrollData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-40 text-center text-slate-400 font-medium italic">
+                        لا يوجد موظفين مبيعات لعرض رواتبهم
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    payrollData.map(p => (
+                      <TableRow key={p.employee.id} className="hover:bg-slate-50/50 border-slate-50">
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-3 text-right">
+                            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 font-black text-xs uppercase tracking-tighter">
+                              {p.employee.name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            </div>
+                            <div className="space-y-0.5">
+                              <span className="font-black text-slate-800 block">{p.employee.name}</span>
+                              <span className="text-[10px] font-bold text-slate-400">{p.employee.position}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-slate-700 py-4">{p.baseSalary.toLocaleString()} ج.م</TableCell>
+                        <TableCell className="font-bold text-slate-700 py-4">{p.allowances.toLocaleString()} ج.م</TableCell>
+                        <TableCell className="text-center py-4">
+                          <Badge className="bg-slate-100 text-slate-600 border-0 rounded-lg text-xs font-black">{p.salesCount} بيعة</Badge>
+                        </TableCell>
+                        <TableCell className="font-black text-blue-700 py-4">{p.commission.toLocaleString()} ج.م</TableCell>
+                        <TableCell className="font-black text-emerald-600 py-4">{p.tips.toLocaleString()} ج.م</TableCell>
+                        <TableCell className="text-left py-4">
+                          <span className="inline-flex h-10 items-center px-4 rounded-xl bg-slate-900 text-white font-black text-sm">
+                            {p.totalPay.toLocaleString()} ج.م
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="flex justify-between items-center pt-4">
+              <div className="text-sm font-bold text-slate-400 flex items-center gap-2">
+                <AlertCircle size={16} />
+                يتم احتساب العمولات والإكراميات تلقائياً بناءً على فواتير المبيعات المسجلة لهذا الشهر.
+              </div>
+              <div className="flex gap-4">
+                <Button variant="ghost" className="rounded-xl font-black px-6 border-slate-200 h-12" onClick={() => setShowPayrollModal(false)}>إلغاء</Button>
+                <Button 
+                  onClick={handleProcessPayroll}
+                  disabled={payrollLoading || payrollData.length === 0}
+                  className="bg-slate-900 text-white hover:bg-slate-800 rounded-xl font-black px-10 h-12 shadow-xl shadow-slate-900/20"
+                >
+                  {payrollLoading ? 'جاري الاعتماد...' : 'اعتماد وصرف الرواتب'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

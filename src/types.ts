@@ -311,6 +311,8 @@ export interface Employee {
   shiftStart?: string;
   shiftEnd?: string;
   baseSalary?: number;
+  commissionRate?: number; // % commission if applicable
+  allowances?: number; // Badalat
   productionGroup?: 'A' | 'B' | '';
 }
 
@@ -370,13 +372,16 @@ export interface ProductionRecord {
 export interface Payroll {
   id: string;
   employeeId: string;
-  weekNumber: number;
+  monthNumber?: number; // For showroom (monthly)
+  weekNumber?: number; // For factory (weekly)
   year: number;
   startDate: string;
   endDate: string;
   dailyRate: number;
   daysWorked: number;
   baseSalary: number;
+  totalCommission: number; // عمولات المبيعات
+  totalTips: number; // إكراميات
   totalBonuses: number;
   totalOvertime: number;
   totalProduction: number;
@@ -386,7 +391,30 @@ export interface Payroll {
   netSalary: number;
   status: 'مسودة' | 'مدفوع';
   paymentDate?: string;
-  payMethod?: 'daily' | 'production';
+  payMethod?: 'daily' | 'production' | 'monthly';
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: string;
+  roomId: string; // 'global' or 'direct_{id1}_{id2}'
+  attachments?: {
+    url: string;
+    type: 'image' | 'file';
+    name: string;
+  }[];
+}
+
+export interface ChatRoom {
+  id: string;
+  name: string;
+  type: 'global' | 'direct';
+  participants: string[]; // employee IDs
+  lastMessage?: string;
+  lastTimestamp?: string;
 }
 
 export interface SupplierPayment {

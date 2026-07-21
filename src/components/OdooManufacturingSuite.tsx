@@ -434,7 +434,7 @@ export function OdooManufacturingSuite({
         unit: 'وحدة',
         price: totalRawCostVal / (mo.quantity || 1),
         total: totalRawCostVal,
-        costCenter: 'خط التصنيع Odoo MRP'
+        costCenter: 'خط التصنيع الشامل'
       };
       await addDoc(collection(db, 'issuances'), newIssuance);
 
@@ -719,11 +719,11 @@ export function OdooManufacturingSuite({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 border-none text-white text-[10px] font-bold py-0.5 px-2 rounded-md">Odoo MRP Suite</Badge>
-              <h1 className="text-2xl font-black text-slate-800 tracking-tight">نظام الانتاج والـمكائن والتصنيع الذكي</h1>
+              <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 border-none text-white text-[10px] font-bold py-0.5 px-2 rounded-md">نظام إدارة التصنيع</Badge>
+              <h1 className="text-2xl font-black text-slate-800 tracking-tight">إدارة التصنيع</h1>
             </div>
             <p className="text-xs font-semibold text-slate-500">
-              مراقبة متكاملة لخط التصنيع، قوائم المواد المنسقة، وأوامر الـورديات المزودة بعدادات العمل والـ OEE القياسية.
+              نظام إدارة تصنيع متقدم لمراقبة الإنتاج، حساب التكاليف بدقة، إدارة قوائم المواد، وتتبع ورديات العمل للوصول لأدق النتائج.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -732,7 +732,7 @@ export function OdooManufacturingSuite({
               onClick={() => { setShowAddMO(true); setMoForm(p => ({ ...p, datePlanned: format(new Date(), 'yyyy-MM-dd') })); }}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs gap-1.5 shadow-md shadow-indigo-100 dark:shadow-none"
             >
-              <Plus size={15} /> إضافة أمر تصنيع (MO)
+              <Plus size={15} /> أمر تصنيع جديد
             </Button>
             <Button 
               size="sm" 
@@ -740,7 +740,7 @@ export function OdooManufacturingSuite({
               onClick={() => setShowAddBOM(true)}
               className="border-slate-200 hover:border-slate-300 font-bold text-slate-700 text-xs rounded-xl"
             >
-              <Layers size={14} className="ml-1 text-slate-500" /> نموذج تركيب (BoM)
+              <Layers size={14} className="ml-1 text-slate-500" /> تصميم منتج (BoM)
             </Button>
             <Button 
               size="sm" 
@@ -748,7 +748,7 @@ export function OdooManufacturingSuite({
               onClick={() => setShowAddWC(true)}
               className="border-slate-200 hover:border-slate-300 font-bold text-slate-700 text-xs rounded-xl"
             >
-              <Wrench size={14} className="ml-1 text-slate-500" /> مركز عمل (WC)
+              <Wrench size={14} className="ml-1 text-slate-500" /> إضافة محطة عمل
             </Button>
             <Button
               size="sm"
@@ -756,30 +756,30 @@ export function OdooManufacturingSuite({
               onClick={() => setShowAddScrap(true)}
               className="font-bold text-xs rounded-xl text-white gap-1 bg-rose-600 hover:bg-rose-700"
             >
-              <AlertTriangle size={14} /> تخريد وإهلاك مباشر
+              <AlertTriangle size={14} /> إهلاك وتخريد
             </Button>
           </div>
         </div>
 
         {/* Dynamic Odoo Tabs switcher */}
-        <div className="flex flex-wrap gap-1 border-t border-slate-150 pt-3 overflow-x-auto whitespace-nowrap">
+        <div className="flex gap-2 border-t border-slate-100 pt-4 overflow-x-auto whitespace-nowrap pb-2 custom-scrollbar">
           <button 
             onClick={() => setActiveSubTab('dashboard')} 
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${activeSubTab === 'dashboard' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'dashboard' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
-            <BarChart3 size={15} /> نظرة عامة واللوحات
+            <BarChart3 size={15} /> لوحة تحكم التصنيع
           </button>
           <button 
             onClick={() => setActiveSubTab('custom_jobs')} 
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${activeSubTab === 'custom_jobs' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'custom_jobs' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
-            <Truck size={15} /> صالة تفصيل الأثاث المخصوص
+            <Truck size={15} /> تفصيل مخصوص (طلبات خاصة)
           </button>
           <button 
             onClick={() => setActiveSubTab('mo')} 
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${activeSubTab === 'mo' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'mo' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
-            <Package size={15} /> أوامر التصنيع MO
+            <Package size={15} /> أوامر التصنيع الجارية
             {mrpOrders.filter(o => o.status !== 'done' && o.status !== 'cancel').length > 0 && (
               <Badge className="bg-amber-500 text-white text-[9px] hover:bg-amber-500 font-extrabold px-1.5 h-4 min-w-4 flex items-center justify-center rounded-full">
                 {mrpOrders.filter(o => o.status !== 'done' && o.status !== 'cancel').length}
@@ -788,34 +788,34 @@ export function OdooManufacturingSuite({
           </button>
           <button 
             onClick={() => setActiveSubTab('wo')} 
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${activeSubTab === 'wo' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'wo' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
-            <Clock size={15} /> محطات العمل وتتبع الحضور WO
+            <Clock size={15} /> تتبع المحطات ووقت العمال
             {Object.keys(activeStopwatches).length > 0 && (
               <Badge className="bg-emerald-500 text-white text-[9px] hover:bg-emerald-500 font-extrabold animate-pulse px-1.5">نـشط</Badge>
             )}
           </button>
           <button 
             onClick={() => setActiveSubTab('bom')} 
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${activeSubTab === 'bom' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'bom' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
-            <Layers size={15} /> قوائم المواد والتركيبات BoM
+            <Layers size={15} /> تركيبات المنتجات (BoM)
           </button>
           <button 
             onClick={() => setActiveSubTab('workcenters')} 
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${activeSubTab === 'workcenters' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'workcenters' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
-            <Wrench size={15} /> هياكل ومراكز العمل
+            <Wrench size={15} /> مراكز ومحطات العمل
           </button>
           <button 
             onClick={() => setActiveSubTab('scrap')} 
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${activeSubTab === 'scrap' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'scrap' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
             <AlertTriangle size={15} /> سجلات الهالك والتخريد
           </button>
           <button 
             onClick={() => setActiveSubTab('costing')} 
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${activeSubTab === 'costing' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeSubTab === 'costing' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
             <Coins size={15} /> تقرير ربحية التكاليف الفعلية
           </button>
@@ -938,7 +938,7 @@ export function OdooManufacturingSuite({
                   <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex gap-3 text-xs text-blue-800">
                     <AlertTriangle className="text-blue-600 flex-shrink-0" size={18} />
                     <div>
-                      <h4 className="font-black mb-1">دورتك متوافقة مع مفاهيم Odoo MRP</h4>
+                      <h4 className="font-black mb-1">نظام إدارة تصنيع متقدم ومتكامل</h4>
                       <p className="font-medium text-blue-700">
                         مزامنة المخزون مزدوجة تلقائياً: عند إنهاء أمر تصنيع بنجاح، يقوم النظام بسحب المكونات من مستودعات الخامات وترقية رصيد المنتج النهائي فورياً.
                       </p>
@@ -1149,7 +1149,7 @@ export function OdooManufacturingSuite({
                               onClick={() => handleStartMO(mo)} 
                               className="bg-slate-900 text-white hover:bg-slate-800 text-[10px] rounded-lg font-black"
                             >
-                              بدء خط الإنتاج
+                              بدء التصنيع
                             </Button>
                           )}
                           {(mo.status === 'confirmed' || mo.status === 'progress') && (
@@ -1199,7 +1199,7 @@ export function OdooManufacturingSuite({
           <div className="space-y-4">
             {mrpOrders.filter(o => o.status === 'confirmed' || o.status === 'progress').length === 0 ? (
               <div className="text-center py-16 bg-white rounded-3xl border text-slate-400 font-extrabold">
-                لا توجد أوامر تصنيع نشطة حالياً. يرجى تأكيد وبدء تشغيل أمر تصنيع أولاً من لوحة 'أوامر التصنيع MO' لتوليد الورديات الحية.
+                لا توجد أوامر تصنيع نشطة حالياً. يرجى تأكيد وبدء تشغيل أمر تصنيع أولاً من لوحة 'أوامر التصنيع الجارية' لتوليد الورديات الحية.
               </div>
             ) : (
               mrpOrders.filter(o => o.status === 'confirmed' || o.status === 'progress').map(mo => (
@@ -1485,7 +1485,7 @@ export function OdooManufacturingSuite({
               <CardTitle className="text-base font-black text-slate-800">حساب كفاءة المعدة OEE</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-xs font-semibold text-slate-600">
-              <p>نظام Odoo يعتمد على معادلة الكفاءة الفعالة لـمراكز القوى لتصميم ربح التصنيع:</p>
+              <p>يعتمد النظام على معادلة الكفاءة الفعالة لمراكز العمل لحساب تكلفة التصنيع بدقة:</p>
               <div className="p-3 bg-indigo-50/50 rounded-2xl border border-indigo-100 text-indigo-800">
                 OEE = توافر الآلة × كفاءة الأداء × جودة المخرجات
               </div>
@@ -1658,7 +1658,7 @@ export function OdooManufacturingSuite({
                   <div className="text-sm font-black text-slate-800 mt-1 flex items-center gap-1.5 capitalize">
                     <Badge variant="outline">{selectedMoForDetails.status}</Badge>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-medium">البروتوكول القياسي Oodoo-ERP</span>
+                  <span className="text-[10px] text-slate-400 font-medium">البروتوكول القياسي لتخطيط الموارد</span>
                 </div>
               </div>
 
@@ -1910,7 +1910,7 @@ export function OdooManufacturingSuite({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-black text-slate-500 block">ملاحظات خط الإنتاج الفني</label>
+                <label className="text-xs font-black text-slate-500 block">ملاحظات التصنيع الفنية</label>
                 <textarea 
                   className="w-full p-2.5 border border-slate-200 rounded-xl text-xs font-bold focus:ring-1 focus:ring-indigo-500 outline-none h-16"
                   placeholder="سرع من مرحلة الدهان، المواصفات متوافقة مع طلبية عميل..."

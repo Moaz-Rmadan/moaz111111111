@@ -725,9 +725,24 @@
         "notes": { "type": "string" }
       },
       "required": ["customerName", "date", "materialType", "quantity", "unitPrice", "totalAmount"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A message in a chat room",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "description": "Server timestamp" }
+      },
+      "required": ["roomId", "senderId", "text"]
     }
   },
   "firestore": {
+    "/chatMessages/{id}": { "schema": "ChatMessage", "description": "Messages in chat rooms" },
     "/byproductSales/{id}": { "schema": "ByproductSale", "description": "Byproduct and scrap sales records" },
     "/settings/{id}": { "schema": "CompanySettings", "description": "Company settings" },
     "/warehouses/{warehouseId}": { "schema": "Warehouse", "description": "Warehouses" },

@@ -76,6 +76,7 @@ import { FactoryResetModal } from './components/FactoryResetModal';
 import { MonthlyStipendsModule } from './components/MonthlyStipendsModule';
 import { MaterialCalculatorView } from './components/MaterialCalculatorView';
 import WhatsAppAssistant from './components/WhatsAppAssistant';
+import { ChatModule } from './components/ChatModule';
 import { WarehouseTransfersView } from './components/WarehouseTransfersView';
 import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 
@@ -627,6 +628,8 @@ function PayrollMasterReport({
           year: 0,
           baseSalary: 0,
           daysWorked: 0,
+          totalCommission: 0,
+          totalTips: 0,
           totalBonuses: 0,
           totalOvertime: 0,
           totalProduction: 0,
@@ -771,6 +774,8 @@ function PayrollMasterReport({
               year: 0,
               baseSalary: 0,
               daysWorked: 0,
+              totalCommission: 0,
+              totalTips: 0,
               totalBonuses: 0,
               totalOvertime: 0,
               totalProduction: 0,
@@ -819,6 +824,8 @@ function PayrollMasterReport({
               year: 0,
               baseSalary: 0,
               daysWorked: 0,
+              totalCommission: 0,
+              totalTips: 0,
               totalBonuses: 0,
               totalOvertime: 0,
               totalProduction: 0,
@@ -864,6 +871,8 @@ function PayrollMasterReport({
               year: 0,
               baseSalary: 0,
               daysWorked: 0,
+              totalCommission: 0,
+              totalTips: 0,
               totalBonuses: 0,
               totalOvertime: 0,
               totalProduction: 0,
@@ -2413,6 +2422,7 @@ function MainApp({
         
         <nav className="flex-1 px-4 pb-10 space-y-2 overflow-y-auto custom-scrollbar pt-2">
           <NavButton active={activeTab === 'dashboard'} onClick={() => handleNavClick('dashboard')} icon={<LayoutDashboard size={20} />} label="لوحة التحكم" permission="dashboard" profile={profile} />
+          <NavButton active={activeTab === 'chat'} onClick={() => handleNavClick('chat')} icon={<MessageSquare size={20} />} label="المحادثة الجماعية" />
           
           {(profile?.isAdmin || profile?.permissions?.inventory) && (
             <div className="space-y-1">
@@ -2476,7 +2486,7 @@ function MainApp({
                 >
                   <div className="flex items-center gap-3">
                     <Layers size={20} className={['production', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator'].includes(activeTab) ? 'text-primary' : ''} />
-                    <span className="font-black text-sm">خط الإنتاج</span>
+                    <span className="font-black text-sm">إدارة التصنيع</span>
                   </div>
                   <ChevronDown size={14} className={`transition-transform duration-300 ${productionMenuOpen ? 'rotate-180' : ''}`} />
                 </motion.button>
@@ -2490,8 +2500,8 @@ function MainApp({
                       className="overflow-hidden bg-slate-100/50 rounded-2xl mt-1 mx-1"
                     >
                       <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
-                        <SubNavButton active={activeTab === 'production'} onClick={() => handleNavClick('production')} label="أوامر الشغل" permission="production" profile={profile} />
-                        <SubNavButton active={activeTab === 'productRecipes'} onClick={() => handleNavClick('productRecipes')} label="نماذج التكاليف" permission="production" profile={profile} />
+                        <SubNavButton active={activeTab === 'production'} onClick={() => handleNavClick('production')} label="لوحة تحكم التصنيع" permission="production" profile={profile} />
+                        <SubNavButton active={activeTab === 'productRecipes'} onClick={() => handleNavClick('productRecipes')} label="قوائم المواد (BoM)" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'materialCalculator'} onClick={() => handleNavClick('materialCalculator')} label="حاسبة الخامات والقياسات" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'productionCosts'} onClick={() => handleNavClick('productionCosts')} label="تحليل التكاليف" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'loading'} onClick={() => handleNavClick('loading')} label="بيان التحميل" permission="production" profile={profile} />
@@ -2702,6 +2712,7 @@ function MainApp({
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
+              {activeTab === 'chat' && <ChatModule />}
               {activeTab === 'employees' && <EmployeesView employees={employees} />}
         {activeTab === 'attendance' && <AttendanceView attendance={attendance} employees={employees} />}
         {activeTab === 'hrTransactions' && <HRTransactionsView employees={employees} transactions={hrTransactions} />}

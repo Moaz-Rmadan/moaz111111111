@@ -322,5 +322,9 @@ service cloud.firestore {
     match /test/{id} {
       allow read: if true;
     }
+
+    match /chatMessages/{id} {
+      allow read, write: if isAuthenticated();
+    }
   }
 }
