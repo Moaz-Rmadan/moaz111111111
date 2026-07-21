@@ -586,6 +586,7 @@ export interface SafeTransaction {
   relatedId?: string; // Used for Transfer (destination safeId), Purchase ID, or other related entity
   costCenterId?: string; // لربط المصروف بمركز تكلفة معين (معرض، مصنع، إلخ)
   productionJobId?: string; // ربط المصروف بأمر إنتاج معين للدراسة التكاليفية
+  accountId?: string; // لربط المصروف او الايراد بحساب معين من شجرة الحسابات
   driverId?: string; // ربط المصروف بسائق معين
   manifestId?: string; // ربط المصروف ببيان تحميل معين
   category?: string;

@@ -25,7 +25,7 @@ import {
   ReceiptText, ClipboardCheck, ClipboardList, PlusCircle, FileCheck, CreditCard, Scale, Wallet, Coins, ArrowRight,
   ChevronUp, Target, Database, Briefcase, Home, Code, Save, Upload, ArrowLeft,
   ArrowUpToLine, ArrowDownToLine, Eye, EyeOff, Box, Clock, List, Zap, Warehouse as WarehouseIcon, X, Image as ImageIcon,
-  Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History, CheckSquare
+  Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History, CheckSquare, FolderTree
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { 
@@ -67,6 +67,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MaintenanceOrdersView } from "./components/MaintenanceOrdersView";
 import { AttendanceView } from './components/AttendanceView';
 import { FinancialReports } from './components/FinancialReports';
+import ChartOfAccountsView, { defaultChartOfAccounts, flattenAccounts } from './components/ChartOfAccountsView';
 import { UsersManager } from './components/UsersManager';
 import { ByproductSalesView } from './components/ByproductSalesView';
 import { SalesModule } from './components/SalesModule';
@@ -8257,7 +8258,8 @@ const Finance = React.memo(function Finance({
   productionJobs: ProductionJob[],
   loadingManifests: LoadingManifest[]
 }) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'scrapSales' | 'purchases' | 'audits' | 'settlements' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'scrapSales' | 'purchases' | 'audits' | 'settlements' | 'analytics' | 'chartOfAccounts'>('overview');
+  const allAccounts = useMemo(() => flattenAccounts(defaultChartOfAccounts), []);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showAddSafe, setShowAddSafe] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
@@ -8294,6 +8296,7 @@ const Finance = React.memo(function Finance({
     amount: 0,
     costCenterId: '',
     productionJobId: '',
+    accountId: '',
     driverId: '',
     manifestId: ''
   });
@@ -8306,6 +8309,7 @@ const Finance = React.memo(function Finance({
     relatedId: '',
     costCenterId: '',
     productionJobId: '',
+    accountId: '',
     driverId: '',
     manifestId: ''
   });
@@ -8622,6 +8626,14 @@ const Finance = React.memo(function Finance({
           <BarChart3 size={18} className="ml-2" />
           تحليل المصروفات
         </Button>
+        <Button 
+          onClick={() => setActiveTab('chartOfAccounts')} 
+          variant={activeTab === 'chartOfAccounts' ? 'default' : 'ghost'}
+          className={`h-11 rounded-xl font-black px-6 ${activeTab === 'chartOfAccounts' ? 'btn-primary shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-900'}`}
+        >
+          <FolderTree size={18} className="ml-2" />
+          شجرة الحسابات
+        </Button>
       </div>
 
       {activeTab === 'overview' ? (
@@ -8902,6 +8914,16 @@ const Finance = React.memo(function Finance({
         <div className="animate-in slide-in-from-bottom duration-300">
           <ExpenseAnalytics transactions={safeTransactions} costCenters={costCenters} />
         </div>
+      ) : activeTab === 'chartOfAccounts' ? (
+        <div className="animate-in slide-in-from-bottom duration-300">
+          <ChartOfAccountsView 
+            safes={safes} 
+            safeTransactions={safeTransactions} 
+            items={items} 
+            suppliers={suppliers} 
+            safeSettlements={safeSettlements}
+          />
+        </div>
       ) : null}
 
       {showSettlement && (
@@ -8959,7 +8981,17 @@ const Finance = React.memo(function Finance({
                   <div className="col-span-3">
                     <Input type="number" placeholder="المبلغ" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="h-10 text-xs font-black" />
                   </div>
-                  <div className="col-span-5 flex gap-2">
+                  <div className="col-span-12 flex gap-2 mt-2">
+                    <select 
+                      className="flex-1 h-10 rounded-md border text-[10px] font-bold px-2 bg-purple-50 border-purple-100"
+                      value={newExpense.accountId || ''}
+                      onChange={e => setNewExpense({...newExpense, accountId: e.target.value})}
+                    >
+                      <option value="">توجيه محاسبي (شجرة الحسابات)</option>
+                      {allAccounts.filter(a => !a.children || a.children.length === 0).map(acc => (
+                        <option key={acc.id} value={acc.code}>{acc.code} - {acc.name}</option>
+                      ))}
+                    </select>
                     <select 
                       className="flex-1 h-10 rounded-md border text-[10px] font-bold px-2 bg-orange-50 border-orange-100"
                       value={newExpense.productionJobId}
@@ -9286,7 +9318,17 @@ const Finance = React.memo(function Finance({
                     {costCenters.map(cc => <option key={cc.id} value={cc.id}>{cc.name}</option>)}
                   </select>
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <select 
+                    className="w-full h-12 px-4 bg-purple-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-purple-200"
+                    value={transactionForm.accountId || ''}
+                    onChange={e => setTransactionForm({...transactionForm, accountId: e.target.value})}
+                  >
+                    <option value="">توجيه محاسبي (شجرة الحسابات)</option>
+                    {allAccounts.filter(a => !a.children || a.children.length === 0).map(acc => (
+                      <option key={acc.id} value={acc.code}>{acc.code} - {acc.name}</option>
+                    ))}
+                  </select>
                   <select 
                     className="w-full h-12 px-4 bg-orange-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-orange-200"
                     value={transactionForm.productionJobId}
