@@ -35,7 +35,8 @@ import type {
   Attendance, FinancialTransaction, Loan, Payroll, LoadingManifest, Waste,
   BladeSharpening, PlateSharpening, MaintenanceOrder, MachineMaintenance, UserProfile, Safe, Employee, CompanySettings,
   SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense,
-  ByproductSale, Showroom, TransferOrder, ShowroomInventory, Customer, CustomerPayment, FurnitureWorkOrder, WarehouseTransfer
+  ByproductSale, Showroom, TransferOrder, ShowroomInventory, Customer, CustomerPayment, FurnitureWorkOrder, WarehouseTransfer,
+  Vehicle, VehicleExpense
 } from './types';
 
 import { cn } from '@/lib/utils';
@@ -79,6 +80,7 @@ import { MaterialCalculatorView } from './components/MaterialCalculatorView';
 import WhatsAppAssistant from './components/WhatsAppAssistant';
 import { ChatModule } from './components/ChatModule';
 import { WarehouseTransfersView } from './components/WarehouseTransfersView';
+import { VehiclesView } from './components/VehiclesView';
 import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
@@ -1423,6 +1425,8 @@ function MainApp({
   const [warehouseTransfers, setWarehouseTransfers] = useState<WarehouseTransfer[]>([]);
   const [showroomInventory, setShowroomInventory] = useState<ShowroomInventory[]>([]);
   const [productRecipes, setProductRecipes] = useState<ProductRecipe[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleExpenses, setVehicleExpenses] = useState<VehicleExpense[]>([]);
   const [safes, setSafes] = useState<Safe[]>([]);
   const [safeAudits, setSafeAudits] = useState<SafeAudit[]>([]);
   const [hrMenuOpen, setHrMenuOpen] = useState(false);
@@ -1821,6 +1825,8 @@ function MainApp({
     let unsubProductRecipes = () => {};
     let unsubSafes = () => {};
     let unsubSafeTransactions = () => {};
+    let unsubVehicles = () => {};
+    let unsubVehicleExpenses = () => {};
 
     // 1. unsubWarehouses
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
@@ -2200,6 +2206,24 @@ function MainApp({
       );
     }
 
+    if (profile.isAdmin || profile.permissions.vehicles || profile.permissions.reports) {
+      unsubVehicles = onSnapshot(
+        collection(db, 'vehicles'),
+        (snap) => {
+          setVehicles(snap.docs.map(d => ({ id: d.id, ...d.data() } as Vehicle)));
+        },
+        (error) => console.error('Permission error in collection vehicles:', error)
+      );
+
+      unsubVehicleExpenses = onSnapshot(
+        collection(db, 'vehicleExpenses'),
+        (snap) => {
+          setVehicleExpenses(snap.docs.map(d => ({ id: d.id, ...d.data() } as VehicleExpense)));
+        },
+        (error) => console.error('Permission error in collection vehicleExpenses:', error)
+      );
+    }
+
     return () => {
       unsubWarehouses();
       unsubUnits();
@@ -2238,6 +2262,8 @@ function MainApp({
       unsubProductRecipes();
       unsubSafes();
       unsubSafeTransactions();
+      unsubVehicles();
+      unsubVehicleExpenses();
     };
   }, [user, profile]);
 
@@ -2581,6 +2607,16 @@ function MainApp({
             </div>
           )}
 
+          {(profile?.isAdmin || profile?.permissions?.vehicles) && (
+            <div className="space-y-1">
+               <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                <span>الأسطول والحركة</span>
+                <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
+              </div>
+              <NavButton active={activeTab === 'vehicles'} onClick={() => handleNavClick('vehicles')} icon={<Truck size={20} />} label="إدارة السيارات" permission="vehicles" profile={profile} />
+            </div>
+          )}
+
           {(profile?.isAdmin || profile?.permissions?.reports || profile?.permissions?.suppliers) && (
             <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
               <span>الإدارة العليا</span>
@@ -2917,6 +2953,15 @@ function MainApp({
         {activeTab === 'archive' && <PayrollArchiveView employees={employees} payrolls={payrolls} transactions={hrTransactions} />}
         {activeTab === 'monthlyStipends' && (
           <MonthlyStipendsModule />
+        )}
+        {activeTab === 'vehicles' && (
+          <VehiclesView 
+            vehicles={vehicles}
+            expenses={vehicleExpenses}
+            employees={employees}
+            safes={safes}
+            suppliers={suppliers}
+          />
         )}
         {activeTab === 'safe' && (
           <Finance 

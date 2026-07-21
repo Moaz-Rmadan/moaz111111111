@@ -47,6 +47,7 @@ export interface UserProfile {
     settings: boolean;
     finance: boolean;
     sales: boolean;
+    vehicles: boolean;
     canDelete: boolean;
   };
 }
@@ -63,6 +64,7 @@ export const DEFAULT_PERMISSIONS = {
   settings: false,
   finance: false,
   sales: false,
+  vehicles: false,
   canDelete: false
 };
 
@@ -202,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     settings: isMasterAdmin,
                     finance: isMasterAdmin,
                     sales: isMasterAdmin,
+                    vehicles: isMasterAdmin,
                     canDelete: isMasterAdmin
                   }
                 };

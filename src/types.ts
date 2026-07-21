@@ -533,6 +533,7 @@ export interface UserProfile {
     settings: boolean;
     finance: boolean;
     sales: boolean;
+    vehicles: boolean;
     canDelete: boolean;
   };
 }
@@ -735,6 +736,40 @@ export interface WarehouseTransfer {
   toWarehouseId: string;
   items: WarehouseTransferItem[];
   notes: string;
+  createdBy: string;
+}
+
+export interface Vehicle {
+  id: string;
+  plateNumber: string;
+  type: string; // مثال: شاحنة جامبو، ربع نقل، ملاكي
+  brand: string; // ماركة السيارة
+  modelYear: number;
+  driverId: string; // الموظف المسؤول (السائق)
+  driverName?: string;
+  status: 'نشط' | 'في الصيانة' | 'خارج الخدمة';
+  licenseExpiryDate: string; // تاريخ انتهاء الرخصة
+  insuranceExpiryDate: string; // تاريخ انتهاء التأمين
+  inspectionExpiryDate?: string; // تاريخ انتهاء الفحص الفني
+  odometerReading: number; // آخر قراءة لعداد الكيلومتر
+  lastMaintenanceOdometer?: number; // قراءة العداد عند آخر صيانة
+  maintenanceInterval?: number; // المسافة المحددة بين الصيانات (مثلاً كل 5000 كم)
+  notes?: string;
+  createdAt: string;
+}
+
+export interface VehicleExpense {
+  id: string;
+  vehicleId: string;
+  date: string;
+  type: 'بنزين' | 'سولار' | 'زيت' | 'صيانة' | 'رخصة' | 'أخرى';
+  amount: number;
+  fuelQuantity?: number; // كمية الوقود باللتر (لحساب الاستهلاك)
+  odometerReading?: number; // القراءة عند الصرف
+  description: string;
+  safeId?: string;
+  safeTransactionId?: string;
+  supplierId?: string; // المورد المرتبط (مثل محطة البنزين أو مركز الصيانة)
   createdBy: string;
 }
 

@@ -63,6 +63,7 @@ const ROLE_TEMPLATES: Record<string, RoleTemplate> = {
       settings: false,
       finance: false,
       sales: false,
+      vehicles: false,
       canDelete: false,
     }
   },
@@ -84,6 +85,7 @@ const ROLE_TEMPLATES: Record<string, RoleTemplate> = {
       settings: false,
       finance: false,
       sales: false,
+      vehicles: true,
       canDelete: false,
     }
   },
@@ -105,6 +107,7 @@ const ROLE_TEMPLATES: Record<string, RoleTemplate> = {
       settings: false,
       finance: true,
       sales: true,
+      vehicles: true,
       canDelete: false,
     }
   },
@@ -126,6 +129,7 @@ const ROLE_TEMPLATES: Record<string, RoleTemplate> = {
       settings: false,
       finance: false,
       sales: false,
+      vehicles: false,
       canDelete: false,
     }
   },
@@ -147,6 +151,7 @@ const ROLE_TEMPLATES: Record<string, RoleTemplate> = {
       settings: false,
       finance: false,
       sales: true,
+      vehicles: false,
       canDelete: false,
     }
   },
@@ -168,6 +173,7 @@ const ROLE_TEMPLATES: Record<string, RoleTemplate> = {
       settings: false,
       finance: false,
       sales: false,
+      vehicles: false,
       canDelete: false,
     }
   }
@@ -194,6 +200,7 @@ export function UsersManager() {
     settings: false,
     finance: false,
     sales: false,
+    vehicles: false,
     canDelete: false
   });
   const [isAdding, setIsAdding] = useState(false);
@@ -222,6 +229,7 @@ export function UsersManager() {
     settings: false,
     finance: false,
     sales: false,
+    vehicles: false,
     canDelete: false
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -359,6 +367,7 @@ export function UsersManager() {
         settings: true,
         finance: true,
         sales: true,
+        vehicles: true,
         canDelete: true,
       } : editPermissions
     };
@@ -419,6 +428,7 @@ export function UsersManager() {
       settings: true,
       finance: true,
       sales: true,
+      vehicles: true,
       canDelete: true,
     } : userToUpdate.permissions;
 
@@ -473,6 +483,7 @@ export function UsersManager() {
       settings: val,
       finance: val,
       sales: val,
+      vehicles: val,
       canDelete: val
     });
   };
@@ -492,6 +503,7 @@ export function UsersManager() {
     finance: { label: 'المالية والخزن', desc: 'التحكم في حركات الصندوق (الخزنة)، التحويلات والتسويات المالية والعهد', group: 'التجارة والمالية' },
     
     hr: { label: 'إدارة الموارد البشرية (HR)', desc: 'شؤون الموظفين، الحضور والانصراف المباشر، وتعديل الرواتب والسلف', group: 'الموارد البشرية' },
+    vehicles: { label: 'إدارة السيارات والأسطول', desc: 'متابعة أسطول السيارات، الصيانات، الزيوت، الوقود، وتراخيص المركبات', group: 'عام' },
     canDelete: { label: 'صلاحية الحذف النهائي', desc: 'القدرة على حذف أي مستند أو قيد أو فاتورة داخل النظام نهائياً', group: 'الأمان والرقابة' }
   };
 
