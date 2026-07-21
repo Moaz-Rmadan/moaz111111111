@@ -169,6 +169,7 @@ export interface Issuance {
   price: number;
   total: number;
   costCenter: string;
+  manufactureTarget?: string; // لصنع ماذا بالضبط
 }
 
 export interface ProductionJob {

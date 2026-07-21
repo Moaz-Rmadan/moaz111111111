@@ -2913,7 +2913,7 @@ function MainApp({
         )}
         {activeTab === 'userManagement' && <UsersManager />}
         {activeTab === 'workOrders' && <WorkOrdersManager customers={customers} profile={profile} />}
-        {activeTab === 'loans' && <LoansView employees={employees} safes={safes} />}
+        {activeTab === 'loans' && <LoansView employees={employees} safes={safes} companySettings={settings} />}
         {activeTab === 'archive' && <PayrollArchiveView employees={employees} payrolls={payrolls} transactions={hrTransactions} />}
         {activeTab === 'monthlyStipends' && (
           <MonthlyStipendsModule />
@@ -9818,6 +9818,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
   const [formData, setFormData] = useState({
     jobOrderNo: '',
     costCenter: '',
+    manufactureTarget: '',
     selectedItems: [{ itemId: '', quantity: 0 }]
   });
 
@@ -9831,18 +9832,24 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
     const item = items.find(i => i.id === iss.itemId)?.name || '';
     const costCenter = iss.costCenter || '';
     const jobOrder = iss.jobOrderNo || '';
+    const mTarget = iss.manufactureTarget || '';
     const search = searchTerm.toLowerCase();
     const matchesSearch = item.toLowerCase().includes(search) || 
            costCenter.toLowerCase().includes(search) || 
-           jobOrder.toLowerCase().includes(search);
+           jobOrder.toLowerCase().includes(search) ||
+           mTarget.toLowerCase().includes(search);
 
+    const matchesStart = !dateFilterVal.start || (iss.date || '') >= dateFilterVal.start;
+    const matchesEnd = !dateFilterVal.end || (iss.date || '') <= dateFilterVal.end;
 
     return matchesSearch && matchesStart && matchesEnd;
   });
 
   const handleExportExcel = () => {
     const data = filteredIssuances.map(iss => ({
+      'التاريخ': iss.date || '',
       'رقم أمر الشغل': iss.jobOrderNo,
+      'المنتج المستهدف (صنع ماذا)': iss.manufactureTarget || '',
       'الصنف': items.find(i => i.id === iss.itemId)?.name || 'غير معروف',
       'الكمية': iss.quantity,
       'الوحدة': iss.unit,
@@ -9890,6 +9897,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
         await addDoc(collection(db, 'issuances'), {
           jobOrderNo: formData.jobOrderNo,
           costCenter: formData.costCenter,
+          manufactureTarget: formData.manufactureTarget || '',
           itemId: selectedItem.itemId,
           quantity: selectedItem.quantity,
           total,
@@ -9913,6 +9921,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
       setFormData({
         jobOrderNo: '',
         costCenter: costCenters[0]?.name || '',
+        manufactureTarget: '',
         selectedItems: [{ itemId: '', quantity: 0 }]
       });
     } catch (err) {
@@ -10005,6 +10014,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
               <TableRow className="hover:bg-transparent border-slate-100">
                 <TableHead className="text-right font-black text-slate-900 px-8 text-xs uppercase tracking-[0.2em]">التاريخ</TableHead>
                 <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">رقم أمر الشغل</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">لصنع ماذا بالضبط (المنتج)</TableHead>
                 <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">الصنف</TableHead>
                 <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">الكمية</TableHead>
                 <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">مركز التكلفة</TableHead>
@@ -10015,8 +10025,12 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
               {filteredIssuances.map(iss => (
                 <TableRow key={iss.id} className="h-24 border-slate-50 hover:bg-slate-50 transition-all border-b last:border-0 text-right">
                   <TableCell className="px-8 font-bold text-slate-600">
+                    {iss.date}
                   </TableCell>
                   <TableCell className="font-black text-slate-900">{iss.jobOrderNo}</TableCell>
+                  <TableCell className="font-bold text-slate-800">
+                    {iss.manufactureTarget || <span className="text-slate-300">غير محدد</span>}
+                  </TableCell>
                   <TableCell className="font-bold text-slate-800">
                     {items.find(i => i.id === iss.itemId)?.name || 'غير معروف'}
                   </TableCell>
@@ -10031,7 +10045,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
               ))}
               {filteredIssuances.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-64 text-center">
+                  <TableCell colSpan={7} className="h-64 text-center">
                     <div className="flex flex-col items-center justify-center gap-4 text-slate-300">
                       <Search size={48} />
                       <p className="font-black text-xl">لا توجد أذونات صرف مطابقة للبحث</p>
@@ -10076,6 +10090,16 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
                     {costCenters.map(cc => <option key={cc.id} value={cc.name}>{cc.name}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">لصنع ماذا بالضبط (المنتج المستهدف)</label>
+                <Input 
+                  value={formData.manufactureTarget} 
+                  onChange={e => setFormData({...formData, manufactureTarget: e.target.value})} 
+                  placeholder="مثال: صالون موديل رويال، طقم كراسي سفرة، مطبخ خشب طبيعي..." 
+                  className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white font-bold"
+                />
               </div>
 
               <div className="space-y-4">
@@ -12880,7 +12904,7 @@ const tafqeet = (num: number): string => {
   return `فقط ${result} جنيهاً مصرياً لا غير`;
 };
 
-const LoansView = React.memo(function LoansView({ employees, safes }: { employees: Employee[], safes: Safe[] }) {
+const LoansView = React.memo(function LoansView({ employees, safes, companySettings }: { employees: Employee[], safes: Safe[], companySettings?: CompanySettings }) {
   const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
   const [showAdd, setShowAdd] = useState(false);
   const [editingLoan, setEditingLoan] = useState<Loan | null>(null);
@@ -13193,7 +13217,11 @@ const LoansView = React.memo(function LoansView({ employees, safes }: { employee
           <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 font-bold block text-right">سجل السلف</h2>
           <p className="text-slate-500 mt-1 font-medium text-sm md:text-base text-right">إدارة ومتابعة سلف ومستحقات الموظفين</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 print:hidden">
+          <Button onClick={() => safePrint()} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-2xl border-slate-200 hover:bg-slate-50 font-bold hidden md:flex items-center gap-2">
+            <Printer size={18} />
+            <span>طباعة</span>
+          </Button>
           <select 
             className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm text-right"
             value={selectedDept}
@@ -13247,7 +13275,7 @@ const LoansView = React.memo(function LoansView({ employees, safes }: { employee
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex justify-start gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
+      <div className="flex justify-start gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit print:hidden">
         <Button 
           variant={loansTab === 'all' ? 'default' : 'ghost'} 
           onClick={() => setLoansTab('all')} 
@@ -13271,97 +13299,182 @@ const LoansView = React.memo(function LoansView({ employees, safes }: { employee
       </div>
 
       {loansTab === 'all' && (
-        <Card className="dribbble-card overflow-hidden border-none shadow-xl shadow-slate-200/40 text-right animate-in fade-in duration-200">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-slate-50/80 backdrop-blur-sm">
-                <TableRow className="border-b-0">
-                  <TableHead className="text-right font-black text-slate-900 py-4 font-bold">التاريخ</TableHead>
-                  <TableHead className="text-right font-black text-slate-900 font-bold">الموظف</TableHead>
-                  <TableHead className="text-right font-black text-slate-900 font-bold">المبلغ</TableHead>
-                  <TableHead className="text-right font-black text-slate-900 font-bold">المتبقي</TableHead>
-                  <TableHead className="text-right font-black text-slate-900 font-bold">الحالة</TableHead>
-                  <TableHead className="text-left font-black text-slate-900 font-bold">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        <>
+          <Card className="dribbble-card overflow-hidden border-none shadow-xl shadow-slate-200/40 text-right animate-in fade-in duration-200 print:hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-50/80 backdrop-blur-sm">
+                  <TableRow className="border-b-0">
+                    <TableHead className="text-right font-black text-slate-900 py-4 font-bold">التاريخ</TableHead>
+                    <TableHead className="text-right font-black text-slate-900 font-bold">الموظف</TableHead>
+                    <TableHead className="text-right font-black text-slate-900 font-bold">المبلغ</TableHead>
+                    <TableHead className="text-right font-black text-slate-900 font-bold">المتبقي</TableHead>
+                    <TableHead className="text-right font-black text-slate-900 font-bold">الحالة</TableHead>
+                    <TableHead className="text-left font-black text-slate-900 font-bold print:hidden">إجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredLoans.map((loan) => {
+                    const emp = employees.find(e => e.id === loan.employeeId);
+                    return (
+                      <TableRow key={loan.id} className="group hover:bg-slate-50 border-b border-slate-50/50">
+                        <TableCell className="font-bold text-slate-600 text-right">{loan.date}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3 justify-start">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                              <Users size={14} className="text-slate-400" />
+                            </div>
+                            <div className="text-right">
+                              <p className="font-black text-sm text-slate-900 font-bold">{emp?.name}</p>
+                              {loan.notes && <p className="text-xs text-slate-500 mt-1 truncate max-w-[150px]">{loan.notes}</p>}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-black text-slate-900 text-right font-bold">{loan.amount.toLocaleString()} ج.م</TableCell>
+                        <TableCell className="font-black text-red-600 text-right font-bold">{loan.remainingAmount.toLocaleString()} ج.م</TableCell>
+                        <TableCell className="text-right">
+                          <Badge className={`border-none font-bold ${
+                            loan.status === 'مسدد' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                          }`}>
+                            {loan.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="print:hidden">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => {
+                                setSelectedEmpIdForStatement(loan.employeeId);
+                                setLoansTab('statements');
+                              }} 
+                              className="h-8 px-2.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 rounded-lg"
+                            >
+                              <FileText size={12} className="text-slate-400" />
+                              <span>كشف الحساب</span>
+                            </Button>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="sm" onClick={() => setEditingLoan(loan)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                <Edit2 size={14} />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(loan.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg">
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filteredLoans.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-bold">لا يوجد سلف مسجلة</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            {hasMore && (
+              <div className="p-4 flex justify-center bg-slate-50 border-t border-slate-100">
+                 <Button 
+                    className="btn-secondary px-8 font-black rounded-xl h-10 text-sm font-bold"
+                    onClick={() => fetchLoans()}
+                    disabled={loading}
+                  >
+                   {loading ? 'جاري التحميل...' : 'عرض المزيد...'}
+                 </Button>
+              </div>
+            )}
+          </Card>
+
+          {/* Professional Aggregated Print Statement (Print Only) */}
+          <div className="hidden print:block text-right p-4 font-sans text-slate-900" dir="rtl">
+            <div className="border-b-2 border-slate-950 pb-6 mb-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-black text-slate-950">{companySettings?.name || "مجموعة النجار للأثاث"}</h1>
+                  <p className="text-slate-600 font-bold mt-1 text-sm">{companySettings?.address || "دمياط - المنطقة الصناعية"}</p>
+                  <p className="text-slate-600 font-bold text-sm">هاتف: {companySettings?.phone || ""}</p>
+                </div>
+                {companySettings?.logoUrl && (
+                  <img src={companySettings.logoUrl} alt="Logo" className="h-16 w-auto object-contain" referrerPolicy="no-referrer" />
+                )}
+              </div>
+              <div className="mt-6 text-center">
+                <h2 className="text-2xl font-black text-slate-950 border-y border-dashed border-slate-400 py-2 inline-block px-12 bg-slate-50/50">
+                  كشف وأرصدة السلف المجمعة للموظفين
+                </h2>
+                <p className="text-slate-500 font-bold text-xs mt-2">تاريخ استخراج التقرير: {format(new Date(), 'yyyy-MM-dd HH:mm')}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-6 mb-8">
+              <div className="border border-slate-300 p-4 rounded-xl bg-slate-50/50 text-right">
+                <span className="text-xs font-bold text-slate-600 block mb-1">إجمالي السلف النشطة</span>
+                <span className="text-xl font-black text-slate-950">{totalActiveLoans.toLocaleString()} ج.م</span>
+              </div>
+              <div className="border border-slate-300 p-4 rounded-xl bg-slate-50/50 text-right">
+                <span className="text-xs font-bold text-slate-600 block mb-1">المتبقي للتحصيل</span>
+                <span className="text-xl font-black text-slate-950">{totalRemaining.toLocaleString()} ج.م</span>
+              </div>
+              <div className="border border-slate-300 p-4 rounded-xl bg-slate-50/50 text-right">
+                <span className="text-xs font-bold text-slate-600 block mb-1">عدد الموظفين المستفيدين</span>
+                <span className="text-xl font-black text-slate-950">{new Set(loans.map(l => l.employeeId)).size} موظف</span>
+              </div>
+            </div>
+
+            <table className="w-full border-collapse border border-slate-400 text-sm">
+              <thead>
+                <tr className="bg-slate-100 border-b-2 border-slate-400">
+                  <th className="border border-slate-400 p-3 text-right font-black">التاريخ</th>
+                  <th className="border border-slate-400 p-3 text-right font-black">اسم الموظف</th>
+                  <th className="border border-slate-400 p-3 text-right font-black">القسم</th>
+                  <th className="border border-slate-400 p-3 text-right font-black">قيمة السلفة</th>
+                  <th className="border border-slate-400 p-3 text-right font-black">المسدد والمسترد</th>
+                  <th className="border border-slate-400 p-3 text-right font-black">الرصيد المتبقي</th>
+                  <th className="border border-slate-400 p-3 text-right font-black">الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
                 {filteredLoans.map((loan) => {
                   const emp = employees.find(e => e.id === loan.employeeId);
+                  const paid = loan.amount - loan.remainingAmount;
                   return (
-                    <TableRow key={loan.id} className="group hover:bg-slate-50 border-b border-slate-50/50">
-                      <TableCell className="font-bold text-slate-600 text-right">{loan.date}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3 justify-start">
-                          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                            <Users size={14} className="text-slate-400" />
-                          </div>
-                          <div className="text-right">
-                            <p className="font-black text-sm text-slate-900 font-bold">{emp?.name}</p>
-                            {loan.notes && <p className="text-xs text-slate-500 mt-1 truncate max-w-[150px]">{loan.notes}</p>}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-black text-slate-900 text-right font-bold">{loan.amount.toLocaleString()} ج.م</TableCell>
-                      <TableCell className="font-black text-red-600 text-right font-bold">{loan.remainingAmount.toLocaleString()} ج.م</TableCell>
-                      <TableCell className="text-right">
-                        <Badge className={`border-none font-bold ${
-                          loan.status === 'مسدد' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                        }`}>
-                          {loan.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => {
-                              setSelectedEmpIdForStatement(loan.employeeId);
-                              setLoansTab('statements');
-                            }} 
-                            className="h-8 px-2.5 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 rounded-lg"
-                          >
-                            <FileText size={12} className="text-slate-400" />
-                            <span>كشف الحساب</span>
-                          </Button>
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="sm" onClick={() => setEditingLoan(loan)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 rounded-lg">
-                              <Edit2 size={14} />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(loan.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg">
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <tr key={loan.id} className="border-b border-slate-300">
+                      <td className="border border-slate-300 p-3 font-bold text-slate-800">{loan.date}</td>
+                      <td className="border border-slate-300 p-3 font-black text-slate-955">{emp?.name || "غير معروف"}</td>
+                      <td className="border border-slate-300 p-3 font-bold text-slate-700">{emp?.department || "الإنتاج"}</td>
+                      <td className="border border-slate-300 p-3 font-black text-slate-900">{loan.amount.toLocaleString()} ج.م</td>
+                      <td className="border border-slate-300 p-3 font-bold text-emerald-800">{paid.toLocaleString()} ج.م</td>
+                      <td className="border border-slate-300 p-3 font-black text-red-800 bg-red-50/20">{loan.remainingAmount.toLocaleString()} ج.م</td>
+                      <td className="border border-slate-300 p-3 font-bold">{loan.status}</td>
+                    </tr>
                   );
                 })}
-                {filteredLoans.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-bold">لا يوجد سلف مسجلة</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          {hasMore && (
-            <div className="p-4 flex justify-center bg-slate-50 border-t border-slate-100">
-               <Button 
-                  className="btn-secondary px-8 font-black rounded-xl h-10 text-sm font-bold"
-                  onClick={() => fetchLoans()}
-                  disabled={loading}
-                >
-                 {loading ? 'جاري التحميل...' : 'عرض المزيد...'}
-               </Button>
+              </tbody>
+            </table>
+
+            <div className="grid grid-cols-3 gap-8 mt-16 text-center text-xs font-bold">
+              <div>
+                <p className="mb-8">المحاسب المسؤول</p>
+                <div className="border-b border-slate-400 w-32 mx-auto"></div>
+              </div>
+              <div>
+                <p className="mb-8">المدير المالي</p>
+                <div className="border-b border-slate-400 w-32 mx-auto"></div>
+              </div>
+              <div>
+                <p className="mb-8">اعتماد الإدارة العامة</p>
+                <div className="border-b border-slate-400 w-32 mx-auto"></div>
+              </div>
             </div>
-          )}
-        </Card>
+          </div>
+        </>
       )}
 
       {loansTab === 'statements' && (
         <div className="space-y-6 animate-in fade-in duration-200" dir="rtl">
-          <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40 p-6 text-right">
+          <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40 p-6 text-right print:hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5 flex-1 max-w-md text-right">
                 <label className="text-sm font-bold text-slate-700 block text-right font-bold">اختر الموظف لعرض كشف حسابه الكامل</label>
@@ -13379,26 +13492,34 @@ const LoansView = React.memo(function LoansView({ employees, safes }: { employee
                     );
                   })}
                 </select>
-              </div>
-              
-              {selectedEmpIdForStatement && (
-                <Button 
-                  onClick={() => {
-                    const activeLoan = employeeLoans.find(l => l.status === 'نشط');
-                    setManualPaymentForm(prev => ({ 
-                      ...prev, 
-                      loanId: activeLoan?.id || '',
-                      amount: '',
-                      notes: ''
-                    }));
-                    setShowManualPaymentModal(true);
-                  }} 
-                  disabled={employeeLoans.filter(l => l.status === 'نشط').length === 0}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-5 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 self-end mt-4 md:mt-0 font-bold"
-                >
-                  <DollarSign size={18} />
-                  <span>تسجيل دفعة سداد يدوية نقداً</span>
-                </Button>
+              </div>              {selectedEmpIdForStatement && (
+                <div className="flex items-center gap-2 self-end mt-4 md:mt-0">
+                  <Button 
+                    onClick={() => safePrint()}
+                    variant="outline"
+                    className="h-11 px-5 rounded-xl border-slate-200 hover:bg-slate-50 font-bold flex items-center gap-2 print:hidden"
+                  >
+                    <Printer size={18} />
+                    <span>طباعة الكشف</span>
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      const activeLoan = employeeLoans.find(l => l.status === 'نشط');
+                      setManualPaymentForm(prev => ({ 
+                        ...prev, 
+                        loanId: activeLoan?.id || '',
+                        amount: '',
+                        notes: ''
+                      }));
+                      setShowManualPaymentModal(true);
+                    }} 
+                    disabled={employeeLoans.filter(l => l.status === 'نشط').length === 0}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-5 rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 print:hidden"
+                  >
+                    <DollarSign size={18} />
+                    <span>تسجيل دفعة سداد يدوية نقداً</span>
+                  </Button>
+                </div>
               )}
             </div>
           </Card>
@@ -13490,9 +13611,28 @@ const LoansView = React.memo(function LoansView({ employees, safes }: { employee
                     running = running + item.debit - item.credit;
                     return { ...item, runningBalance: running };
                   });
-
+                const selectedEmp = employees.find(e => e.id === selectedEmpIdForStatement);
                 return (
                   <div className="space-y-6">
+                    <div className="hidden print:block text-right pb-6 mb-8 border-b-2 border-slate-950">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h1 className="text-2xl font-black text-slate-950">{companySettings?.name || "مجموعة النجار للأثاث"}</h1>
+                          <p className="text-slate-600 font-bold mt-1 text-sm">{companySettings?.address || "دمياط - المنطقة الصناعية"}</p>
+                          <p className="text-slate-600 font-bold text-sm">هاتف: {companySettings?.phone || ""}</p>
+                        </div>
+                        {companySettings?.logoUrl && (
+                          <img src={companySettings.logoUrl} alt="Logo" className="h-14 w-auto object-contain" referrerPolicy="no-referrer" />
+                        )}
+                      </div>
+                      <div className="mt-6 text-center">
+                        <h2 className="text-xl font-black text-slate-950 border-y border-dashed border-slate-400 py-2 inline-block px-12 bg-slate-50/50">
+                          كشف حساب السلف والمدفوعات التفصيلي للموظف
+                        </h2>
+                        <p className="text-lg font-black text-slate-900 mt-3">{selectedEmp?.name} - {selectedEmp?.department || 'الإنتاج'}</p>
+                        <p className="text-slate-500 font-bold text-xs mt-1">تاريخ استخراج التقرير: {format(new Date(), 'yyyy-MM-dd HH:mm')}</p>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <Card className="border-none shadow-sm bg-red-50/50 border-red-100 p-5 text-right">
                         <div className="flex justify-between items-center">
@@ -13639,6 +13779,22 @@ const LoansView = React.memo(function LoansView({ employees, safes }: { employee
                             )}
                           </Card>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Professional Signature Block (Print Only) */}
+                    <div className="grid grid-cols-3 gap-8 mt-16 text-center text-xs font-bold hidden print:grid" dir="rtl">
+                      <div>
+                        <p className="mb-8">توقيع الموظف المقترض</p>
+                        <div className="border-b border-slate-400 w-32 mx-auto"></div>
+                      </div>
+                      <div>
+                        <p className="mb-8">المدير المالي</p>
+                        <div className="border-b border-slate-400 w-32 mx-auto"></div>
+                      </div>
+                      <div>
+                        <p className="mb-8">اعتماد الإدارة المالية</p>
+                        <div className="border-b border-slate-400 w-32 mx-auto"></div>
                       </div>
                     </div>
                   </div>
