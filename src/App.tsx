@@ -2585,9 +2585,9 @@ function MainApp({
       </AnimatePresence>
 
       <aside className={cn(
-        "fixed inset-y-0 right-0 bg-white border-l border-slate-200/60 flex flex-col z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden",
+        "fixed inset-y-0 right-0 bg-[#0F172A] border-l border-slate-800 flex flex-col z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden",
         sidebarCollapsed ? "w-20" : "w-64",
-        "md:relative md:translate-x-0 no-print shadow-xl shadow-slate-200/20 md:shadow-none xl:shadow-xl xl:shadow-slate-200/20",
+        "md:relative md:translate-x-0 no-print shadow-xl shadow-slate-900/30 md:shadow-none xl:shadow-xl xl:shadow-slate-900/30",
         mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
       )}>
         {/* Mobile Sidebar Close Button */}
@@ -2596,14 +2596,14 @@ function MainApp({
             variant="ghost" 
             size="icon" 
             onClick={() => setMobileMenuOpen(false)}
-            className="w-10 h-10 rounded-xl bg-white shadow-lg border border-slate-100 text-slate-400 hover:text-slate-900"
+            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
           >
             <X size={18} />
           </Button>
         </div>
 
         {/* Brand Header with Collapse Toggle */}
-        <div className="p-5 pb-3 flex items-center justify-between border-b border-slate-100">
+        <div className="p-5 pb-3 flex items-center justify-between border-b border-slate-800/80">
           <div className="flex items-center gap-3 group cursor-pointer overflow-hidden" onClick={() => handleNavClick('dashboard')}>
             <motion.div 
               whileHover={{ rotate: 12, scale: 1.1 }}
@@ -2614,10 +2614,10 @@ function MainApp({
             </motion.div>
             {!sidebarCollapsed && (
               <div className="flex flex-col text-right overflow-hidden whitespace-nowrap transition-all duration-300">
-                <h1 className="font-extrabold text-sm text-slate-900 leading-none">
+                <h1 className="font-extrabold text-sm text-white leading-none">
                   النجار ديزاين
                 </h1>
-                <p className="text-[9px] text-blue-600 font-black uppercase tracking-[0.15em] mt-1">المنظومة المتكاملة</p>
+                <p className="text-[9px] text-blue-400 font-black uppercase tracking-[0.15em] mt-1">المنظومة المتكاملة</p>
               </div>
             )}
           </div>
@@ -2625,7 +2625,7 @@ function MainApp({
             variant="ghost"
             size="icon"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden md:flex h-8 w-8 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors shrink-0"
+            className="hidden md:flex h-8 w-8 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
             title={sidebarCollapsed ? "توسيع القائمة" : "طي القائمة"}
           >
             {sidebarCollapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
@@ -2636,11 +2636,11 @@ function MainApp({
         {!sidebarCollapsed && (
           <div className="px-4 py-3">
             <div className="relative group/search">
-              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/search:text-blue-600 transition-all" size={15} />
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/search:text-blue-400 transition-all" size={15} />
               <input 
                 type="text" 
                 placeholder="البحث الذكي في الأقسام..."
-                className="w-full bg-slate-50 border border-slate-200/80 rounded-xl h-10 pr-10 pl-3 text-[11px] font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl h-10 pr-10 pl-3 text-[11px] font-bold text-slate-200 focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -2701,7 +2701,7 @@ function MainApp({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden bg-slate-50 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-100"
+                    className="overflow-hidden bg-slate-900/90 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-800"
                   >
                     <SubNavButton active={activeTab === 'inventory'} onClick={() => handleNavClick('inventory')} label="أرصدة الأصناف" permission="inventory" profile={profile} />
                     <SubNavButton active={activeTab === 'itemCard'} onClick={() => handleNavClick('itemCard')} label="كارت الحركة" permission="inventory" profile={profile} />
@@ -2737,7 +2737,7 @@ function MainApp({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden bg-slate-50 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-100"
+                    className="overflow-hidden bg-slate-900/90 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-800"
                   >
                     <SubNavButton active={activeTab === 'productionManager'} onClick={() => handleNavClick('productionManager')} label="مخطط الإنتاج الذكي ⚙️" permission="production" profile={profile} />
                     <SubNavButton active={activeTab === 'productionReports'} onClick={() => handleNavClick('productionReports')} label="تقارير التصنيع (14) 📊" permission="production" profile={profile} />
@@ -2790,7 +2790,7 @@ function MainApp({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden bg-slate-50 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-100"
+                    className="overflow-hidden bg-slate-900/90 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-800"
                   >
                     <SubNavButton active={activeTab === 'employees'} onClick={() => handleNavClick('employees')} label="ملفات الموظفين" permission="hr" profile={profile} />
                     <SubNavButton active={activeTab === 'attendance'} onClick={() => handleNavClick('attendance')} label="دفتر الحضور" permission="hr" profile={profile} />
@@ -2837,7 +2837,7 @@ function MainApp({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden bg-slate-50 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-100"
+                    className="overflow-hidden bg-slate-900/90 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-800"
                   >
                     <SubNavButton active={activeTab === 'reports'} onClick={() => handleNavClick('reports')} label="التحليل العام" permission="reports" profile={profile} />
                     <SubNavButton active={activeTab === 'productionReports'} onClick={() => handleNavClick('productionReports')} label="تقارير التصنيع (14) 📊" permission="reports" profile={profile} />
@@ -2879,20 +2879,20 @@ function MainApp({
 
         {/* User Profile Footer */}
         {!sidebarCollapsed && (
-          <div className="p-3 bg-white border-t border-slate-100">
-            <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-2xl border border-slate-200/80 shadow-inner">
+          <div className="p-3 bg-[#0F172A] border-t border-slate-800/80">
+            <div className="flex items-center gap-3 p-2.5 bg-slate-900/90 rounded-2xl border border-slate-800 shadow-inner">
               <div className="relative shrink-0">
                 <img 
                   src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&bg=2563eb&color=fff`} 
-                  className="w-9 h-9 rounded-xl border-2 border-white shadow-sm object-cover" 
+                  className="w-9 h-9 rounded-xl border-2 border-slate-700 shadow-sm object-cover" 
                   referrerPolicy="no-referrer" 
                 />
-                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
+                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-black truncate text-slate-900">{user.displayName}</p>
+                <p className="text-xs font-black truncate text-white">{user.displayName}</p>
                 <div className="flex items-center gap-1 mt-0.5">
-                   <Badge variant="outline" className="text-[8px] px-1 py-0 border-blue-500/20 text-blue-600 font-black uppercase">
+                   <Badge variant="outline" className="text-[8px] px-1 py-0 border-blue-500/30 text-blue-400 font-black uppercase">
                      {profile?.isAdmin ? 'مدير النظام' : 'مستخدم'}
                    </Badge>
                 </div>
@@ -2901,7 +2901,7 @@ function MainApp({
                 variant="ghost" 
                 size="icon" 
                 onClick={logout}
-                className="h-8 w-8 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                className="h-8 w-8 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
                 title="تسجيل الخروج"
               >
                 <LogOut size={16} />
@@ -3785,7 +3785,7 @@ function CollapsibleNavButton({ active, isOpen, onClick, icon, label, permission
         "w-full flex items-center justify-between px-3 py-3 rounded-2xl transition-all duration-300 ease-in-out group relative overflow-hidden",
         active 
           ? "bg-blue-600 text-white font-extrabold shadow-lg shadow-blue-500/25" 
-          : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+          : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
       )}
     >
       <div className="flex items-center gap-3 w-full">
@@ -3793,13 +3793,13 @@ function CollapsibleNavButton({ active, isOpen, onClick, icon, label, permission
           "flex items-center justify-center shrink-0 w-9 h-9 rounded-xl transition-all duration-300 relative z-10",
           active 
             ? "bg-white/20 text-white shadow-sm" 
-            : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-blue-600 group-hover:shadow-sm"
+            : "bg-slate-800/80 text-slate-400 group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-sm"
         )}>
           {icon}
         </div>
         <span className={cn(
           "font-bold text-sm tracking-tight flex-1 text-right relative z-10 transition-colors duration-300 whitespace-nowrap overflow-hidden text-ellipsis md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto xl:opacity-100 xl:w-auto",
-          active ? "text-white" : "text-slate-700 group-hover:text-slate-900"
+          active ? "text-white" : "text-slate-300 group-hover:text-white"
         )}>
           {label}
         </span>
@@ -3819,20 +3819,20 @@ function NavButton({ active, onClick, icon, label, permission, profile }: { acti
         "w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300 ease-in-out group relative overflow-hidden",
         active 
           ? "bg-blue-600 text-white font-extrabold shadow-lg shadow-blue-500/25" 
-          : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+          : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
       )}
     >
       <div className={cn(
         "flex items-center justify-center shrink-0 w-9 h-9 rounded-xl transition-all duration-300 relative z-10",
         active 
           ? "bg-white/20 text-white shadow-sm" 
-          : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-blue-600 group-hover:shadow-sm"
+          : "bg-slate-800/80 text-slate-400 group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-sm"
       )}>
         {icon}
       </div>
       <span className={cn(
         "font-bold text-sm tracking-tight flex-1 text-right relative z-10 transition-colors duration-300 whitespace-nowrap overflow-hidden text-ellipsis md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto xl:opacity-100 xl:w-auto",
-        active ? "text-white" : "text-slate-700 group-hover:text-slate-900"
+        active ? "text-white" : "text-slate-300 group-hover:text-white"
       )}>
         {label}
       </span>
@@ -3849,13 +3849,13 @@ function SubNavButton({ active, onClick, label, permission, profile }: { active:
       className={cn(
         "w-full flex items-center px-4 py-2 rounded-xl transition-all duration-200 text-xs font-bold relative overflow-hidden group",
         active 
-          ? "bg-white text-indigo-700 shadow-sm border border-slate-100" 
-          : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+          ? "bg-blue-600/25 text-white font-extrabold border border-blue-500/30 shadow-sm" 
+          : "text-slate-400 hover:text-white hover:bg-slate-800/60"
       )}
     >
       <div className={cn(
         "w-1.5 h-1.5 shrink-0 rounded-full ml-3 transition-all duration-200",
-        active ? "bg-indigo-600 scale-125" : "bg-slate-300 group-hover:bg-slate-400"
+        active ? "bg-blue-400 scale-125" : "bg-slate-600 group-hover:bg-slate-400"
       )} />
       <span className="flex-1 text-right tracking-tight whitespace-nowrap overflow-hidden text-ellipsis md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto xl:opacity-100 xl:w-auto">{label}</span>
       {active && (
