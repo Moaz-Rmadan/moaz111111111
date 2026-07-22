@@ -379,6 +379,17 @@ export interface ManufacturingOrder {
   notes?: string;
   createdBy: string;
   createdAt: any;
+  packingStatus?: 'pending' | 'completed';
+  packagesCount?: number;
+  packingBarcode?: string;
+  packingType?: string;
+  packedAt?: any;
+  packedBy?: string;
+  warehouseStatus?: 'pending' | 'received';
+  warehouseName?: string;
+  warehouseLocation?: string;
+  storedAt?: any;
+  storedBy?: string;
 }
 
 export interface WorkOrder {

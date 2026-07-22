@@ -34,7 +34,7 @@ import {
 } from '../types';
 import { db } from '../firebase';
 import { 
-  collection, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, 
+  collection, addDoc, setDoc, updateDoc, deleteDoc, doc, serverTimestamp, 
   writeBatch, increment, query, where, orderBy 
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
@@ -110,15 +110,22 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
   };
 
   const handleCreateMO = async () => {
-    if (!moForm.productId || !moForm.routeId) return;
+    if (!moForm.productName || !moForm.routeId) return;
     try {
       const batch = writeBatch(db);
       
       // 1. Create MO
       const moRef = doc(collection(db, 'manufacturingOrders'));
       const moData = {
-        ...moForm,
-        status: 'planned',
+        moNumber: moForm.moNumber || `MO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        productId: moForm.productId || `prod-${Date.now()}`,
+        productName: moForm.productName,
+        quantity: Number(moForm.quantity) || 1,
+        routeId: moForm.routeId,
+        startDate: moForm.startDate || new Date().toISOString().split('T')[0],
+        dueDate: moForm.dueDate || '',
+        priority: moForm.priority || 'normal',
+        status: 'in_progress',
         createdBy: 'system',
         createdAt: serverTimestamp()
       };
@@ -133,63 +140,288 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
         delayStatus: 'on_track'
       });
 
+      // 3. Create Work Orders for stages in the selected route
+      const selectedRoute = productionRoutes.find((r: any) => r.id === moForm.routeId);
+      if (selectedRoute && selectedRoute.stages && selectedRoute.stages.length > 0) {
+        selectedRoute.stages.forEach((stage: any, idx: number) => {
+          const woRef = doc(collection(db, 'workOrders'));
+          batch.set(woRef, {
+            woNumber: `WO-${moData.moNumber.replace('MO-', '')}-${idx + 1}`,
+            moId: moRef.id,
+            moNumber: moData.moNumber,
+            productId: moData.productId,
+            productName: moData.productName,
+            stageId: stage.id || `stage-${idx}`,
+            stageName: stage.name,
+            stageCode: stage.code || `STG-${idx + 1}`,
+            order: stage.order || idx + 1,
+            status: idx === 0 ? 'active' : 'pending',
+            progress: 0,
+            quantity: moData.quantity,
+            standardTimeMinutes: stage.standardTimeMinutes || 60,
+            departmentId: stage.departmentId || '',
+            supervisorId: stage.supervisorId || '',
+            createdAt: serverTimestamp()
+          });
+        });
+      } else {
+        // Fallback default stages if route has no stages defined
+        const defaultStages = [
+          { name: 'القطع والنجارة الهيكلية', code: 'CUT-01', order: 1 },
+          { name: 'الدهانات والسنفرة والأستر', code: 'PNT-02', order: 2 },
+          { name: 'التجميع النهائي والتغليف', code: 'ASM-03', order: 3 }
+        ];
+        defaultStages.forEach((stage, idx) => {
+          const woRef = doc(collection(db, 'workOrders'));
+          batch.set(woRef, {
+            woNumber: `WO-${moData.moNumber.replace('MO-', '')}-${idx + 1}`,
+            moId: moRef.id,
+            moNumber: moData.moNumber,
+            productId: moData.productId,
+            productName: moData.productName,
+            stageId: `stage-${idx + 1}`,
+            stageName: stage.name,
+            stageCode: stage.code,
+            order: stage.order,
+            status: idx === 0 ? 'active' : 'pending',
+            progress: 0,
+            quantity: moData.quantity,
+            standardTimeMinutes: 60,
+            createdAt: serverTimestamp()
+          });
+        });
+      }
+
       await batch.commit();
       setShowAddMO(false);
-    } catch (err) { console.error(err); }
+      setMoForm({
+        moNumber: `MO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        productId: '',
+        productName: '',
+        quantity: 1,
+        routeId: '',
+        startDate: new Date().toISOString().split('T')[0],
+        dueDate: '',
+        priority: 'normal'
+      });
+    } catch (err) { console.error('Error creating MO:', err); }
   };
+
+  // Live Section Stats for Master Header & Navigation Tabs
+  const navStats = useMemo(() => {
+    const totalMO = manufacturingOrders.length;
+    const inProgressMO = manufacturingOrders.filter(o => o.status === 'in_progress').length;
+    const activeWO = workOrders.filter(w => w.status === 'in_progress' || w.status === 'ready').length;
+    const totalRoutes = productionRoutes.length;
+    const pendingQC = qualityInspections.filter(q => q.status === 'pending').length;
+    const pendingPacking = manufacturingOrders.filter(o => !o.packingStatus || o.packingStatus === 'pending').length;
+    const totalMTO = salesOrders.length || manufacturingOrders.filter(o => o.salesOrderId).length;
+    return {
+      totalMO,
+      inProgressMO,
+      activeWO,
+      totalRoutes,
+      pendingQC,
+      pendingPacking,
+      totalMTO,
+    };
+  }, [manufacturingOrders, workOrders, productionRoutes, qualityInspections, salesOrders]);
 
   // --- Render Helpers ---
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">نظام التحكم والإنتاج المتكامل</h2>
-          <p className="text-slate-500 font-medium mt-1">إدارة مسارات التصنيع الديناميكية، تتبع الجودة، والأتمتة اللوجستية</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => setShowAddMO(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl h-12 px-6 shadow-lg shadow-indigo-100">
-            <Plus size={18} className="ml-2" />
-            <span className="font-black">أمر تصنيع جديد</span>
-          </Button>
+      {/* Master Header Banner */}
+      <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white p-6 sm:p-8 shadow-2xl border border-slate-800/80">
+        {/* Subtle Ambient Decorative Gradients */}
+        <div className="absolute -left-16 -top-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute right-1/3 -bottom-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute right-0 top-0 w-96 h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/15 via-transparent to-transparent pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          {/* Main Title & Status Pills */}
+          <div className="space-y-3">
+            <div className="flex items-center flex-wrap gap-2.5">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                منظومة الإنتاج الذكي v3.8 • Smart Industrial OS
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/5 text-slate-300 border border-white/10">
+                <Zap size={12} className="text-amber-400" />
+                أتمتة المخطط والمسارات
+              </span>
+            </div>
+
+            <div>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white tracking-tight leading-snug">
+                مخطط ومحرك الإنتاج الذكي
+              </h1>
+              <p className="text-slate-300 text-xs sm:text-sm font-medium mt-1 max-w-2xl leading-relaxed">
+                مركز تحكم متكامل لإدارة أوامر التصنيع (MO)، أوامر التشغيل (WO)، تتبع الجودة والرقابة، التغليف والمخزون، وربط المعرض المباشر (MTO).
+              </p>
+            </div>
+
+            {/* Live Metrics Pills Header Row */}
+            <div className="pt-2 flex items-center gap-3 overflow-x-auto scrollbar-hide py-1">
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                  <Activity size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase">أوامر التصنيع</p>
+                  <p className="text-xs font-black text-white">{navStats.totalMO} أمر <span className="text-indigo-400 font-bold">({navStats.inProgressMO} جاري)</span></p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+                  <Clock size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase">أوامر التشغيل</p>
+                  <p className="text-xs font-black text-amber-300">{navStats.activeWO} امر نشط بالمراحل</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                  <ShieldCheck size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase">الفحص والجودة</p>
+                  <p className="text-xs font-black text-emerald-300">{navStats.pendingQC > 0 ? `${navStats.pendingQC} بانتظار الفحص` : 'معتمد بالكامل ✅'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold">
+                  <Package size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase">التغليف والمخزن</p>
+                  <p className="text-xs font-black text-sky-300">{navStats.pendingPacking} شحنة بانتظار التغليف</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
+            <Button 
+              onClick={() => setShowAddMO(true)} 
+              className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl h-12 px-6 font-black text-xs shadow-xl shadow-indigo-600/30 transition-all flex items-center gap-2"
+            >
+              <Plus size={18} />
+              <span>أمر تصنيع جديد (MO)</span>
+            </Button>
+
+            <Button 
+              onClick={() => setShowAddRoute(true)} 
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-2xl h-12 px-5 font-black text-xs backdrop-blur-md transition-all flex items-center gap-2"
+            >
+              <Map size={18} className="text-indigo-300" />
+              <span>إضافة مسار عمل</span>
+            </Button>
+          </div>
         </div>
       </div>
 
+      {/* Master Navigation Bar (Wide & Luxurious Control Navigation) */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex items-center justify-between bg-white/50 backdrop-blur-md p-1 rounded-3xl border border-slate-100 shadow-sm mb-6 sticky top-0 z-20">
-          <TabsList className="bg-transparent border-none p-0 flex gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide">
-            <TabsTrigger value="dashboard" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
-              <LayoutDashboard size={16} className="ml-2" />
-              لوحة المتابعة
+        <div className="bg-slate-900/95 p-2 rounded-[28px] border border-slate-800 shadow-2xl backdrop-blur-2xl sticky top-2 z-30 mb-8">
+          <TabsList className="bg-transparent border-none p-0 flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide w-full">
+            
+            <TabsTrigger 
+              value="dashboard" 
+              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+            >
+              <LayoutDashboard size={18} className="shrink-0" />
+              <span>لوحة المتابعة</span>
+              <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 font-mono">
+                {navStats.totalMO}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="orders" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
-              <Activity size={16} className="ml-2" />
-              أوامر التصنيع
+
+            <TabsTrigger 
+              value="orders" 
+              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+            >
+              <Activity size={18} className="shrink-0" />
+              <span>أوامر التصنيع</span>
+              <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 font-bold">
+                {navStats.inProgressMO > 0 ? `${navStats.inProgressMO} جاري` : navStats.totalMO}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="workorders" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
-              <Clock size={16} className="ml-2" />
-              أوامر التشغيل (WO)
+
+            <TabsTrigger 
+              value="workorders" 
+              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+            >
+              <Clock size={18} className="shrink-0" />
+              <span>أوامر التشغيل (WO)</span>
+              <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-200 font-bold">
+                {navStats.activeWO} نشط
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="routes" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
-              <Map size={16} className="ml-2" />
-              المسارات والمراحل
+
+            <TabsTrigger 
+              value="routes" 
+              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+            >
+              <Map size={18} className="shrink-0" />
+              <span>المسارات والمراحل</span>
+              <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 font-mono">
+                {navStats.totalRoutes}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="quality" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
-              <ShieldCheck size={16} className="ml-2" />
-              الجودة والفحص
+
+            <TabsTrigger 
+              value="quality" 
+              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+            >
+              <ShieldCheck size={18} className="shrink-0" />
+              <span>الجودة والفحص</span>
+              <span className={`ml-1 text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                navStats.pendingQC > 0 ? 'bg-amber-500/30 text-amber-200' : 'bg-emerald-500/30 text-emerald-200'
+              }`}>
+                {navStats.pendingQC > 0 ? `${navStats.pendingQC} تنبيه` : 'سليم ✅'}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="packing" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
-              <Package size={16} className="ml-2" />
-              التغليف والمخزن
+
+            <TabsTrigger 
+              value="packing" 
+              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+            >
+              <Package size={18} className="shrink-0" />
+              <span>التغليف والمخزن</span>
+              <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-sky-500/30 text-sky-200 font-bold">
+                {navStats.pendingPacking}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="showroom_link" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all bg-indigo-50 text-indigo-700">
-              <Store size={16} className="ml-2 text-indigo-600" />
-              ربط المعرض بالمصنع (MTO) 🔗
+
+            <TabsTrigger 
+              value="showroom_link" 
+              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+            >
+              <Store size={18} className="shrink-0 text-amber-400" />
+              <span>ربط المعرض (MTO) 🔗</span>
+              <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">
+                {navStats.totalMTO}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="reports" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
-              <BarChart3 size={16} className="ml-2" />
-              التقارير التحليلية (14)
+
+            <TabsTrigger 
+              value="reports" 
+              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+            >
+              <BarChart3 size={18} className="shrink-0" />
+              <span>التقارير التحليلية</span>
+              <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-white/10 font-mono">
+                14
+              </span>
             </TabsTrigger>
+
           </TabsList>
         </div>
 
@@ -224,7 +456,13 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
         </TabsContent>
 
         <TabsContent value="packing" className="mt-0 focus-visible:outline-none">
-           <PackingView orders={manufacturingOrders} packingRecords={packingRecords} />
+           <PackingView 
+             orders={manufacturingOrders} 
+             packingRecords={packingRecords} 
+             workOrders={workOrders}
+             employees={employees}
+             qualityInspections={qualityInspections}
+           />
         </TabsContent>
 
         <TabsContent value="showroom_link" className="mt-0 focus-visible:outline-none">
@@ -262,6 +500,124 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
             departments={departments}
             employees={employees}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Create MO Modal */}
+      <Dialog open={showAddMO} onOpenChange={setShowAddMO}>
+        <DialogContent className="sm:max-w-[600px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-slate-900 p-6 text-white flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-black">إنشاء أمر تصنيع جديد</DialogTitle>
+              <p className="text-slate-400 text-xs font-bold mt-1">تحديد المنتج ومسار الإنتاج والكمية المستهدفة</p>
+            </div>
+            <Badge className="bg-indigo-600 text-white font-mono font-black text-xs px-3 py-1.5 rounded-xl">
+              {moForm.moNumber}
+            </Badge>
+          </div>
+
+          <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">رقم أمر التصنيع</label>
+                <Input 
+                  value={moForm.moNumber || ''} 
+                  onChange={e => setMoForm({ ...moForm, moNumber: e.target.value })}
+                  placeholder="MO-2026-1001"
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-black text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">اسم المنتج / الصنف المراد تصنيعه *</label>
+                <Input 
+                  value={moForm.productName || ''} 
+                  onChange={e => setMoForm({ ...moForm, productName: e.target.value, productId: moForm.productId || `prod-${Date.now()}` })}
+                  placeholder="مثال: غرفة نوم ماستر كلاسيك / سفرة مهراجا"
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">الكمية المطلوبة *</label>
+                <Input 
+                  type="number"
+                  min={1}
+                  value={moForm.quantity || 1} 
+                  onChange={e => setMoForm({ ...moForm, quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-black text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">مسار الإنتاج والمراحل *</label>
+                <select 
+                  value={moForm.routeId || ''} 
+                  onChange={e => setMoForm({ ...moForm, routeId: e.target.value })}
+                  className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                >
+                  <option value="">-- اختر مسار التصنيع --</option>
+                  {productionRoutes.map((r: ProductionRoute) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({r.stages?.length || 0} مراحل)
+                    </option>
+                  ))}
+                  {productionRoutes.length === 0 && (
+                    <option value="route-default-standard">مسار التصنيع القياسي للأثاث (3 مراحل)</option>
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">تاريخ البدء المتوقع</label>
+                <Input 
+                  type="date"
+                  value={moForm.startDate || ''} 
+                  onChange={e => setMoForm({ ...moForm, startDate: e.target.value })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">تاريخ التسليم المستهدف</label>
+                <Input 
+                  type="date"
+                  value={moForm.dueDate || ''} 
+                  onChange={e => setMoForm({ ...moForm, dueDate: e.target.value })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">الأولوية</label>
+                <select 
+                  value={moForm.priority || 'normal'} 
+                  onChange={e => setMoForm({ ...moForm, priority: e.target.value as any })}
+                  className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                >
+                  <option value="low">منخفضة</option>
+                  <option value="normal">عادية (افتراضي)</option>
+                  <option value="high">عالية ⚡</option>
+                  <option value="urgent">عاجل جدًا 🚨</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <Button variant="ghost" onClick={() => setShowAddMO(false)} className="font-black text-slate-500 text-xs">إلغاء</Button>
+            <Button 
+              onClick={handleCreateMO} 
+              disabled={!moForm.productName || !moForm.routeId}
+              className="bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-11 px-8 font-black text-white text-xs shadow-lg shadow-indigo-100 disabled:opacity-50"
+            >
+              اعتماد وإنشاء أمر التصنيع
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
@@ -838,57 +1194,247 @@ const MOList = ({ orders = [] }: any) => {
   );
 };
 
-const WOTerminal = ({ workOrders, employees }: any) => {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-       {workOrders.filter((wo: any) => wo.status === 'pending' || wo.status === 'active').map((wo: WorkOrder) => (
-         <Card key={wo.id} className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden p-8 hover:shadow-xl transition-all">
-           <div className="flex items-start justify-between mb-6">
-             <div>
-               <Badge className="bg-indigo-50 text-indigo-600 border-none font-black text-[10px] px-3 py-1 mb-3">أمر تشغيل: {wo.woNumber}</Badge>
-               <h3 className="text-xl font-black text-slate-900">{wo.stageName}</h3>
-               <p className="text-slate-400 font-bold text-xs mt-1">المنتج: {wo.productName} (أمر تصنيع: {wo.moNumber})</p>
-             </div>
-             <div className="flex flex-col items-end">
-               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">نسبة الإنجاز</span>
-               <span className="text-2xl font-black text-slate-900">{wo.progress}%</span>
-             </div>
-           </div>
-           
-           <div className="bg-slate-50 rounded-2xl p-6 mb-6">
-             <div className="flex items-center justify-between">
-               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400">
-                   <User size={20} />
-                 </div>
-                 <div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">المسؤول الحالي</p>
-                   <p className="font-black text-slate-700 text-sm">{wo.operatorName || 'لم يتم التعيين'}</p>
-                 </div>
-               </div>
-               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400">
-                   <Clock size={20} />
-                 </div>
-                 <div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الزمن المستغرق</p>
-                   <p className="font-black text-slate-700 text-sm">45 / 60 دقيقة</p>
-                 </div>
-               </div>
-             </div>
-           </div>
+const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
+  const [filter, setFilter] = useState<'all' | 'active' | 'pending' | 'completed'>('active');
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-           <div className="flex items-center gap-3">
-             <Button className="flex-1 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg shadow-indigo-100">
-               <Play size={20} className="ml-2" />
-               بدء العمل
-             </Button>
-             <Button variant="outline" className="h-14 w-14 rounded-2xl border-slate-100 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
-               <Info size={20} />
-             </Button>
-           </div>
-         </Card>
-       ))}
+  const filteredWOs = useMemo(() => {
+    if (filter === 'all') return workOrders;
+    return workOrders.filter((wo: any) => wo.status === filter);
+  }, [workOrders, filter]);
+
+  const handleStartWO = async (wo: WorkOrder) => {
+    setUpdatingId(wo.id);
+    try {
+      await updateDoc(doc(db, 'workOrders', wo.id), {
+        status: 'active',
+        progress: Math.max(wo.progress || 0, 10),
+        startedAt: serverTimestamp()
+      });
+      await addDoc(collection(db, 'productionLogs'), {
+        moId: wo.moId || '',
+        woId: wo.id,
+        type: 'wo_started',
+        message: `🚀 تم بدء العمل بأمر التشغيل (${wo.woNumber}) بمرحلة: ${wo.stageName}`,
+        createdAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Error starting WO:', err);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleUpdateProgress = async (wo: WorkOrder, newProgress: number) => {
+    setUpdatingId(wo.id);
+    try {
+      const isComplete = newProgress >= 100;
+      await updateDoc(doc(db, 'workOrders', wo.id), {
+        progress: newProgress,
+        status: isComplete ? 'completed' : 'active',
+        ...(isComplete ? { qualityStatus: 'pending', completedAt: serverTimestamp() } : {})
+      });
+      await addDoc(collection(db, 'productionLogs'), {
+        moId: wo.moId || '',
+        woId: wo.id,
+        type: isComplete ? 'wo_completed' : 'wo_progress_updated',
+        message: isComplete 
+          ? `✅ تم إكمال أمر التشغيل (${wo.woNumber}) بالمرحلة (${wo.stageName}) وإرساله للجودة.`
+          : `📊 تم تحديث نسبة الإنجاز لأمر التشغيل (${wo.woNumber}) إلى ${newProgress}%.`,
+        createdAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Error updating WO progress:', err);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleAssignOperator = async (wo: WorkOrder, operatorId: string) => {
+    const emp = employees.find((e: any) => e.id === operatorId);
+    const operatorName = emp ? emp.name : operatorId;
+    try {
+      await updateDoc(doc(db, 'workOrders', wo.id), {
+        operatorId,
+        operatorName,
+        assignedWorker: operatorName
+      });
+    } catch (err) {
+      console.error('Error assigning operator:', err);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Sub Header & Filter Tabs */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+        <div>
+          <h3 className="text-lg font-black text-slate-900">محطة أوامر التشغيل التنفيذية (Work Orders Terminal)</h3>
+          <p className="text-xs font-bold text-slate-500">إدارة التنفيذ المباشر للورش والمراحل، تحديث الإنجاز، وإحالة المنتجات للفحص</p>
+        </div>
+
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl overflow-x-auto">
+          <Button
+            onClick={() => setFilter('active')}
+            className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'active' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
+          >
+            جاري العمل ⚡ ({workOrders.filter((w: any) => w.status === 'active').length})
+          </Button>
+          <Button
+            onClick={() => setFilter('pending')}
+            className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'pending' ? 'bg-amber-500 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
+          >
+            بانتظار البدء ⏳ ({workOrders.filter((w: any) => w.status === 'pending').length})
+          </Button>
+          <Button
+            onClick={() => setFilter('completed')}
+            className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'completed' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
+          >
+            المكتملة ✅ ({workOrders.filter((w: any) => w.status === 'completed').length})
+          </Button>
+          <Button
+            onClick={() => setFilter('all')}
+            className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
+          >
+            الكل ({workOrders.length})
+          </Button>
+        </div>
+      </div>
+
+      {filteredWOs.length === 0 ? (
+        <Card className="rounded-[32px] border-none shadow-sm bg-white p-12 text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+            <Clock size={32} />
+          </div>
+          <div>
+            <h4 className="text-lg font-black text-slate-900">لا توجد أوامر تشغيل في هذه القائمة</h4>
+            <p className="text-slate-500 text-xs font-bold mt-1">عند إنشاء أمر تصنيع جديد واختيار مسار الإنتاج، سيتم إنشاء أوامر التشغيل للمراحل تلقائياً هنا</p>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredWOs.map((wo: WorkOrder) => (
+            <Card key={wo.id} className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden p-6 hover:shadow-xl transition-all space-y-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-indigo-50 text-indigo-700 font-mono font-black text-[10px] px-3 py-1">
+                      {wo.woNumber}
+                    </Badge>
+                    <Badge className={`font-black text-[10px] px-2.5 py-0.5 rounded-lg ${
+                      wo.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                      wo.status === 'active' ? 'bg-indigo-100 text-indigo-800' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {wo.status === 'completed' ? 'مكتمل ومُرسل للجودة ✅' : wo.status === 'active' ? 'قيد التشغيل الآن ⚡' : 'بانتظار دور البدء ⏳'}
+                    </Badge>
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900">{wo.stageName}</h3>
+                  <p className="text-slate-500 font-bold text-xs mt-0.5">المنتج: <span className="text-slate-800 font-black">{wo.productName}</span> (أمر تصنيع: {wo.moNumber})</p>
+                </div>
+                <div className="text-left bg-slate-50 p-3 rounded-2xl min-w-[90px]">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">نسبة الإنجاز</span>
+                  <span className="text-2xl font-black text-indigo-600">{wo.progress || 0}%</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-1.5">
+                <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-500 ${wo.progress >= 100 ? 'bg-emerald-500' : 'bg-indigo-600'}`} 
+                    style={{ width: `${Math.min(100, wo.progress || 0)}%` }} 
+                  />
+                </div>
+                {wo.status === 'active' && (
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 pt-1">
+                    <span>تحديث سريع لنسبة الإنجاز:</span>
+                    <div className="flex items-center gap-1.5">
+                      {[25, 50, 75, 100].map(pct => (
+                        <button
+                          key={pct}
+                          disabled={updatingId === wo.id}
+                          onClick={() => handleUpdateProgress(wo, pct)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all ${
+                            wo.progress === pct ? 'bg-indigo-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Operator & Time Info */}
+              <div className="bg-slate-50 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-xs flex items-center justify-center text-slate-500 shrink-0">
+                    <User size={18} />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-black text-slate-400 uppercase">المسؤول / الفني المعين</p>
+                    <select
+                      value={wo.operatorId || ''}
+                      onChange={e => handleAssignOperator(wo, e.target.value)}
+                      className="bg-transparent font-black text-slate-800 text-xs outline-none focus:ring-0 cursor-pointer"
+                    >
+                      <option value="">-- تعيين فني / مشغل --</option>
+                      {employees.map((e: any) => (
+                        <option key={e.id} value={e.id}>{e.name} ({e.jobTitle || 'فني تصنيع'})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-r border-slate-200 pt-2 sm:pt-0 sm:pr-4">
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-xs flex items-center justify-center text-slate-500 shrink-0">
+                    <Clock size={18} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">الزمن القياسي للمرحلة</p>
+                    <p className="font-black text-slate-700 text-xs">{(wo as any).standardTimeMinutes || 60} دقيقة</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Control Button */}
+              <div className="pt-2">
+                {wo.status === 'pending' && (
+                  <Button 
+                    disabled={updatingId === wo.id}
+                    onClick={() => handleStartWO(wo)}
+                    className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-lg shadow-indigo-100"
+                  >
+                    <Play size={18} className="ml-2" />
+                    بدء التشغيل والعمل الفعلي
+                  </Button>
+                )}
+
+                {wo.status === 'active' && (
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      disabled={updatingId === wo.id}
+                      onClick={() => handleUpdateProgress(wo, 100)}
+                      className="flex-1 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-100"
+                    >
+                      <CheckCircle2 size={18} className="ml-2" />
+                      إكمال التشغيل وإرسال للجودة 100%
+                    </Button>
+                  </div>
+                )}
+
+                {wo.status === 'completed' && (
+                  <div className="bg-emerald-50 text-emerald-800 p-3 rounded-2xl font-black text-xs text-center border border-emerald-200 flex items-center justify-center gap-2">
+                    <CheckCircle2 size={16} />
+                    تم الإكمال بأساس المرحلة وهو متاح الآن بفحص الجودة
+                  </div>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -1556,18 +2102,18 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
                 {/* Inspector Selection */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-black text-slate-700">مفتش الجودة المسؤول</label>
-                  <Select value={inspectorId} onValueChange={setInspectorId}>
-                    <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs text-right">
-                      <SelectValue placeholder="اختر اسم مفتش الجودة..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {employees.map((emp: any) => (
-                        <SelectItem key={emp.id} value={emp.id}>{emp.name} ({emp.jobTitle || 'مفتش جودة'})</SelectItem>
-                      ))}
-                      <SelectItem value="emp-q-1">مهندس محمود حسن (رئيس قسم الجودة)</SelectItem>
-                      <SelectItem value="emp-q-2">فني جودة أحمد سلامة</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    value={inspectorId} 
+                    onChange={e => setInspectorId(e.target.value)}
+                    className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  >
+                    <option value="">-- اختر اسم مفتش الجودة --</option>
+                    {employees.map((emp: any) => (
+                      <option key={emp.id} value={emp.id}>{emp.name} ({emp.jobTitle || 'مفتش جودة'})</option>
+                    ))}
+                    <option value="emp-q-1">مهندس محمود حسن (رئيس قسم الجودة)</option>
+                    <option value="emp-q-2">فني جودة أحمد سلامة</option>
+                  </select>
                 </div>
 
                 {/* Notes & Comments */}
@@ -1614,32 +2160,977 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
   );
 };
 
-const PackingView = ({ orders, packingRecords }: any) => {
+const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employees = [], qualityInspections = [] }: any) => {
+  const [filter, setFilter] = useState<'all' | 'pending_packing' | 'packed' | 'stored'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modals
+  const [selectedOrderForPacking, setSelectedOrderForPacking] = useState<any | null>(null);
+  const [showPackingModal, setShowPackingModal] = useState(false);
+  const [packingForm, setPackingForm] = useState({
+    cartonCount: 1,
+    packingType: 'كرتون مقوى 5 طبقات + نيلون بابلز لحماية زوايا الأثاث',
+    totalWeight: 45,
+    length: 120,
+    width: 80,
+    height: 60,
+    barcode: '',
+    packedBy: '',
+    notes: 'قابل للكسر - أثاث زجاجي وخشب طبيعي ممتاز - يحفظ بعيداً عن الرطوبة'
+  });
+
+  const [selectedOrderForWarehouse, setSelectedOrderForWarehouse] = useState<any | null>(null);
+  const [showWarehouseModal, setShowWarehouseModal] = useState(false);
+  const [warehouseForm, setWarehouseForm] = useState({
+    warehouseName: 'مخزن المنتجات التامة - المصنع الرئيسي',
+    warehouseLocation: 'المنطقة A - رف 02',
+    keeperName: 'أمين المخزن - علي السعيد',
+    receiptNo: '',
+    notes: 'تم فحص الشحنة خارجيًا ومطابقتها لأمر التصنيع والمستندات'
+  });
+
+  const [selectedOrderForLabel, setSelectedOrderForLabel] = useState<any | null>(null);
+  const [showLabelModal, setShowLabelModal] = useState(false);
+
+  const [selectedOrderForReceipt, setSelectedOrderForReceipt] = useState<any | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+
+  const [showQuickPackageModal, setShowQuickPackageModal] = useState(false);
+  const [quickPackageForm, setQuickPackageForm] = useState({
+    productName: 'طقم كنب كلاسيك فاخر 7 مقاعد (خشب زان أصلي)',
+    quantity: 1,
+    moNumber: `MO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    notes: 'شحنة أثاث جاهزة للتغليف والتوريد'
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Computed Orders
+  const relevantOrders = useMemo(() => {
+    return orders.filter((o: any) => {
+      const matchesSearch = 
+        (o.productName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (o.moNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
+      if (!matchesSearch) return false;
+
+      if (filter === 'pending_packing') {
+        return !o.packingStatus || o.packingStatus === 'pending';
+      }
+      if (filter === 'packed') {
+        return o.packingStatus === 'completed' && (!o.warehouseStatus || o.warehouseStatus === 'pending');
+      }
+      if (filter === 'stored') {
+        return o.warehouseStatus === 'received';
+      }
+      return true;
+    });
+  }, [orders, filter, searchTerm]);
+
+  // Statistics
+  const stats = useMemo(() => {
+    const total = orders.length;
+    const pendingPacking = orders.filter((o: any) => !o.packingStatus || o.packingStatus === 'pending').length;
+    const packedPendingStorage = orders.filter((o: any) => o.packingStatus === 'completed' && (!o.warehouseStatus || o.warehouseStatus === 'pending')).length;
+    const storedInWarehouse = orders.filter((o: any) => o.warehouseStatus === 'received').length;
+    const totalCartons = orders.reduce((acc: number, o: any) => acc + (o.packagesCount || 1), 0);
+    return { total, pendingPacking, packedPendingStorage, storedInWarehouse, totalCartons };
+  }, [orders]);
+
+  // Handlers
+  const handleOpenPackingModal = (order: any) => {
+    setSelectedOrderForPacking(order);
+    setPackingForm({
+      cartonCount: order.packagesCount || Math.max(1, order.quantity || 1),
+      packingType: order.packingType || 'كرتون مقوى 5 طبقات + نيلون بابلز لحماية زوايا الأثاث',
+      totalWeight: 45,
+      length: 120,
+      width: 80,
+      height: 60,
+      barcode: order.packingBarcode || `PKG-${order.moNumber?.replace('MO-', '') || Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+      packedBy: employees[0]?.name || 'فني قسم التغليف والتكويد',
+      notes: 'قابل للكسر - أثاث خشب طبيعي ممتاز - تجنب الرطوبة والضغط الزائد'
+    });
+    setShowPackingModal(true);
+  };
+
+  const handleCreateQuickPackage = async () => {
+    if (!quickPackageForm.productName) return;
+    setIsSaving(true);
+    try {
+      const moRef = doc(collection(db, 'manufacturingOrders'));
+      const moData = {
+        moNumber: quickPackageForm.moNumber || `MO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        productId: `prod-${Date.now()}`,
+        productName: quickPackageForm.productName,
+        quantity: Number(quickPackageForm.quantity) || 1,
+        routeId: 'default-route',
+        status: 'completed',
+        packingStatus: 'pending',
+        createdBy: 'قسم التغليف والمخزن',
+        createdAt: serverTimestamp()
+      };
+      await setDoc(moRef, moData);
+
+      await addDoc(collection(db, 'productionLogs'), {
+        moId: moRef.id,
+        type: 'packing_created',
+        message: `📦 تم إدراج شحنة أثاث جديدة (${quickPackageForm.productName}) جاهزة للتغليف والتكويد`,
+        createdAt: serverTimestamp()
+      });
+
+      setShowQuickPackageModal(false);
+      setQuickPackageForm({
+        productName: 'طقم كنب كلاسيك فاخر 7 مقاعد (خشب زان أصلي)',
+        quantity: 1,
+        moNumber: `MO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        notes: 'شحنة أثاث جاهزة للتغليف والتوريد'
+      });
+    } catch (err) {
+      console.error('Error creating quick package:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGenerateDemoOrders = async () => {
+    setIsSaving(true);
+    try {
+      const sampleItems = [
+        { name: 'غرفة نوم مودرن 6 قطع (خشب MDF إسباني)', qty: 1, mo: `MO-2026-${Math.floor(1000 + Math.random() * 9000)}` },
+        { name: 'طقم سفرة 8 كراسي + بوفيه رخام', qty: 1, mo: `MO-2026-${Math.floor(1000 + Math.random() * 9000)}` },
+        { name: 'صالون مذهب أنطوانيت 5 قطع', qty: 2, mo: `MO-2026-${Math.floor(1000 + Math.random() * 9000)}` }
+      ];
+
+      for (const item of sampleItems) {
+        const moRef = doc(collection(db, 'manufacturingOrders'));
+        await setDoc(moRef, {
+          moNumber: item.mo,
+          productId: `prod-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          productName: item.name,
+          quantity: item.qty,
+          routeId: 'default-route',
+          status: 'completed',
+          packingStatus: 'pending',
+          createdBy: 'النظام التجريبي',
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (err) {
+      console.error('Error generating demo orders:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSavePacking = async () => {
+    if (!selectedOrderForPacking) return;
+    setIsSaving(true);
+    try {
+      const order = selectedOrderForPacking;
+      const barcode = packingForm.barcode || `PKG-${order.moNumber?.replace('MO-', '')}-${Math.floor(100 + Math.random() * 900)}`;
+
+      // 1. Create packing record
+      await addDoc(collection(db, 'packingRecords'), {
+        moId: order.id,
+        moNumber: order.moNumber,
+        productName: order.productName,
+        quantity: order.quantity,
+        cartonCount: Number(packingForm.cartonCount) || 1,
+        totalWeight: Number(packingForm.totalWeight) || 45,
+        dimensions: { length: Number(packingForm.length), width: Number(packingForm.width), height: Number(packingForm.height) },
+        packingType: packingForm.packingType,
+        barcode: barcode,
+        qrCode: barcode,
+        packedBy: packingForm.packedBy,
+        packedAt: serverTimestamp(),
+        notes: packingForm.notes
+      });
+
+      // 2. Update MO
+      await updateDoc(doc(db, 'manufacturingOrders', order.id), {
+        packingStatus: 'completed',
+        packagesCount: Number(packingForm.cartonCount) || 1,
+        packingBarcode: barcode,
+        packingType: packingForm.packingType,
+        packedAt: serverTimestamp(),
+        packedBy: packingForm.packedBy
+      });
+
+      // 3. Add Production Log
+      await addDoc(collection(db, 'productionLogs'), {
+        moId: order.id,
+        type: 'packing_completed',
+        message: `📦 تم إكمال التغليف وتوليد الباركود (${barcode}) لـ ${order.productName} (أمر تصنيع: ${order.moNumber}) - عدد الكراتين: ${packingForm.cartonCount}`,
+        createdAt: serverTimestamp()
+      });
+
+      setShowPackingModal(false);
+      setSelectedOrderForPacking(null);
+    } catch (err) {
+      console.error('Error saving packing record:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleOpenWarehouseModal = (order: any) => {
+    setSelectedOrderForWarehouse(order);
+    setWarehouseForm({
+      warehouseName: order.warehouseName || 'مخزن المنتجات التامة - المصنع الرئيسي',
+      warehouseLocation: 'المنطقة A - رف 02',
+      keeperName: 'أمين المخزن - علي السعيد',
+      receiptNo: `GRN-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      notes: 'تم فحص الكراتين والتأكد من سلامة الباركود والمنتجات التامة'
+    });
+    setShowWarehouseModal(true);
+  };
+
+  const handleSaveWarehouseIntake = async () => {
+    if (!selectedOrderForWarehouse) return;
+    setIsSaving(true);
+    try {
+      const order = selectedOrderForWarehouse;
+
+      // 1. Update MO
+      await updateDoc(doc(db, 'manufacturingOrders', order.id), {
+        warehouseStatus: 'received',
+        warehouseName: warehouseForm.warehouseName,
+        warehouseLocation: warehouseForm.warehouseLocation,
+        storedAt: serverTimestamp(),
+        storedBy: warehouseForm.keeperName,
+        status: 'completed'
+      });
+
+      // 2. Add to inventoryItems (Finished Goods Stock)
+      await addDoc(collection(db, 'inventoryItems'), {
+        name: order.productName,
+        category: 'منتج تام (أثاث)',
+        sku: order.packingBarcode || `SKU-${order.moNumber}`,
+        barcode: order.packingBarcode || `SKU-${order.moNumber}`,
+        quantity: Number(order.quantity) || 1,
+        unit: 'طقم / قطعة',
+        warehouseName: warehouseForm.warehouseName,
+        location: warehouseForm.warehouseLocation,
+        status: 'in_stock',
+        type: 'finished_good',
+        moNumber: order.moNumber,
+        createdAt: serverTimestamp()
+      });
+
+      // 3. Add Production Log
+      await addDoc(collection(db, 'productionLogs'), {
+        moId: order.id,
+        type: 'warehouse_intake',
+        message: `🏬 تم تسليم وتوريد شحنة (${order.productName}) بـ ${warehouseForm.warehouseName} بإذن استلام رقم (${warehouseForm.receiptNo})`,
+        createdAt: serverTimestamp()
+      });
+
+      setShowWarehouseModal(false);
+      setSelectedOrderForWarehouse(null);
+    } catch (err) {
+      console.error('Error saving warehouse intake:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {orders.filter((o: any) => o.status === 'completed' || o.currentStageId === 'packing').map((mo: ManufacturingOrder) => (
-        <Card key={mo.id} className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden p-8 hover:shadow-xl transition-all relative">
-          <div className="flex items-center justify-between mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <Package size={24} />
-            </div>
-            <QrCode size={24} className="text-slate-200" />
+    <div className="space-y-6">
+      {/* Action Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-[32px] text-white shadow-xl">
+        <div>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 text-[10px] font-black px-3 py-1">
+              مركز التغليف والتوريد المخزني 📦
+            </Badge>
           </div>
-          <h3 className="text-xl font-black text-slate-900 mb-1">{mo.productName}</h3>
-          <p className="text-slate-400 font-bold text-xs mb-6">أمر تصنيع: {mo.moNumber} • كمية: {mo.quantity}</p>
-          
-          <div className="space-y-4 mb-6">
-            <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between">
-               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">تم التغليف</span>
-               <span className="font-black text-slate-900">0 / {mo.quantity}</span>
+          <h3 className="text-2xl font-black mt-2">إدارة التغليف وتوريد المنتجات التامة للمخزن</h3>
+          <p className="text-slate-300 text-xs font-bold mt-1">تجهيز الكراتين، إصدار الملصقات والباركود، والتسليم الفعلي للمستودعات</p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <Button 
+            disabled={isSaving}
+            onClick={handleGenerateDemoOrders}
+            variant="outline"
+            className="rounded-2xl h-11 border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-black text-xs"
+          >
+            <Sparkles size={16} className="ml-2 text-amber-400" />
+            توليد شحنات أثاث للتجربة
+          </Button>
+
+          <Button 
+            onClick={() => setShowQuickPackageModal(true)}
+            className="rounded-2xl h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30"
+          >
+            <Plus size={18} className="ml-1.5" />
+            إضافة طرد أثاث للتغليف
+          </Button>
+        </div>
+      </div>
+
+      {/* Top Header & Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <Package size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الأوامر بالتغليف</p>
+            <p className="text-2xl font-black text-slate-900 mt-0.5">{stats.total}</p>
+          </div>
+        </Card>
+
+        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Clock3 size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بانتظار التغليف</p>
+            <p className="text-2xl font-black text-amber-600 mt-0.5">{stats.pendingPacking}</p>
+          </div>
+        </Card>
+
+        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+            <PackageCheck size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">مغلفة (بانتظار المخزن)</p>
+            <p className="text-2xl font-black text-sky-600 mt-0.5">{stats.packedPendingStorage}</p>
+          </div>
+        </Card>
+
+        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">مستلمة بالمخزن ✅</p>
+            <p className="text-2xl font-black text-emerald-600 mt-0.5">{stats.storedInWarehouse}</p>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filter Tabs & Search */}
+      <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl overflow-x-auto">
+          <Button
+            onClick={() => setFilter('all')}
+            className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
+          >
+            الكل ({stats.total})
+          </Button>
+          <Button
+            onClick={() => setFilter('pending_packing')}
+            className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'pending_packing' ? 'bg-amber-500 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
+          >
+            بانتظار التغليف 📦 ({stats.pendingPacking})
+          </Button>
+          <Button
+            onClick={() => setFilter('packed')}
+            className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'packed' ? 'bg-sky-600 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
+          >
+            تم التغليف والتكويد 🏷️ ({stats.packedPendingStorage})
+          </Button>
+          <Button
+            onClick={() => setFilter('stored')}
+            className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'stored' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
+          >
+            مورّدة للمخزن ✅ ({stats.storedInWarehouse})
+          </Button>
+        </div>
+
+        <div className="relative w-full md:w-72">
+          <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input 
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="بحث بمنتج أو أمر تصنيع..."
+            className="pr-9 h-10 rounded-2xl bg-slate-50 border-slate-200 text-xs font-bold"
+          />
+        </div>
+      </div>
+
+      {/* Orders Grid */}
+      {relevantOrders.length === 0 ? (
+        <Card className="rounded-[32px] border-none shadow-sm bg-white p-12 text-center space-y-5">
+          <div className="w-20 h-20 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
+            <Package size={40} />
+          </div>
+          <div className="max-w-md mx-auto space-y-2">
+            <h4 className="text-xl font-black text-slate-900">لا توجد أوامر جاهزة للتغليف حالياً</h4>
+            <p className="text-slate-500 text-xs font-bold leading-relaxed">
+              يمكنك إضافة طرد جديد فوراً أو توليد شحنات أثاث نموذجية بضغطة زر واحدة لتجربة التغليف، الطباعة، والتوريد المخزني.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Button 
+              onClick={() => setShowQuickPackageModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-2xl h-11 px-6 shadow-md"
+            >
+              <Plus size={16} className="ml-2" />
+              إضافة طرد أثاث جديد
+            </Button>
+            <Button 
+              disabled={isSaving}
+              onClick={handleGenerateDemoOrders}
+              variant="outline"
+              className="border-slate-200 text-slate-700 hover:bg-slate-50 font-black text-xs rounded-2xl h-11 px-6"
+            >
+              <Sparkles size={16} className="ml-2 text-amber-500" />
+              توليد شحنات تجريبية
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {relevantOrders.map((mo: ManufacturingOrder) => {
+            const isPacked = mo.packingStatus === 'completed';
+            const isStored = mo.warehouseStatus === 'received';
+
+            return (
+              <Card key={mo.id} className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden p-6 hover:shadow-xl transition-all space-y-5 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                      <Package size={24} />
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className="bg-slate-100 text-slate-800 font-mono font-black text-[10px] px-3 py-1">
+                        {mo.moNumber}
+                      </Badge>
+                      <Badge className={`font-black text-[10px] px-2.5 py-0.5 rounded-lg ${
+                        isStored ? 'bg-emerald-100 text-emerald-800' :
+                        isPacked ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {isStored ? 'مخزن ومستلم ✅' : isPacked ? 'مغلف ومكود 🏷️' : 'بانتظار التغليف 📦'}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 leading-snug">{mo.productName}</h3>
+                    <p className="text-slate-400 font-bold text-xs mt-1">الكمية المطلوبة: <span className="text-slate-800 font-black">{mo.quantity} طقم/قطعة</span></p>
+                  </div>
+
+                  {/* Packaging Status Info */}
+                  <div className="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100 text-xs font-bold">
+                    <div className="flex items-center justify-between text-slate-600">
+                      <span className="text-slate-400">حالة التغليف:</span>
+                      <span className="font-black text-slate-900">{isPacked ? 'تم التغليف والتكويد ✅' : 'قيد الانتظار'}</span>
+                    </div>
+                    {isPacked && (
+                      <>
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="text-slate-400">عدد الطرود / الكراتين:</span>
+                          <span className="font-black text-indigo-600">{mo.packagesCount || 1} كرتونة</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-600 font-mono">
+                          <span className="text-slate-400">باركود التغليف:</span>
+                          <span className="font-black text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200">{mo.packingBarcode || 'PKG-1001'}</span>
+                        </div>
+                      </>
+                    )}
+                    {isStored && (
+                      <div className="flex items-center justify-between text-slate-600 pt-1 border-t border-slate-200">
+                        <span className="text-slate-400">المخزن المستلم:</span>
+                        <span className="font-black text-emerald-700">{mo.warehouseName || 'المخزن الرئيسي'}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions Bar */}
+                <div className="pt-2 space-y-2">
+                  {!isPacked && (
+                    <Button 
+                      onClick={() => handleOpenPackingModal(mo)}
+                      className="w-full h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-100"
+                    >
+                      <PackageCheck size={16} className="ml-2" />
+                      تغليف الشحنة وتكويد الكراتين
+                    </Button>
+                  )}
+
+                  {isPacked && !isStored && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        onClick={() => handleOpenWarehouseModal(mo)}
+                        className="h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-100"
+                      >
+                        <Building2 size={16} className="ml-1.5" />
+                        إذن توريد مخزني
+                      </Button>
+                      <Button 
+                        onClick={() => { setSelectedOrderForLabel(mo); setShowLabelModal(true); }}
+                        variant="outline"
+                        className="h-11 rounded-2xl border-slate-200 text-slate-700 font-black text-xs hover:bg-slate-50"
+                      >
+                        <Printer size={16} className="ml-1.5" />
+                        بطاقة الطرد
+                      </Button>
+                    </div>
+                  )}
+
+                  {isStored && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        onClick={() => { setSelectedOrderForReceipt(mo); setShowReceiptModal(true); }}
+                        className="h-11 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-xs shadow-md"
+                      >
+                        <FileCheck size={16} className="ml-1.5" />
+                        إذن التسليم المخزني
+                      </Button>
+                      <Button 
+                        onClick={() => { setSelectedOrderForLabel(mo); setShowLabelModal(true); }}
+                        variant="outline"
+                        className="h-11 rounded-2xl border-slate-200 text-slate-700 font-black text-xs hover:bg-slate-50"
+                      >
+                        <Printer size={16} className="ml-1.5" />
+                        بطاقة البيان
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Packaging Process Modal */}
+      <Dialog open={showPackingModal} onOpenChange={setShowPackingModal}>
+        <DialogContent className="sm:max-w-[550px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-slate-900 p-6 text-white flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-black">واجهة عملية التغليف والتكويد</DialogTitle>
+              <p className="text-slate-400 text-xs font-bold mt-1">تجهيز الشحنة وتحديد عدد الكراتين وإصدار الباركود المعتمد</p>
+            </div>
+            <Badge className="bg-indigo-600 text-white font-mono font-black text-xs px-3 py-1.5 rounded-xl">
+              {selectedOrderForPacking?.moNumber}
+            </Badge>
+          </div>
+
+          <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="bg-indigo-50 border border-indigo-100 p-3.5 rounded-2xl flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black text-indigo-500 uppercase">المنتج المراد تغليفه</p>
+                <p className="font-black text-slate-900 text-sm mt-0.5">{selectedOrderForPacking?.productName}</p>
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-black text-indigo-500 uppercase">الكمية المصنعة</p>
+                <p className="font-black text-indigo-700 text-base">{selectedOrderForPacking?.quantity} قطعة/طقم</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">عدد الكراتين / الطرود *</label>
+                <Input 
+                  type="number"
+                  min={1}
+                  value={packingForm.cartonCount}
+                  onChange={e => setPackingForm({ ...packingForm, cartonCount: Math.max(1, parseInt(e.target.value) || 1) })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-black text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">رمز الباركود التلقائي *</label>
+                <Input 
+                  value={packingForm.barcode}
+                  onChange={e => setPackingForm({ ...packingForm, barcode: e.target.value })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-mono font-black text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700">نوع ومواصفات التغليف المستخدم *</label>
+              <select
+                value={packingForm.packingType}
+                onChange={e => setPackingForm({ ...packingForm, packingType: e.target.value })}
+                className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-xs text-slate-800 outline-none"
+              >
+                <option value="كرتون مقوى 5 طبقات + نيلون بابلز لحماية زوايا الأثاث">كرتون مقوى 5 طبقات + نيلون بابلز لحماية زوايا الأثاث (قياسي)</option>
+                <option value="صندوق خشبي محكم مبطن بالفلين (للشحنات والتصدير)">صندوق خشبي محكم مبطن بالفلين (للشحنات والتصدير)</option>
+                <option value="تغليف حراري انكماشي Polyethylene">تغليف حراري انكماشي Polyethylene</option>
+                <option value="تغليف قماشي فاخر وحافظة أثاث جلدية">تغليف قماشي فاخر وحافظة أثاث جلدية</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-700">الطول (سم)</label>
+                <Input 
+                  type="number"
+                  value={packingForm.length}
+                  onChange={e => setPackingForm({ ...packingForm, length: parseInt(e.target.value) || 0 })}
+                  className="h-10 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-700">العرض (سم)</label>
+                <Input 
+                  type="number"
+                  value={packingForm.width}
+                  onChange={e => setPackingForm({ ...packingForm, width: parseInt(e.target.value) || 0 })}
+                  className="h-10 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-700">الارتفاع (سم)</label>
+                <Input 
+                  type="number"
+                  value={packingForm.height}
+                  onChange={e => setPackingForm({ ...packingForm, height: parseInt(e.target.value) || 0 })}
+                  className="h-10 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">الوزن الإجمالي التقديري (كجم)</label>
+                <Input 
+                  type="number"
+                  value={packingForm.totalWeight}
+                  onChange={e => setPackingForm({ ...packingForm, totalWeight: parseFloat(e.target.value) || 0 })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">الفني المسؤول عن التغليف</label>
+                <select
+                  value={packingForm.packedBy}
+                  onChange={e => setPackingForm({ ...packingForm, packedBy: e.target.value })}
+                  className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-xs text-slate-800 outline-none"
+                >
+                  <option value="">-- اختر الفني المسؤول --</option>
+                  {employees.map((e: any) => (
+                    <option key={e.id} value={e.name}>{e.name} ({e.jobTitle || 'فني تغليف'})</option>
+                  ))}
+                  <option value="محمود سلامة (مشرف التغليف)">محمود سلامة (مشرف التغليف)</option>
+                  <option value="علي زكريا (فني تكويد وكرتون)">علي زكريا (فني تكويد وكرتون)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700">ملاحظات وتعليمات التداول على الطرد</label>
+              <Input 
+                value={packingForm.notes}
+                onChange={e => setPackingForm({ ...packingForm, notes: e.target.value })}
+                className="h-11 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+              />
             </div>
           </div>
 
-          <Button className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-black text-white font-black shadow-lg shadow-slate-100">
-             فتح واجهة التغليف
-          </Button>
-        </Card>
-      ))}
+          <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <Button variant="ghost" onClick={() => setShowPackingModal(false)} className="font-black text-slate-500 text-xs">إلغاء</Button>
+            <Button 
+              disabled={isSaving}
+              onClick={handleSavePacking} 
+              className="bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-11 px-8 font-black text-white text-xs shadow-lg shadow-indigo-100"
+            >
+              {isSaving ? 'جاري الحفظ...' : 'اعتماد التغليف وإصدار بطاقات البيان'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warehouse Intake Modal */}
+      <Dialog open={showWarehouseModal} onOpenChange={setShowWarehouseModal}>
+        <DialogContent className="sm:max-w-[550px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-emerald-950 p-6 text-white flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-black">إذن توريد واستلام للمخزن الفعلي</DialogTitle>
+              <p className="text-emerald-300 text-xs font-bold mt-1">إضافة المنتج التام لرصيد المخزون وجعله متاحاً للتسليم أو العرض</p>
+            </div>
+            <Badge className="bg-emerald-600 text-white font-mono font-black text-xs px-3 py-1.5 rounded-xl">
+              {warehouseForm.receiptNo}
+            </Badge>
+          </div>
+
+          <div className="p-6 space-y-4">
+            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black text-emerald-600 uppercase">الشحنة المراد توريدها</p>
+                <p className="font-black text-slate-900 text-sm mt-0.5">{selectedOrderForWarehouse?.productName}</p>
+                <p className="text-xs text-slate-500 font-bold mt-0.5">باركود التغليف: {selectedOrderForWarehouse?.packingBarcode || 'PKG-1001'}</p>
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-black text-emerald-600 uppercase">عدد الطرود</p>
+                <p className="font-black text-emerald-700 text-base">{selectedOrderForWarehouse?.packagesCount || 1} كرتونة</p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700">المخزن الرئيسي المستلم *</label>
+              <select
+                value={warehouseForm.warehouseName}
+                onChange={e => setWarehouseForm({ ...warehouseForm, warehouseName: e.target.value })}
+                className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-xs text-slate-800 outline-none"
+              >
+                <option value="مخزن المنتجات التامة - المصنع الرئيسي">مخزن المنتجات التامة - المصنع الرئيسي</option>
+                <option value="مخزن صالة العرض الرئيسية (Showroom Stock)">مخزن صالة العرض الرئيسية (Showroom Stock)</option>
+                <option value="مخزن الترانزيت والتحميل اللوجستي">مخزن الترانزيت والتحميل اللوجستي</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">موقع الرف / الزون (Rack/Bin)</label>
+                <Input 
+                  value={warehouseForm.warehouseLocation}
+                  onChange={e => setWarehouseForm({ ...warehouseForm, warehouseLocation: e.target.value })}
+                  placeholder="Zone A - Shelf 02"
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700">أمين المخزن المستلم</label>
+                <Input 
+                  value={warehouseForm.keeperName}
+                  onChange={e => setWarehouseForm({ ...warehouseForm, keeperName: e.target.value })}
+                  className="h-11 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700">ملاحظات الاستلام والمطابقة</label>
+              <Input 
+                value={warehouseForm.notes}
+                onChange={e => setWarehouseForm({ ...warehouseForm, notes: e.target.value })}
+                className="h-11 rounded-xl bg-slate-50 border-slate-200 font-bold text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <Button variant="ghost" onClick={() => setShowWarehouseModal(false)} className="font-black text-slate-500 text-xs">إلغاء</Button>
+            <Button 
+              disabled={isSaving}
+              onClick={handleSaveWarehouseIntake} 
+              className="bg-emerald-600 hover:bg-emerald-700 rounded-2xl h-11 px-8 font-black text-white text-xs shadow-lg shadow-emerald-100"
+            >
+              {isSaving ? 'جاري الحفظ والتوريد...' : 'تأكيد الاستلام والتوريد لرصيد المخزن ✅'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Package Label Printable Modal */}
+      <Dialog open={showLabelModal} onOpenChange={setShowLabelModal}>
+        <DialogContent className="sm:max-w-[500px] rounded-[32px] p-6 bg-white border-2 border-slate-900 shadow-2xl">
+          <div id="printable-package-label" className="space-y-4 border-2 border-dashed border-slate-300 p-6 rounded-2xl bg-amber-50/20">
+            {/* Label Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+              <div>
+                <p className="font-black text-xs text-slate-500 uppercase tracking-widest">مصنع الأثاث الراقي</p>
+                <h3 className="text-lg font-black text-slate-900">بطاقة بيان وتكويد طرد أثاث</h3>
+              </div>
+              <Badge className="bg-slate-900 text-white font-mono font-black text-xs px-3 py-1">
+                {selectedOrderForLabel?.packingBarcode || 'PKG-1001'}
+              </Badge>
+            </div>
+
+            {/* Content Details */}
+            <div className="space-y-2 text-xs font-bold text-slate-800">
+              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                <span className="text-slate-500">اسم المنتج:</span>
+                <span className="font-black text-slate-900 text-sm">{selectedOrderForLabel?.productName}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                <span className="text-slate-500">أمر التصنيع:</span>
+                <span className="font-mono font-black">{selectedOrderForLabel?.moNumber}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                <span className="text-slate-500">عدد الكراتين / الطرود:</span>
+                <span className="font-black text-indigo-700">{selectedOrderForLabel?.packagesCount || 1} طرد</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-1.5">
+                <span className="text-slate-500">نوع التغليف:</span>
+                <span className="font-bold text-slate-700">{selectedOrderForLabel?.packingType || 'تغليف حماية أثاث ثلاثي الطبقات'}</span>
+              </div>
+            </div>
+
+            {/* Visual Barcode & QR code simulation */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center space-y-2">
+              <div className="font-mono text-2xl font-black tracking-[8px] text-slate-900">
+                |||| | |||||| || | |||| ||
+              </div>
+              <p className="text-[10px] font-mono font-bold text-slate-500">{selectedOrderForLabel?.packingBarcode || 'PKG-1001'}</p>
+            </div>
+
+            {/* Handling Instructions Icons */}
+            <div className="grid grid-cols-3 gap-2 pt-2 text-center text-[10px] font-black text-slate-700">
+              <div className="p-2 bg-white rounded-xl border border-slate-200 space-y-1">
+                <span className="text-lg block">☂️</span>
+                <span>يحفظ جافاً</span>
+              </div>
+              <div className="p-2 bg-white rounded-xl border border-slate-200 space-y-1">
+                <span className="text-lg block">⬆️</span>
+                <span>هذا الاتجاه للأعلى</span>
+              </div>
+              <div className="p-2 bg-white rounded-xl border border-slate-200 space-y-1">
+                <span className="text-lg block">📦</span>
+                <span>قابل للكسر - أثاث</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <Button variant="ghost" onClick={() => setShowLabelModal(false)} className="font-black text-xs">إغلاق</Button>
+            <Button 
+              onClick={() => window.print()}
+              className="bg-slate-900 hover:bg-black text-white font-black text-xs rounded-xl h-10 px-6 shadow-md"
+            >
+              <Printer size={16} className="ml-2" />
+              طباعة بطاقة البيان
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warehouse Receipt Printable Modal */}
+      <Dialog open={showReceiptModal} onOpenChange={setShowReceiptModal}>
+        <DialogContent className="sm:max-w-[600px] rounded-[32px] p-6 bg-white border border-slate-200 shadow-2xl">
+          <div id="printable-warehouse-receipt" className="space-y-6 p-4">
+            {/* Document Header */}
+            <div className="flex items-center justify-between border-b-2 border-slate-900 pb-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">إذن استلام وتوريد مخزني (منتج تام)</h2>
+                <p className="text-xs font-bold text-slate-500 mt-0.5">قسم التغليف والمستودعات المركزية</p>
+              </div>
+              <div className="text-left font-mono">
+                <p className="font-black text-sm text-emerald-800">GRN-2026-8812</p>
+                <p className="text-[10px] text-slate-500">{new Date().toLocaleDateString('ar-EG')}</p>
+              </div>
+            </div>
+
+            {/* Document Meta Table */}
+            <div className="grid grid-cols-2 gap-4 text-xs font-bold text-slate-800 bg-slate-50 p-4 rounded-2xl">
+              <div>
+                <span className="text-slate-400 block text-[10px]">أمر التصنيع:</span>
+                <span className="font-black">{selectedOrderForReceipt?.moNumber}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px]">المخزن المستلم:</span>
+                <span className="font-black text-emerald-700">{selectedOrderForReceipt?.warehouseName || 'مخزن المنتجات التامة الرئيسي'}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px]">اسم المنتج:</span>
+                <span className="font-black">{selectedOrderForReceipt?.productName}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px]">الكمية المسلمة:</span>
+                <span className="font-black text-indigo-700">{selectedOrderForReceipt?.quantity} طقم/قطعة ({selectedOrderForReceipt?.packagesCount || 1} طرد)</span>
+              </div>
+            </div>
+
+            {/* Signatures */}
+            <div className="grid grid-cols-3 gap-4 pt-8 text-center text-xs font-black text-slate-700 border-t border-slate-200">
+              <div>
+                <p className="text-slate-400 text-[10px] uppercase mb-6">مسؤول التغليف والتكويد</p>
+                <p className="border-t border-slate-300 pt-1">{selectedOrderForReceipt?.packedBy || 'محمود سلامة'}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 text-[10px] uppercase mb-6">مفتش الجودة المعتمد</p>
+                <p className="border-t border-slate-300 pt-1">م. محمود حسن</p>
+              </div>
+              <div>
+                <p className="text-slate-400 text-[10px] uppercase mb-6">أمين المخزن المستلم</p>
+                <p className="border-t border-slate-300 pt-1">علي السعيد</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button variant="ghost" onClick={() => setShowReceiptModal(false)} className="font-black text-xs">إغلاق</Button>
+            <Button 
+              onClick={() => window.print()}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl h-10 px-6 shadow-md"
+            >
+              <Printer size={16} className="ml-2" />
+              طباعة إذن الاستلام
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Package Creation Modal */}
+      <Dialog open={showQuickPackageModal} onOpenChange={setShowQuickPackageModal}>
+        <DialogContent className="sm:max-w-[500px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-black">إدراج طرد أثاث للتغليف</DialogTitle>
+              <p className="text-slate-400 text-xs font-bold mt-1">إنشاء سجل شحنة أثاث جاهزة للتسليم للمخزن</p>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-bold">
+              <Package size={20} />
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4 bg-white text-right">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-500 uppercase">اسم المنتج / قطعة الأثاث *</label>
+              <Input 
+                value={quickPackageForm.productName}
+                onChange={e => setQuickPackageForm({ ...quickPackageForm, productName: e.target.value })}
+                placeholder="مثال: طقم كنب كلاسيك 7 مقاعد (خشب زان أصلي)"
+                className="rounded-2xl h-11 bg-slate-50 border-slate-200 text-xs font-bold"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-500 uppercase">رقم أمر التصنيع *</label>
+                <Input 
+                  value={quickPackageForm.moNumber}
+                  onChange={e => setQuickPackageForm({ ...quickPackageForm, moNumber: e.target.value })}
+                  className="rounded-2xl h-11 bg-slate-50 border-slate-200 text-xs font-mono font-bold"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-500 uppercase">الكمية المطلوبة *</label>
+                <Input 
+                  type="number"
+                  min="1"
+                  value={quickPackageForm.quantity}
+                  onChange={e => setQuickPackageForm({ ...quickPackageForm, quantity: Number(e.target.value) })}
+                  className="rounded-2xl h-11 bg-slate-50 border-slate-200 text-xs font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-500 uppercase">ملاحظات الشحنة والتغليف</label>
+              <Input 
+                value={quickPackageForm.notes}
+                onChange={e => setQuickPackageForm({ ...quickPackageForm, notes: e.target.value })}
+                className="rounded-2xl h-11 bg-slate-50 border-slate-200 text-xs font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <Button variant="ghost" onClick={() => setShowQuickPackageModal(false)} className="font-black text-slate-500 text-xs">إلغاء</Button>
+            <Button 
+              disabled={isSaving || !quickPackageForm.productName}
+              onClick={handleCreateQuickPackage}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-2xl h-11 px-8 shadow-md"
+            >
+              {isSaving ? 'جاري الحفظ...' : 'تأكيد وإضافة الطرد 📦'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
