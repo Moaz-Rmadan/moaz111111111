@@ -3133,6 +3133,7 @@ function MainApp({
             expenses={vehicleExpenses}
             employees={employees}
             safes={safes}
+            suppliers={suppliers}
           />
         )}
         {activeTab === 'safe' && (

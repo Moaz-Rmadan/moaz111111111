@@ -908,13 +908,25 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
             </div>
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">السائق المسؤول</label>
-              <Select value={vehicleForm.driverId} onValueChange={v => setVehicleForm({...vehicleForm, driverId: v})}>
+              <Select 
+                value={vehicleForm.driverId || ''} 
+                onValueChange={v => {
+                  const drv = employees.find(e => e.id === v);
+                  setVehicleForm({
+                    ...vehicleForm, 
+                    driverId: v,
+                    driverName: drv ? drv.name : (vehicleForm.driverName || '')
+                  });
+                }}
+              >
                 <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white font-bold">
-                  <SelectValue placeholder="اختر السائق" />
+                  <SelectValue>
+                    {vehicleForm.driverName || (employees.find(e => e.id === vehicleForm.driverId)?.name) || 'اختر السائق'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {drivers.map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  {employees.map(d => (
+                    <SelectItem key={d.id} value={d.id}>{d.name} {d.position ? `(${d.position})` : ''}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
