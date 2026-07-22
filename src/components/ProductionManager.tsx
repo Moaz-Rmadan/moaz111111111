@@ -38,6 +38,7 @@ import {
   writeBatch, increment, query, where, orderBy 
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
+import { Combobox } from './ui/Combobox';
 import { NumberDisplay } from '../lib/numberUtils';
 
 interface ProductionManagerProps {
@@ -552,22 +553,22 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-700">مسار الإنتاج والمراحل *</label>
-                <select 
-                  value={moForm.routeId || ''} 
-                  onChange={e => setMoForm({ ...moForm, routeId: e.target.value })}
-                  className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                >
-                  <option value="">-- اختر مسار التصنيع --</option>
-                  {productionRoutes.map((r: ProductionRoute) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} ({r.stages?.length || 0} مراحل)
-                    </option>
-                  ))}
-                  {productionRoutes.length === 0 && (
-                    <option value="route-default-standard">مسار التصنيع القياسي للأثاث (3 مراحل)</option>
-                  )}
-                </select>
+                <Combobox
+                  label="مسار الإنتاج والمراحل *"
+                  options={
+                    productionRoutes.length > 0 
+                    ? productionRoutes.map((r: ProductionRoute) => ({
+                        value: r.id,
+                        label: r.name,
+                        description: `${r.stages?.length || 0} مراحل تصنيع`
+                      }))
+                    : [{ value: 'route-default-standard', label: 'مسار التصنيع القياسي للأثاث', description: '3 مراحل أساسية' }]
+                  }
+                  value={moForm.routeId || ''}
+                  onChange={val => setMoForm({ ...moForm, routeId: val })}
+                  placeholder="اختر مسار التصنيع..."
+                  searchPlaceholder="بحث في المسارات..."
+                />
               </div>
             </div>
 
@@ -593,17 +594,18 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-700">الأولوية</label>
-                <select 
-                  value={moForm.priority || 'normal'} 
-                  onChange={e => setMoForm({ ...moForm, priority: e.target.value as any })}
-                  className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                >
-                  <option value="low">منخفضة</option>
-                  <option value="normal">عادية (افتراضي)</option>
-                  <option value="high">عالية ⚡</option>
-                  <option value="urgent">عاجل جدًا 🚨</option>
-                </select>
+                <Combobox
+                  label="الأولوية"
+                  options={[
+                    { value: 'low', label: 'منخفضة', description: 'أولوية عادية' },
+                    { value: 'normal', label: 'عادية (افتراضي)', description: 'الجدول الزمني المعتاد' },
+                    { value: 'high', label: 'عالية ⚡', description: 'يجب الانتهاء في أسرع وقت' },
+                    { value: 'urgent', label: 'عاجل جدًا 🚨', description: 'أولوية قصوى للمصنع' }
+                  ]}
+                  value={moForm.priority || 'normal'}
+                  onChange={val => setMoForm({ ...moForm, priority: val as any })}
+                  placeholder="اختر الأولوية..."
+                />
               </div>
             </div>
           </div>
@@ -627,19 +629,64 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
 // --- Sub-Components ---
 
 const ProductionDashboard = ({ orders, tracking, workOrders }: any) => {
+  const inProgressCount = orders.filter((o: any) => o.status === 'in_progress').length;
+  const completedToday = orders.filter((o: any) => o.status === 'completed').length; // Mock simplified
+  const activeWOs = workOrders.filter((w: any) => w.status === 'active' || w.status === 'in_progress').length;
+  const delayedOrders = orders.filter((o: any) => o.status === 'delayed').length;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <Card className="rounded-[32px] border-none shadow-sm bg-white p-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-8 transition-all hover:shadow-md">
         <div className="flex items-center justify-between mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
             <Activity size={24} />
           </div>
           <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[10px]">مباشر</Badge>
         </div>
-        <h4 className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-1">أوامر التصنيع الجارية</h4>
-        <div className="text-3xl font-black text-slate-900">{orders.filter((o: any) => o.status === 'in_progress').length}</div>
+        <h4 className="text-slate-400 font-bold text-[10px] sm:text-xs uppercase tracking-widest mb-1 truncate">أوامر التصنيع الجارية</h4>
+        <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 leading-none">
+          <NumberDisplay value={inProgressCount} />
+        </div>
       </Card>
-      {/* More Stats... */}
+
+      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-8 transition-all hover:shadow-md">
+        <div className="flex items-center justify-between mb-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <CheckCircle2 size={24} />
+          </div>
+          <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[10px]">اليوم</Badge>
+        </div>
+        <h4 className="text-slate-400 font-bold text-[10px] sm:text-xs uppercase tracking-widest mb-1 truncate">أوامر مكتملة</h4>
+        <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 leading-none">
+          <NumberDisplay value={completedToday} />
+        </div>
+      </Card>
+
+      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-8 transition-all hover:shadow-md">
+        <div className="flex items-center justify-between mb-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <Clock size={24} />
+          </div>
+          <Badge className="bg-amber-50 text-amber-600 border-none font-black text-[10px]">نشط</Badge>
+        </div>
+        <h4 className="text-slate-400 font-bold text-[10px] sm:text-xs uppercase tracking-widest mb-1 truncate">أوامر التشغيل النشطة</h4>
+        <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 leading-none">
+          <NumberDisplay value={activeWOs} />
+        </div>
+      </Card>
+
+      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-8 transition-all hover:shadow-md">
+        <div className="flex items-center justify-between mb-4">
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <AlertTriangle size={24} />
+          </div>
+          <Badge className="bg-rose-50 text-rose-600 border-none font-black text-[10px]">تنبيه</Badge>
+        </div>
+        <h4 className="text-slate-400 font-bold text-[10px] sm:text-xs uppercase tracking-widest mb-1 truncate">أوامر متأخرة</h4>
+        <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-rose-600 leading-none">
+          <NumberDisplay value={delayedOrders} colored />
+        </div>
+      </Card>
     </div>
   );
 };
@@ -1165,7 +1212,9 @@ const MOList = ({ orders = [] }: any) => {
                 <TableRow key={mo.id} className="group border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                   <TableCell className="py-5 px-8 font-black text-slate-900">{mo.moNumber}</TableCell>
                   <TableCell className="py-5 font-bold text-slate-800">{mo.productName}</TableCell>
-                  <TableCell className="py-5 text-center font-black font-mono text-slate-900">{mo.quantity}</TableCell>
+                  <TableCell className="py-5 text-center font-black font-mono text-slate-900">
+                    <NumberDisplay value={mo.quantity} className="text-xs sm:text-sm lg:text-base" />
+                  </TableCell>
                   <TableCell className="py-5">
                     <Badge className={`rounded-xl px-3 py-1 font-black text-xs ${
                       mo.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 
@@ -1331,9 +1380,11 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
                   <h3 className="text-xl font-black text-slate-900">{wo.stageName}</h3>
                   <p className="text-slate-500 font-bold text-xs mt-0.5">المنتج: <span className="text-slate-800 font-black">{wo.productName}</span> (أمر تصنيع: {wo.moNumber})</p>
                 </div>
-                <div className="text-left bg-slate-50 p-3 rounded-2xl min-w-[90px]">
+                <div className="text-left bg-slate-50 p-3 rounded-2xl min-w-[90px] sm:min-w-[110px]">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">نسبة الإنجاز</span>
-                  <span className="text-2xl font-black text-indigo-600">{wo.progress || 0}%</span>
+                  <span className="text-xl sm:text-2xl lg:text-3xl font-black text-indigo-600 leading-none">
+                    <NumberDisplay value={wo.progress || 0} unit="%" />
+                  </span>
                 </div>
               </div>
 
@@ -1515,9 +1566,9 @@ const RouteManager = ({ routes = [], onAdd, departments = [], employees = [] }: 
                     <DialogTitle className="text-2xl font-black">{selectedRoute.name}</DialogTitle>
                     <p className="text-slate-400 font-bold text-xs mt-1">{selectedRoute.description || 'لا يوجد وصف متاح'}</p>
                   </div>
-                  <Badge className="bg-indigo-600 text-white font-black text-sm px-4 py-2 rounded-xl">
-                    إجمالي {selectedRoute.stages?.length || 0} مراحل
-                  </Badge>
+              <Badge className="bg-indigo-600 text-white font-black text-xs sm:text-sm px-4 py-2 rounded-xl">
+                إجمالي <NumberDisplay value={selectedRoute.stages?.length || 0} unit="مراحل" />
+              </Badge>
                 </div>
               </div>
 
@@ -1794,9 +1845,11 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
           <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-black">
             <ShieldCheck size={24} />
           </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الفحوصات</p>
-            <p className="text-xl font-black text-slate-900 mt-0.5">{stats.total}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">إجمالي الفحوصات</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-black text-slate-900 mt-0.5">
+              <NumberDisplay value={stats.total} />
+            </p>
           </div>
         </Card>
 
@@ -1804,9 +1857,11 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
             PASS
           </div>
-          <div>
-            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">مقبول (PASS)</p>
-            <p className="text-xl font-black text-emerald-700 mt-0.5">{stats.passed}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest truncate">مقبول (PASS)</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-black text-emerald-700 mt-0.5">
+              <NumberDisplay value={stats.passed} colored />
+            </p>
           </div>
         </Card>
 
@@ -1814,9 +1869,11 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
           <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-black">
             FAIL
           </div>
-          <div>
-            <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">مرفوض وراجع (FAIL)</p>
-            <p className="text-xl font-black text-rose-700 mt-0.5">{stats.failed}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest truncate">مرفوض وراجع (FAIL)</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-black text-rose-700 mt-0.5">
+              <NumberDisplay value={stats.failed} colored />
+            </p>
           </div>
         </Card>
 
@@ -1824,9 +1881,11 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
           <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-black">
             REWORK
           </div>
-          <div>
-            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">إعادة تشغيل</p>
-            <p className="text-xl font-black text-amber-700 mt-0.5">{stats.rework}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest truncate">إعادة تشغيل</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-black text-amber-700 mt-0.5">
+              <NumberDisplay value={stats.rework} colored />
+            </p>
           </div>
         </Card>
 
@@ -2101,19 +2160,22 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
 
                 {/* Inspector Selection */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-700">مفتش الجودة المسؤول</label>
-                  <select 
-                    value={inspectorId} 
-                    onChange={e => setInspectorId(e.target.value)}
-                    className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-xs text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="">-- اختر اسم مفتش الجودة --</option>
-                    {employees.map((emp: any) => (
-                      <option key={emp.id} value={emp.id}>{emp.name} ({emp.jobTitle || 'مفتش جودة'})</option>
-                    ))}
-                    <option value="emp-q-1">مهندس محمود حسن (رئيس قسم الجودة)</option>
-                    <option value="emp-q-2">فني جودة أحمد سلامة</option>
-                  </select>
+                  <Combobox
+                    label="مفتش الجودة المسؤول"
+                    options={[
+                      ...employees.map((emp: any) => ({
+                        value: emp.id,
+                        label: emp.name,
+                        description: emp.jobTitle || 'مفتش جودة'
+                      })),
+                      { value: 'emp-q-1', label: 'مهندس محمود حسن', description: 'رئيس قسم الجودة' },
+                      { value: 'emp-q-2', label: 'أحمد سلامة', description: 'فني جودة' }
+                    ]}
+                    value={inspectorId}
+                    onChange={val => setInspectorId(val)}
+                    placeholder="ابحث عن مفتش..."
+                    searchPlaceholder="بحث في قائمة المفتشين..."
+                  />
                 </div>
 
                 {/* Notes & Comments */}
@@ -2471,44 +2533,52 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
 
       {/* Top Header & Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4">
+        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4 transition-transform hover:scale-[1.02] active:scale-100">
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
             <Package size={24} />
           </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الأوامر بالتغليف</p>
-            <p className="text-2xl font-black text-slate-900 mt-0.5">{stats.total}</p>
-          </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">إجمالي الأوامر بالتغليف</p>
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 mt-0.5">
+                      <NumberDisplay value={stats.total} />
+                    </p>
+                  </div>
         </Card>
 
-        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4">
+        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4 transition-transform hover:scale-[1.02] active:scale-100">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
             <Clock3 size={24} />
           </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بانتظار التغليف</p>
-            <p className="text-2xl font-black text-amber-600 mt-0.5">{stats.pendingPacking}</p>
-          </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">بانتظار التغليف</p>
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-black text-amber-600 mt-0.5">
+                      <NumberDisplay value={stats.pendingPacking} colored />
+                    </p>
+                  </div>
         </Card>
 
-        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4">
+        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4 transition-transform hover:scale-[1.02] active:scale-100">
           <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
             <PackageCheck size={24} />
           </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">مغلفة (بانتظار المخزن)</p>
-            <p className="text-2xl font-black text-sky-600 mt-0.5">{stats.packedPendingStorage}</p>
-          </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">مغلفة (بانتظار المخزن)</p>
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-black text-sky-600 mt-0.5">
+                      <NumberDisplay value={stats.packedPendingStorage} />
+                    </p>
+                  </div>
         </Card>
 
-        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4">
+        <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4 transition-transform hover:scale-[1.02] active:scale-100">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
             <CheckCircle2 size={24} />
           </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">مستلمة بالمخزن ✅</p>
-            <p className="text-2xl font-black text-emerald-600 mt-0.5">{stats.storedInWarehouse}</p>
-          </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">مستلمة بالمخزن ✅</p>
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-black text-emerald-600 mt-0.5">
+                      <NumberDisplay value={stats.storedInWarehouse} colored />
+                    </p>
+                  </div>
         </Card>
       </div>
 
@@ -2558,16 +2628,16 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
           <div className="w-20 h-20 rounded-3xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
             <Package size={40} />
           </div>
-          <div className="max-w-md mx-auto space-y-2">
+          <div className="max-w-md mx-auto space-y-2 px-4">
             <h4 className="text-xl font-black text-slate-900">لا توجد أوامر جاهزة للتغليف حالياً</h4>
             <p className="text-slate-500 text-xs font-bold leading-relaxed">
               يمكنك إضافة طرد جديد فوراً أو توليد شحنات أثاث نموذجية بضغطة زر واحدة لتجربة التغليف، الطباعة، والتوريد المخزني.
             </p>
           </div>
-          <div className="flex items-center justify-center gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button 
               onClick={() => setShowQuickPackageModal(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-2xl h-11 px-6 shadow-md"
+              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-2xl h-11 px-8 shadow-md"
             >
               <Plus size={16} className="ml-2" />
               إضافة طرد أثاث جديد
@@ -2576,7 +2646,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
               disabled={isSaving}
               onClick={handleGenerateDemoOrders}
               variant="outline"
-              className="border-slate-200 text-slate-700 hover:bg-slate-50 font-black text-xs rounded-2xl h-11 px-6"
+              className="w-full sm:w-auto border-slate-200 text-slate-700 hover:bg-slate-50 font-black text-xs rounded-2xl h-11 px-8"
             >
               <Sparkles size={16} className="ml-2 text-amber-500" />
               توليد شحنات تجريبية
@@ -2747,17 +2817,19 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-700">نوع ومواصفات التغليف المستخدم *</label>
-              <select
+              <Combobox
+                label="نوع ومواصفات التغليف المستخدم *"
+                options={[
+                  { value: 'كرتون مقوى 5 طبقات + نيلون بابلز لحماية زوايا الأثاث', label: 'كرتون مقوى (قياسي)', description: '5 طبقات + نيلون بابلز لحماية الزوايا' },
+                  { value: 'صندوق خشبي محكم مبطن بالفلين (للشحنات والتصدير)', label: 'صندوق خشبي للتصدير', description: 'محكم ومبطن بالفلين للشحن الدولي' },
+                  { value: 'تغليف حراري انكماشي Polyethylene', label: 'تغليف حراري', description: 'Polyethylene انكماشي' },
+                  { value: 'تغليف قماشي فاخر وحافظة أثاث جلدية', label: 'تغليف قماشي فاخر', description: 'حافظة أثاث جلدية' },
+                ]}
                 value={packingForm.packingType}
-                onChange={e => setPackingForm({ ...packingForm, packingType: e.target.value })}
-                className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-xs text-slate-800 outline-none"
-              >
-                <option value="كرتون مقوى 5 طبقات + نيلون بابلز لحماية زوايا الأثاث">كرتون مقوى 5 طبقات + نيلون بابلز لحماية زوايا الأثاث (قياسي)</option>
-                <option value="صندوق خشبي محكم مبطن بالفلين (للشحنات والتصدير)">صندوق خشبي محكم مبطن بالفلين (للشحنات والتصدير)</option>
-                <option value="تغليف حراري انكماشي Polyethylene">تغليف حراري انكماشي Polyethylene</option>
-                <option value="تغليف قماشي فاخر وحافظة أثاث جلدية">تغليف قماشي فاخر وحافظة أثاث جلدية</option>
-              </select>
+                onChange={val => setPackingForm({ ...packingForm, packingType: val })}
+                placeholder="اختر نوع التغليف..."
+                searchPlaceholder="بحث عن نوع التغليف..."
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -2802,19 +2874,22 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-700">الفني المسؤول عن التغليف</label>
-                <select
+                <Combobox
+                  label="الفني المسؤول عن التغليف"
+                  options={[
+                    ...employees.map((e: any) => ({
+                      value: e.name,
+                      label: e.name,
+                      description: e.jobTitle || 'فني تغليف'
+                    })),
+                    { value: 'محمود سلامة (مشرف التغليف)', label: 'محمود سلامة', description: 'مشرف التغليف' },
+                    { value: 'علي زكريا (فني تكويد وكرتون)', label: 'علي زكريا', description: 'فني تكويد وكرتون' }
+                  ]}
                   value={packingForm.packedBy}
-                  onChange={e => setPackingForm({ ...packingForm, packedBy: e.target.value })}
-                  className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-xs text-slate-800 outline-none"
-                >
-                  <option value="">-- اختر الفني المسؤول --</option>
-                  {employees.map((e: any) => (
-                    <option key={e.id} value={e.name}>{e.name} ({e.jobTitle || 'فني تغليف'})</option>
-                  ))}
-                  <option value="محمود سلامة (مشرف التغليف)">محمود سلامة (مشرف التغليف)</option>
-                  <option value="علي زكريا (فني تكويد وكرتون)">علي زكريا (فني تكويد وكرتون)</option>
-                </select>
+                  onChange={val => setPackingForm({ ...packingForm, packedBy: val })}
+                  placeholder="ابحث عن فني..."
+                  searchPlaceholder="بحث في قائمة الفنيين..."
+                />
               </div>
             </div>
 
@@ -2868,16 +2943,18 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-700">المخزن الرئيسي المستلم *</label>
-              <select
+              <Combobox
+                label="المخزن الرئيسي المستلم *"
+                options={[
+                  { value: 'مخزن المنتجات التامة - المصنع الرئيسي', label: 'مخزن المنتجات التامة', description: 'المصنع الرئيسي' },
+                  { value: 'مخزن صالة العرض الرئيسية (Showroom Stock)', label: 'مخزن صالة العرض', description: 'Showroom Stock' },
+                  { value: 'مخزن الترانزيت والتحميل اللوجستي', label: 'مخزن الترانزيت', description: 'التحميل اللوجستي' },
+                ]}
                 value={warehouseForm.warehouseName}
-                onChange={e => setWarehouseForm({ ...warehouseForm, warehouseName: e.target.value })}
-                className="w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 font-bold text-xs text-slate-800 outline-none"
-              >
-                <option value="مخزن المنتجات التامة - المصنع الرئيسي">مخزن المنتجات التامة - المصنع الرئيسي</option>
-                <option value="مخزن صالة العرض الرئيسية (Showroom Stock)">مخزن صالة العرض الرئيسية (Showroom Stock)</option>
-                <option value="مخزن الترانزيت والتحميل اللوجستي">مخزن الترانزيت والتحميل اللوجستي</option>
-              </select>
+                onChange={val => setWarehouseForm({ ...warehouseForm, warehouseName: val })}
+                placeholder="اختر المخزن..."
+                searchPlaceholder="بحث عن مخزن..."
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3416,23 +3493,29 @@ const ProductionReports = ({
                   <Badge className="bg-indigo-50 text-indigo-700 border-none font-bold text-[10px] mb-1">تقرير 1</Badge>
                   <h3 className="text-lg font-black text-slate-900">تقرير أوامر التصنيع (MOs)</h3>
                 </div>
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">
-                  {moStats.total}
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm sm:text-lg">
+                  <NumberDisplay value={moStats.total} />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-800">
-                  <p className="text-[10px] font-black uppercase">مكتملة</p>
-                  <p className="text-xl font-black mt-1">{moStats.completed}</p>
+                <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-800 min-w-0">
+                  <p className="text-[10px] font-black uppercase truncate">مكتملة</p>
+                  <p className="text-lg sm:text-xl font-black mt-1">
+                    <NumberDisplay value={moStats.completed} />
+                  </p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-2xl text-amber-800">
-                  <p className="text-[10px] font-black uppercase">قيد التصنيع</p>
-                  <p className="text-xl font-black mt-1">{moStats.inProgress}</p>
+                <div className="p-3 bg-amber-50 rounded-2xl text-amber-800 min-w-0">
+                  <p className="text-[10px] font-black uppercase truncate">قيد التصنيع</p>
+                  <p className="text-lg sm:text-xl font-black mt-1">
+                    <NumberDisplay value={moStats.inProgress} />
+                  </p>
                 </div>
-                <div className="p-3 bg-slate-100 rounded-2xl text-slate-800">
-                  <p className="text-[10px] font-black uppercase">مخططة</p>
-                  <p className="text-xl font-black mt-1">{moStats.planned}</p>
+                <div className="p-3 bg-slate-100 rounded-2xl text-slate-800 min-w-0">
+                  <p className="text-[10px] font-black uppercase truncate">مخططة</p>
+                  <p className="text-lg sm:text-xl font-black mt-1">
+                    <NumberDisplay value={moStats.planned} />
+                  </p>
                 </div>
               </div>
 
@@ -3454,23 +3537,29 @@ const ProductionReports = ({
                   <Badge className="bg-indigo-50 text-indigo-700 border-none font-bold text-[10px] mb-1">تقرير 2</Badge>
                   <h3 className="text-lg font-black text-slate-900">تقرير أوامر التشغيل (WO)</h3>
                 </div>
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">
-                  {woStats.total}
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm sm:text-lg">
+                  <NumberDisplay value={woStats.total} />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-800">
-                  <p className="text-[10px] font-black uppercase">WO منجزة</p>
-                  <p className="text-xl font-black mt-1">{woStats.completed}</p>
+                <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-800 min-w-0">
+                  <p className="text-[10px] font-black uppercase truncate">WO منجزة</p>
+                  <p className="text-lg sm:text-xl font-black mt-1">
+                    <NumberDisplay value={woStats.completed} />
+                  </p>
                 </div>
-                <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-800">
-                  <p className="text-[10px] font-black uppercase">WO نشطة</p>
-                  <p className="text-xl font-black mt-1">{woStats.active}</p>
+                <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-800 min-w-0">
+                  <p className="text-[10px] font-black uppercase truncate">WO نشطة</p>
+                  <p className="text-lg sm:text-xl font-black mt-1">
+                    <NumberDisplay value={woStats.active} />
+                  </p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-2xl text-amber-800">
-                  <p className="text-[10px] font-black uppercase">WO بانتظار</p>
-                  <p className="text-xl font-black mt-1">{woStats.pending}</p>
+                <div className="p-3 bg-amber-50 rounded-2xl text-amber-800 min-w-0">
+                  <p className="text-[10px] font-black uppercase truncate">WO بانتظار</p>
+                  <p className="text-lg sm:text-xl font-black mt-1">
+                    <NumberDisplay value={woStats.pending} />
+                  </p>
                 </div>
               </div>
 
@@ -3502,7 +3591,9 @@ const ProductionReports = ({
                   <TableRow key={o.id} className="border-b border-slate-50">
                     <TableCell className="py-4 px-6 font-black text-slate-900">{o.moNumber}</TableCell>
                     <TableCell className="py-4 font-bold text-slate-800">{o.productName}</TableCell>
-                    <TableCell className="py-4 text-center font-black">{o.quantity}</TableCell>
+                    <TableCell className="py-4 text-center font-black">
+                      <NumberDisplay value={o.quantity} className="text-sm" />
+                    </TableCell>
                     <TableCell className="py-4">
                       <Badge className={`font-bold text-xs ${
                         o.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
@@ -3540,11 +3631,13 @@ const ProductionReports = ({
                   <div key={idx} className="p-3.5 bg-slate-50 rounded-2xl flex items-center justify-between">
                     <div>
                       <p className="font-black text-slate-900 text-xs">{dept.name}</p>
-                      <p className="text-[11px] font-bold text-slate-400 mt-0.5">عدد الأوامر المنجزة: {dept.completedWOs} من {dept.totalWOs}</p>
+                      <p className="text-[11px] font-bold text-slate-400 mt-0.5">عدد الأوامر المنجزة: <NumberDisplay value={dept.completedWOs} /> من <NumberDisplay value={dept.totalWOs} /></p>
                     </div>
                     <div className="text-left">
-                      <span className="font-black text-indigo-700 text-sm">{dept.totalUnits} قطعة</span>
-                      <p className="text-[10px] font-bold text-emerald-600">كفاءة: {dept.efficiency}%</p>
+                      <span className="font-black text-indigo-700 text-sm">
+                        <NumberDisplay value={dept.totalUnits} unit="قطعة" />
+                      </span>
+                      <p className="text-[10px] font-bold text-emerald-600">كفاءة: <NumberDisplay value={dept.efficiency} unit="%" /></p>
                     </div>
                   </div>
                 ))}
@@ -3574,8 +3667,10 @@ const ProductionReports = ({
                       </div>
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-slate-900 text-xs">{emp.totalUnits} قطع ({emp.completedWOs} أوامر)</p>
-                      <p className="text-[10px] font-bold text-emerald-600">جودة العمل: {emp.qualityScore}%</p>
+                      <p className="font-black text-slate-900 text-xs">
+                        <NumberDisplay value={emp.totalUnits} unit="قطع" /> (<NumberDisplay value={emp.completedWOs} unit="أوامر" />)
+                      </p>
+                      <p className="text-[10px] font-bold text-emerald-600">جودة العمل: <NumberDisplay value={emp.qualityScore} unit="%" /></p>
                     </div>
                   </div>
                 ))}
@@ -3600,13 +3695,17 @@ const ProductionReports = ({
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-900">
-                  <p className="text-xs font-black">نسبة القبول الفوري (FPY)</p>
-                  <p className="text-3xl font-black mt-2">{qualityReport.passRate}%</p>
+                <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-900 min-w-0">
+                  <p className="text-xs font-black truncate">نسبة القبول الفوري (FPY)</p>
+                  <p className="text-2xl sm:text-3xl font-black mt-2">
+                    <NumberDisplay value={qualityReport.passRate} unit="%" colored />
+                  </p>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-2xl text-slate-800">
-                  <p className="text-xs font-black">إجمالي الفحوصات المنفذة</p>
-                  <p className="text-3xl font-black mt-2">{qualityReport.totalInspec}</p>
+                <div className="p-4 bg-slate-50 rounded-2xl text-slate-800 min-w-0">
+                  <p className="text-xs font-black truncate">إجمالي الفحوصات المنفذة</p>
+                  <p className="text-2xl sm:text-3xl font-black mt-2">
+                    <NumberDisplay value={qualityReport.totalInspec} />
+                  </p>
                 </div>
               </div>
             </Card>
@@ -3622,17 +3721,23 @@ const ProductionReports = ({
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-rose-50 rounded-2xl text-rose-800">
-                  <p className="text-[10px] font-black">مرفوض مع أرجاع</p>
-                  <p className="text-xl font-black mt-1">{qualityReport.failed}</p>
+                <div className="p-3 bg-rose-50 rounded-2xl text-rose-800 min-w-0">
+                  <p className="text-[10px] font-black truncate">مرفوض مع أرجاع</p>
+                  <p className="text-lg sm:text-xl font-black mt-1">
+                    <NumberDisplay value={qualityReport.failed} colored />
+                  </p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-2xl text-amber-800">
-                  <p className="text-[10px] font-black">إعادة عمل (Rework)</p>
-                  <p className="text-xl font-black mt-1">{qualityReport.rework}</p>
+                <div className="p-3 bg-amber-50 rounded-2xl text-amber-800 min-w-0">
+                  <p className="text-[10px] font-black truncate">إعادة عمل (Rework)</p>
+                  <p className="text-lg sm:text-xl font-black mt-1">
+                    <NumberDisplay value={qualityReport.rework} colored />
+                  </p>
                 </div>
-                <div className="p-3 bg-slate-900 text-white rounded-2xl">
-                  <p className="text-[10px] font-black">خردة (Scrap)</p>
-                  <p className="text-xl font-black mt-1">{qualityReport.scrap}</p>
+                <div className="p-3 bg-slate-900 text-white rounded-2xl min-w-0">
+                  <p className="text-[10px] font-black truncate">خردة (Scrap)</p>
+                  <p className="text-lg sm:text-xl font-black mt-1">
+                    <NumberDisplay value={qualityReport.scrap} />
+                  </p>
                 </div>
               </div>
             </Card>
@@ -3715,8 +3820,10 @@ const ProductionReports = ({
                 {dailyOutput.map((item, idx) => (
                   <div key={idx} className="p-3 bg-slate-50 rounded-2xl flex items-center justify-between text-xs">
                     <span className="font-black text-slate-800">{item.date}</span>
-                    <span className="font-bold text-slate-600">المستهدف: {item.target} • الفعلي: <span className="font-black text-slate-900">{item.actual}</span></span>
-                    <Badge className="bg-indigo-100 text-indigo-800 font-black">{item.rate}</Badge>
+                    <span className="font-bold text-slate-600">المستهدف: <NumberDisplay value={item.target} /> • الفعلي: <span className="font-black text-slate-900"><NumberDisplay value={item.actual} /></span></span>
+                    <Badge className="bg-indigo-100 text-indigo-800 font-black">
+                      <NumberDisplay value={item.rate} />
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -3737,7 +3844,9 @@ const ProductionReports = ({
                   <div key={idx} className="p-4 bg-slate-50 rounded-2xl space-y-2">
                     <div className="flex items-center justify-between text-xs font-black">
                       <span className="text-slate-900">{item.month}</span>
-                      <span className="text-emerald-700">{item.actualUnits} / {item.targetUnits} قطعة ({item.completion})</span>
+                      <span className="text-emerald-700">
+                        <NumberDisplay value={item.actualUnits} /> / <NumberDisplay value={item.targetUnits} /> قطعة (<NumberDisplay value={item.completion} />)
+                      </span>
                     </div>
                     <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
                       <div className="bg-emerald-600 h-full" style={{ width: item.completion }} />
@@ -4089,29 +4198,39 @@ const ShowroomFactoryIntegration = ({
 
         {/* 4 Summary Analytics KPI Badges */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
-          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10">
-            <p className="text-[11px] font-bold text-slate-300">إجمالي الطلبات</p>
-            <p className="text-2xl font-black text-white mt-1">{stats.total}</p>
+          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 min-w-0">
+            <p className="text-[11px] font-bold text-slate-300 truncate">إجمالي الطلبات</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-black text-white mt-1">
+              <NumberDisplay value={stats.total} />
+            </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30">
-            <p className="text-[11px] font-bold text-emerald-300">تم واكتمل وتسليم</p>
-            <p className="text-2xl font-black text-emerald-400 mt-1">{stats.completed}</p>
+          <div className="p-4 rounded-2xl bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 min-w-0">
+            <p className="text-[11px] font-bold text-emerald-300 truncate">تم واكتمل وتسليم</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-black text-emerald-400 mt-1">
+              <NumberDisplay value={stats.completed} />
+            </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30">
-            <p className="text-[11px] font-bold text-amber-300">جاري التشغيل بالمصنع</p>
-            <p className="text-2xl font-black text-amber-400 mt-1">{stats.inProgress}</p>
+          <div className="p-4 rounded-2xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30 min-w-0">
+            <p className="text-[11px] font-bold text-amber-300 truncate">جاري التشغيل بالمصنع</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-black text-amber-400 mt-1">
+              <NumberDisplay value={stats.inProgress} />
+            </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-rose-500/20 backdrop-blur-md border border-rose-500/30">
-            <p className="text-[11px] font-bold text-rose-300">بانتظار الخامات</p>
-            <p className="text-2xl font-black text-rose-400 mt-1">{stats.pending}</p>
+          <div className="p-4 rounded-2xl bg-rose-500/20 backdrop-blur-md border border-rose-500/30 min-w-0">
+            <p className="text-[11px] font-bold text-rose-300 truncate">بانتظار الخامات</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-black text-rose-400 mt-1">
+              <NumberDisplay value={stats.pending} />
+            </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-indigo-500/20 backdrop-blur-md border border-indigo-500/30 col-span-2 sm:col-span-1">
-            <p className="text-[11px] font-bold text-indigo-300">نسبة الإنجاز العامة</p>
-            <p className="text-2xl font-black text-indigo-400 mt-1">{stats.completionRate}%</p>
+          <div className="p-4 rounded-2xl bg-indigo-500/20 backdrop-blur-md border border-indigo-500/30 col-span-2 sm:col-span-1 min-w-0">
+            <p className="text-[11px] font-bold text-indigo-300 truncate">نسبة الإنجاز العامة</p>
+            <p className="text-lg sm:text-xl lg:text-2xl font-black text-indigo-400 mt-1">
+              <NumberDisplay value={stats.completionRate} unit="%" />
+            </p>
           </div>
         </div>
       </div>
