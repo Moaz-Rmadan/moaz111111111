@@ -6,8 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: 'IBM Plex Sans Arabic', 'Cairo', var(--font-sans);
-    --font-sans: 'IBM Plex Sans Arabic', 'Cairo', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-heading: 'IBM Plex Sans Arabic', var(--font-sans);
+    --font-sans: 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --font-mono: 'JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -153,23 +153,23 @@
 
   /* Sophisticated Arabic Inputs & Controls */
   select, input[type="text"], input[type="number"], input[type="date"], input[type="password"], input[type="email"], textarea {
-    @apply rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-[0_2px_8px_rgba(0,0,0,0.01)] transition-all duration-300 outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15 focus-visible:shadow-[0_4px_16px_rgba(79,70,229,0.05)] text-slate-800 text-sm pr-4 pl-4 py-2.5;
+    @apply rounded-[14px] border border-slate-200 bg-white hover:border-slate-300 hover:shadow-[0_2px_8px_rgba(0,0,0,0.01)] transition-all duration-200 outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15 focus-visible:shadow-[0_4px_16px_rgba(79,70,229,0.05)] text-slate-800 text-sm pr-4 pl-4 py-2.5;
   }
 
   /* Minimal utility rounded cards with subtle 3D hover interaction */
   .dribbble-card {
-    @apply bg-white border border-slate-200/40 shadow-[0_4px_20px_rgba(0,0,0,0.012)] hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.055)] hover:-translate-y-0.5 transition-all duration-500 rounded-[24px] relative z-10;
+    @apply bg-white border border-slate-200/40 shadow-[0_4px_20px_rgba(0,0,0,0.012)] hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.055)] hover:-translate-y-0.5 transition-all duration-200 rounded-[14px] relative z-10;
   }
   .dribbble-card::after {
     content: '';
-    @apply absolute inset-0 rounded-[24px] border border-transparent transition-all duration-500 pointer-events-none z-[1];
+    @apply absolute inset-0 rounded-[14px] border border-transparent transition-all duration-200 pointer-events-none z-[1];
   }
   .dribbble-card:hover::after {
     @apply border-primary/10;
   }
 
   .premium-card {
-    @apply bg-white border border-slate-100/80 shadow-[0_2px_8px_rgba(0,0,0,0.01)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.03)] transition-all duration-300 rounded-[20px] overflow-hidden;
+    @apply bg-white border border-slate-100/80 shadow-[0_2px_8px_rgba(0,0,0,0.01)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.03)] transition-all duration-200 rounded-[14px] overflow-hidden;
   }
   
   .glass-panel {
@@ -178,19 +178,19 @@
 
   /* Buttons designed for high-end look and custom responsive scaling */
   .btn-primary {
-    @apply bg-primary text-primary-foreground shadow-[0_4px_16px_rgba(79,70,229,0.18)] hover:shadow-[0_8px_24px_rgba(79,70,229,0.28)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 rounded-xl font-bold text-sm px-6 py-3 cursor-pointer select-none;
+    @apply bg-primary text-primary-foreground shadow-[0_4px_16px_rgba(79,70,229,0.18)] hover:shadow-[0_8px_24px_rgba(79,70,229,0.28)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 rounded-[14px] font-bold text-sm px-6 py-3 cursor-pointer select-none;
   }
 
   .btn-secondary {
-    @apply bg-white text-slate-700 border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 rounded-xl font-bold text-sm px-6 py-3 cursor-pointer select-none;
+    @apply bg-white text-slate-700 border border-slate-200 shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 rounded-[14px] font-bold text-sm px-6 py-3 cursor-pointer select-none;
   }
 
   .btn-ghost {
-    @apply text-slate-500 hover:bg-slate-100/80 hover:text-slate-800 active:scale-[0.98] transition-all duration-300 rounded-xl font-bold text-sm px-4 py-2.5 cursor-pointer;
+    @apply text-slate-500 hover:bg-slate-100/80 hover:text-slate-800 active:scale-[0.98] transition-all duration-200 rounded-[14px] font-bold text-sm px-4 py-2.5 cursor-pointer;
   }
 
   .btn-danger {
-    @apply bg-red-500 text-white shadow-[0_4px_16px_rgba(239,68,68,0.15)] hover:bg-red-600 hover:shadow-[0_8px_24px_rgba(239,68,68,0.22)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 rounded-xl font-bold text-sm px-6 py-3 cursor-pointer;
+    @apply bg-red-500 text-white shadow-[0_4px_16px_rgba(239,68,68,0.15)] hover:bg-red-600 hover:shadow-[0_8px_24px_rgba(239,68,68,0.22)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 rounded-[14px] font-bold text-sm px-6 py-3 cursor-pointer;
   }
 
   .data-stat {
@@ -593,5 +593,83 @@
     border-radius: 12px !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .responsive-table, 
+  .responsive-table thead, 
+  .responsive-table tbody, 
+  .responsive-table th, 
+  .responsive-table td, 
+  .responsive-table tr { 
+    display: block; 
+  }
+  
+  .responsive-table thead tr { 
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+  
+  .responsive-table tr {
+    margin-bottom: 1rem;
+    background: white;
+    border-radius: 14px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid #f1f5f9;
+  }
+  
+  .responsive-table td {
+    border: none;
+    position: relative;
+    padding-right: 45%; 
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    text-align: left;
+    min-height: 2.5rem;
+    display: flex !important;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  
+  .responsive-table td:before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 1rem;
+    width: 40%;
+    padding-right: 10px;
+    white-space: normal;
+    content: attr(data-label);
+    font-weight: 900;
+    font-size: 0.75rem;
+    color: #64748b;
+    text-align: right;
+    display: flex;
+    align-items: center;
+  }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (max-width: 768px) {
+  .recharts-responsive-container {
+    min-width: 600px !important;
+  }
+  
+  :has(> .recharts-responsive-container) {
+    overflow-x: auto !important;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  :has(> .recharts-responsive-container)::-webkit-scrollbar {
+    display: none;
   }
 }

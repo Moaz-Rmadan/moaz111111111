@@ -845,13 +845,13 @@ export function SalesModule({
   }, [salesOrders, salesSearch, salesShowroomFilter]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 rtl" style={{ direction: 'rtl' }}>
+    <div className="space-y-6 animate-in fade-in duration-200 rtl" style={{ direction: 'rtl' }}>
       
       {/* Dynamic Dashboard Banner */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-l from-slate-900 via-slate-800 to-slate-950 p-8 rounded-3xl text-white shadow-2xl">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-l from-slate-900 via-slate-800 to-slate-950 p-6 rounded-3xl text-white shadow-2xl">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <span className="p-2.5 bg-emerald-500/20 rounded-2xl border border-emerald-500/30 text-emerald-400">
+            <span className="p-2.5 bg-emerald-500/20 rounded-[14px] border border-emerald-500/30 text-emerald-400">
               <Building2 size={28} />
             </span>
             <div>
@@ -873,7 +873,7 @@ export function SalesModule({
       </div>
 
       {/* Main Tab Controls */}
-      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit border border-slate-200">
+      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-[14px] w-fit border border-slate-200">
         <Button 
           variant={activeTab === 'dashboard' ? 'default' : 'ghost'} 
           onClick={() => setActiveTab('dashboard')} 
@@ -946,8 +946,8 @@ export function SalesModule({
           
           {/* AI Insights Panel */}
           <Card className="rounded-3xl border-0 shadow-xl shadow-slate-100/70 bg-slate-900 text-white overflow-hidden">
-            <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center">
-              <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-400 shrink-0">
+            <div className="p-6 md:p-6 flex flex-col md:flex-row gap-6 items-center">
+              <div className="w-16 h-16 bg-slate-800 rounded-[14px] flex items-center justify-center text-emerald-400 shrink-0">
                 <Sparkles size={32} />
               </div>
               <div className="flex-1 space-y-2 text-center md:text-right">
@@ -973,9 +973,9 @@ export function SalesModule({
             </div>
 
             {aiInsights && (
-              <div className="p-6 md:p-8 pt-0 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-4 duration-500 border-t border-slate-800 mt-4 pt-6">
+              <div className="p-6 md:p-6 pt-0 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-4 duration-200 border-t border-slate-800 mt-4 pt-6">
                 <div className="space-y-4">
-                  <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
+                  <div className="p-4 bg-slate-800/50 rounded-[14px] border border-slate-700">
                     <h4 className="text-emerald-400 font-black text-sm mb-2 flex items-center gap-2">
                       <TrendingUp size={16} />
                       الملخص الاستراتيجي
@@ -984,7 +984,7 @@ export function SalesModule({
                   </div>
                   
                   {aiInsights.riskAlerts && aiInsights.riskAlerts.length > 0 && (
-                    <div className="p-4 bg-red-500/10 rounded-2xl border border-red-500/20">
+                    <div className="p-4 bg-red-500/10 rounded-[14px] border border-red-500/20">
                       <h4 className="text-red-400 font-black text-sm mb-2 flex items-center gap-2">
                         <AlertTriangle size={16} />
                         تنبيهات المخاطر
@@ -1044,7 +1044,7 @@ export function SalesModule({
                     {stats.totalSales.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })}
                   </h3>
                 </div>
-                <span className="p-3 bg-emerald-50 rounded-2xl text-emerald-600">
+                <span className="p-3 bg-emerald-50 rounded-[14px] text-emerald-600">
                   <TrendingUp size={22} />
                 </span>
               </div>
@@ -1062,7 +1062,7 @@ export function SalesModule({
                     {stats.totalProfit.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })}
                   </h3>
                 </div>
-                <span className="p-3 bg-blue-50 rounded-2xl text-blue-600">
+                <span className="p-3 bg-blue-50 rounded-[14px] text-blue-600">
                   <DollarSign size={22} />
                 </span>
               </div>
@@ -1080,7 +1080,7 @@ export function SalesModule({
                     {stats.inventoryValuation.toLocaleString('ar-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 })}
                   </h3>
                 </div>
-                <span className="p-3 bg-purple-50 rounded-2xl text-purple-600">
+                <span className="p-3 bg-purple-50 rounded-[14px] text-purple-600">
                   <Layers size={22} />
                 </span>
               </div>
@@ -1096,7 +1096,7 @@ export function SalesModule({
                   <span className="text-xs font-black text-slate-400 tracking-wider">الصالات النشطة</span>
                   <h3 className="text-2xl font-black text-slate-800">{stats.totalShowroomsCount} صالة</h3>
                 </div>
-                <span className="p-3 bg-amber-50 rounded-2xl text-amber-600">
+                <span className="p-3 bg-amber-50 rounded-[14px] text-amber-600">
                   <Building2 size={22} />
                 </span>
               </div>
@@ -1268,7 +1268,7 @@ export function SalesModule({
               <CardContent className="pt-4">
                 <div className="space-y-4">
                   {/* Ageing logic: items older than 30 days are considered "slow" */}
-                  <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-center justify-between">
+                  <div className="p-4 bg-amber-50 rounded-[14px] border border-amber-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
                         <Clock size={18} />
@@ -1286,7 +1286,7 @@ export function SalesModule({
                     <ArrowUpRight size={20} className="text-amber-400" />
                   </div>
 
-                  <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between">
+                  <div className="p-4 bg-emerald-50 rounded-[14px] border border-emerald-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
                         <History size={18} />
@@ -1344,11 +1344,11 @@ export function SalesModule({
                   </div>
 
                   <div className="pt-4 grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-slate-900 rounded-2xl text-center">
+                    <div className="p-3 bg-slate-900 rounded-[14px] text-center">
                       <span className="text-[10px] font-bold text-slate-400 block">صافي الربح</span>
                       <span className="text-sm font-black text-emerald-400">{stats.totalProfit.toLocaleString()} ج.م</span>
                     </div>
-                    <div className="p-3 bg-slate-100 rounded-2xl text-center">
+                    <div className="p-3 bg-slate-100 rounded-[14px] text-center">
                       <span className="text-[10px] font-bold text-slate-500 block">الهامش التشغيلي</span>
                       <span className="text-sm font-black text-slate-800">{stats.averageMargin.toFixed(1)}%</span>
                     </div>
@@ -1386,13 +1386,13 @@ export function SalesModule({
                     type="number"
                     value={showroomTarget}
                     onChange={(e) => setShowroomTarget(Number(e.target.value))}
-                    className="h-14 rounded-2xl text-xl font-black pl-14 border-slate-200 focus:ring-slate-900"
+                    className="h-14 rounded-[14px] text-xl font-black pl-14 border-slate-200 focus:ring-slate-900"
                   />
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">ج.م</div>
                 </div>
               </div>
               
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="p-4 bg-slate-50 rounded-[14px] border border-slate-100">
                 <p className="text-xs text-slate-500 font-medium leading-relaxed">
                   سيتم استخدام هذا الرقم لحساب نسب الإنجاز في لوحة القيادة (Dashboard) وتقييم أداء مدراء الفروع بناءً على التحصيل الفعلي.
                 </p>
@@ -1411,7 +1411,7 @@ export function SalesModule({
       {/* --- SHOWROOMS DIRECTORY --- */}
       {activeTab === 'showrooms' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-center bg-white p-4 rounded-[14px] border border-slate-100 shadow-sm">
             <div>
               <h3 className="font-black text-lg text-slate-800">دليل المعارض والوكلاء</h3>
               <p className="text-xs text-slate-400 font-semibold">إضافة صالات عرض وتحديد مدراء الفروع لمتابعة التدفق المخزني والمبيعات</p>
@@ -1423,7 +1423,7 @@ export function SalesModule({
           </div>
 
           {showAddShowroom && (
-            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-300">
+            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-200">
               <div className="flex justify-between items-center mb-4 pb-2 border-b">
                 <h4 className="font-black text-slate-800">إضافة صالة عرض جديدة</h4>
                 <Button variant="ghost" onClick={() => setShowAddShowroom(false)} className="p-1 h-auto text-slate-400">
@@ -1484,7 +1484,7 @@ export function SalesModule({
                 const totalSalesVal = srSales.reduce((sum, so) => sum + so.totalAmount, 0);
 
                 return (
-                  <Card key={sr.id} className="rounded-3xl border-0 shadow-md hover:shadow-lg shadow-slate-100 bg-white overflow-hidden group transition-all duration-300">
+                  <Card key={sr.id} className="rounded-3xl border-0 shadow-md hover:shadow-lg shadow-slate-100 bg-white overflow-hidden group transition-all duration-200">
                     <div className="bg-slate-900 p-5 text-white flex justify-between items-start">
                       <div className="space-y-1">
                         <h4 className="text-lg font-black">{sr.name}</h4>
@@ -1499,11 +1499,11 @@ export function SalesModule({
                     </div>
                     <CardContent className="p-5 space-y-4">
                       <div className="grid grid-cols-2 gap-3.5 pt-1">
-                        <div className="p-3 bg-slate-50 rounded-2xl space-y-0.5">
+                        <div className="p-3 bg-slate-50 rounded-[14px] space-y-0.5">
                           <span className="text-[10px] font-black text-slate-400 block">قطع المخزون الحالية</span>
                           <span className="text-base font-black text-slate-700">{totalPieces} قطعة</span>
                         </div>
-                        <div className="p-3 bg-slate-50 rounded-2xl space-y-0.5">
+                        <div className="p-3 bg-slate-50 rounded-[14px] space-y-0.5">
                           <span className="text-[10px] font-black text-slate-400 block">إجمالي مبيعات الفرع</span>
                           <span className="text-base font-black text-emerald-600">{totalSalesVal.toLocaleString()} ج.م</span>
                         </div>
@@ -1540,7 +1540,7 @@ export function SalesModule({
       {/* --- SHOWROOMS INVENTORY --- */}
       {activeTab === 'inventory' && (
         <div className="space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm">
             <div className="space-y-0.5">
               <h3 className="font-black text-lg text-slate-800">مخازن الأثاث بالمعارض</h3>
               <p className="text-xs text-slate-400 font-semibold">استعراض القطع الجاهزة المتاحة في المعارض بتكلفتها الفعلية COGS من المصنع</p>
@@ -1659,7 +1659,7 @@ export function SalesModule({
       {/* --- TRANSFER ORDERS --- */}
       {activeTab === 'transfers' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-center bg-white p-4 rounded-[14px] border border-slate-100 shadow-sm">
             <div>
               <h3 className="font-black text-lg text-slate-800">طلبات تحويل الأثاث للمعارض</h3>
               <p className="text-xs text-slate-400 font-semibold">تحويل القطع المنتهية بالمصنع إلى صالات العرض لتعزيز وتنشيط حركة المبيعات</p>
@@ -1671,7 +1671,7 @@ export function SalesModule({
           </div>
 
           {showAddTransfer && (
-            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-300">
+            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-200">
               <div className="flex justify-between items-center mb-4 pb-2 border-b">
                 <h4 className="font-black text-slate-800 text-lg">تحويل قطع جديدة من المصنع إلى المعارض</h4>
                 <Button variant="ghost" onClick={() => setShowAddTransfer(false)} className="p-1 h-auto text-slate-400">
@@ -1706,7 +1706,7 @@ export function SalesModule({
 
                 <div className="space-y-2">
                   <span className="text-xs font-black text-slate-500 block">اختر قطع الأثاث المكتملة بالمصنع للتحويل * (متاحة للتحويل: {jobsAvailableForTransfer.length} قطعة)</span>
-                  <div className="border border-slate-150 rounded-2xl p-4 bg-slate-50/50 max-h-64 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="border border-slate-150 rounded-[14px] p-4 bg-slate-50/50 max-h-64 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3">
                     {jobsAvailableForTransfer.length === 0 ? (
                       <div className="col-span-full text-center py-6 text-slate-400 font-bold text-sm">
                         لا توجد حالياً قطع جاهزة ومكتملة في المصنع للتحويل للمعارض.
@@ -1755,7 +1755,7 @@ export function SalesModule({
                 const totalAmountTransferred = t.items.reduce((sum, item) => sum + (item.costPrice || 0), 0);
 
                 return (
-                  <Card key={t.id} className="rounded-3xl border border-slate-150 shadow-sm p-5 bg-white relative hover:shadow-md transition-all duration-300">
+                  <Card key={t.id} className="rounded-3xl border border-slate-150 shadow-sm p-5 bg-white relative hover:shadow-md transition-all duration-200">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       
                       {/* Left Block */}
@@ -1819,7 +1819,7 @@ export function SalesModule({
       {/* --- SALES ORDERS & INVOICES --- */}
       {activeTab === 'sales' && (
         <div className="space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm">
             <div className="space-y-0.5">
               <h3 className="font-black text-lg text-slate-800">مبيعات وفواتير صالات العرض</h3>
               <p className="text-xs text-slate-400 font-semibold">أرشفة وإصدار الفواتير مع حساب الربحية الحقيقية بعد استهلاك التكاليف والأوفر هيد ومصروفات النقل</p>
@@ -1855,7 +1855,7 @@ export function SalesModule({
 
           {/* ADD SALE FORM */}
           {showAddSale && (
-            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-300 bg-white">
+            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-200 bg-white">
               <div className="flex justify-between items-center mb-5 pb-2 border-b">
                 <div className="space-y-0.5">
                   <h4 className="font-black text-slate-800 text-lg">إصدار فاتورة بيع جديدة وحساب أرباح دقيق</h4>
@@ -2014,7 +2014,7 @@ export function SalesModule({
           )}
 
           {showAddRequest && (
-            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-300 bg-white">
+            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-200 bg-white">
               <div className="flex justify-between items-center mb-5 pb-2 border-b">
                 <div className="space-y-0.5">
                   <h4 className="font-black text-slate-800 text-lg">طلب شغل جديد (كتابة السيلز بالمعرض)</h4>
@@ -2080,7 +2080,7 @@ export function SalesModule({
                       placeholder="اكتب هنا كافة المواصفات التي طلبها العميل (نوع الخشب، الألوان، المقاسات)..." 
                       value={requestGeneralSpecs} 
                       onChange={e => setRequestGeneralSpecs(e.target.value)} 
-                      className="w-full p-4 border border-slate-200 rounded-2xl text-sm font-medium bg-slate-50 min-h-[120px] outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
+                      className="w-full p-4 border border-slate-200 rounded-[14px] text-sm font-medium bg-slate-50 min-h-[120px] outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
                     />
                   </div>
                 </div>
@@ -2213,7 +2213,7 @@ export function SalesModule({
               </Button>
             </div>
             
-            <CardContent className="p-8 space-y-6" id="printable-invoice">
+            <CardContent className="p-6 space-y-6" id="printable-invoice">
               
               {/* Invoice Header */}
               <div className="flex justify-between items-start border-b pb-5">
@@ -2230,7 +2230,7 @@ export function SalesModule({
               </div>
 
               {/* Customer and Showroom Info */}
-              <div className="grid grid-cols-2 gap-4 text-xs font-bold text-slate-700 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div className="grid grid-cols-2 gap-4 text-xs font-bold text-slate-700 bg-slate-50 p-4 rounded-[14px] border border-slate-100">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 block">بيانات العميل المستلم:</span>
                   <span className="text-sm font-black text-slate-800">{selectedInvoice.customerName}</span>
@@ -2320,7 +2320,7 @@ export function SalesModule({
                             body { font-family: 'Inter', sans-serif; direction: rtl; }
                           </style>
                         </head>
-                        <body onload="window.print(); window.close();" class="p-8">
+                        <body onload="window.print(); window.close();" class="p-6">
                           <div>${printContents}</div>
                         </body>
                       </html>
@@ -2340,7 +2340,7 @@ export function SalesModule({
       {/* --- LOST SALES SECTION --- */}
       {activeTab === 'lostSales' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-center bg-white p-4 rounded-[14px] border border-slate-100 shadow-sm">
             <div>
               <h3 className="font-black text-lg text-slate-800">إدارة الطلبات والفرص الضائعة بالمعارض</h3>
               <p className="text-xs text-slate-400 font-semibold">تتبع الحالات التي طلب فيها العميل منتجاً ولم يجد مخزوناً كافياً، لتحسين تخطيط الإنتاج وتفادي ضياع الربح</p>
@@ -2352,7 +2352,7 @@ export function SalesModule({
           </div>
 
           {showAddLostSale && (
-            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-300">
+            <Card className="p-6 rounded-3xl border-0 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top duration-200">
               <div className="flex justify-between items-center mb-4 pb-2 border-b">
                 <h4 className="font-black text-slate-800">تسجيل مبيعة مفقودة بالمعرض</h4>
                 <Button variant="ghost" onClick={() => setShowAddLostSale(false)} className="p-1 h-auto text-slate-400">
@@ -2412,7 +2412,7 @@ export function SalesModule({
               lostSales.map(ls => {
                 const showroom = showroomMap[ls.showroomId];
                 return (
-                  <Card key={ls.id} className="rounded-2xl border border-red-100 p-4 bg-white relative hover:shadow-md transition-all duration-300 flex items-start gap-3">
+                  <Card key={ls.id} className="rounded-[14px] border border-red-100 p-4 bg-white relative hover:shadow-md transition-all duration-200 flex items-start gap-3">
                     <span className="p-3 bg-red-50 text-red-600 rounded-xl mt-0.5">
                       <AlertTriangle size={18} />
                     </span>
@@ -2453,7 +2453,7 @@ export function SalesModule({
 
       {activeTab === 'requests' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-center bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm">
             <div className="space-y-0.5">
               <h3 className="font-black text-xl text-slate-800">طلبات العملاء وإدارة العقود</h3>
               <p className="text-xs text-slate-400 font-semibold">متابعة طلبات "السيلز" وتحويلها لعقود رسمية وتوجيهها للمصنع</p>
@@ -2514,7 +2514,7 @@ export function SalesModule({
                       </div>
 
                       {req.generalSpecs && (
-                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="p-4 bg-slate-50 rounded-[14px] border border-slate-100">
                           <span className="text-[10px] font-black text-slate-400 block mb-1">المواصفات المطلوبة من السيلز:</span>
                           <p className="text-sm text-slate-600 font-medium leading-relaxed">{req.generalSpecs}</p>
                         </div>
@@ -2566,7 +2566,7 @@ export function SalesModule({
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white shrink-0">
+              <div className="w-14 h-14 bg-slate-900 rounded-[14px] flex items-center justify-center text-white shrink-0">
                 <Users size={28} />
               </div>
               <div className="space-y-0.5 text-right">
@@ -2634,7 +2634,7 @@ export function SalesModule({
                 <Card key={emp.id} className="rounded-3xl border-0 shadow-lg bg-white overflow-hidden">
                   <div className="p-6 space-y-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black text-xl">
+                      <div className="w-14 h-14 bg-slate-900 rounded-[14px] flex items-center justify-center text-white font-black text-xl">
                         {(emp.name || '??').split(' ').map(n => n[0]).join('').slice(0, 2)}
                       </div>
                       <div>
@@ -2644,11 +2644,11 @@ export function SalesModule({
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-4 bg-emerald-50 rounded-2xl space-y-1">
+                      <div className="p-4 bg-emerald-50 rounded-[14px] space-y-1">
                         <span className="text-[10px] font-black text-emerald-600/70 uppercase tracking-wider block">إجمالي المبيعات</span>
                         <span className="text-lg font-black text-emerald-700">{totalSalesVal.toLocaleString()} ج.م</span>
                       </div>
-                      <div className="p-4 bg-blue-50 rounded-2xl space-y-1">
+                      <div className="p-4 bg-blue-50 rounded-[14px] space-y-1">
                         <span className="text-[10px] font-black text-blue-600/70 uppercase tracking-wider block">عقود منجزة</span>
                         <span className="text-lg font-black text-blue-700">{contractedCount} عقود</span>
                       </div>
@@ -2684,10 +2684,10 @@ export function SalesModule({
       {/* Showroom Payroll Modal */}
       <Dialog open={showPayrollModal} onOpenChange={setShowPayrollModal}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto rounded-3xl border-0 p-0">
-          <div className="p-8 space-y-8">
+          <div className="p-6 space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                <div className="w-14 h-14 bg-emerald-600 rounded-[14px] flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
                   <DollarSign size={28} />
                 </div>
                 <div className="space-y-0.5 text-right">
@@ -2696,7 +2696,7 @@ export function SalesModule({
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-100">
+              <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-[14px] border border-slate-100">
                 <Select value={selectedPayrollMonth.toString()} onValueChange={(v) => setSelectedPayrollMonth(parseInt(v))}>
                   <SelectTrigger className="w-32 bg-white border-0 font-black text-slate-700 h-10 rounded-xl">
                     <SelectValue placeholder="الشهر" />

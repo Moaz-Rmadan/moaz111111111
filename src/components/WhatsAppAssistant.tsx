@@ -463,7 +463,7 @@ export default function WhatsAppAssistant({
   return (
     <div className="space-y-6" dir="rtl">
       {/* Printable Area - Only visible when printing */}
-      <div id="whatsapp-print-area" className="hidden print:block p-8 bg-white text-slate-900 h-full">
+      <div id="whatsapp-print-area" className="hidden print:block p-6 bg-white text-slate-900 h-full">
         {printDoc && (
           <div className="space-y-6">
             {/* Logo and Header */}
@@ -565,7 +565,7 @@ export default function WhatsAppAssistant({
             )}
 
             {/* Signatures */}
-            <div className="pt-12 grid grid-cols-3 gap-8 text-center text-xs">
+            <div className="pt-12 grid grid-cols-3 gap-6 text-center text-xs">
               <div className="space-y-8">
                 <p className="font-bold text-slate-700">توقيع المستلم / السائق</p>
                 <div className="h-0.5 bg-slate-300 w-32 mx-auto" />
@@ -599,7 +599,7 @@ export default function WhatsAppAssistant({
               انسخ رسائل وأوامر التحميل أو الاستلام المرسلة على جروب الواتساب الخاص بالشركة، والصقها هنا مباشرة. سيقوم الذكاء الاصطناعي باستخراج المنتجات، السائقين، والعملاء ومطابقتها فوراً بالنظام وإتاحة طباعتها بضغطة زر واحدة!
             </p>
           </div>
-          <div className="z-10 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 hidden lg:block">
+          <div className="z-10 bg-white/10 backdrop-blur-md p-4 rounded-[14px] border border-white/20 hidden lg:block">
             <MessageSquare size={48} className="text-emerald-300 animate-pulse" />
           </div>
         </div>
@@ -614,7 +614,7 @@ export default function WhatsAppAssistant({
               className="bg-emerald-50 border border-emerald-200 p-6 rounded-3xl shadow-md space-y-4"
             >
               <div className="flex items-start gap-4">
-                <div className="p-3 bg-emerald-500 text-white rounded-2xl">
+                <div className="p-3 bg-emerald-500 text-white rounded-[14px]">
                   <CheckCircle size={28} />
                 </div>
                 <div className="space-y-1">
@@ -672,7 +672,7 @@ export default function WhatsAppAssistant({
 2. صالون مدهب 4 قطع + رخام البيع عماد سليم
 
 أو يمكنك ترك هذا الحقل فارغاً والرفع مباشرة في الحقل المجاور للتحليل بالذكاء الاصطناعي!`}
-                  className="w-full h-64 p-4 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm leading-relaxed text-slate-800 placeholder:text-slate-400 font-medium resize-none"
+                  className="w-full h-64 p-4 rounded-[14px] border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm leading-relaxed text-slate-800 placeholder:text-slate-400 font-medium resize-none"
                 />
               </div>
 
@@ -687,7 +687,7 @@ export default function WhatsAppAssistant({
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`flex-1 min-h-[220px] rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center p-4 relative ${
+                  className={`flex-1 min-h-[220px] rounded-[14px] border-2 border-dashed transition-all flex flex-col items-center justify-center p-4 relative ${
                     isDragging 
                       ? 'border-emerald-500 bg-emerald-50/50' 
                       : selectedFile 
@@ -767,7 +767,7 @@ export default function WhatsAppAssistant({
 
             {/* Error messaging */}
             {parseError && (
-              <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-xs font-bold flex items-center gap-2">
+              <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-[14px] text-xs font-bold flex items-center gap-2">
                 <AlertCircle size={16} /> {parseError}
               </div>
             )}
@@ -802,7 +802,7 @@ export default function WhatsAppAssistant({
                 <button
                   onClick={handleParseText}
                   disabled={isParsing}
-                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-2xl text-xs font-black flex items-center gap-2 transition-all shadow-lg shadow-emerald-600/10"
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-[14px] text-xs font-black flex items-center gap-2 transition-all shadow-lg shadow-emerald-600/10"
                 >
                   {isParsing ? (
                     <>
@@ -973,7 +973,7 @@ export default function WhatsAppAssistant({
 
                       <div className="space-y-2">
                         {loadingForm.products?.map((prod: any, idx: number) => (
-                          <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                          <div key={idx} className="p-4 bg-slate-50 rounded-[14px] border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                             <div className="md:col-span-3 space-y-1">
                               <label className="text-[10px] font-black text-slate-400">اسم المنتج المكتشف:</label>
                               <select
@@ -1174,7 +1174,7 @@ export default function WhatsAppAssistant({
 
                       <div className="space-y-2">
                         {deliveryForm.products?.map((prod: any, idx: number) => (
-                          <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                          <div key={idx} className="p-4 bg-slate-50 rounded-[14px] border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                             <div className="md:col-span-5 space-y-1">
                               <label className="text-[10px] font-black text-slate-400">الصنف والمنتج المكتشف:</label>
                               <select
@@ -1318,7 +1318,7 @@ export default function WhatsAppAssistant({
 
                       <div className="space-y-2">
                         {productionForm.products?.map((prod: any, idx: number) => (
-                          <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                          <div key={idx} className="p-4 bg-slate-50 rounded-[14px] border border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                             <div className="md:col-span-5 space-y-1">
                               <label className="text-[10px] font-black text-slate-400">اسم المنتج / الغرفة المطلوب تصنيعها:</label>
                               <input
@@ -1398,7 +1398,7 @@ export default function WhatsAppAssistant({
                     <button
                       type="button"
                       onClick={handleSaveDocument}
-                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black flex items-center gap-2 transition-all shadow-md"
+                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[14px] text-xs font-black flex items-center gap-2 transition-all shadow-md"
                     >
                       <ClipboardCheck size={16} /> تأكيد المستند وحفظه في النظام 💾
                     </button>

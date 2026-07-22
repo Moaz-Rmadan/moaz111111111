@@ -114,6 +114,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let unsubscribeProfile: (() => void) | null = null;
     let unsubscribeAuth: (() => void) | null = null;
 
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     const savedUid = safeStorage.getItem('custom_uid');
     const savedPassword = safeStorage.getItem('custom_password');
 
@@ -230,6 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     init();
 
     return () => {
+      clearTimeout(safetyTimer);
       if (unsubscribeProfile) unsubscribeProfile();
       if (unsubscribeAuth) unsubscribeAuth();
     };
@@ -292,7 +297,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, loginWithEmailOrPhone, logout }}>
-      {!loading && children}
+      {loading ? (
+        <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
+          <div className="space-y-6 w-full max-w-sm p-6 bg-white rounded-[14px] shadow-sm border border-slate-100">
+            <div className="w-16 h-16 rounded-[14px] bg-slate-100 animate-pulse mx-auto" />
+            <div className="space-y-3">
+              <div className="h-6 w-3/4 bg-slate-100 rounded animate-pulse mx-auto" />
+              <div className="h-4 w-1/2 bg-slate-100 rounded animate-pulse mx-auto" />
+            </div>
+            <div className="space-y-4 pt-4">
+              <div className="h-12 w-full bg-slate-100 rounded-[10px] animate-pulse" />
+              <div className="h-12 w-full bg-slate-100 rounded-[10px] animate-pulse" />
+              <div className="h-12 w-full bg-indigo-50 rounded-[10px] animate-pulse mt-6" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

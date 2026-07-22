@@ -358,9 +358,9 @@ export function WarehouseTransfersView({
   });
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-200">
       {/* HEADER SECTION */}
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10 pb-6 relative">
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 pb-6 relative">
         <div className="space-y-6">
           <div className="flex items-center gap-3 text-primary font-black text-xs uppercase tracking-[0.3em] px-5 py-2.5 bg-primary/5 border border-primary/10 rounded-full w-fit shadow-sm">
             <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
@@ -376,7 +376,7 @@ export function WarehouseTransfersView({
         <div className="flex flex-wrap items-center gap-5">
           <Button 
             onClick={() => setShowAddModal(true)} 
-            className="h-16 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg shadow-2xl shadow-indigo-600/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3"
+            className="h-16 px-10 rounded-[14px] bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg shadow-2xl shadow-indigo-600/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3"
           >
             <Plus size={22} strokeWidth={3} />
             إنشاء تحويل مخزني جديد
@@ -436,7 +436,7 @@ export function WarehouseTransfersView({
       </div>
 
       {/* FILTER PLATFORM */}
-      <div className="bg-white/50 backdrop-blur-3xl p-8 rounded-[3.5rem] border border-white/60 shadow-2xl shadow-slate-200/50 space-y-6">
+      <div className="bg-white/50 backdrop-blur-3xl p-6 rounded-[14px] border border-white/60 shadow-2xl shadow-slate-200/50 space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-2 relative">
             <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300">
@@ -445,7 +445,7 @@ export function WarehouseTransfersView({
             <input 
               type="text"
               placeholder="بحث باسم المخزن، كود السند، أو اسم صنف محول..." 
-              className="w-full h-16 pr-14 pl-5 rounded-2xl border border-slate-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 font-bold text-slate-700 transition-all text-sm" 
+              className="w-full h-16 pr-14 pl-5 rounded-[14px] border border-slate-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 font-bold text-slate-700 transition-all text-sm" 
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -455,7 +455,7 @@ export function WarehouseTransfersView({
             <select
               value={selectedFromWh}
               onChange={e => setSelectedFromWh(e.target.value)}
-              className="w-full h-16 px-5 rounded-2xl border border-slate-200 bg-white shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 font-bold text-slate-700 transition-all text-sm"
+              className="w-full h-16 px-5 rounded-[14px] border border-slate-200 bg-white shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 font-bold text-slate-700 transition-all text-sm"
             >
               <option value="all">المخزن المرسل: الكل</option>
               {warehouses.map(w => (
@@ -469,7 +469,7 @@ export function WarehouseTransfersView({
             <select
               value={selectedToWh}
               onChange={e => setSelectedToWh(e.target.value)}
-              className="w-full h-16 px-5 rounded-2xl border border-slate-200 bg-white shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 font-bold text-slate-700 transition-all text-sm"
+              className="w-full h-16 px-5 rounded-[14px] border border-slate-200 bg-white shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 font-bold text-slate-700 transition-all text-sm"
             >
               <option value="all">المخزن المستلم: الكل</option>
               {warehouses.map(w => (
@@ -546,7 +546,7 @@ export function WarehouseTransfersView({
 
                 {filteredTransfers.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-10 text-center text-slate-400 font-bold">
+                    <td colSpan={8} className="p-6 text-center text-slate-400 font-bold">
                       لا يوجد أي عمليات تحويل مخزني مطابقة للبحث أو الفلترة.
                     </td>
                   </tr>
@@ -565,10 +565,10 @@ export function WarehouseTransfersView({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-100"
+              className="bg-white rounded-[14px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-100"
             >
               {/* Modal Header */}
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
                   <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
                     <ArrowLeftRight className="text-indigo-600" size={24} />
@@ -578,16 +578,16 @@ export function WarehouseTransfersView({
                 </div>
                 <button 
                   onClick={() => setShowAddModal(false)}
-                  className="h-12 w-12 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition-colors"
+                  className="h-12 w-12 rounded-[14px] bg-white hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handleSubmitTransfer} className="flex-1 overflow-y-auto p-8 space-y-6">
+              <form onSubmit={handleSubmitTransfer} className="flex-1 overflow-y-auto p-6 space-y-6">
                 {errorMessage && (
-                  <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-700 text-sm font-black flex items-center gap-3">
+                  <div className="p-4 bg-red-50 border border-red-100 rounded-[14px] text-red-700 text-sm font-black flex items-center gap-3">
                     <AlertTriangle size={18} className="shrink-0" />
                     {errorMessage}
                   </div>
@@ -663,7 +663,7 @@ export function WarehouseTransfersView({
                   </div>
 
                   {!fromWarehouseId ? (
-                    <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm">
+                    <div className="p-6 text-center bg-slate-50 border border-dashed border-slate-200 rounded-[14px] text-slate-400 font-bold text-sm">
                       يرجى تحديد المخزن المرسل أولاً لتتمكن من استعراض خاماته وأصنافه المتاحة للتحويل.
                     </div>
                   ) : (
@@ -671,7 +671,7 @@ export function WarehouseTransfersView({
                       {transferItems.map((row, index) => {
                         const selectedItemObj = items.find(i => i.id === row.itemId);
                         return (
-                          <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                          <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-slate-50/50 p-4 rounded-[14px] border border-slate-100">
                             {/* Item Selector */}
                             <div className="md:col-span-6 space-y-1.5 text-right">
                               <label className="text-[10px] font-black text-slate-400 uppercase">اسم الصنف</label>
@@ -738,7 +738,7 @@ export function WarehouseTransfersView({
                     />
                   </div>
 
-                  <div className="bg-indigo-50/50 rounded-2xl border border-indigo-100/60 p-6 flex flex-col justify-between">
+                  <div className="bg-indigo-50/50 rounded-[14px] border border-indigo-100/60 p-6 flex flex-col justify-between">
                     <div>
                       <span className="text-[10px] font-black text-indigo-400 uppercase tracking-wider">الإجمالي المالي المقدر للتحويل</span>
                       <p className="text-3xl font-black text-indigo-900 mt-2">
@@ -758,14 +758,14 @@ export function WarehouseTransfersView({
                     type="button"
                     variant="outline"
                     onClick={() => setShowAddModal(false)}
-                    className="h-14 px-8 rounded-2xl font-black text-slate-600 hover:bg-slate-50 transition-all"
+                    className="h-14 px-8 rounded-[14px] font-black text-slate-600 hover:bg-slate-50 transition-all"
                   >
                     إلغاء
                   </Button>
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="h-14 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50 flex items-center gap-3"
+                    className="h-14 px-10 rounded-[14px] bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50 flex items-center gap-3"
                   >
                     {isSubmitting ? (
                       <>
@@ -794,10 +794,10 @@ export function WarehouseTransfersView({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-100"
+              className="bg-white rounded-[14px] shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-100"
             >
               {/* Receipt Header */}
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
                   <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full w-fit mb-2">
                     تفاصيل سند التحويل
@@ -808,15 +808,15 @@ export function WarehouseTransfersView({
                 </div>
                 <button 
                   onClick={() => setSelectedTransfer(null)}
-                  className="h-12 w-12 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition-colors"
+                  className="h-12 w-12 rounded-[14px] bg-white hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Receipt Body */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100 text-sm">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-6 bg-slate-50 rounded-[14px] border border-slate-100 text-sm">
                   <div>
                     <span className="text-slate-400 font-bold block mb-1">المصدر</span>
                     <span className="font-black text-slate-800">
@@ -842,7 +842,7 @@ export function WarehouseTransfersView({
                 {/* Receipt Items Table */}
                 <div className="space-y-3">
                   <h4 className="font-black text-slate-800">الأصناف التي تم شحنها</h4>
-                  <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white">
+                  <div className="border border-slate-100 rounded-[14px] overflow-hidden bg-white">
                     <table className="w-full text-right text-xs">
                       <thead>
                         <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -879,7 +879,7 @@ export function WarehouseTransfersView({
                     <div className="text-slate-400 text-xs italic font-bold">لا يوجد ملاحظات إضافية على هذا السند.</div>
                   )}
 
-                  <div className="bg-emerald-50 text-emerald-900 p-6 rounded-2xl border border-emerald-100 flex items-center justify-between text-left">
+                  <div className="bg-emerald-50 text-emerald-900 p-6 rounded-[14px] border border-emerald-100 flex items-center justify-between text-left">
                     <span className="font-black text-sm">القيمة الكلية للسند</span>
                     <span className="text-2xl font-black">
                       {selectedTransfer.items.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()} ج.م

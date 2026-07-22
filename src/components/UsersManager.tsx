@@ -5,6 +5,7 @@ import { UserProfile } from '../AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from './ui/skeleton';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Trash2, 
@@ -547,9 +548,33 @@ export function UsersManager() {
 
   if (loading) {
     return (
-      <div className="flex flex-col justify-center items-center h-96 gap-4" dir="rtl">
-        <Loader2 className="animate-spin text-indigo-600" size={48} />
-        <span className="font-black text-slate-500 animate-pulse text-lg">جاري تحميل موديول المستخدمين...</span>
+      <div className="p-6 md:p-8 space-y-6" dir="rtl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white p-6 rounded-[14px] border border-slate-100 h-[140px] flex flex-col justify-between shadow-sm">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-16" />
+            </div>
+          ))}
+        </div>
+        <div className="bg-white rounded-[14px] p-6 border border-slate-100 shadow-sm">
+          <div className="flex justify-between mb-6">
+            <Skeleton className="h-10 w-48 rounded-[10px]" />
+            <Skeleton className="h-10 w-32 rounded-[10px]" />
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="flex gap-4 items-center">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+                <Skeleton className="h-8 w-24 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -560,7 +585,7 @@ export function UsersManager() {
   const standardUsersCount = totalUsersCount - adminUsersCount;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-12" dir="rtl">
+    <div className="space-y-8 animate-in fade-in duration-200 pb-12" dir="rtl">
       
       {/* Dynamic Alerts */}
       <AnimatePresence>
@@ -569,7 +594,7 @@ export function UsersManager() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl font-black text-base flex items-center gap-3 shadow-md"
+            className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-[14px] font-black text-base flex items-center gap-3 shadow-md"
           >
             <div className="p-1.5 bg-emerald-500 text-white rounded-full">
               <Check size={16} />
@@ -583,7 +608,7 @@ export function UsersManager() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl font-black text-base flex items-center gap-3 shadow-md"
+            className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-[14px] font-black text-base flex items-center gap-3 shadow-md"
           >
             <div className="p-1.5 bg-rose-500 text-white rounded-full">
               <X size={16} />
@@ -604,7 +629,7 @@ export function UsersManager() {
             <h3 className="text-4xl font-black text-slate-800">{totalUsersCount}</h3>
             <p className="text-xs text-slate-500">حسابات نشطة في النظام</p>
           </div>
-          <div className="p-5 bg-indigo-50 text-indigo-600 rounded-2xl">
+          <div className="p-5 bg-indigo-50 text-indigo-600 rounded-[14px]">
             <Users size={32} />
           </div>
         </motion.div>
@@ -618,7 +643,7 @@ export function UsersManager() {
             <h3 className="text-4xl font-black text-emerald-600">{adminUsersCount}</h3>
             <p className="text-xs text-slate-500">يمتلكون صلاحيات كاملة ومطلقة</p>
           </div>
-          <div className="p-5 bg-emerald-50 text-emerald-600 rounded-2xl">
+          <div className="p-5 bg-emerald-50 text-emerald-600 rounded-[14px]">
             <Shield size={32} />
           </div>
         </motion.div>
@@ -632,21 +657,21 @@ export function UsersManager() {
             <h3 className="text-4xl font-black text-amber-600">{standardUsersCount}</h3>
             <p className="text-xs text-slate-500">صلاحيات مخصصة حسب القسم</p>
           </div>
-          <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl">
+          <div className="p-5 bg-amber-50 text-amber-600 rounded-[14px]">
             <UserCheck size={32} />
           </div>
         </motion.div>
       </div>
 
       {/* Main Panel - Split Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         
         {/* Left Column - Add User Panel */}
         <div className="lg:col-span-1 space-y-6">
-          <Card className="border-none shadow-2xl rounded-[2rem] bg-white overflow-hidden border border-slate-100">
+          <Card className="border-none shadow-2xl rounded-[14px] bg-white overflow-hidden border border-slate-100">
             <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl">
+                <div className="p-3 bg-indigo-100 text-indigo-600 rounded-[14px]">
                   <UserPlus size={20} />
                 </div>
                 <div>
@@ -813,11 +838,11 @@ export function UsersManager() {
 
         {/* Right Columns - User Management List, Search & Advanced Controls */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-none shadow-2xl rounded-[2rem] bg-white overflow-hidden border border-slate-100">
+          <Card className="border-none shadow-2xl rounded-[14px] bg-white overflow-hidden border border-slate-100">
             <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl">
+                  <div className="p-3 bg-emerald-100 text-emerald-600 rounded-[14px]">
                     <Shield size={20} />
                   </div>
                   <div>
@@ -912,7 +937,7 @@ export function UsersManager() {
                               {/* Name & Avatar Column */}
                               <TableCell className="py-4 px-6">
                                 <div className="flex items-center gap-3">
-                                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-base border shrink-0 ${avatar.bg}`}>
+                                  <div className={`w-11 h-11 rounded-[14px] flex items-center justify-center font-black text-base border shrink-0 ${avatar.bg}`}>
                                     {user.name.trim().charAt(0).toUpperCase()}
                                   </div>
                                   <div className="flex flex-col min-w-0">
@@ -1064,13 +1089,13 @@ export function UsersManager() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl overflow-hidden max-h-[90vh] flex flex-col border border-slate-100"
+              className="bg-white rounded-[14px] shadow-2xl w-full max-w-3xl overflow-hidden max-h-[90vh] flex flex-col border border-slate-100"
               dir="rtl"
             >
               {/* Modal Header */}
               <div className="bg-slate-50 p-6 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-emerald-500 text-white rounded-2xl">
+                  <div className="p-2.5 bg-emerald-500 text-white rounded-[14px]">
                     <Shield size={20} />
                   </div>
                   <div>
@@ -1142,7 +1167,7 @@ export function UsersManager() {
 
                 {/* Templates Quick Apply inside Edit */}
                 {!editIsAdmin && (
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                  <div className="p-4 bg-slate-50 rounded-[14px] border border-slate-100 space-y-3">
                     <div className="flex items-center gap-1 text-slate-700 font-bold text-xs">
                       <ArrowRightLeft size={14} className="text-indigo-500" />
                       تطبيق قالب سريع على هذا الموظف:
@@ -1186,7 +1211,7 @@ export function UsersManager() {
                                     [p.key]: !isChecked
                                   });
                                 }}
-                                className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 select-none ${
+                                className={`p-3 rounded-[14px] border cursor-pointer transition-all flex items-start gap-3 select-none ${
                                   isChecked 
                                     ? 'bg-emerald-50/60 border-emerald-200/80 shadow-sm shadow-emerald-50/50' 
                                     : 'bg-white border-slate-150 hover:bg-slate-50'
@@ -1210,7 +1235,7 @@ export function UsersManager() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 border border-dashed border-emerald-200 bg-emerald-50/20 rounded-[2rem] text-center space-y-3">
+                  <div className="p-6 border border-dashed border-emerald-200 bg-emerald-50/20 rounded-[14px] text-center space-y-3">
                     <div className="p-4 bg-emerald-100 text-emerald-600 rounded-full w-fit mx-auto">
                       <ShieldAlert size={36} />
                     </div>

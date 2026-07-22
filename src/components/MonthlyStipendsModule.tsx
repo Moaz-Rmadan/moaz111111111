@@ -49,6 +49,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { useAuth } from '../AuthContext';
+import { Skeleton } from './ui/skeleton';
 import { Safe, SafeTransaction } from '../types';
 
 interface Beneficiary {
@@ -253,7 +254,7 @@ const ORIGINAL_DIGITAL_LIST = [
   { name: 'ميرفت الحديدى', phone: '01008876446', address: '', amount: 500, method: 'فودافون كاش' },
   { name: 'ناهد الجوجرى', phone: '01028615132', address: '', amount: 500, method: 'فودافون كاش' },
   { name: 'ايمان سمير عيسى', phone: '01061216747', address: '', amount: 500, method: 'فودافون كاش' },
-  { name: 'ماجدة عبد الرازق عبد السلام', phone: '01094625159', address: 'بنت خالتى /بنت ماجدة بنت خالتى ١/بنت ماجدة بنت خالتى ٢/ بنت ماجدة بنت خالتى ٣', amount: 800, method: 'فودافون كاش' },
+  { name: 'ماجدة عبد الرازق عبد السلام', phone: '01094625159', address: 'بنت خالتى /بنت ماجدة بنت خالتى 1/بنت ماجدة بنت خالتى 2/ بنت ماجدة بنت خالتى 3', amount: 800, method: 'فودافون كاش' },
   { name: 'محمد / فتحى الحمادى', phone: '', address: 'م معهد سهر/سمير بنتها', amount: 800, method: 'فودافون كاش' },
   { name: 'زوجة ضياء/مسعد /سعد/جمال خضر', phone: '01021545552', address: '', amount: 800, method: 'فودافون كاش' },
   { name: 'عماد/السيد/السعيد/حسن عبد الرازق', phone: '01015591955', address: '', amount: 800, method: 'فودافون كاش' },
@@ -272,7 +273,7 @@ const ORIGINAL_DIGITAL_LIST = [
   { name: 'خالد سيد عبد النعيم', phone: '01008298920', address: 'كاش', amount: 1000, method: 'فودافون كاش' },
   { name: 'نجلاء / سميرة بنت اختى ( ميت غمر )', phone: '01027926952', address: 'الرقم للتواصل فقط وليس الكاش', amount: 1000, method: 'فودافون كاش' },
   { name: 'منى مصطفى نزهه', phone: '01099680201', address: '', amount: 1000, method: 'فودافون كاش' },
-  { name: 'عزيزة بنت اختى ليلى اختى كوثر ٢/احمد احمد / كوثر السنباطى', phone: '01066282887', address: '', amount: 1400, method: 'فودافون كاش' },
+  { name: 'عزيزة بنت اختى ليلى اختى كوثر 2/احمد احمد / كوثر السنباطى', phone: '01066282887', address: '', amount: 1400, method: 'فودافون كاش' },
   { name: 'زوجة عبده الباروجى/عمى الحاجه افراج ام خالد/زوجة خالد العدوى/زوجة وحيد العدوى /زوجة سامى العدوى /زوجة عمار العدوى', phone: '01097656743', address: 'كاش', amount: 2100, method: 'فودافون كاش' },
   { name: 'الادارة الصحية تبع م/ مى الدياشطى مدير الادارة الصحية', phone: '01229857613', address: '( 33 موظف)', amount: 6600, method: 'فودافون كاش' },
   { name: 'الحاج /عاطف زجاج .. ساكن فى بيت الحج يوسف رخا', phone: '01022984663', address: '', amount: 500, method: 'انستا باي' },
@@ -2056,7 +2057,7 @@ export const MonthlyStipendsModule: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-center gap-3 text-sm font-black shadow-sm"
+            className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-[14px] flex items-center gap-3 text-sm font-black shadow-sm"
           >
             <CheckCircle className="text-emerald-500 shrink-0" size={18} />
             <span>{successMessage}</span>
@@ -2067,7 +2068,7 @@ export const MonthlyStipendsModule: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-2xl flex items-center gap-3 text-sm font-black shadow-sm"
+            className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-[14px] flex items-center gap-3 text-sm font-black shadow-sm"
           >
             <AlertCircle className="text-red-500 shrink-0" size={18} />
             <span>{errorMessage}</span>
@@ -2076,7 +2077,7 @@ export const MonthlyStipendsModule: React.FC = () => {
       </AnimatePresence>
 
       {/* Header section with Stats */}
-      <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-slate-900 rounded-[2rem] p-6 md:p-8 text-white relative overflow-hidden shadow-xl border border-slate-700/30">
+      <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-slate-900 rounded-[14px] p-6 md:p-6 text-white relative overflow-hidden shadow-xl border border-slate-700/30">
         <div className="absolute top-0 left-0 w-64 h-64 bg-slate-700/10 rounded-full blur-3xl -translate-x-12 -translate-y-12" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl translate-x-1/4 translate-y-1/4" />
 
@@ -2116,7 +2117,7 @@ export const MonthlyStipendsModule: React.FC = () => {
 
         {/* Dynamic mini KPIs inside header */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8 pt-6 border-t border-white/10">
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+          <div className="bg-white/5 p-4 rounded-[14px] border border-white/5 flex items-center gap-4">
             <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center shrink-0 border border-red-500/10">
               <Users className="text-red-400" size={20} />
             </div>
@@ -2126,7 +2127,7 @@ export const MonthlyStipendsModule: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+          <div className="bg-white/5 p-4 rounded-[14px] border border-white/5 flex items-center gap-4">
             <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center shrink-0 border border-emerald-500/10">
               <Coins className="text-emerald-400" size={20} />
             </div>
@@ -2136,7 +2137,7 @@ export const MonthlyStipendsModule: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+          <div className="bg-white/5 p-4 rounded-[14px] border border-white/5 flex items-center gap-4">
             <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0 border border-amber-500/10">
               <Wallet className="text-amber-400" size={20} />
             </div>
@@ -2146,7 +2147,7 @@ export const MonthlyStipendsModule: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+          <div className="bg-white/5 p-4 rounded-[14px] border border-white/5 flex items-center gap-4">
             <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0 border border-blue-500/10">
               <CreditCard className="text-blue-400" size={20} />
             </div>
@@ -2202,9 +2203,27 @@ export const MonthlyStipendsModule: React.FC = () => {
       {/* Main Tab Contents */}
       <div className="min-h-[400px]">
         {loading ? (
-          <div className="py-20 flex flex-col items-center text-slate-400">
-            <div className="w-10 h-10 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
-            <p className="mt-4 font-bold text-sm">جاري مزامنة بيانات الصندوق والشهريات...</p>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-white p-6 rounded-[14px] border border-slate-100 flex flex-col gap-3">
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-8 w-8 rounded-[8px]" />
+                  </div>
+                  <Skeleton className="h-8 w-32 mt-2" />
+                  <Skeleton className="h-3 w-40" />
+                </div>
+              ))}
+            </div>
+            <div className="bg-white p-6 rounded-[14px] border border-slate-100">
+              <Skeleton className="h-6 w-48 mb-6" />
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <Skeleton key={i} className="h-14 w-full" />
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <AnimatePresence mode="wait">
@@ -2234,7 +2253,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                             : 0;
                           return (
                             <div className="mt-4 space-y-4">
-                              <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                              <div className="flex justify-between items-center bg-slate-50 p-4 rounded-[14px] border border-slate-100">
                                 <div>
                                   <h4 className="font-extrabold text-slate-900 text-sm">دورة صرف شهر: {latestRun.monthYear}</h4>
                                   <span className={`inline-block mt-1 text-[10px] font-black px-2.5 py-0.5 rounded-full ${
@@ -2257,7 +2276,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                                   <span className="font-mono">{percent}% ({(Number(latestRun.paidAmount) || 0).toLocaleString()} من {(Number(latestRun.totalAmount) || 0).toLocaleString()} ج.م)</span>
                                 </div>
                                 <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                                  <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${percent}%` }} />
+                                  <div className="bg-primary h-full rounded-full transition-all duration-200" style={{ width: `${percent}%` }} />
                                 </div>
                               </div>
 
@@ -2333,7 +2352,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                       const sumAmount = beneficiaries.filter(b => b && b.category === cat && b.status === 'نشط').reduce((sum, b) => sum + (Number(b.monthlyAmount) || 0), 0);
 
                       return (
-                        <div key={cat} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 text-right space-y-1">
+                        <div key={cat} className="p-4 bg-slate-50/50 rounded-[14px] border border-slate-100 text-right space-y-1">
                           <span className="text-xs font-black text-slate-700 block">{cat}</span>
                           <span className="text-lg font-black font-mono text-slate-900 block">{activeCount} <span className="text-[10px] text-slate-400">نشط</span></span>
                           <span className="text-[10px] font-bold text-primary block">القيمة: {sumAmount.toLocaleString()} ج.م</span>
@@ -2359,7 +2378,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-3xl p-6 border border-amber-200/60 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
+                        <div className="w-12 h-12 rounded-[14px] bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
                           <HeartHandshake size={24} />
                         </div>
                         <div>
@@ -2387,7 +2406,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-amber-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-2xl border border-amber-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
+                          <div className="bg-white rounded-[14px] border border-amber-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
                             <table className="w-full text-right border-collapse">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
@@ -2496,7 +2515,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                   <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-3xl p-6 border border-slate-200/60 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-500/10 flex items-center justify-center text-slate-600 shrink-0 mt-0.5">
+                        <div className="w-12 h-12 rounded-[14px] bg-slate-500/10 flex items-center justify-center text-slate-600 shrink-0 mt-0.5">
                           <MoreHorizontal size={24} />
                         </div>
                         <div>
@@ -2524,7 +2543,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-slate-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-2xl border border-slate-200/50 shadow-inner overflow-hidden max-h-[300px] overflow-y-auto">
+                          <div className="bg-white rounded-[14px] border border-slate-200/50 shadow-inner overflow-hidden max-h-[300px] overflow-y-auto">
                             <table className="w-full text-right border-collapse">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
@@ -2609,7 +2628,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-3xl p-6 border border-blue-200/60 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0 mt-0.5">
+                        <div className="w-12 h-12 rounded-[14px] bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0 mt-0.5">
                           <HeartHandshake size={24} />
                         </div>
                         <div>
@@ -2637,7 +2656,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-blue-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-2xl border border-blue-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
+                          <div className="bg-white rounded-[14px] border border-blue-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
                             <table className="w-full text-right border-collapse">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
@@ -2754,7 +2773,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                   <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50/50 rounded-3xl p-6 border border-purple-200/60 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-600 shrink-0 mt-0.5">
+                        <div className="w-12 h-12 rounded-[14px] bg-purple-500/10 flex items-center justify-center text-purple-600 shrink-0 mt-0.5">
                           <HeartHandshake size={24} />
                         </div>
                         <div>
@@ -2782,7 +2801,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-purple-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-2xl border border-purple-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
+                          <div className="bg-white rounded-[14px] border border-purple-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
                             <table className="w-full text-right border-collapse">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
@@ -2898,7 +2917,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                   <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-3xl p-6 border border-emerald-200/60 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
+                        <div className="w-12 h-12 rounded-[14px] bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
                           <HeartHandshake size={24} />
                         </div>
                         <div>
@@ -2926,7 +2945,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-emerald-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-2xl border border-emerald-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
+                          <div className="bg-white rounded-[14px] border border-emerald-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
                             <table className="w-full text-right border-collapse">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
@@ -3020,7 +3039,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                   <div className="bg-gradient-to-br from-blue-50 to-sky-50/50 rounded-3xl p-6 border border-blue-200/60 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0 mt-0.5">
+                        <div className="w-12 h-12 rounded-[14px] bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0 mt-0.5">
                           <HeartHandshake size={24} />
                         </div>
                         <div>
@@ -3048,7 +3067,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-blue-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-2xl border border-blue-200/50 shadow-inner overflow-hidden max-h-[300px] overflow-y-auto">
+                          <div className="bg-white rounded-[14px] border border-blue-200/50 shadow-inner overflow-hidden max-h-[300px] overflow-y-auto">
                             <table className="w-full text-right border-collapse">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
@@ -3146,7 +3165,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                   <div className="bg-gradient-to-br from-indigo-50 to-violet-50/50 rounded-3xl p-6 border border-indigo-200/60 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 shrink-0 mt-0.5">
+                        <div className="w-12 h-12 rounded-[14px] bg-indigo-500/10 flex items-center justify-center text-indigo-600 shrink-0 mt-0.5">
                           <HeartHandshake size={24} />
                         </div>
                         <div>
@@ -3174,7 +3193,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-indigo-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-2xl border border-indigo-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
+                          <div className="bg-white rounded-[14px] border border-indigo-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
                             <table className="w-full text-right border-collapse">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
@@ -3280,7 +3299,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-3xl p-6 border border-amber-200/60 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
+                        <div className="w-12 h-12 rounded-[14px] bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0 mt-0.5">
                           <HeartHandshake size={24} />
                         </div>
                         <div>
@@ -3308,7 +3327,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-amber-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-2xl border border-amber-200/50 shadow-inner overflow-hidden max-h-[300px] overflow-y-auto">
+                          <div className="bg-white rounded-[14px] border border-amber-200/50 shadow-inner overflow-hidden max-h-[300px] overflow-y-auto">
                             <table className="w-full text-right border-collapse">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
@@ -3403,7 +3422,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-3 mt-4">
                   <button
                     onClick={() => setCategoryFilter('الكل')}
-                    className={`p-3.5 rounded-2xl text-right border transition-all flex flex-col justify-between h-20 ${
+                    className={`p-3.5 rounded-[14px] text-right border transition-all flex flex-col justify-between h-20 ${
                       categoryFilter === 'الكل'
                         ? 'bg-slate-900 border-slate-900 text-white shadow-md'
                         : 'bg-white border-slate-100 hover:border-slate-300 text-slate-700 shadow-sm'
@@ -3424,7 +3443,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                       <button
                         key={cat}
                         onClick={() => setCategoryFilter(cat)}
-                        className={`p-3.5 rounded-2xl text-right border transition-all flex flex-col justify-between h-20 ${
+                        className={`p-3.5 rounded-[14px] text-right border transition-all flex flex-col justify-between h-20 ${
                           isActive
                             ? 'bg-blue-600 border-blue-600 text-white shadow-md'
                             : 'bg-white border-slate-100 hover:border-slate-300 text-slate-700 shadow-sm'
@@ -3449,7 +3468,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                       <input
                         type="text"
                         placeholder="ابحث باسم المستفيد، رقم الهاتف، الملاحظات، أو تفاصيل الصرف..."
-                        className="w-full h-11 pr-11 pl-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 transition-all"
+                        className="w-full h-11 pr-11 pl-4 bg-slate-50 border border-slate-200 rounded-[14px] text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
@@ -3461,7 +3480,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                        className={`px-4 h-11 border rounded-2xl font-bold text-xs transition-all flex items-center gap-2 ${
+                        className={`px-4 h-11 border rounded-[14px] font-bold text-xs transition-all flex items-center gap-2 ${
                           showAdvancedFilters 
                             ? 'bg-blue-50 border-blue-200 text-blue-600' 
                             : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -3475,7 +3494,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                       <button
                         type="button"
                         onClick={handlePrintBeneficiariesList}
-                        className="px-4 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-xs transition-all flex items-center gap-2"
+                        className="px-4 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[14px] font-bold text-xs transition-all flex items-center gap-2"
                         title="طباعة كشف المستفيدين الحالي المفلتر"
                       >
                         <Printer size={15} />
@@ -3486,7 +3505,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                         type="button"
                         onClick={handleCleanDuplicates}
                         disabled={actionLoading}
-                        className="px-4 h-11 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-2xl font-bold text-xs transition-all flex items-center gap-2"
+                        className="px-4 h-11 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-[14px] font-bold text-xs transition-all flex items-center gap-2"
                         title="فحص وحذف الأسماء المكررة من قاعدة البيانات"
                       >
                         <Trash2 size={15} />
@@ -3495,7 +3514,7 @@ export const MonthlyStipendsModule: React.FC = () => {
 
                       <button
                         onClick={handleOpenAddBeneficiary}
-                        className="px-5 h-11 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
+                        className="px-5 h-11 bg-slate-900 text-white rounded-[14px] font-black text-xs hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
                       >
                         <UserPlus size={16} />
                         إضافة مستفيد جديد
@@ -3596,7 +3615,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="bg-slate-900 text-white p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg border border-slate-800 mt-3"
+                      className="bg-slate-900 text-white p-4 rounded-[14px] flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg border border-slate-800 mt-3"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 font-black text-sm">
@@ -3784,7 +3803,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                 {!selectedRun ? (
                   /* List of previous runs */
                   <div className="space-y-4">
-                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+                    <div className="bg-white p-4 rounded-[14px] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
                       <h3 className="font-black text-slate-900 text-sm">أرشيف دورات الصرف الشهرية</h3>
                       <button
                         onClick={() => setShowCreateRunModal(true)}
@@ -3802,7 +3821,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                           return (
                             <div 
                               key={run.id} 
-                              className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                              className="bg-white rounded-[14px] p-5 border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
                             >
                               <div className="flex items-start justify-between">
                                 <div>
@@ -3868,7 +3887,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                   /* Active Single Run detailed view & distribution */
                   <div className="space-y-6">
                     {/* Run Header controls */}
-                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setSelectedRun(null)}
@@ -4102,7 +4121,7 @@ export const MonthlyStipendsModule: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[2rem] shadow-xl border border-slate-100 w-full max-w-lg overflow-hidden text-right"
+              className="bg-white rounded-[14px] shadow-xl border border-slate-100 w-full max-w-lg overflow-hidden text-right"
             >
               <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                 <h3 className="font-black text-slate-900 text-base">
@@ -4255,7 +4274,7 @@ export const MonthlyStipendsModule: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-[2rem] shadow-xl border border-slate-100 w-full max-w-md overflow-hidden text-right"
+              className="bg-white rounded-[14px] shadow-xl border border-slate-100 w-full max-w-md overflow-hidden text-right"
             >
               <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                 <h3 className="font-black text-slate-900 text-base">تجهيز دورة صرف جديدة كلياً</h3>

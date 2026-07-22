@@ -58,7 +58,7 @@ const OrgDeptNode: React.FC<OrgDeptNodeProps> = ({
       <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${depth === 0 ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50'} transition-colors`}>
+            <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center ${depth === 0 ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50'} transition-colors`}>
               <Building2 size={24} />
             </div>
             <div>
@@ -159,7 +159,7 @@ export const HRManager: React.FC<HRManagerProps> = ({
           <p className="text-slate-500 font-medium mt-1">تطوير الكوادر البشرية، الهيكل التنظيمي، والعمليات الإدارية</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => setShowAddEmployee(true)} className="btn-primary rounded-2xl h-12 px-6 shadow-lg shadow-indigo-200">
+          <Button onClick={() => setShowAddEmployee(true)} className="btn-primary rounded-[14px] h-12 px-6 shadow-lg shadow-indigo-200">
             <UserPlus size={18} className="ml-2" />
             <span className="font-black">توظيف جديد</span>
           </Button>
@@ -169,19 +169,19 @@ export const HRManager: React.FC<HRManagerProps> = ({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex items-center justify-between bg-white/50 backdrop-blur-md p-1 rounded-3xl border border-slate-100 shadow-sm mb-6 sticky top-0 z-10">
           <TabsList className="bg-transparent border-none p-0 flex gap-1">
-            <TabsTrigger value="employees" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
+            <TabsTrigger value="employees" className="rounded-[14px] px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
               <Users size={16} className="ml-2" />
               الموظفين
             </TabsTrigger>
-            <TabsTrigger value="departments" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
+            <TabsTrigger value="departments" className="rounded-[14px] px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
               <Building2 size={16} className="ml-2" />
               الأقسام
             </TabsTrigger>
-            <TabsTrigger value="jobs" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
+            <TabsTrigger value="jobs" className="rounded-[14px] px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
               <Briefcase size={16} className="ml-2" />
               المسميات الوظيفية
             </TabsTrigger>
-            <TabsTrigger value="structure" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
+            <TabsTrigger value="structure" className="rounded-[14px] px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
               <Network size={16} className="ml-2" />
               الهيكل التنظيمي
             </TabsTrigger>
@@ -194,7 +194,7 @@ export const HRManager: React.FC<HRManagerProps> = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="بحث سريع..." 
-                className="h-10 w-48 lg:w-64 border-none bg-slate-50/50 rounded-2xl pr-10 font-bold focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all text-xs"
+                className="h-10 w-48 lg:w-64 border-none bg-slate-50/50 rounded-[14px] pr-10 font-bold focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all text-xs"
               />
             </div>
           </div>
@@ -211,11 +211,11 @@ export const HRManager: React.FC<HRManagerProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                 >
-                  <Card className="group hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 border-none bg-white rounded-[32px] overflow-hidden relative">
+                  <Card className="group hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-200 border-none bg-white rounded-[32px] overflow-hidden relative">
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 to-purple-500" />
                     <CardHeader className="p-6 pb-2">
                       <div className="flex justify-between items-start mb-4">
-                        <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 font-black text-xl">
+                        <div className="w-14 h-14 rounded-[14px] bg-indigo-50 flex items-center justify-center text-indigo-500 font-black text-xl">
                           {emp.name.charAt(0)}
                         </div>
                         <Badge className={`rounded-xl px-3 py-1 border-none font-black text-[10px] uppercase tracking-widest ${
@@ -272,7 +272,7 @@ export const HRManager: React.FC<HRManagerProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {departments.map((dept) => (
               <Card key={dept.id} className="rounded-[32px] border-none shadow-sm hover:shadow-xl transition-all group overflow-hidden bg-white">
-                <div className="p-8">
+                <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <div className="w-16 h-16 rounded-[24px] bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
                       <Building2 size={28} strokeWidth={2.5} />
@@ -312,7 +312,7 @@ export const HRManager: React.FC<HRManagerProps> = ({
             
             <button 
               onClick={() => setShowAddDept(true)}
-              className="p-8 rounded-[32px] border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all group flex flex-col items-center justify-center text-center space-y-4"
+              className="p-6 rounded-[32px] border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all group flex flex-col items-center justify-center text-center space-y-4"
             >
               <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all">
                 <Plus size={32} />
@@ -386,7 +386,7 @@ export const HRManager: React.FC<HRManagerProps> = ({
                   <h3 className="text-xl font-black text-slate-900">لا توجد وظائف مضافة</h3>
                   <p className="text-slate-500 font-medium text-sm mt-1 leading-relaxed">ابدأ بتحديد المسميات الوظيفية والأدوار داخل شركتك لتنظيم عملية التوظيف</p>
                 </div>
-                <Button onClick={() => setShowAddJob(true)} className="btn-primary rounded-2xl h-12 px-8 mt-4">
+                <Button onClick={() => setShowAddJob(true)} className="btn-primary rounded-[14px] h-12 px-8 mt-4">
                   إضافة أول وظيفة
                 </Button>
               </div>
@@ -395,21 +395,21 @@ export const HRManager: React.FC<HRManagerProps> = ({
         </TabsContent>
 
         <TabsContent value="structure" className="mt-8 focus-visible:outline-none">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2 rounded-[32px] border-none shadow-xl shadow-slate-200/50 overflow-hidden">
-              <CardHeader className="p-8 border-b border-slate-100 bg-white/50 backdrop-blur-md sticky top-0 z-10 text-right">
+              <CardHeader className="p-6 border-b border-slate-100 bg-white/50 backdrop-blur-md sticky top-0 z-10 text-right">
                 <div className="flex items-center justify-between flex-row-reverse">
                   <div>
                     <CardTitle className="text-2xl font-black text-slate-900">الهيكل التنظيمي</CardTitle>
                     <CardDescription className="text-slate-500 font-bold mt-1">توزيع الإدارات والأقسام في المصنع</CardDescription>
                   </div>
-                  <Button onClick={() => setShowAddDept(true)} className="rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-black shadow-lg shadow-indigo-100">
+                  <Button onClick={() => setShowAddDept(true)} className="rounded-[14px] bg-indigo-600 hover:bg-indigo-700 font-black shadow-lg shadow-indigo-100">
                     <Plus size={18} className="ml-2" />
                     إضافة قسم
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="p-8 bg-white/30" dir="rtl">
+              <CardContent className="p-6 bg-white/30" dir="rtl">
                 <div className="space-y-4">
                   {departments.filter(d => !d.parentId || d.parentId === 'none').map(dept => (
                     <OrgDeptNode 
@@ -433,8 +433,8 @@ export const HRManager: React.FC<HRManagerProps> = ({
             <div className="space-y-6">
               <Card className="rounded-[32px] border-none shadow-xl shadow-slate-200/50 bg-indigo-600 text-white overflow-hidden relative text-right">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl" />
-                <CardHeader className="relative z-10 p-8">
-                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md mb-4">
+                <CardHeader className="relative z-10 p-6">
+                  <div className="w-12 h-12 bg-white/20 rounded-[14px] flex items-center justify-center backdrop-blur-md mb-4">
                     <Activity size={24} />
                   </div>
                   <CardTitle className="text-2xl font-black">إحصائيات الهيكل</CardTitle>
@@ -456,9 +456,9 @@ export const HRManager: React.FC<HRManagerProps> = ({
       </Tabs>
       <Dialog open={showAddDept} onOpenChange={setShowAddDept}>
         <DialogContent className="sm:max-w-[500px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-8 bg-indigo-600 text-white">
+          <DialogHeader className="p-6 bg-indigo-600 text-white">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+              <div className="w-12 h-12 bg-white/20 rounded-[14px] flex items-center justify-center backdrop-blur-md">
                 <Building2 size={24} />
               </div>
               <div>
@@ -467,7 +467,7 @@ export const HRManager: React.FC<HRManagerProps> = ({
               </div>
             </div>
           </DialogHeader>
-          <div className="p-8 space-y-6 bg-white">
+          <div className="p-6 space-y-6 bg-white">
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">اسم القسم</label>
               <Input 
@@ -501,18 +501,18 @@ export const HRManager: React.FC<HRManagerProps> = ({
               />
             </div>
           </div>
-          <DialogFooter className="p-8 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+          <DialogFooter className="p-6 bg-slate-50 flex items-center justify-between border-t border-slate-100">
             <Button variant="ghost" onClick={() => setShowAddDept(false)} className="font-black text-slate-500 hover:text-slate-900">إلغاء</Button>
-            <Button onClick={handleAddDept} className="btn-primary bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-12 px-10 font-black shadow-lg shadow-indigo-100">حفظ القسم</Button>
+            <Button onClick={handleAddDept} className="btn-primary bg-indigo-600 hover:bg-indigo-700 rounded-[14px] h-12 px-10 font-black shadow-lg shadow-indigo-100">حفظ القسم</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showAddJob} onOpenChange={setShowAddJob}>
         <DialogContent className="sm:max-w-[500px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-8 bg-indigo-600 text-white">
+          <DialogHeader className="p-6 bg-indigo-600 text-white">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+              <div className="w-12 h-12 bg-white/20 rounded-[14px] flex items-center justify-center backdrop-blur-md">
                 <Briefcase size={24} />
               </div>
               <div>
@@ -521,7 +521,7 @@ export const HRManager: React.FC<HRManagerProps> = ({
               </div>
             </div>
           </DialogHeader>
-          <div className="p-8 space-y-6 bg-white">
+          <div className="p-6 space-y-6 bg-white">
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">المسمى الوظيفي</label>
               <Input 
@@ -565,9 +565,9 @@ export const HRManager: React.FC<HRManagerProps> = ({
               </div>
             </div>
           </div>
-          <DialogFooter className="p-8 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+          <DialogFooter className="p-6 bg-slate-50 flex items-center justify-between border-t border-slate-100">
             <Button variant="ghost" onClick={() => setShowAddJob(false)} className="font-black text-slate-500 hover:text-slate-900">إلغاء</Button>
-            <Button onClick={handleAddJob} className="btn-primary bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-12 px-10 font-black shadow-lg shadow-indigo-100">حفظ الوظيفة</Button>
+            <Button onClick={handleAddJob} className="btn-primary bg-indigo-600 hover:bg-indigo-700 rounded-[14px] h-12 px-10 font-black shadow-lg shadow-indigo-100">حفظ الوظيفة</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -4,39 +4,28 @@ import React from 'react';
 if (typeof Number !== 'undefined' && Number.prototype) {
   const originalToLocaleString = Number.prototype.toLocaleString;
   Number.prototype.toLocaleString = function (locales, options) {
-    let system = 'western';
-    try {
-      const saved = localStorage.getItem('company_settings');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        system = parsed.numberSystem || 'western';
-      }
-    } catch (e) {
-      // Ignore
-    }
-
-    const formatted = originalToLocaleString.call(this, locales || 'en-US', options);
-
-    if (system === 'eastern') {
-      const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-      return formatted
-        .replace(/[0-9]/g, (w) => arabicDigits[parseInt(w, 10)])
-        .replace(/\./g, '٫');
-    }
-    return formatted;
+    // Force Western Arabic numerals (English digits) for all formatting
+    return originalToLocaleString.call(this, 'en-US', options);
   };
 }
 
 /**
+ * Converts any Eastern Arabic digits (٠-٩) found in a string back to Western Arabic (English) digits (0-9).
+ * Use this to ensure English digits are used even when using Arabic locales in libraries like date-fns.
+ */
+export function forceEnglishDigits(str: string | number | undefined | null): string {
+  if (str === undefined || str === null) return '';
+  const numStr = String(str);
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return numStr.replace(/[٠-٩]/g, (w) => String(arabicDigits.indexOf(w)));
+}
+
+/**
  * Converts Western Arabic digits (0-9) to Eastern Arabic-Indic digits (٠-٩).
- * Also formats decimal separators cleanly.
+ * STUB: Always returns Western digits as per user request.
  */
 export function toArabicDigits(num: string | number): string {
-  const numStr = String(num);
-  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-  return numStr
-    .replace(/[0-9]/g, (w) => arabicDigits[parseInt(w, 10)])
-    .replace(/\./g, '٫'); // Arabic decimal separator
+  return String(num);
 }
 
 /**
@@ -45,29 +34,23 @@ export function toArabicDigits(num: string | number): string {
 export function formatNumber(
   value: number | string | undefined | null,
   decimals: number = 0,
-  system: 'western' | 'eastern' = 'western'
+  _system: 'western' | 'eastern' = 'western'
 ): string {
   if (value === undefined || value === null) return '0';
   const parsed = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(parsed)) return '0';
 
-  // Format with standard thousands groupings and custom decimal places
-  const formattedWestern = parsed.toLocaleString('en-US', {
+  // Format with standard thousands groupings and custom decimal places - ALWAYS WESTERN
+  return parsed.toLocaleString('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
-
-  if (system === 'eastern') {
-    return toArabicDigits(formattedWestern);
-  }
-
-  return formattedWestern;
 }
 
 /**
  * Abbreviates large numbers professionally (e.g., 12.5K, 1.2M, etc.)
  */
-export function abbreviateNumber(value: number, system: 'western' | 'eastern' = 'western'): string {
+export function abbreviateNumber(value: number, _system: 'western' | 'eastern' = 'western'): string {
   const absValue = Math.abs(value);
   let result = '';
   if (absValue >= 1e6) {
@@ -78,11 +61,6 @@ export function abbreviateNumber(value: number, system: 'western' | 'eastern' = 
     result = value.toFixed(0);
   }
 
-  if (system === 'eastern') {
-    return toArabicDigits(result)
-      .replace('M', ' مليون')
-      .replace('K', ' ألف');
-  }
   return result;
 }
 
@@ -91,7 +69,7 @@ export function abbreviateNumber(value: number, system: 'western' | 'eastern' = 
  */
 export function formatCurrencyParts(
   value: number,
-  system: 'western' | 'eastern' = 'western',
+  _system: 'western' | 'eastern' = 'western',
   style: 'standard' | 'badge' | 'abbreviated' = 'standard'
 ): { formattedValue: string; unit: string; isNegative: boolean } {
   const isNegative = value < 0;
@@ -99,17 +77,17 @@ export function formatCurrencyParts(
   
   let formattedValue = '';
   if (style === 'abbreviated') {
-    formattedValue = abbreviateNumber(absValue, system);
+    formattedValue = abbreviateNumber(absValue, 'western');
   } else {
     // Show 2 decimal places if it has fractional parts, otherwise clean rounded integer
     const decimals = absValue % 1 === 0 ? 0 : 2;
-    formattedValue = formatNumber(absValue, decimals, system);
+    formattedValue = formatNumber(absValue, decimals, 'western');
   }
 
-  const unit = system === 'eastern' ? 'ج.م' : 'ج.م';
+  const unit = 'ج.م';
 
   return {
-    formattedValue: (isNegative ? (system === 'eastern' ? 'متأخر -' : '-') : '') + formattedValue,
+    formattedValue: (isNegative ? '-' : '') + formattedValue,
     unit,
     isNegative,
   };
@@ -253,8 +231,8 @@ export const NumberDisplay: React.FC<NumberDisplayProps> = ({
   ) : null;
 
   // Let's format standard Arabic style
-  // Eastern Arabic numerals look gorgeous in standard Cairo font (sans). Western numbers look extremely clean in JetBrains Mono.
-  const fontClass = system === 'eastern' ? 'font-sans font-bold' : 'font-mono tracking-tight tabular-nums';
+  // Force Western numbers in JetBrains Mono as per user request.
+  const fontClass = 'font-mono tracking-tight tabular-nums';
 
   if (style === 'badge') {
     return (

@@ -377,7 +377,7 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
   }, [sales, filterMaterial, filterStatus, searchTerm]);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6 animate-in fade-in duration-200">
       
       {/* Intro and Control Row */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -401,9 +401,9 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
       {/* KPI Cards Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-none shadow-xl shadow-slate-200/50 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-200" />
           <CardContent className="pt-6 relative z-10 flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+            <div className="w-12 h-12 bg-blue-50 rounded-[14px] flex items-center justify-center text-blue-600">
               <TrendingUp size={22} />
             </div>
             <div>
@@ -414,9 +414,9 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
         </Card>
 
         <Card className="border-none shadow-xl shadow-slate-200/50 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-200" />
           <CardContent className="pt-6 relative z-10 flex items-center gap-4">
-            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+            <div className="w-12 h-12 bg-emerald-50 rounded-[14px] flex items-center justify-center text-emerald-600">
               <CheckCircle2 size={22} />
             </div>
             <div>
@@ -427,9 +427,9 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
         </Card>
 
         <Card className="border-none shadow-xl shadow-slate-200/50 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-200" />
           <CardContent className="pt-6 relative z-10 flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+            <div className="w-12 h-12 bg-indigo-50 rounded-[14px] flex items-center justify-center text-indigo-600">
               <Clock size={22} />
             </div>
             <div>
@@ -440,9 +440,9 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
         </Card>
 
         <Card className={`border-none shadow-xl shadow-slate-200/50 relative overflow-hidden group ${overdueValue > 0 ? 'bg-red-50/50 border border-red-100' : ''}`}>
-          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-200" />
           <CardContent className="pt-6 relative z-10 flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${overdueValue > 0 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-50 text-slate-400'}`}>
+            <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center ${overdueValue > 0 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-50 text-slate-400'}`}>
               <AlertCircle size={22} />
             </div>
             <div>
@@ -455,7 +455,7 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
 
       {/* Add New Scrap Sale Form */}
       {showAddForm && (
-        <Card className="border-none shadow-xl shadow-slate-200/50 bg-white rounded-3xl overflow-hidden animate-in slide-in-from-top duration-300">
+        <Card className="border-none shadow-xl shadow-slate-200/50 bg-white rounded-3xl overflow-hidden animate-in slide-in-from-top duration-200">
           <CardHeader className="bg-slate-50 border-b border-slate-100">
             <CardTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
               <Coins className="text-primary" size={20} />
@@ -574,7 +574,7 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
               </div>
 
               {/* Safe selection (only visible if paidAmount > 0) */}
-              <div className={`space-y-2 transition-all duration-300 ${paidAmount > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-30 pointer-events-none'}`}>
+              <div className={`space-y-2 transition-all duration-200 ${paidAmount > 0 ? 'opacity-100 pointer-events-auto' : 'opacity-30 pointer-events-none'}`}>
                 <label className="text-xs font-black text-slate-500 block">الخزينة المستلمة للمقدم</label>
                 <SearchableSelect 
                   options={safeOptions}
@@ -588,7 +588,7 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
             </div>
 
             {/* Live Calculation Info Box */}
-            <div className="p-5 bg-gradient-to-r from-slate-50 to-blue-50/20 rounded-2xl border border-slate-100 flex flex-col md:flex-row justify-around items-center text-center gap-4">
+            <div className="p-5 bg-gradient-to-r from-slate-50 to-blue-50/20 rounded-[14px] border border-slate-100 flex flex-col md:flex-row justify-around items-center text-center gap-4">
               <div>
                 <span className="text-xs font-bold text-slate-400">إجمالي القيمة الفاتورة</span>
                 <p className="text-2xl font-black text-slate-800 mt-1">{totalAmountCalculated.toLocaleString()} <span className="text-xs">ج.م</span></p>
@@ -607,7 +607,7 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
 
             {/* Installment Scheduler Section (Only visible if remainingAmount > 0) */}
             {remainingAmountCalculated > 0 && (
-              <div className="space-y-4 p-6 bg-slate-50 rounded-2xl border border-slate-200/60">
+              <div className="space-y-4 p-6 bg-slate-50 rounded-[14px] border border-slate-200/60">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h4 className="font-black text-slate-800 text-sm flex items-center gap-1">
@@ -920,7 +920,7 @@ export function ByproductSalesView({ safes, profile }: ByproductSalesViewProps) 
                       {isExpanded && sale.scheduledPayments && sale.scheduledPayments.length > 0 && (
                         <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
                           <TableCell colSpan={10} className="p-6">
-                            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-inner space-y-4">
+                            <div className="bg-white rounded-[14px] p-5 border border-slate-100 shadow-inner space-y-4">
                               <div className="flex items-center justify-between">
                                 <h5 className="font-black text-slate-800 text-xs flex items-center gap-1">
                                   <Clock size={14} className="text-indigo-600" />

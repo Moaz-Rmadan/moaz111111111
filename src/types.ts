@@ -847,7 +847,7 @@ export interface CompanySettings {
   taxId?: string;
   logoUrl?: string;
   managerName?: string;
-  numberSystem?: 'western' | 'eastern'; // نظام عرض الأرقام: غربي (123) أو شرقي (١٢٣)
+  numberSystem?: 'western'; // نظام عرض الأرقام: غربي (123) فقط كما هو مطلوب
   currencyStyle?: 'standard' | 'badge' | 'abbreviated'; // نمط عرض العملة
   currencySymbol?: string; // رمز العملة (مثال: ج.م، ر.س، د.إ)
   vatRate?: number; // نسبة ضريبة القيمة المضافة %

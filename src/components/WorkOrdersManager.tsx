@@ -48,24 +48,37 @@ import {
   CreditCard,
   Building,
   Check,
-  ChevronDown
+  ChevronDown,
+  Loader2
 } from 'lucide-react';
 
-const Card = ({ children, className }: any) => <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm ${className || ''}`}>{children}</div>;
-const CardHeader = ({ children, className }: any) => <div className={`p-6 border-b border-slate-100 ${className || ''}`}>{children}</div>;
-const CardTitle = ({ children, className }: any) => <h3 className={`text-xl font-bold ${className || ''}`}>{children}</h3>;
-const CardDescription = ({ children, className }: any) => <p className={`text-sm text-slate-500 ${className || ''}`}>{children}</p>;
-const CardContent = ({ children, className }: any) => <div className={`p-6 ${className || ''}`}>{children}</div>;
-const Button = ({ children, className, variant, size, ...props }: any) => { 
-  const base = 'inline-flex items-center justify-center rounded-xl font-black transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs'; 
-  const v = variant === 'outline' ? 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-800' : 
-            variant === 'ghost' ? 'bg-transparent hover:bg-slate-100 text-slate-600' : 
-            variant === 'danger' ? 'bg-rose-600 hover:bg-rose-700 text-white' :
-            variant === 'success' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' :
-            'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-100'; 
-  const s = size === 'icon' ? 'h-9 w-9 p-0' : size === 'sm' ? 'h-8 px-3 py-1.5' : 'h-10 px-4 py-2'; 
-  return <button className={`${base} ${v} ${s} ${className || ''}`} {...props}>{children}</button>; 
+const Card = ({ children, className }: any) => <div className={`bg-white rounded-[14px] border border-slate-100 shadow-sm shadow-slate-200/30 hover:shadow-lg hover:shadow-slate-200/40 transition-all duration-200 overflow-hidden relative ${className || ''}`}>{children}</div>;
+const CardHeader = ({ children, className }: any) => <div className={`p-6 pb-2 ${className || ''}`}>{children}</div>;
+const CardTitle = ({ children, className }: any) => <h3 className={`text-xl font-black text-slate-900 tracking-tighter leading-none ${className || ''}`}>{children}</h3>;
+const CardDescription = ({ children, className }: any) => <p className={`text-sm font-bold text-slate-400 mt-1 ${className || ''}`}>{children}</p>;
+const CardContent = ({ children, className }: any) => <div className={`p-6 pt-2 ${className || ''}`}>{children}</div>;
+const Button = ({ children, className, variant, size, loading, ...props }: any) => { 
+  const base = 'inline-flex items-center justify-center rounded-[14px] font-black transition-all duration-200 outline-none select-none active:scale-95 disabled:pointer-events-none disabled:opacity-50 text-sm whitespace-nowrap tracking-tight'; 
+  const v = variant === 'outline' ? 'border-2 border-slate-100 bg-white text-slate-600 hover:border-indigo-100 hover:bg-indigo-50/30 shadow-sm' : 
+            variant === 'ghost' ? 'bg-transparent hover:bg-slate-100 text-slate-500' : 
+            variant === 'danger' ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-200/40' :
+            variant === 'success' ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200/40' :
+            variant === 'secondary' ? 'bg-white border-2 border-slate-100 text-slate-900 shadow-sm hover:bg-slate-50' :
+            'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200/40'; 
+  const s = size === 'icon' ? 'size-12 p-0' : size === 'sm' ? 'h-10 px-5 text-xs' : 'h-12 px-6'; 
+  return (
+    <button 
+      className={`${base} ${v} ${s} ${className || ''}`} 
+      disabled={loading || props.disabled}
+      {...props}
+    >
+      {loading && <Loader2 className="ml-2 h-5 w-5 animate-spin" />}
+      {children}
+    </button>
+  ); 
 };
+
+import { DatePicker } from './ui/date-picker';
 
 interface WorkOrdersManagerProps {
   customers: Customer[];
@@ -1670,38 +1683,44 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* Search Term */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500">بحث بالعميل / رقم الأمر / كود الغرفة:</label>
-                  <input
-                    type="text"
-                    placeholder="اكتب العميل، رقم أمر الشغل، كود الغرفة..."
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest mr-1">بحث شامل:</label>
+                  <div className="relative group">
+                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input
+                      type="text"
+                      placeholder="العميل، رقم الأمر، كود الغرفة..."
+                      className="w-full pl-12 h-11 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-bold text-slate-800 outline-none px-4"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 {/* Sales agent filter */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500">مبيعات / السيلز:</label>
-                  <input
-                    type="text"
-                    placeholder="اسم السيلز..."
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                    value={salesPersonFilter}
-                    onChange={(e) => setSalesPersonFilter(e.target.value)}
-                  />
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest mr-1">المسؤول / السيلز:</label>
+                  <div className="relative group">
+                    <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input
+                      type="text"
+                      placeholder="اسم السيلز..."
+                      className="w-full pl-12 h-11 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-bold text-slate-800 outline-none px-4"
+                      value={salesPersonFilter}
+                      onChange={(e) => setSalesPersonFilter(e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 {/* Status Filter */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500">حالة أمر الشغل:</label>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest mr-1">حالة العمل:</label>
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                    className="w-full h-11 px-4 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-bold text-slate-800 outline-none appearance-none"
                   >
                     <option value="الكل">كل الحالات</option>
                     <option value="بانتظار التعميد">بانتظار التعميد</option>
@@ -1714,27 +1733,31 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                 </div>
 
                 {/* Month Filter */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500">شهر التعاقد:</label>
-                  <select
-                    value={monthFilter}
-                    onChange={(e) => setMonthFilter(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  >
-                    <option value="الكل">كل الشهور</option>
-                    <option value="01">شهر 1 (يناير)</option>
-                    <option value="02">شهر 2 (فبراير)</option>
-                    <option value="03">شهر 3 (مارس)</option>
-                    <option value="04">شهر 4 (أبريل)</option>
-                    <option value="05">شهر 5 (مايو)</option>
-                    <option value="06">شهر 6 (يونيو)</option>
-                    <option value="07">شهر 7 (يوليو)</option>
-                    <option value="08">شهر 8 (أغسطس)</option>
-                    <option value="09">شهر 9 (سبتمبر)</option>
-                    <option value="10">شهر 10 (أكتوبر)</option>
-                    <option value="11">شهر 11 (نوفمبر)</option>
-                    <option value="12">شهر 12 (ديسمبر)</option>
-                  </select>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest mr-1">تاريخ التعاقد:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={monthFilter}
+                      onChange={(e) => setMonthFilter(e.target.value)}
+                      className="w-full h-11 px-4 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-bold text-slate-800 outline-none"
+                    >
+                      <option value="الكل">الشهر</option>
+                      {Array.from({ length: 12 }, (_, i) => {
+                        const m = (i + 1).toString().padStart(2, '0');
+                        return <option key={m} value={m}>{m}</option>;
+                      })}
+                    </select>
+                    <select
+                      value={yearFilter}
+                      onChange={(e) => setYearFilter(e.target.value)}
+                      className="w-full h-11 px-4 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm font-bold text-slate-800 outline-none"
+                    >
+                      <option value="الكل">السنة</option>
+                      {[2024, 2025, 2026].map(y => (
+                        <option key={y} value={y.toString()}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* Year Filter */}
@@ -1909,7 +1932,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
 
           {/* Quick Statistics Bar / Dynamic Counts */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between">
+            <div className="bg-indigo-50 border border-indigo-100 rounded-[14px] p-4 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-black text-indigo-600 block uppercase tracking-wider">عدد الأوردرات المفلترة</span>
                 <span className="text-xl font-black text-indigo-950 block mt-1">{filteredOrders.length} أوردر تشغيل</span>
@@ -1919,7 +1942,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               </div>
             </div>
 
-            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between">
+            <div className="bg-emerald-50 border border-emerald-100 rounded-[14px] p-4 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-black text-emerald-600 block uppercase tracking-wider">إجمالي القيمة المالية</span>
                 <span className="text-xl font-black text-emerald-950 block mt-1">
@@ -1931,7 +1954,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               </div>
             </div>
 
-            <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 flex items-center justify-between">
+            <div className="bg-purple-50 border border-purple-100 rounded-[14px] p-4 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-black text-purple-600 block uppercase tracking-wider">إجمالي البنود / الغرف</span>
                 <span className="text-xl font-black text-purple-950 block mt-1">
@@ -1943,7 +1966,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center justify-between">
+            <div className="bg-amber-50 border border-amber-100 rounded-[14px] p-4 flex items-center justify-between">
               <div>
                 <span className="text-[10px] font-black text-amber-600 block uppercase tracking-wider">متوسط قيمة التعاقد</span>
                 <span className="text-xl font-black text-amber-950 block mt-1">
@@ -1961,7 +1984,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
           {/* Orders Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredOrders.length === 0 ? (
-              <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-100">
+              <div className="col-span-full text-center py-12 bg-white rounded-[14px] border border-slate-100">
                 <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
                 <p className="text-slate-500 font-bold">لا توجد أوامر تشغيل مطابقة لمعايير البحث الدقيق</p>
               </div>
@@ -1969,7 +1992,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               filteredOrders.map(order => {
                 const totalRoomsCount = order.rooms?.length || 1;
                 return (
-                  <Card key={order.id} className="border-none shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between overflow-hidden">
+                  <Card key={order.id} className="border-none shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden">
                     <div>
                       {/* Top bar with status and ref */}
                       <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
@@ -2094,7 +2117,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
       {activeSubTab === 'production_line' && (
         <div className="space-y-6">
           {/* Header Controls for Production Line */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm">
             <div className="space-y-1">
               <h3 className="text-sm font-black text-slate-800">تتبع مراحل خط الإنتاج والتصنيع الفعلي</h3>
               <p className="text-slate-400 font-bold text-[11px]">تابع سير الغرف والبنود في أقسام المصنع المختلفة من التجهيز وحتى التعبئة وجاهزية الاستلام</p>
@@ -2169,7 +2192,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               });
 
               return (
-                <div key={stage.id} className="flex-shrink-0 w-80 bg-slate-50/60 border border-slate-100 rounded-2xl p-4 flex flex-col snap-start min-h-[550px]">
+                <div key={stage.id} className="flex-shrink-0 w-80 bg-slate-50/60 border border-slate-100 rounded-[14px] p-4 flex flex-col snap-start min-h-[550px]">
                   {/* Stage Header */}
                   <div className={`flex items-center justify-between border rounded-xl p-2.5 mb-4 ${stage.colorClass}`}>
                     <div className="flex items-center gap-2">
@@ -2631,7 +2654,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                 </Card>
               </div>
             ) : (
-              <div className="text-center py-20 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center items-center">
+              <div className="text-center py-20 bg-white rounded-[14px] border border-slate-100 shadow-sm flex flex-col justify-center items-center">
                 <DollarSign size={48} className="text-slate-300 mb-4 animate-pulse" />
                 <h4 className="font-black text-slate-800 text-sm">بانتظار اختيار عميل من القائمة الجانبية</h4>
                 <p className="text-slate-500 font-bold text-xs mt-2">اختر عميل لعرض كشف حساب شامل وتتبع المبالغ لسه كام عليه ودفع كام عربون بالتاريخ.</p>
@@ -2658,7 +2681,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               </CardHeader>
               <CardContent className="p-5 space-y-4">
                 {/* Drag and Drop Zone */}
-                <div className="border-2 border-dashed border-emerald-200 hover:border-emerald-500 rounded-2xl p-6 text-center cursor-pointer bg-emerald-50/10 hover:bg-emerald-50/30 transition-all relative">
+                <div className="border-2 border-dashed border-emerald-200 hover:border-emerald-500 rounded-[14px] p-6 text-center cursor-pointer bg-emerald-50/10 hover:bg-emerald-50/30 transition-all relative">
                   <input
                     type="file"
                     multiple
@@ -2985,7 +3008,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                     const totalFolderOrders = Object.values(clientMap).reduce((sum, item) => sum + item.orders.length, 0);
                     
                     return (
-                      <Card key={folderName} className="border border-slate-100 hover:shadow-lg transition-all overflow-hidden duration-300 bg-white">
+                      <Card key={folderName} className="border border-slate-100 hover:shadow-lg transition-all overflow-hidden duration-200 bg-white">
                         <div className="p-5 bg-gradient-to-r from-sky-50 to-indigo-50/20 border-b border-slate-100 flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <span className="text-3xl">📂</span>
@@ -3086,7 +3109,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
       {activeSubTab === 'shipping_hub' && (
         <div className="space-y-6" dir="rtl">
           {/* Header Action Control */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-[14px] border border-slate-100 shadow-sm">
             <div>
               <h3 className="font-black text-slate-800 text-sm">🚚 تخطيط حركة الشحن وتحميل السيارات والسائقين</h3>
               <p className="text-xs text-slate-500 font-bold mt-0.5">اصنع بيان حمولة السيارة متضمناً قائمة الغرف والمنتجات الجاهزة والمسافر مع السائق للمحافظات أو المعارض.</p>
@@ -3267,10 +3290,10 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
       {/* Tab: Advanced Executive BI Analytics */}
       {/* ========================================== */}
       {activeSubTab === 'analytics_hub' && (
-        <div className="space-y-6 animate-in fade-in-50 duration-300" dir="rtl">
+        <div className="space-y-6 animate-in fade-in-50 duration-200" dir="rtl">
           {/* Financial and Production KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-[14px] p-5 shadow-sm relative overflow-hidden">
               <span className="text-[10px] font-black uppercase opacity-80 tracking-wider block">القيمة الإجمالية للتعاقدات</span>
               <span className="text-2xl font-black block mt-2 font-mono">
                 {workOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toLocaleString()} ج.م
@@ -3279,7 +3302,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               <DollarSign size={80} className="absolute -bottom-4 -left-4 opacity-10" />
             </div>
 
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-[14px] p-5 shadow-sm relative overflow-hidden">
               <span className="text-[10px] font-black uppercase opacity-80 tracking-wider block">إجمالي المقبوضات والعرابين</span>
               <span className="text-2xl font-black block mt-2 font-mono">
                 {customerPayments.reduce((sum, p) => sum + (p.amount || 0), 0).toLocaleString()} ج.م
@@ -3288,7 +3311,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               <CheckCircle2 size={80} className="absolute -bottom-4 -left-4 opacity-10" />
             </div>
 
-            <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-[14px] p-5 shadow-sm relative overflow-hidden">
               <span className="text-[10px] font-black uppercase opacity-80 tracking-wider block">إجمالي المتبقي المستحق للتحصيل</span>
               <span className="text-2xl font-black block mt-2 font-mono">
                 {(workOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0) - customerPayments.reduce((sum, p) => sum + (p.amount || 0), 0)).toLocaleString()} ج.م
@@ -3297,7 +3320,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               <AlertCircle size={80} className="absolute -bottom-4 -left-4 opacity-10" />
             </div>
 
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-[14px] p-5 shadow-sm relative overflow-hidden">
               <span className="text-[10px] font-black uppercase opacity-80 tracking-wider block">نسبة الإنجاز الفني العام بالورش</span>
               <span className="text-2xl font-black block mt-2 font-mono">
                 {productionRooms.length > 0 
@@ -3567,7 +3590,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
             </CardHeader>
             <CardContent className="pt-6 space-y-6">
               {/* Header Info Block */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-[14px] border border-slate-100">
                 <div className="space-y-1.5">
                   <label className="text-xs font-black text-slate-500">العميل الحالي <span className="text-red-500">*</span></label>
                   <SearchableSelect
@@ -3614,37 +3637,33 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-500">تاريخ التعاقد (تاريخ أمر الشغل):</label>
-                  <input 
-                    type="date"
-                    value={formData.contractDate}
-                    onChange={e => setFormData({...formData, contractDate: e.target.value})}
-                    className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-black focus:ring-2 focus:ring-indigo-500 text-slate-800"
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest mr-1">تاريخ التعاقد:</label>
+                  <DatePicker 
+                    date={formData.contractDate ? new Date(formData.contractDate) : undefined}
+                    setDate={(date) => setFormData({...formData, contractDate: date ? date.toISOString().split('T')[0] : ''})}
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-500">تاريخ الاستلام النهائي المتوقع:</label>
-                  <input 
-                    type="date"
-                    value={formData.deliveryDate}
-                    onChange={e => setFormData({...formData, deliveryDate: e.target.value})}
-                    className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-black focus:ring-2 focus:ring-indigo-500 text-slate-800"
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest mr-1">الاستلام المتوقع:</label>
+                  <DatePicker 
+                    date={formData.deliveryDate ? new Date(formData.deliveryDate) : undefined}
+                    setDate={(date) => setFormData({...formData, deliveryDate: date ? date.toISOString().split('T')[0] : ''})}
                   />
                 </div>
               </div>
 
               {/* Status and Cost Center Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-700 flex items-center gap-1.5">
-                    <Clock size={14} className="text-indigo-600" /> حالة التشغيل العامة للأمر
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-[14px] border border-slate-100">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-700 flex items-center gap-2">
+                    <Clock size={16} className="text-indigo-600" /> حالة التشغيل العامة للأمر
                   </label>
                   <select 
                     value={formData.status}
                     onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white font-black text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                   >
                     <option value="بانتظار التعميد">بانتظار التعميد (جديد)</option>
                     <option value="في أحد مراكز التكلفة">في أحد مراكز التكلفة (بالورشة)</option>
@@ -3656,12 +3675,12 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                 </div>
 
                 {formData.status === 'في أحد مراكز التكلفة' && (
-                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
                     <label className="text-xs font-black text-slate-700">حدد الورشة / مركز التكلفة الحالي:</label>
                     <select
                       value={formData.costCenterId || ''}
                       onChange={(e) => setFormData({...formData, costCenterId: e.target.value})}
-                      className="flex h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 focus:ring-2 focus:ring-indigo-500"
+                      className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-white font-black text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none"
                     >
                       <option value="">-- اختر الورشة المراد توجيه الأمر لها --</option>
                       {costCenters.map(cc => (
@@ -3673,7 +3692,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               </div>
 
               {/* Attachment image of work order */}
-              <div className="space-y-2 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              <div className="space-y-2 p-4 bg-slate-50 rounded-[14px] border border-dashed border-slate-200">
                 <label className="text-xs font-black text-slate-700 flex items-center gap-1.5">
                   <ImageIcon size={14} className="text-slate-500" /> إرفاق صورة مستند أمر الشغل (رسومات أو فاتورة)
                 </label>
@@ -3712,7 +3731,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
 
                 <div className="space-y-6">
                   {formData.rooms?.map((room, idx) => (
-                    <div key={idx} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm space-y-4 relative">
+                    <div key={idx} className="p-4 bg-white border border-slate-100 rounded-[14px] shadow-sm space-y-4 relative">
                       <div className="flex justify-between items-center border-b border-slate-50 pb-2">
                         <span className="text-xs font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full">الغرفة / البند #{idx + 1}</span>
                         {formData.rooms!.length > 1 && (
@@ -3933,7 +3952,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
             </div>
 
             {/* Printable Area matching the PDF layout with image renders */}
-            <div id="print-area" className={`p-8 bg-white min-h-[800px] font-sans text-right ${viewingOrder ? "print-active" : "hidden print:hidden"}`} dir="rtl">
+            <div id="print-area" className={`p-6 bg-white min-h-[800px] font-sans text-right ${viewingOrder ? "print-active" : "hidden print:hidden"}`} dir="rtl">
               {/* Document Header */}
               <div className="text-center border-b-2 border-black pb-4 mb-6 relative">
                 <h1 className="text-4xl font-black text-black">أمر تشغـــــــــــــــــــــيل فني وإنتاجي</h1>
@@ -3969,7 +3988,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
 
               {/* Attachment Image Render if exists */}
               {viewingOrder.attachmentImage && (
-                <div className="mb-6 p-4 border border-slate-200 rounded-2xl flex flex-col items-center">
+                <div className="mb-6 p-4 border border-slate-200 rounded-[14px] flex flex-col items-center">
                   <h4 className="text-sm font-black text-slate-700 mb-2 underline">مستند مرفق لأمر التشغيل (رسم أو كارت الشغل الأصلي)</h4>
                   <img 
                     src={viewingOrder.attachmentImage} 
@@ -4077,7 +4096,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
       )}
 
       {/* Complete print layout for all filtered work orders as a summary list/table */}
-      <div id="print-list-area" className={`hidden print:block p-8 bg-white min-h-[800px] font-sans text-right ${(!viewingOrder && !printingRoom && !selectedManifestForPrint && !selectedReceiptForPrint) ? "print-active" : "hidden print:hidden"}`} dir="rtl">
+      <div id="print-list-area" className={`hidden print:block p-6 bg-white min-h-[800px] font-sans text-right ${(!viewingOrder && !printingRoom && !selectedManifestForPrint && !selectedReceiptForPrint) ? "print-active" : "hidden print:hidden"}`} dir="rtl">
         <div className="text-center border-b-2 border-black pb-4 mb-6">
           <h1 className="text-3xl font-black text-black">تقرير فرز وتتبع أوامر التشغيل والإنتاج</h1>
           <p className="text-xs text-slate-500 font-bold mt-1">تاريخ التقرير: {new Date().toLocaleDateString('ar-EG')} | عدد الأوامر: {filteredOrders.length}</p>
@@ -4127,7 +4146,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
 
       {/* 3. Room Workshop Ticket Print */}
       {printingRoom && (
-        <div id="print-room-card-area" className={`hidden print:block p-8 bg-white min-h-[800px] font-sans text-right ${printingRoom ? "print-active" : "hidden print:hidden"}`} dir="rtl">
+        <div id="print-room-card-area" className={`hidden print:block p-6 bg-white min-h-[800px] font-sans text-right ${printingRoom ? "print-active" : "hidden print:hidden"}`} dir="rtl">
           <div className="text-center border-b-4 border-black pb-4 mb-6">
             <h1 className="text-3xl font-black text-black">كارت تشغيل الورشة الفني 🏭</h1>
             <p className="text-sm text-slate-600 font-black mt-1">رقم أمر الشغل: {printingRoom.orderNumber} | العميل: {printingRoom.customerName}</p>
@@ -4230,7 +4249,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
 
       {/* 4. Shipping Vehicle Manifest Print Layout */}
       {selectedManifestForPrint && (
-        <div id="print-manifest-area" className={`hidden print:block p-8 bg-white min-h-[800px] font-sans text-right ${selectedManifestForPrint ? "print-active" : "hidden print:hidden"}`} dir="rtl">
+        <div id="print-manifest-area" className={`hidden print:block p-6 bg-white min-h-[800px] font-sans text-right ${selectedManifestForPrint ? "print-active" : "hidden print:hidden"}`} dir="rtl">
           <div className="text-center border-b-4 border-black pb-4 mb-6 relative">
             <h1 className="text-3xl font-black text-black">بيان حمولة سيارة شحن بضائع وموبيليا 🚚</h1>
             <p className="text-sm text-slate-600 font-black mt-1">Ref: {selectedManifestForPrint.id?.substring(0, 8) || 'N/A'} | تاريخ الشحن: {selectedManifestForPrint.date}</p>
@@ -4309,7 +4328,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
 
       {/* 5. Combined Customer Delivery Receipt Print Layout */}
       {selectedReceiptForPrint && (
-        <div id="print-receipt-area" className={`hidden print:block p-8 bg-white min-h-[800px] font-sans text-right ${selectedReceiptForPrint ? "print-active" : "hidden print:hidden"}`} dir="rtl">
+        <div id="print-receipt-area" className={`hidden print:block p-6 bg-white min-h-[800px] font-sans text-right ${selectedReceiptForPrint ? "print-active" : "hidden print:hidden"}`} dir="rtl">
           <div className="text-center border-b-4 border-black pb-4 mb-6 relative">
             <h1 className="text-3xl font-black text-black">محضـــــــــــــــــــر تسليم واستلام موبيليا وأثاث ✨</h1>
             <p className="text-sm text-slate-600 font-black mt-1">Ref: {selectedReceiptForPrint.receiptNumber} | تاريخ الاستلام: {selectedReceiptForPrint.date}</p>
@@ -4410,7 +4429,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
       {/* ======================================================== */}
       {showSplitScreenModal && activeDraft && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-7xl flex flex-col max-h-[92vh] overflow-hidden border border-slate-200">
+          <div className="bg-white rounded-[14px] shadow-xl w-full max-w-7xl flex flex-col max-h-[92vh] overflow-hidden border border-slate-200">
             {/* Modal Header */}
             <div className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center border-b border-slate-800">
               <div>

@@ -45,7 +45,7 @@ export const HardwareCalculator = ({ onAdd, products }: { onAdd: (calc: Hardware
                   <Icon size={18} className="text-slate-400" />
               </div>
               <input 
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 block p-3.5 pr-12 font-bold transition-all" 
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-[14px] focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 block p-3.5 pr-12 font-bold transition-all" 
                   {...props} 
               />
           </div>
@@ -53,10 +53,10 @@ export const HardwareCalculator = ({ onAdd, products }: { onAdd: (calc: Hardware
   );
 
   return (
-    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 space-y-8">
+    <div className="bg-white p-6 rounded-[14px] shadow-sm border border-slate-100 space-y-8">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-black text-slate-900 tracking-tighter">حاسبة الإكسسوارات والخردوات</h2>
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl">
+        <div className="flex bg-slate-100 p-1.5 rounded-[14px]">
           <button onClick={() => setMode('manual')} className={cn("px-6 py-2.5 rounded-xl font-black text-xs transition-all", mode === 'manual' ? "bg-white shadow-sm text-indigo-700" : "text-slate-500")}>يدوي</button>
           <button onClick={() => setMode('automatic')} className={cn("px-6 py-2.5 rounded-xl font-black text-xs transition-all", mode === 'automatic' ? "bg-white shadow-sm text-indigo-700" : "text-slate-500")}>تلقائي</button>
         </div>
@@ -65,7 +65,7 @@ export const HardwareCalculator = ({ onAdd, products }: { onAdd: (calc: Hardware
       {mode === 'automatic' && (
           <div className="space-y-2">
             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">اختر المنتج (لجلب الخامات)</label>
-            <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900" onChange={(e) => handleProductSelect(e.target.value)}>
+            <select className="w-full p-3 bg-slate-50 border border-slate-200 rounded-[14px] font-bold text-slate-900" onChange={(e) => handleProductSelect(e.target.value)}>
                 <option value="">اختر المنتج...</option>
                 {products?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
@@ -79,7 +79,7 @@ export const HardwareCalculator = ({ onAdd, products }: { onAdd: (calc: Hardware
       </div>
 
       {calcResult && (
-        <div className="mt-8 bg-indigo-50 p-6 rounded-[2rem] border border-indigo-100">
+        <div className="mt-8 bg-indigo-50 p-6 rounded-[14px] border border-indigo-100">
           <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-black text-indigo-900">ملخص التكلفة</h3>
               <p className="text-3xl font-black text-indigo-700">{calcResult.totalCost.toLocaleString('ar-EG')} <span className="text-sm font-bold text-indigo-500">ج.م</span></p>

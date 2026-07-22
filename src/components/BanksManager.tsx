@@ -175,11 +175,11 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
           <p className="text-slate-500 font-medium mt-1">متابعة الأرصدة البنكية، الشيكات، والتسويات المالية</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => setShowAddTransaction(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-6 shadow-lg shadow-emerald-100">
+          <Button onClick={() => setShowAddTransaction(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-[14px] h-12 px-6 shadow-lg shadow-emerald-100">
             <Plus size={18} className="ml-2" />
             <span className="font-black">حركة بنكية</span>
           </Button>
-          <Button onClick={() => setShowAddCheck(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl h-12 px-6 shadow-lg shadow-indigo-100">
+          <Button onClick={() => setShowAddCheck(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-[14px] h-12 px-6 shadow-lg shadow-indigo-100">
             <CheckSquare size={18} className="ml-2" />
             <span className="font-black">شيك جديد</span>
           </Button>
@@ -189,15 +189,15 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex items-center justify-between bg-white/50 backdrop-blur-md p-1 rounded-3xl border border-slate-100 shadow-sm mb-6 sticky top-0 z-10">
           <TabsList className="bg-transparent border-none p-0 flex gap-1">
-            <TabsTrigger value="accounts" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
+            <TabsTrigger value="accounts" className="rounded-[14px] px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
               <Landmark size={16} className="ml-2" />
               الحسابات البنكية
             </TabsTrigger>
-            <TabsTrigger value="transactions" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
+            <TabsTrigger value="transactions" className="rounded-[14px] px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
               <History size={16} className="ml-2" />
               كشف الحساب
             </TabsTrigger>
-            <TabsTrigger value="checks" className="rounded-2xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
+            <TabsTrigger value="checks" className="rounded-[14px] px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md font-black text-xs transition-all">
               <FileText size={16} className="ml-2" />
               حافظة الشيكات
             </TabsTrigger>
@@ -207,10 +207,10 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
         <TabsContent value="accounts" className="mt-0 focus-visible:outline-none">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {accounts.map((acc) => (
-              <Card key={acc.id} className="group hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 border-none bg-white rounded-[32px] overflow-hidden">
-                <div className="p-8">
+              <Card key={acc.id} className="group hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-200 border-none bg-white rounded-[32px] overflow-hidden">
+                <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-[14px] bg-indigo-50 text-indigo-600 flex items-center justify-center">
                       <Landmark size={28} strokeWidth={2.5} />
                     </div>
                     <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[10px] px-3 py-1">
@@ -220,7 +220,7 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
                   <h3 className="text-xl font-black text-slate-900 mb-1">{acc.bankName}</h3>
                   <p className="text-slate-400 font-bold text-sm mb-4">{acc.accountName}</p>
                   
-                  <div className="bg-slate-50 p-4 rounded-2xl mb-6">
+                  <div className="bg-slate-50 p-4 rounded-[14px] mb-6">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">رقم الحساب</span>
                     <span className="text-sm font-black text-slate-700 font-mono tracking-tighter">{acc.accountNumber}</span>
                   </div>
@@ -240,7 +240,7 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
             
             <button 
               onClick={() => setShowAddAccount(true)}
-              className="p-8 rounded-[32px] border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all group flex flex-col items-center justify-center text-center space-y-4 min-h-[300px]"
+              className="p-6 rounded-[32px] border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all group flex flex-col items-center justify-center text-center space-y-4 min-h-[300px]"
             >
               <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-all">
                 <Plus size={32} />
@@ -299,12 +299,12 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {['وارد', 'صادر'].map((type) => (
               <Card key={type} className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden">
-                <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between space-y-0">
+                <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between space-y-0">
                   <div>
                     <CardTitle className="text-xl font-black text-slate-900">شيكات {type}ة</CardTitle>
                     <CardDescription className="font-bold">متابعة الشيكات والتحصيل</CardDescription>
                   </div>
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${type === 'وارد' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                  <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center ${type === 'وارد' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                     {type === 'وارد' ? <ArrowDownCircle size={24} /> : <ArrowUpCircle size={24} />}
                   </div>
                 </CardHeader>
@@ -346,11 +346,11 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
                           <TableCell className="p-6 text-left">
                             {check.status === 'قيد الانتظار' && type === 'وارد' && (
                               <Dialog>
-                                <DialogTrigger asChild>
+                                <DialogTrigger render={
                                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600">
                                     <RefreshCcw size={14} />
                                   </Button>
-                                </DialogTrigger>
+                                } />
                                 <DialogContent className="rounded-[32px]">
                                   <DialogHeader>
                                     <DialogTitle className="font-black text-xl">تحصيل شيك في البنك</DialogTitle>
@@ -361,7 +361,7 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
                                        <Button 
                                          key={acc.id} 
                                          onClick={() => handleDepositCheck(check, acc.id)}
-                                         className="w-full h-14 justify-start rounded-2xl bg-slate-50 hover:bg-indigo-50 border-none text-slate-900 hover:text-indigo-600 group transition-all"
+                                         className="w-full h-14 justify-start rounded-[14px] bg-slate-50 hover:bg-indigo-50 border-none text-slate-900 hover:text-indigo-600 group transition-all"
                                        >
                                          <Landmark size={20} className="ml-3 text-slate-400 group-hover:text-indigo-500" />
                                          <div className="text-right">
@@ -389,11 +389,11 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
       {/* Modals */}
       <Dialog open={showAddAccount} onOpenChange={setShowAddAccount}>
         <DialogContent className="sm:max-w-[500px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-8 bg-indigo-600 text-white">
+          <DialogHeader className="p-6 bg-indigo-600 text-white">
             <DialogTitle className="text-2xl font-black">إضافة حساب بنكي</DialogTitle>
             <p className="text-indigo-100 font-bold text-sm mt-1">تسجيل بيانات الحساب والارصدة الافتتاحية</p>
           </DialogHeader>
-          <div className="p-8 space-y-6 bg-white">
+          <div className="p-6 space-y-6 bg-white">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">اسم البنك</label>
@@ -432,20 +432,20 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
               />
             </div>
           </div>
-          <DialogFooter className="p-8 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+          <DialogFooter className="p-6 bg-slate-50 flex items-center justify-between border-t border-slate-100">
             <Button variant="ghost" onClick={() => setShowAddAccount(false)} className="font-black text-slate-500 hover:text-slate-900">إلغاء</Button>
-            <Button onClick={handleAddAccount} className="btn-primary bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-12 px-10 font-black shadow-lg shadow-indigo-100">حفظ الحساب</Button>
+            <Button onClick={handleAddAccount} className="btn-primary bg-indigo-600 hover:bg-indigo-700 rounded-[14px] h-12 px-10 font-black shadow-lg shadow-indigo-100">حفظ الحساب</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showAddTransaction} onOpenChange={setShowAddTransaction}>
         <DialogContent className="sm:max-w-[500px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-8 bg-emerald-600 text-white">
+          <DialogHeader className="p-6 bg-emerald-600 text-white">
             <DialogTitle className="text-2xl font-black">تسجيل حركة بنكية</DialogTitle>
             <p className="text-emerald-100 font-bold text-sm mt-1">إيداع، سحب، أو سداد مصروفات بنكية</p>
           </DialogHeader>
-          <div className="p-8 space-y-6 bg-white">
+          <div className="p-6 space-y-6 bg-white">
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">الحساب البنكي</label>
               <Select value={txForm.accountId} onValueChange={v => setTxForm({...txForm, accountId: v})}>
@@ -493,9 +493,9 @@ export const BanksManager: React.FC<BanksManagerProps> = ({
               />
             </div>
           </div>
-          <DialogFooter className="p-8 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+          <DialogFooter className="p-6 bg-slate-50 flex items-center justify-between border-t border-slate-100">
             <Button variant="ghost" onClick={() => setShowAddTransaction(false)} className="font-black text-slate-500 hover:text-slate-900">إلغاء</Button>
-            <Button onClick={handleAddTransaction} className="btn-primary bg-emerald-600 hover:bg-emerald-700 rounded-2xl h-12 px-10 font-black shadow-lg shadow-emerald-100">تأكيد العملية</Button>
+            <Button onClick={handleAddTransaction} className="btn-primary bg-emerald-600 hover:bg-emerald-700 rounded-[14px] h-12 px-10 font-black shadow-lg shadow-emerald-100">تأكيد العملية</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

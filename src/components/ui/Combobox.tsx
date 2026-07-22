@@ -71,7 +71,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full h-11 px-4 rounded-2xl bg-slate-50 border transition-all outline-none text-right
+        className={`flex items-center justify-between w-full h-11 px-4 rounded-[14px] bg-slate-50 border transition-all outline-none text-right
           ${isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/10 bg-white' : 'border-slate-200 hover:border-slate-300'}`}
       >
         <span className={`text-xs font-bold truncate ${selectedOption ? 'text-slate-900' : 'text-slate-400'}`}>
@@ -87,7 +87,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
             animate={{ opacity: 1, y: 5, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute z-[100] w-full bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
+            className="absolute z-[100] w-full bg-white rounded-[14px] shadow-2xl border border-slate-100 overflow-hidden"
           >
             {/* Search Input Area */}
             <div className="p-2 border-b border-slate-50 flex items-center gap-2 bg-slate-50/50">

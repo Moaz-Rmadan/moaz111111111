@@ -407,7 +407,7 @@ export default function ChartOfAccountsView({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="rounded-2xl border-none shadow-sm bg-blue-50/50">
+        <Card className="rounded-[14px] border-none shadow-sm bg-blue-50/50">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
               <Building2 size={24} />
@@ -418,7 +418,7 @@ export default function ChartOfAccountsView({
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl border-none shadow-sm bg-rose-50/50">
+        <Card className="rounded-[14px] border-none shadow-sm bg-rose-50/50">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-12 w-12 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
               <Wallet size={24} />
@@ -429,7 +429,7 @@ export default function ChartOfAccountsView({
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl border-none shadow-sm bg-indigo-50/50">
+        <Card className="rounded-[14px] border-none shadow-sm bg-indigo-50/50">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-12 w-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
               <Receipt size={24} />
@@ -440,7 +440,7 @@ export default function ChartOfAccountsView({
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl border-none shadow-sm bg-amber-50/50">
+        <Card className="rounded-[14px] border-none shadow-sm bg-amber-50/50">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
               <Calculator size={24} />
@@ -455,7 +455,7 @@ export default function ChartOfAccountsView({
 
       <Card className="rounded-3xl border-none shadow-sm bg-white overflow-hidden">
         <div className="p-6">
-          <div className="bg-slate-50/50 rounded-2xl p-2 border border-slate-100">
+          <div className="bg-slate-50/50 rounded-[14px] p-2 border border-slate-100">
             {computedChart.map(node => (
               <AccountTree key={node.id} node={node} searchTerm={searchTerm} />
             ))}

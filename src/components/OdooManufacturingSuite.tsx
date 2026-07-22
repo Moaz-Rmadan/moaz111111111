@@ -903,7 +903,7 @@ export function OdooManufacturingSuite({
                     const isOccupied = activeWOLogs.length > 0;
 
                     return (
-                      <div key={wc.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-2">
+                      <div key={wc.id} className="p-3 bg-slate-50 rounded-[14px] border border-slate-100 flex flex-col gap-2">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black text-slate-800">{wc.name}</span>
                           <Badge className={`${isOccupied ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-200'} text-[9px] font-black rounded-md`}>
@@ -935,7 +935,7 @@ export function OdooManufacturingSuite({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex gap-3 text-xs text-blue-800">
+                  <div className="p-4 bg-blue-50/50 rounded-[14px] border border-blue-100 flex gap-3 text-xs text-blue-800">
                     <AlertTriangle className="text-blue-600 flex-shrink-0" size={18} />
                     <div>
                       <h4 className="font-black mb-1">نظام إدارة تصنيع متقدم ومتكامل</h4>
@@ -945,7 +945,7 @@ export function OdooManufacturingSuite({
                     </div>
                   </div>
 
-                  <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100 flex gap-3 text-xs text-amber-800">
+                  <div className="p-4 bg-amber-50/50 rounded-[14px] border border-amber-100 flex gap-3 text-xs text-amber-800">
                     <ShieldCheck className="text-amber-600 flex-shrink-0" size={18} />
                     <div>
                       <h4 className="font-black mb-1">تحليل حدود أمان الخامات والوفر الفعال</h4>
@@ -956,7 +956,7 @@ export function OdooManufacturingSuite({
                   </div>
 
                   {mrpOrders.filter(o => o.status === 'draft').length > 0 && (
-                    <div className="p-3 bg-indigo-50/40 rounded-2xl border border-indigo-100/40 flex items-center justify-between text-xs text-indigo-800">
+                    <div className="p-3 bg-indigo-50/40 rounded-[14px] border border-indigo-100/40 flex items-center justify-between text-xs text-indigo-800">
                       <span className="font-black">لديك {mrpOrders.filter(o => o.status === 'draft').length} أوامر تصنيع كمسودة معلقة للمراجعة والمطابقة. </span>
                       <Button size="xs" onClick={() => setActiveSubTab('mo')} className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] py-1 rounded-lg">شاهد الآن</Button>
                     </div>
@@ -995,7 +995,7 @@ export function OdooManufacturingSuite({
 
       {/* SUB-TAB 2: ORIGINAL CUSTOM CARPENTRY WORKFLOW */}
       {activeSubTab === 'custom_jobs' && (
-        <div className="space-y-4 animate-in fade-in duration-300">
+        <div className="space-y-4 animate-in fade-in duration-200">
           <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
             <div>
               <h2 className="text-sm font-black text-slate-800">صالة تفصيل الأثاث والطلب المخصوص (Custom Carpentry Console)</h2>
@@ -1061,7 +1061,7 @@ export function OdooManufacturingSuite({
                     <CardContent className="space-y-4">
                       
                       {/* Material Reservation Preview */}
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100/50 space-y-1">
+                      <div className="p-3 bg-slate-50 rounded-[14px] border border-slate-100/50 space-y-1">
                         <div className="flex justify-between items-center text-[10px] font-black text-slate-500">
                           <span>توافر خامات الـ (BOM)</span>
                           {mo.status === 'draft' ? (
@@ -1226,7 +1226,7 @@ export function OdooManufacturingSuite({
                       const formattedTimer = `${Math.floor(elapsedSeconds / 60).toString().padStart(2, '0')}:${(elapsedSeconds % 60).toString().padStart(2, '0')}`;
 
                       return (
-                        <div key={wo.id} className={`p-4 rounded-2xl border transition-all flex flex-col justify-between h-44 ${
+                        <div key={wo.id} className={`p-4 rounded-[14px] border transition-all flex flex-col justify-between h-44 ${
                           wo.status === 'done' ? 'border-emerald-100 bg-emerald-50/10' :
                           wo.status === 'progress' ? 'border-blue-300 bg-blue-50/5 ring-1 ring-blue-500/10' :
                           wo.status === 'ready' ? 'border-indigo-100 bg-indigo-50/10' : 'border-slate-100 bg-slate-50/50'
@@ -1486,7 +1486,7 @@ export function OdooManufacturingSuite({
             </CardHeader>
             <CardContent className="space-y-4 text-xs font-semibold text-slate-600">
               <p>يعتمد النظام على معادلة الكفاءة الفعالة لمراكز العمل لحساب تكلفة التصنيع بدقة:</p>
-              <div className="p-3 bg-indigo-50/50 rounded-2xl border border-indigo-100 text-indigo-800">
+              <div className="p-3 bg-indigo-50/50 rounded-[14px] border border-indigo-100 text-indigo-800">
                 OEE = توافر الآلة × كفاءة الأداء × جودة المخرجات
               </div>
               <ul className="list-disc pr-4 space-y-2">
@@ -1643,17 +1643,17 @@ export function OdooManufacturingSuite({
             <CardContent className="p-6 space-y-6">
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                <div className="p-4 bg-slate-50 rounded-[14px] border border-slate-100 flex flex-col justify-between">
                   <span className="text-[10px] font-black text-slate-400">المنتج النهائي</span>
                   <div className="text-sm font-black text-slate-800 mt-1">{selectedMoForDetails.productName}</div>
                   <span className="text-[10px] text-slate-400 font-medium">الكمية: {selectedMoForDetails.quantity} وحدة</span>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                <div className="p-4 bg-slate-50 rounded-[14px] border border-slate-100 flex flex-col justify-between">
                   <span className="text-[10px] font-black text-slate-400">تاريخ الجدولة المعتمد</span>
                   <div className="text-sm font-black text-slate-800 mt-1">{selectedMoForDetails.datePlanned}</div>
                   <span className="text-[10px] text-slate-400 font-medium">المخزن الوارد: {selectedMoForDetails.destinationWarehouseId === 'showroom' ? 'صالة المعرض' : 'المستودع الإداري'}</span>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between">
+                <div className="p-4 bg-slate-50 rounded-[14px] border border-slate-100 flex flex-col justify-between">
                   <span className="text-[10px] font-black text-slate-400">حالة خط السير المعياري</span>
                   <div className="text-sm font-black text-slate-800 mt-1 flex items-center gap-1.5 capitalize">
                     <Badge variant="outline">{selectedMoForDetails.status}</Badge>
@@ -1668,7 +1668,7 @@ export function OdooManufacturingSuite({
                   <Layers size={14} className="text-slate-400" />
                   قائمة الخامات المطلوبة وواقع المخزون
                 </h3>
-                <div className="border border-slate-100 rounded-2xl overflow-hidden overflow-x-auto">
+                <div className="border border-slate-100 rounded-[14px] overflow-hidden overflow-x-auto">
                   <table className="w-full text-right text-xs">
                     <thead className="bg-slate-50 text-slate-600 font-bold">
                       <tr>
@@ -1972,7 +1972,7 @@ export function OdooManufacturingSuite({
                 </div>
 
                 {bomForm.ingredients.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 font-bold text-center py-6 bg-slate-50 rounded-2xl">لم يتم إدراج أي مواد خام حتى الآن. قائمة خامات فارغة.</p>
+                  <p className="text-[11px] text-slate-400 font-bold text-center py-6 bg-slate-50 rounded-[14px]">لم يتم إدراج أي مواد خام حتى الآن. قائمة خامات فارغة.</p>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {bomForm.ingredients.map((ing, idx) => (
@@ -2018,7 +2018,7 @@ export function OdooManufacturingSuite({
                 </div>
 
                 {bomForm.operations.length === 0 ? (
-                  <p className="text-[11px] text-slate-400 font-bold text-center py-6 bg-slate-50 rounded-2xl">لا يوجد مسار خطوات عمليات محدد. سيتم بناء مسار قياسي تلقائياً عند طلب التصنيع.</p>
+                  <p className="text-[11px] text-slate-400 font-bold text-center py-6 bg-slate-50 rounded-[14px]">لا يوجد مسار خطوات عمليات محدد. سيتم بناء مسار قياسي تلقائياً عند طلب التصنيع.</p>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {bomForm.operations.map((op, idx) => (

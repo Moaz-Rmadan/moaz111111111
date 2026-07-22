@@ -1,16 +1,35 @@
 import * as React from "react"
-
 import { cn } from "@/lib/utils"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
+  const tableRef = React.useRef<HTMLTableElement>(null)
+
+  React.useEffect(() => {
+    const table = tableRef.current
+    if (!table) return
+
+    const headers = Array.from(table.querySelectorAll('th')).map((th: Element) => th.textContent || '')
+    const rows = Array.from(table.querySelectorAll('tbody tr'))
+    
+    rows.forEach((row: Element) => {
+      const cells = Array.from(row.querySelectorAll('td'))
+      cells.forEach((cell: Element, i: number) => {
+        if (headers[i] && !cell.hasAttribute('data-label')) {
+          cell.setAttribute('data-label', headers[i])
+        }
+      })
+    })
+  }, [props.children])
+
   return (
     <div
       data-slot="table-container"
       className="relative w-full overflow-x-auto"
     >
       <table
+        ref={tableRef}
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn("w-full caption-bottom text-sm responsive-table", className)}
         {...props}
       />
     </div>
@@ -68,7 +87,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        "h-10 px-2 text-right align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -81,7 +100,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "p-2 align-middle whitespace-normal md:whitespace-nowrap [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

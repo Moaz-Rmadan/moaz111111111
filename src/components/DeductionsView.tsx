@@ -430,7 +430,7 @@ export function DeductionsView({
   return (
     <div className="space-y-8 animate-fade-in text-right" dir="rtl">
       {/* Search and Filters Header */}
-      <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 space-y-6 print:hidden shadow-sm">
+      <div className="bg-slate-50 border border-slate-200 rounded-[14px] p-6 space-y-6 print:hidden shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h3 className="font-black text-2xl text-slate-900 flex items-center gap-3">
@@ -472,7 +472,7 @@ export function DeductionsView({
           <motion.div 
             initial={{ opacity: 0, y: -10 }} 
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-2xl border border-slate-150"
+            className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-[14px] border border-slate-150"
           >
             <div className="flex items-center gap-2">
               <span className="text-xs font-black text-slate-500">من تاريخ:</span>
@@ -561,7 +561,7 @@ export function DeductionsView({
             <p className="text-3xl font-black font-mono text-red-600">{stats.total.toLocaleString()} <span className="text-xs">ج.م</span></p>
             <p className="text-[10px] text-slate-400">للفترة والفلترة المحددة</p>
           </div>
-          <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center">
+          <div className="w-14 h-14 bg-red-50 text-red-600 rounded-[14px] flex items-center justify-center">
             <TrendingDown size={28} />
           </div>
           <span className="absolute bottom-0 right-0 left-0 h-1 bg-red-500" />
@@ -573,7 +573,7 @@ export function DeductionsView({
             <p className="text-3xl font-black font-mono text-rose-600">{stats.penalties.toLocaleString()} <span className="text-xs">ج.م</span></p>
             <p className="text-[10px] text-slate-400">عقوبات إدارية مسجلة</p>
           </div>
-          <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center">
+          <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-[14px] flex items-center justify-center">
             <ShieldAlert size={28} />
           </div>
           <span className="absolute bottom-0 right-0 left-0 h-1 bg-rose-500" />
@@ -585,7 +585,7 @@ export function DeductionsView({
             <p className="text-3xl font-black font-mono text-amber-600">{(stats.attendance + stats.absences).toLocaleString()} <span className="text-xs">ج.م</span></p>
             <p className="text-[10px] text-slate-400">تأخير: {stats.attendance.toLocaleString()} | غياب: {stats.absences.toLocaleString()}</p>
           </div>
-          <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
+          <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-[14px] flex items-center justify-center">
             <Clock size={28} />
           </div>
           <span className="absolute bottom-0 right-0 left-0 h-1 bg-amber-500" />
@@ -597,7 +597,7 @@ export function DeductionsView({
             <p className="text-3xl font-black text-blue-900">{stats.employeesCount} <span className="text-sm font-bold text-slate-400">عمال</span></p>
             <p className="text-[10px] text-slate-400">بنسبة {employees.length > 0 ? Math.round((stats.employeesCount / employees.length) * 100) : 0}% من القوة العاملة</p>
           </div>
-          <div className="w-14 h-14 bg-blue-50 text-blue-900 rounded-2xl flex items-center justify-center">
+          <div className="w-14 h-14 bg-blue-50 text-blue-900 rounded-[14px] flex items-center justify-center">
             <User size={28} />
           </div>
           <span className="absolute bottom-0 right-0 left-0 h-1 bg-blue-900" />
@@ -605,7 +605,7 @@ export function DeductionsView({
       </div>
 
       {/* Analytics Charts & Reason Breakdown (Visual Audit) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Right side: Detailed Table log */}
         <div className="lg:col-span-8 space-y-4">
           <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white">

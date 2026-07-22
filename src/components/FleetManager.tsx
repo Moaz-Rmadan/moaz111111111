@@ -643,7 +643,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Top Banner Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 md:p-8 rounded-2xl md:rounded-[32px] text-white shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 sm:gap-6">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 md:p-6 rounded-[14px] md:rounded-[32px] text-white shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 sm:gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-xl">
@@ -659,7 +659,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
         <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 w-full lg:w-auto">
           <Button 
             onClick={() => setShowOilResetModal(true)}
-            className="font-black bg-rose-600 hover:bg-rose-700 text-white h-11 sm:h-12 px-4 sm:px-5 rounded-xl sm:rounded-2xl shadow-lg text-xs sm:text-sm w-full sm:w-auto justify-center"
+            className="font-black bg-rose-600 hover:bg-rose-700 text-white h-11 sm:h-12 px-4 sm:px-5 rounded-xl sm:rounded-[14px] shadow-lg text-xs sm:text-sm w-full sm:w-auto justify-center"
           >
             <Droplets size={18} className="ml-2" />
             تسجيل تغيير زيت وصيانة
@@ -667,7 +667,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
 
           <Button 
             onClick={() => { resetExpenseForm(); setShowAddExpenseModal(true); }}
-            className="font-black bg-amber-600 hover:bg-amber-700 text-white h-11 sm:h-12 px-4 sm:px-5 rounded-xl sm:rounded-2xl shadow-lg text-xs sm:text-sm w-full sm:w-auto justify-center"
+            className="font-black bg-amber-600 hover:bg-amber-700 text-white h-11 sm:h-12 px-4 sm:px-5 rounded-xl sm:rounded-[14px] shadow-lg text-xs sm:text-sm w-full sm:w-auto justify-center"
           >
             <Fuel size={18} className="ml-2" />
             تسجيل مصروف / وقود
@@ -675,7 +675,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
 
           <Button 
             onClick={() => { resetVehicleForm(); setEditingVehicle(null); setShowAddVehicleModal(true); }}
-            className="font-black bg-indigo-600 hover:bg-indigo-700 text-white h-11 sm:h-12 px-4 sm:px-5 rounded-xl sm:rounded-2xl shadow-lg text-xs sm:text-sm w-full sm:w-auto justify-center"
+            className="font-black bg-indigo-600 hover:bg-indigo-700 text-white h-11 sm:h-12 px-4 sm:px-5 rounded-xl sm:rounded-[14px] shadow-lg text-xs sm:text-sm w-full sm:w-auto justify-center"
           >
             <Plus size={18} className="ml-2" />
             إضافة سيارة جديدة
@@ -687,9 +687,9 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
       {(stats.oilChangeAlerts.length > 0 || stats.licenseAlerts.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           {stats.oilChangeAlerts.length > 0 && (
-            <div className="bg-rose-50 border border-rose-200 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-rose-900 shadow-xs">
+            <div className="bg-rose-50 border border-rose-200 p-3.5 sm:p-4 rounded-[14px] sm:rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-rose-900 shadow-xs">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-rose-500 text-white flex items-center justify-center font-black shrink-0">
+                <div className="w-10 h-10 rounded-[14px] bg-rose-500 text-white flex items-center justify-center font-black shrink-0">
                   <AlertTriangle size={20} />
                 </div>
                 <div>
@@ -710,9 +710,9 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
           )}
 
           {stats.licenseAlerts.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 shadow-xs">
+            <div className="bg-amber-50 border border-amber-200 p-3.5 sm:p-4 rounded-[14px] sm:rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 shadow-xs">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0">
+                <div className="w-10 h-10 rounded-[14px] bg-amber-500 text-white flex items-center justify-center font-black shrink-0">
                   <ShieldCheck size={20} />
                 </div>
                 <div>
@@ -742,9 +742,9 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
           { title: "تنبيهات تغيير الزيت", value: stats.oilChangeAlerts.length, icon: Droplets, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100", sub: "تجاوزت العداد المحدد" },
           { title: "مصاريف الأسطول الشهرية", value: `${stats.totalSpentMonth.toLocaleString()} ج.م`, icon: CreditCard, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100", sub: "وقود، زيت، وصيانات" }
         ].map((stat, i) => (
-          <Card key={i} className={cn("border shadow-xs rounded-2xl sm:rounded-3xl overflow-hidden bg-white p-4 sm:p-5", stat.border)}>
+          <Card key={i} className={cn("border shadow-xs rounded-[14px] sm:rounded-3xl overflow-hidden bg-white p-4 sm:p-5", stat.border)}>
             <div className="flex items-center gap-3.5 sm:gap-4">
-              <div className={cn("w-12 sm:w-14 h-12 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0", stat.bg, stat.color)}>
+              <div className={cn("w-12 sm:w-14 h-12 sm:h-14 rounded-xl sm:rounded-[14px] flex items-center justify-center shrink-0", stat.bg, stat.color)}>
                 <stat.icon size={24} className="sm:w-6 sm:h-6" />
               </div>
               <div>
@@ -758,7 +758,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
       </div>
 
       {/* Navigation Tabs Bar */}
-      <div className="bg-white p-1.5 sm:p-2 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs flex items-center justify-between overflow-x-auto gap-2">
+      <div className="bg-white p-1.5 sm:p-2 rounded-[14px] sm:rounded-3xl border border-slate-100 shadow-xs flex items-center justify-between overflow-x-auto gap-2">
         <div className="flex items-center gap-1.5 sm:gap-2">
           {[
             { id: 'overview', label: 'نظرة عامة والتحليلات', icon: Activity },
@@ -771,7 +771,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all whitespace-nowrap min-h-[42px] shrink-0",
+                "px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-[14px] font-black text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all whitespace-nowrap min-h-[42px] shrink-0",
                 activeTab === tab.id 
                   ? "bg-slate-900 text-white shadow-md" 
                   : "bg-slate-50 text-slate-600 hover:bg-slate-100"
@@ -786,7 +786,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
         <Button 
           variant="outline"
           onClick={() => setShowPrintReportModal(true)}
-          className="font-black text-xs rounded-xl sm:rounded-2xl border-slate-200 text-slate-700 h-10 px-3.5 ml-2 shrink-0 hidden md:flex"
+          className="font-black text-xs rounded-xl sm:rounded-[14px] border-slate-200 text-slate-700 h-10 px-3.5 ml-2 shrink-0 hidden md:flex"
         >
           <Printer size={15} className="ml-1.5" />
           طباعة تقرير الحركة
@@ -883,7 +883,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
                 const needsOil = kmSinceLast >= (veh.maintenanceInterval || 5000);
 
                 return (
-                  <div key={veh.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-3">
+                  <div key={veh.id} className="p-4 bg-slate-50 border border-slate-100 rounded-[14px] space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-black text-slate-900 text-sm bg-white px-2.5 py-1 rounded-xl shadow-xs border border-slate-200">
                         {veh.plateNumber}
@@ -920,14 +920,14 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
       {activeTab === 'vehicles' && (
         <div className="space-y-4">
           {/* Search & Status Filter Controls */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center justify-between">
+          <div className="bg-white p-3.5 sm:p-4 rounded-[14px] sm:rounded-3xl border border-slate-100 shadow-xs flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center justify-between">
             <div className="relative w-full md:w-96">
               <Search size={18} className="absolute right-4 top-3.5 text-slate-400" />
               <Input 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 placeholder="ابحث برقم اللوحة، الماركة، أو اسم السائق..."
-                className="pr-11 h-11 bg-slate-50 border-slate-200 rounded-xl sm:rounded-2xl text-xs font-bold"
+                className="pr-11 h-11 bg-slate-50 border-slate-200 rounded-xl sm:rounded-[14px] text-xs font-bold"
               />
             </div>
 
@@ -956,11 +956,11 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
               const needsMaintenance = kmSinceLast >= (veh.maintenanceInterval || 5000);
 
               return (
-                <Card key={veh.id} className="rounded-2xl sm:rounded-[28px] border-slate-100 shadow-xs hover:shadow-md transition-all overflow-hidden bg-white p-4 sm:p-5 space-y-4">
+                <Card key={veh.id} className="rounded-[14px] sm:rounded-[28px] border-slate-100 shadow-xs hover:shadow-md transition-all overflow-hidden bg-white p-4 sm:p-5 space-y-4">
                   {/* Card Header */}
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-11 sm:w-12 h-11 sm:h-12 rounded-xl sm:rounded-2xl bg-slate-900 text-amber-400 flex items-center justify-center font-black text-lg shadow-xs shrink-0">
+                      <div className="w-11 sm:w-12 h-11 sm:h-12 rounded-xl sm:rounded-[14px] bg-slate-900 text-amber-400 flex items-center justify-center font-black text-lg shadow-xs shrink-0">
                         <Truck size={22} className="sm:w-6 sm:h-6" />
                       </div>
                       <div>
@@ -985,7 +985,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
                   </div>
 
                   {/* Driver & Type Specs */}
-                  <div className="bg-slate-50 p-3 rounded-xl sm:rounded-2xl space-y-2 text-xs font-bold text-slate-700">
+                  <div className="bg-slate-50 p-3 rounded-xl sm:rounded-[14px] space-y-2 text-xs font-bold text-slate-700">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-500 flex items-center gap-1"><User size={14} className="text-indigo-600" /> السائق:</span>
                       <span className="font-black text-slate-900 truncate max-w-[130px] sm:max-w-[150px] text-left">{veh.driverName || 'غير محدد'}</span>
@@ -1064,7 +1064,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
       {/* TAB 3: OIL CHANGE & MAINTENANCE TRACKER */}
       {activeTab === 'maintenance' && (
         <div className="space-y-4">
-          <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[32px] border border-slate-100 shadow-xs space-y-4">
+          <div className="bg-white p-4 sm:p-6 rounded-[14px] sm:rounded-[32px] border border-slate-100 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-black text-slate-900 text-base sm:text-lg flex items-center gap-2">
@@ -1092,12 +1092,12 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
 
                 return (
                   <div key={veh.id} className={cn(
-                    "p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all space-y-3 bg-white",
+                    "p-4 sm:p-5 rounded-[14px] sm:rounded-3xl border transition-all space-y-3 bg-white",
                     isOverdue ? "border-rose-300 bg-rose-50/20 shadow-xs" : "border-slate-200"
                   )}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={cn("w-11 sm:w-12 h-11 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-white shadow-xs shrink-0", isOverdue ? "bg-rose-600" : "bg-amber-500")}>
+                        <div className={cn("w-11 sm:w-12 h-11 sm:h-12 rounded-xl sm:rounded-[14px] flex items-center justify-center font-black text-white shadow-xs shrink-0", isOverdue ? "bg-rose-600" : "bg-amber-500")}>
                           <Droplets size={22} />
                         </div>
                         <div>
@@ -1111,7 +1111,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
                       </Badge>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-xl sm:rounded-2xl space-y-2">
+                    <div className="bg-slate-50 p-3 rounded-xl sm:rounded-[14px] space-y-2">
                       <div className="flex items-center justify-between text-xs font-bold">
                         <span className="text-slate-500">قراءة العداد الحالية:</span>
                         <span className="font-black text-slate-900 dir-ltr">{veh.odometerReading.toLocaleString()} كم</span>
@@ -1143,7 +1143,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
 
                     <Button 
                       onClick={() => openOilResetForVehicle(veh)}
-                      className="w-full font-black text-xs bg-slate-900 hover:bg-slate-800 text-white h-10 rounded-xl sm:rounded-2xl shadow-xs"
+                      className="w-full font-black text-xs bg-slate-900 hover:bg-slate-800 text-white h-10 rounded-xl sm:rounded-[14px] shadow-xs"
                     >
                       <RefreshCw size={14} className="ml-2" />
                       إعادة ضبط عداد تغيير الزيت للسيارة
@@ -1159,14 +1159,14 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
       {/* TAB 4: EXPENSES & FUEL LOG */}
       {activeTab === 'expenses' && (
         <div className="space-y-4">
-          <div className="bg-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-xs flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center justify-between">
+          <div className="bg-white p-3.5 sm:p-5 rounded-[14px] sm:rounded-3xl border border-slate-100 shadow-xs flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center justify-between">
             <div className="relative w-full md:w-96">
               <Search size={18} className="absolute right-4 top-3.5 text-slate-400" />
               <Input 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 placeholder="ابحث برقم لوحة السيارة..."
-                className="pr-11 h-11 bg-slate-50 border-slate-200 rounded-xl sm:rounded-2xl text-xs font-bold"
+                className="pr-11 h-11 bg-slate-50 border-slate-200 rounded-xl sm:rounded-[14px] text-xs font-bold"
               />
             </div>
 
@@ -1187,7 +1187,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
             </div>
           </div>
 
-          <Card className="rounded-2xl sm:rounded-[32px] border-slate-100 shadow-xs overflow-hidden bg-white">
+          <Card className="rounded-[14px] sm:rounded-[32px] border-slate-100 shadow-xs overflow-hidden bg-white">
             <div className="overflow-x-auto w-full">
               <Table className="text-right min-w-[700px]">
                 <TableHeader className="bg-slate-100">
@@ -1258,7 +1258,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
       {/* TAB 5: DRIVERS & LICENSES TRACKER */}
       {activeTab === 'licenses' && (
         <div className="space-y-4">
-          <Card className="rounded-2xl sm:rounded-[32px] border-slate-100 shadow-xs bg-white p-4 sm:p-6">
+          <Card className="rounded-[14px] sm:rounded-[32px] border-slate-100 shadow-xs bg-white p-4 sm:p-6">
             <h3 className="text-sm sm:text-base font-black text-slate-900 mb-4 flex items-center gap-2">
               <ShieldCheck size={20} className="text-indigo-600 shrink-0" />
               جدول المتابعة الدورية لرخص السيارات والتأمين والفحص الفني
@@ -1323,7 +1323,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
 
       {/* MODAL 1: ADD / EDIT VEHICLE */}
       <Dialog open={showAddVehicleModal} onOpenChange={setShowAddVehicleModal}>
-        <DialogContent className="w-[95vw] sm:w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[32px] p-0 border-none shadow-2xl bg-white">
+        <DialogContent className="w-[95vw] sm:w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-[14px] sm:rounded-[32px] p-0 border-none shadow-2xl bg-white">
           <form onSubmit={handleSaveVehicle}>
             <DialogHeader className="p-4 sm:p-6 bg-slate-900 text-white text-right">
               <DialogTitle className="text-lg sm:text-xl font-black">
@@ -1495,7 +1495,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
 
       {/* MODAL 2: ADD EXPENSE / FUEL */}
       <Dialog open={showAddExpenseModal} onOpenChange={setShowAddExpenseModal}>
-        <DialogContent className="w-[95vw] sm:w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[32px] p-0 border-none shadow-2xl bg-white">
+        <DialogContent className="w-[95vw] sm:w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-[14px] sm:rounded-[32px] p-0 border-none shadow-2xl bg-white">
           <form onSubmit={handleSaveExpense}>
             <DialogHeader className="p-4 sm:p-6 bg-amber-600 text-white text-right">
               <DialogTitle className="text-lg sm:text-xl font-black">تسجيل مصروف / استهلاك وقود لسيارة</DialogTitle>
@@ -1627,7 +1627,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
 
       {/* MODAL 3: OIL CHANGE RESET */}
       <Dialog open={showOilResetModal} onOpenChange={setShowOilResetModal}>
-        <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[32px] p-0 border-none shadow-2xl bg-white">
+        <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-[14px] sm:rounded-[32px] p-0 border-none shadow-2xl bg-white">
           <form onSubmit={handleSaveOilReset}>
             <DialogHeader className="p-4 sm:p-6 bg-rose-600 text-white text-right">
               <DialogTitle className="text-lg sm:text-xl font-black">تسجيل تغيير زيت وإعادة ضبط العداد</DialogTitle>
@@ -1714,10 +1714,10 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
       {/* MODAL 4: VEHICLE DETAILS & HISTORY */}
       {showVehicleDetailsModal && selectedVehicle && (
         <Dialog open={showVehicleDetailsModal} onOpenChange={setShowVehicleDetailsModal}>
-          <DialogContent className="w-[95vw] sm:w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[36px] p-0 border-none shadow-2xl bg-white">
+          <DialogContent className="w-[95vw] sm:w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-[14px] sm:rounded-[36px] p-0 border-none shadow-2xl bg-white">
             <div className="p-4 sm:p-6 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0">
+                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-[14px] bg-amber-500 text-white flex items-center justify-center font-black shrink-0">
                   <Truck size={22} className="sm:w-6 sm:h-6" />
                 </div>
                 <div>
@@ -1732,22 +1732,22 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
 
             <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-h-[75vh] overflow-y-auto bg-slate-50">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-slate-200">
+                <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-[14px] border border-slate-200">
                   <p className="text-[10px] font-black text-slate-400">السائق الحالي</p>
                   <p className="font-black text-slate-900 text-xs sm:text-sm mt-1">{selectedVehicle.driverName || 'غير محدد'}</p>
                 </div>
-                <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-slate-200">
+                <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-[14px] border border-slate-200">
                   <p className="text-[10px] font-black text-slate-400">عداد الكيلومترات</p>
                   <p className="font-black text-indigo-700 text-xs sm:text-sm mt-1 dir-ltr">{selectedVehicle.odometerReading.toLocaleString()} كم</p>
                 </div>
-                <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-slate-200">
+                <div className="p-3.5 sm:p-4 bg-white rounded-xl sm:rounded-[14px] border border-slate-200">
                   <p className="text-[10px] font-black text-slate-400">تاريخ الرخصة</p>
                   <p className="font-black text-slate-900 text-xs sm:text-sm mt-1 dir-ltr">{selectedVehicle.licenseExpiryDate}</p>
                 </div>
               </div>
 
               {/* History of Expenses */}
-              <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 space-y-3">
+              <div className="bg-white p-4 sm:p-5 rounded-[14px] sm:rounded-3xl border border-slate-200 space-y-3">
                 <h4 className="font-black text-slate-900 text-xs sm:text-sm flex items-center gap-2">
                   <History size={16} className="text-indigo-600" />
                   سجل مصاريف وصيانة السيارة
@@ -1790,7 +1790,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
       {/* MODAL 5: PRINTABLE FLEET REPORT */}
       {showPrintReportModal && (
         <Dialog open={showPrintReportModal} onOpenChange={setShowPrintReportModal}>
-          <DialogContent className="w-[95vw] sm:w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[32px] p-0 border-none shadow-2xl bg-white">
+          <DialogContent className="w-[95vw] sm:w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-[14px] sm:rounded-[32px] p-0 border-none shadow-2xl bg-white">
             <div className="p-4 sm:p-6 bg-slate-900 text-white flex items-center justify-between">
               <h3 className="text-base sm:text-xl font-black">كشف كفاءة وحركة أسطول سيارات المصنع المعتمد</h3>
               <div className="flex items-center gap-2">
@@ -1803,7 +1803,7 @@ export const FleetManager: React.FC<FleetManagerProps> = ({
               </div>
             </div>
 
-            <div className="p-4 sm:p-8 space-y-4 sm:space-y-6 max-h-[80vh] overflow-y-auto bg-white text-slate-900" id="printable-fleet-report">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-h-[80vh] overflow-y-auto bg-white text-slate-900" id="printable-fleet-report">
               <div className="border-b border-slate-200 pb-4 flex justify-between items-center">
                 <div>
                   <h2 className="text-lg sm:text-2xl font-black">تقرير حركة الأسطول والصيانة</h2>

@@ -218,7 +218,7 @@ export function ProductionCostsView({
         <div className="relative">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <Input 
-            className="h-14 pr-12 rounded-2xl border-none shadow-sm bg-white font-bold text-lg" 
+            className="h-14 pr-12 rounded-[14px] border-none shadow-sm bg-white font-bold text-lg" 
             placeholder="ابحث برقم الأمر، اسم العميل، أو المنتج..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
@@ -244,7 +244,7 @@ export function ProductionCostsView({
               >
                 <CardHeader className="pb-4">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 font-black text-lg">
+                    <div className="w-12 h-12 bg-blue-50 rounded-[14px] flex items-center justify-center text-blue-600 font-black text-lg">
                       {job.orderNo}
                     </div>
                     <div className="text-left">
@@ -300,7 +300,7 @@ export function ProductionCostsView({
         </div>
       </div>
 
-      <div className="flex gap-2 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex gap-2 bg-white p-2 rounded-[14px] shadow-sm border border-slate-100">
         <Button 
           variant={activeTab === 'summary' ? 'default' : 'ghost'} 
           className={`rounded-xl font-bold flex-1 ${activeTab === 'summary' ? 'btn-primary' : ''}`}
@@ -478,7 +478,7 @@ export function ProductionCostsView({
 
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                       {materialForm.selectedItems.map((item, idx) => (
-                        <div key={idx} className="flex gap-3 items-end p-4 bg-white rounded-2xl border border-slate-100 relative group">
+                        <div key={idx} className="flex gap-3 items-end p-4 bg-white rounded-[14px] border border-slate-100 relative group">
                           {materialForm.selectedItems.length > 1 && (
                             <Button 
                               variant="ghost" 

@@ -519,7 +519,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
   return (
     <div className="space-y-6">
       {/* Top Banner Header */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-8 rounded-[32px] text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-[32px] text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-black px-3 py-1 rounded-xl">
@@ -535,7 +535,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <Button 
             onClick={() => setShowPaymentModal(true)} 
-            className="font-black bg-emerald-600 hover:bg-emerald-700 text-white h-12 px-5 rounded-2xl shadow-lg"
+            className="font-black bg-emerald-600 hover:bg-emerald-700 text-white h-12 px-5 rounded-[14px] shadow-lg"
           >
             <CreditCard size={18} className="ml-2" />
             تحصيل دفعة (سند قبض)
@@ -543,7 +543,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
 
           <Button 
             onClick={() => { resetFormData(); setEditingCustomer(null); setShowAddModal(true); }} 
-            className="font-black bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-5 rounded-2xl shadow-lg"
+            className="font-black bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-5 rounded-[14px] shadow-lg"
           >
             <Plus size={18} className="ml-2" />
             إضافة عميل جديد
@@ -561,7 +561,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
         ].map((stat, i) => (
           <Card key={i} className={cn("border shadow-sm rounded-3xl overflow-hidden bg-white p-5", stat.border)}>
             <div className="flex items-center gap-4">
-              <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0", stat.bg, stat.color)}>
+              <div className={cn("w-14 h-14 rounded-[14px] flex items-center justify-center shrink-0", stat.bg, stat.color)}>
                 <stat.icon size={26} />
               </div>
               <div>
@@ -584,7 +584,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="ابحث بالاسم، الجوال، الشغل المطلوب، الملاحظات..."
-              className="pr-11 h-11 rounded-2xl bg-slate-50 border-slate-200 font-bold text-xs focus:bg-white"
+              className="pr-11 h-11 rounded-[14px] bg-slate-50 border-slate-200 font-bold text-xs focus:bg-white"
             />
           </div>
 
@@ -675,7 +675,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
       {/* Main Customers Grid / Table */}
       {filteredCustomers.length === 0 ? (
         <Card className="rounded-[32px] p-12 text-center text-slate-400 bg-white border-none shadow-sm">
-          <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+          <div className="w-16 h-16 bg-slate-50 rounded-[14px] flex items-center justify-center mx-auto mb-3">
             <Users size={32} className="text-slate-300" />
           </div>
           <h3 className="text-base font-black text-slate-800 mb-1">لا يوجد عملاء مطابقين للبحث</h3>
@@ -705,7 +705,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
                     {/* Customer Card Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-2xl shadow-md flex items-center justify-center font-black text-lg">
+                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-700 text-white rounded-[14px] shadow-md flex items-center justify-center font-black text-lg">
                           {customer.name.substring(0, 1)}
                         </div>
                         <div>
@@ -736,7 +736,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
                     </div>
 
                     {/* Contact details */}
-                    <div className="bg-slate-50 p-3 rounded-2xl space-y-1.5 text-xs font-bold text-slate-700">
+                    <div className="bg-slate-50 p-3 rounded-[14px] space-y-1.5 text-xs font-bold text-slate-700">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5 text-slate-500">
                           <Phone size={14} className="text-indigo-500" /> الجوال:
@@ -954,7 +954,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
 
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white text-indigo-700 rounded-2xl shadow-lg flex items-center justify-center font-black text-2xl border-2 border-indigo-200 shrink-0">
+                  <div className="w-16 h-16 bg-white text-indigo-700 rounded-[14px] shadow-lg flex items-center justify-center font-black text-2xl border-2 border-indigo-200 shrink-0">
                     {viewingCustomer.name.substring(0, 1)}
                   </div>
                   <div>
@@ -1234,7 +1234,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
                   <h3 className="text-lg font-black text-slate-900">سجل شحنات النقل وحمولات الأثاث الخاصة بالعميل</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {SAMPLE_FURNITURE_ORDERS.filter(o => o.customerName === viewingCustomer.name && o.cargoId).length === 0 ? (
-                      <Card className="col-span-2 p-8 text-center text-slate-400 font-bold bg-white rounded-3xl border-none">
+                      <Card className="col-span-2 p-6 text-center text-slate-400 font-bold bg-white rounded-3xl border-none">
                         لا توجد شحنات محملة حالياً لهذا العميل
                       </Card>
                     ) : (
@@ -1275,27 +1275,27 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
                   <h3 className="text-lg font-black text-slate-900">تفاصيل وسجلات العميل الكاملة</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold text-slate-800">
-                    <div className="p-3 bg-slate-50 rounded-2xl">
+                    <div className="p-3 bg-slate-50 rounded-[14px]">
                       <span className="text-slate-400 block mb-1">الاسم الكامل:</span>
                       <p className="text-base font-black text-slate-900">{viewingCustomer.name}</p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-2xl">
+                    <div className="p-3 bg-slate-50 rounded-[14px]">
                       <span className="text-slate-400 block mb-1">رقم الهاتف والجوال:</span>
                       <p className="text-base font-mono text-indigo-700 dir-ltr">{viewingCustomer.phone}</p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-2xl">
+                    <div className="p-3 bg-slate-50 rounded-[14px]">
                       <span className="text-slate-400 block mb-1">نوع العميل:</span>
                       <p className="text-sm font-black text-slate-800">{viewingCustomer.type}</p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-2xl">
+                    <div className="p-3 bg-slate-50 rounded-[14px]">
                       <span className="text-slate-400 block mb-1">العنوان بالتفصيل:</span>
                       <p className="text-sm font-bold text-slate-800">{viewingCustomer.address || 'غير محدد'}</p>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-2xl col-span-2">
+                    <div className="p-3 bg-slate-50 rounded-[14px] col-span-2">
                       <span className="text-slate-400 block mb-1">ملاحظات التشغيل والتوريد:</span>
                       <p className="text-sm font-bold text-slate-700">{viewingCustomer.notes || 'لا توجد ملاحظات مدونة'}</p>
                     </div>
@@ -1322,7 +1322,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
             </div>
 
             {/* Printable Certificate Layout */}
-            <div className="p-8 overflow-y-auto space-y-6 text-slate-900 print:p-0">
+            <div className="p-6 overflow-y-auto space-y-6 text-slate-900 print:p-0">
               <div className="text-center border-b-2 border-indigo-900 pb-4">
                 <h1 className="text-2xl font-black text-indigo-950">إذن استلام وتوريد أثاث معتمد</h1>
                 <p className="text-xs font-bold text-slate-500 mt-1">مصنع ومعارض الأثاث الحديث • قسم جودة وتسليمات العملاء</p>
@@ -1331,7 +1331,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-xs font-bold border p-4 rounded-2xl bg-slate-50 border-slate-200">
+              <div className="grid grid-cols-2 gap-4 text-xs font-bold border p-4 rounded-[14px] bg-slate-50 border-slate-200">
                 <div>
                   <span className="text-slate-500">اسم العميل المحترم:</span>
                   <p className="text-sm font-black text-slate-900 mt-0.5">{selectedOrderForReceipt.customerName}</p>
@@ -1352,7 +1352,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
 
               <div className="space-y-2">
                 <span className="text-xs font-black text-slate-500">بيان تفاصيل ومكونات الأثاث المسلم:</span>
-                <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 text-xs font-bold text-slate-800 leading-relaxed">
+                <div className="p-4 bg-indigo-50/50 rounded-[14px] border border-indigo-100 text-xs font-bold text-slate-800 leading-relaxed">
                   {selectedOrderForReceipt.components}
                 </div>
               </div>
@@ -1365,7 +1365,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
               </div>
 
               {/* Signature Box */}
-              <div className="grid grid-cols-2 gap-8 pt-6 border-t border-slate-200 text-center text-xs font-black text-slate-800">
+              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-slate-200 text-center text-xs font-black text-slate-800">
                 <div>
                   <p className="mb-10 text-slate-500">توقيع واستلام العميل</p>
                   <div className="border-b-2 border-slate-300 w-3/4 mx-auto"></div>
@@ -1403,13 +1403,13 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
               </Button>
             </div>
 
-            <div className="p-8 overflow-y-auto space-y-6 text-slate-900">
+            <div className="p-6 overflow-y-auto space-y-6 text-slate-900">
               <div className="text-center border-b-2 border-slate-900 pb-4">
                 <h1 className="text-2xl font-black text-slate-900">كشف حساب عميل تفصيلي معتمد</h1>
                 <p className="text-xs font-bold text-slate-500 mt-1">تاريخ الإصدار: {new Date().toISOString().split('T')[0]}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-xs font-bold border p-4 rounded-2xl bg-slate-50">
+              <div className="grid grid-cols-2 gap-4 text-xs font-bold border p-4 rounded-[14px] bg-slate-50">
                 <div>
                   <span className="text-slate-500">اسم العميل:</span>
                   <p className="text-base font-black text-slate-900 mt-0.5">{viewingCustomer.name}</p>
@@ -1441,7 +1441,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
                 </TableBody>
               </Table>
 
-              <div className="p-4 bg-slate-900 text-white rounded-2xl flex items-center justify-between font-black text-sm">
+              <div className="p-4 bg-slate-900 text-white rounded-[14px] flex items-center justify-between font-black text-sm">
                 <span>الرصيد الصافي المتبقي على العميل:</span>
                 <span className="text-xl text-rose-400 dir-ltr">{Math.abs(viewingCustomer.balance).toLocaleString('ar-EG')} ج.م</span>
               </div>
@@ -1503,7 +1503,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
                 </div>
                 
                 {!editingCustomer && (
-                  <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                  <div className="space-y-2 md:col-span-2 p-4 bg-indigo-50/50 rounded-[14px] border border-indigo-100">
                     <label className="text-xs font-black text-indigo-700 uppercase tracking-wider mb-2 block">الرصيد الافتتاحي (ج.م)</label>
                     <Input type="number" value={formData.balance} onChange={e => setFormData({...formData, balance: Number(e.target.value)})} className="font-black text-lg bg-white border-indigo-200 rounded-xl h-12" dir="ltr" />
                     <p className="text-[10px] text-indigo-500 font-bold mt-2">رقم موجب = مديونية على العميل (عليه). رقم سالب = دفعة مقدمة لنا (له).</p>
@@ -1591,7 +1591,7 @@ export function CustomersManager({ customers, customerPayments, safes, salesOrde
                   </select>
                 </div>
 
-                <div className="space-y-2 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                <div className="space-y-2 p-4 bg-emerald-50 rounded-[14px] border border-emerald-100">
                   <label className="text-xs font-black text-emerald-700 uppercase tracking-wider mb-2 block">المبلغ المحصل (ج.م)</label>
                   <Input type="number" value={paymentData.amount || ''} onChange={e => setPaymentData({...paymentData, amount: Number(e.target.value)})} className="font-black text-2xl text-emerald-700 bg-white border-emerald-200 h-14 rounded-xl" dir="ltr" />
                 </div>

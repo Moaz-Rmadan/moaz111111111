@@ -325,7 +325,7 @@ export function ProductRecipesView({
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-8 animate-in fade-in duration-200 pb-20">
       
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-6">
@@ -464,7 +464,7 @@ export function ProductRecipesView({
               <CardContent className="pt-6 flex-1">
                 {/* Visual margin feedback */}
                 {stats.sellingPrice > 0 && (
-                  <div className="mb-4 p-3 rounded-2xl bg-slate-50 flex items-center justify-between">
+                  <div className="mb-4 p-3 rounded-[14px] bg-slate-50 flex items-center justify-between">
                     <span className="text-[11px] font-black text-slate-500">العائد وهامش الربح المتوقع</span>
                     <Badge className={stats.grossMarginPercent > 15 ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-orange-50 text-orange-600 border border-orange-100"}>
                       {stats.netProfit > 0 ? `صافي الربح +${stats.netProfit.toLocaleString(undefined, {maximumFractionDigits:0})} (${stats.grossMarginPercent.toFixed(1)}%)` : `خسارة مقدرة ${stats.netProfit.toLocaleString(undefined, {maximumFractionDigits:0})}`}
@@ -474,7 +474,7 @@ export function ProductRecipesView({
 
                 <div className="space-y-3">
                   {recipe.departments.filter(d => (d.items?.length || 0) > 0 || (d.totalCost || 0) > 0).map((dept, i) => (
-                    <div key={i} className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-100 group/item hover:bg-white hover:border-primary/20 transition-all">
+                    <div key={i} className="p-3.5 bg-zinc-50 rounded-[14px] border border-zinc-100 group/item hover:bg-white hover:border-primary/20 transition-all">
                       <div className="flex justify-between items-center mb-1.5">
                         <span className="text-xs font-black text-slate-900 py-0.5 px-2 bg-white rounded-md shadow-sm border border-slate-150">{dept.departmentName}</span>
                         <span className="text-xs font-mono font-bold text-slate-700">{dept.totalCost.toLocaleString()} ج.م</span>
@@ -920,7 +920,7 @@ export function ProductRecipesView({
                 </div>
               </CardHeader>
 
-              <CardContent className="flex-1 overflow-y-auto space-y-6 p-6 md:p-8 bg-white" id="print-area">
+              <CardContent className="flex-1 overflow-y-auto space-y-6 p-6 md:p-6 bg-white" id="print-area">
                 
                 {/* Print Only Header Info */}
                 <div className="hidden print-header-active text-center pb-8 border-b-2 border-slate-800 space-y-2 mb-6">
@@ -963,7 +963,7 @@ export function ProductRecipesView({
                   
                   {/* Odoo Cost Breakdown & Margins Table - Col 7 */}
                   <div className="lg:col-span-7 space-y-6">
-                    <Card className="rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4 bg-white">
+                    <Card className="rounded-[14px] border border-slate-100 p-5 shadow-sm space-y-4 bg-white">
                       <h4 className="font-black text-sm text-slate-900 border-b border-slate-100 pb-2">تحليل المكونات الصناعية والتحميل الإضافي</h4>
                       
                       <div className="space-y-3">
@@ -1008,7 +1008,7 @@ export function ProductRecipesView({
                           </div>
                         )}
 
-                        <div className="flex justify-between items-center text-lg font-black bg-indigo-50/30 text-indigo-950 p-3 rounded-2xl border border-indigo-100/50">
+                        <div className="flex justify-between items-center text-lg font-black bg-indigo-50/30 text-indigo-950 p-3 rounded-[14px] border border-indigo-100/50">
                           <span>التكلفة النهائية الكلية (Landed Cost):</span>
                           <span className="font-mono text-xl">{finalCostSim.toLocaleString(undefined, {maximumFractionDigits: 1})} ج.م</span>
                         </div>
@@ -1016,7 +1016,7 @@ export function ProductRecipesView({
                     </Card>
 
                     {/* Sales Pricing Analysis Block */}
-                    <Card className="rounded-2xl border border-orange-100 p-5 bg-gradient-to-br from-orange-50/20 to-indigo-50/20 shadow-sm space-y-4">
+                    <Card className="rounded-[14px] border border-orange-100 p-5 bg-gradient-to-br from-orange-50/20 to-indigo-50/20 shadow-sm space-y-4">
                       <div className="flex items-center gap-2">
                         <Target className="text-orange-500" size={18} />
                         <h4 className="font-black text-sm text-slate-900">هيكل تسعير المبيعات وتقييم هامش الربح</h4>
@@ -1039,7 +1039,7 @@ export function ProductRecipesView({
                       </div>
 
                       {manualSellingPrice > 0 ? (
-                        <div className="p-4 rounded-2xl bg-white border border-slate-100 flex items-center justify-between">
+                        <div className="p-4 rounded-[14px] bg-white border border-slate-100 flex items-center justify-between">
                           <div>
                             <span className="text-xs font-black text-slate-400 block mb-0.5">هامش الربح المتوقع للفاتورة</span>
                             <span className="text-lg font-black text-slate-800 font-mono">
@@ -1064,7 +1064,7 @@ export function ProductRecipesView({
                   <div className="lg:col-span-5 space-y-6 hidden-on-print">
                     
                     {/* Visual Donut Chart */}
-                    <Card className="rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4 bg-white">
+                    <Card className="rounded-[14px] border border-slate-100 p-5 shadow-sm space-y-4 bg-white">
                       <h4 className="font-black text-sm text-slate-950 text-right">مخطط توزيع أعباء التكاليف</h4>
                       <div className="h-44 w-full flex items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1098,7 +1098,7 @@ export function ProductRecipesView({
                     </Card>
 
                     {/* Volatility & Risk Simulator (What-If analysis) */}
-                    <Card className="rounded-2xl border border-red-100 p-5 shadow-sm space-y-4 bg-gradient-to-b from-white to-red-50/10">
+                    <Card className="rounded-[14px] border border-red-100 p-5 shadow-sm space-y-4 bg-gradient-to-b from-white to-red-50/10">
                       <div className="flex items-center gap-1.5">
                         <AlertTriangle className="text-red-500" size={16} />
                         <h4 className="font-black text-sm text-slate-900">محاكاة مخاطر تغير الأسعار وعوامل تضخم السوق</h4>
@@ -1159,7 +1159,7 @@ export function ProductRecipesView({
                 <div className="pt-6 border-t border-slate-100 space-y-4">
                   <h4 className="font-black text-sm text-slate-900 leading-none">تفاصيل كافة البنود من أقسام التصنيع والمصنعيات</h4>
                   
-                  <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                  <div className="overflow-x-auto border border-slate-100 rounded-[14px]">
                     <Table>
                       <TableHeader className="bg-slate-50">
                         <TableRow>

@@ -161,7 +161,7 @@ export const FactoryResetModal: React.FC<FactoryResetModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]" dir="rtl">
-      <div className="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden text-right">
+      <div className="relative w-full max-w-xl bg-white rounded-[14px] shadow-2xl border border-slate-100 overflow-hidden text-right">
         {/* Header decoration */}
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 via-amber-500 to-red-500" />
         
@@ -174,7 +174,7 @@ export const FactoryResetModal: React.FC<FactoryResetModalProps> = ({
           </button>
         )}
 
-        <div className="p-8 md:p-10">
+        <div className="p-6 md:p-6">
           <AnimatePresence mode="wait">
             {step === 'auth' && (
               <motion.div 
@@ -185,7 +185,7 @@ export const FactoryResetModal: React.FC<FactoryResetModalProps> = ({
                 className="space-y-6"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center shrink-0 border border-red-100">
+                  <div className="w-14 h-14 bg-red-50 rounded-[14px] flex items-center justify-center shrink-0 border border-red-100">
                     <ShieldAlert className="text-red-600" size={28} />
                   </div>
                   <div>
@@ -194,7 +194,7 @@ export const FactoryResetModal: React.FC<FactoryResetModalProps> = ({
                   </div>
                 </div>
 
-                <div className="p-5 bg-red-50/50 rounded-2xl border border-red-100/50 space-y-2">
+                <div className="p-5 bg-red-50/50 rounded-[14px] border border-red-100/50 space-y-2">
                   <p className="text-sm font-black text-red-800 flex items-center gap-2">
                     <AlertTriangle size={16} className="shrink-0" />
                     تنبيه أمني خطير للغاية
@@ -287,7 +287,7 @@ export const FactoryResetModal: React.FC<FactoryResetModalProps> = ({
                 className="space-y-6"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center shrink-0 border border-amber-100">
+                  <div className="w-14 h-14 bg-amber-50 rounded-[14px] flex items-center justify-center shrink-0 border border-amber-100">
                     <AlertTriangle className="text-amber-600" size={28} />
                   </div>
                   <div>
@@ -345,7 +345,7 @@ export const FactoryResetModal: React.FC<FactoryResetModalProps> = ({
                   <p className="text-sm font-bold text-slate-400">يرجى الانتظار، لا تقم بإغلاق الصفحة أو فصل الاتصال حتى انتهاء الفرمتة بنجاح.</p>
                 </div>
 
-                <div className="px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl max-w-md w-full">
+                <div className="px-5 py-3 bg-slate-50 border border-slate-100 rounded-[14px] max-w-md w-full">
                   <span className="font-mono text-xs text-red-600 font-black block">{currentProgressText}</span>
                 </div>
               </motion.div>

@@ -25,7 +25,8 @@ import {
   ReceiptText, ClipboardCheck, ClipboardList, PlusCircle, FileCheck, CreditCard, Scale, Wallet, Coins, ArrowRight,
   ChevronUp, Target, Database, Briefcase, Home, Code, Save, Upload, ArrowLeft,
   ArrowUpToLine, ArrowDownToLine, Eye, EyeOff, Box, Clock, List, Zap, Warehouse as WarehouseIcon, X, Image as ImageIcon,
-  Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History, CheckSquare, FolderTree, Landmark
+  Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History, CheckSquare, FolderTree, Landmark,
+  Compass, MessageCircleMore, LibraryBig, Factory, HardHat, WalletCards, HandHeart, UserRoundCog, Banknote, Receipt, CarFront, LineChart as LineChartIcon, Store, Contact, FileCheck2, Fingerprint, Sliders, Cpu, ChevronRight
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { 
@@ -72,6 +73,7 @@ import { ProductRecipesView } from './components/ProductRecipesView';
 import { OdooManufacturingSuite } from './components/OdooManufacturingSuite';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'motion/react';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { MaintenanceOrdersView } from "./components/MaintenanceOrdersView";
 import { AttendanceView } from './components/AttendanceView';
 import { FinancialReports } from './components/FinancialReports';
@@ -87,6 +89,7 @@ import { MaterialCalculatorView } from './components/MaterialCalculatorView';
 import WhatsAppAssistant from './components/WhatsAppAssistant';
 import { ChatModule } from './components/ChatModule';
 import { WarehouseTransfersView } from './components/WarehouseTransfersView';
+import { SearchableSelect } from './components/SearchableSelect';
 import { VehiclesView } from './components/VehiclesView';
 import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 
@@ -114,17 +117,17 @@ function ConfirmDialog({
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-      <Card className="dribbble-card w-full max-w-sm border-none shadow-2xl animate-in fade-in zoom-in duration-200">
-        <CardHeader className="pb-2">
-          <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
-            <AlertCircle className="text-red-500" size={24} />
+      <Card className="w-full max-w-sm border-none shadow-2xl animate-in fade-in zoom-in duration-200 p-6 rounded-[14px]">
+        <CardHeader className="p-0 pb-2">
+          <div className="w-10 h-10 bg-red-50 rounded-[14px] flex items-center justify-center mb-4">
+            <AlertCircle className="text-red-500" size={20} />
           </div>
-          <CardTitle className="font-black text-xl text-slate-900">{title}</CardTitle>
+          <CardTitle className="font-black text-lg text-slate-900">{title}</CardTitle>
           <CardDescription className="font-bold text-slate-500">{message}</CardDescription>
         </CardHeader>
-        <CardContent className="flex gap-3 pt-4">
-          <Button className="btn-ghost flex-1 h-11" onClick={onCancel}>{cancelText}</Button>
-          <Button className="btn-danger flex-1 h-11" onClick={onConfirm}>{confirmText}</Button>
+        <CardContent className="flex gap-3 pt-6 p-0">
+          <Button variant="ghost" className="flex-1 h-11" onClick={onCancel}>{cancelText}</Button>
+          <Button variant="destructive" className="flex-1 h-11" onClick={onConfirm}>{confirmText}</Button>
         </CardContent>
       </Card>
     </div>
@@ -193,85 +196,98 @@ function LoginView({ error: externalError }: { error?: string }) {
   const activeError = localError || externalError;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/5 rounded-full blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden" dir="rtl">
+      {/* Exquisite Soft Gradient Background */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-gradient-to-tl from-blue-400/10 via-teal-400/5 to-transparent rounded-full blur-3xl pointer-events-none" />
       
-      <Card className="w-full max-w-md border-none shadow-2xl shadow-primary/10 relative z-10 rounded-[2.5rem] overflow-hidden bg-white">
-        <CardHeader className="text-center space-y-4 pt-10 pb-6">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-2 shadow-xl shadow-primary/30 rotate-3 hover:rotate-0 transition-transform duration-500">
-            <Package className="text-white w-8 h-8" />
+      <Card className="w-full max-w-[420px] relative z-10 p-8 rounded-[24px] shadow-2xl shadow-slate-200/50 border border-slate-100 bg-white/80 backdrop-blur-xl transition-all duration-200 hover:shadow-3xl hover:-translate-y-1">
+        <CardHeader className="text-center space-y-5 pt-8 pb-8 px-0">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-b from-indigo-600 to-indigo-700 rounded-[16px] flex items-center justify-center mb-2 shadow-lg shadow-indigo-600/20 transform hover:scale-105 transition-transform duration-200">
+            <Package className="text-white w-8 h-8" strokeWidth={2.5} />
           </div>
-          <div className="space-y-1">
-            <CardTitle className="font-black text-2xl text-slate-900">تسجيل الدخول</CardTitle>
-            <CardDescription className="text-slate-500 font-bold text-sm">نظام إدارة المخازن والإنتاج الذكي</CardDescription>
+          <div className="space-y-2">
+            <CardTitle className="font-black text-[28px] tracking-tight text-slate-900">مرحباً بك</CardTitle>
+            <CardDescription className="text-slate-500 font-bold text-sm tracking-wide">المنظومة الذكية لإدارة الأعمال</CardDescription>
           </div>
         </CardHeader>
         
-        <CardContent className="px-8 pb-10 space-y-6">
-          {/* Tabs */}
-          <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+        <CardContent className="px-0 pb-6 space-y-6">
+          {/* Refined Segmented Control */}
+          <div className="flex bg-slate-100/80 p-1.5 rounded-2xl gap-1">
             <button
               onClick={() => setLoginMode('custom')}
-              className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${
+              className={`flex-1 py-2.5 text-xs font-black rounded-xl transition-all duration-200 ${
                 loginMode === 'custom' 
-                  ? 'bg-white text-slate-900 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               }`}
             >
-              حساب موظف (مخصص)
+              تسجيل موظف
             </button>
             <button
               onClick={() => setLoginMode('google')}
-              className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${
+              className={`flex-1 py-2.5 text-xs font-black rounded-xl transition-all duration-200 ${
                 loginMode === 'google' 
-                  ? 'bg-white text-slate-900 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' 
+                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               }`}
             >
-              تسجيل الدخول بجوجل
+              Google الدخول بحساب
             </button>
           </div>
 
-          {activeError && (
-            <div className="bg-red-50 text-red-600 p-3.5 rounded-2xl text-xs font-black text-center border border-red-100">
-              {activeError}
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {activeError && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-black text-center border border-red-100 flex items-center justify-center gap-2"
+              >
+                <AlertCircle size={14} />
+                {activeError}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {loginMode === 'custom' ? (
-            <form onSubmit={handleCustomLogin} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-600">رقم الهاتف أو البريد الإلكتروني</label>
-                <input
-                  type="text"
-                  required
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm text-left"
-                  placeholder="0100000000 أو example@mail.com"
-                  dir="ltr"
-                />
+            <form onSubmit={handleCustomLogin} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">رقم الهاتف أو البريد الإلكتروني</label>
+                <div className="relative group">
+                  <UserCircle size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors duration-200" />
+                  <Input
+                    type="text"
+                    required
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="pr-12 h-14 rounded-2xl border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-mono tracking-tight text-base transition-all duration-200"
+                    placeholder="example@mail.com"
+                    dir="ltr"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-600">كلمة المرور</label>
-                <div className="relative">
-                  <input
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-1">كلمة المرور</label>
+                <div className="relative group">
+                  <Clock size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors duration-200" />
+                  <Input
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                    className="pr-12 pl-12 h-14 rounded-2xl border-slate-200 bg-slate-50/50 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-mono tracking-tight text-base transition-all duration-200"
                     placeholder="••••••••"
+                    dir="ltr"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-3 text-slate-400 hover:text-primary transition-colors h-6 w-6 flex items-center justify-center"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors duration-200"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} className="opacity-40" />}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} className="opacity-40" />}
                   </button>
                 </div>
               </div>
@@ -279,9 +295,11 @@ function LoginView({ error: externalError }: { error?: string }) {
               <Button 
                 type="submit"
                 disabled={isLoading}
-                className="btn-primary w-full h-12 text-sm font-black rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 mt-2"
+                className="w-full h-14 rounded-2xl text-[15px] font-black bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-900/10 transition-all duration-200 hover:shadow-2xl hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 mt-4"
+                loading={isLoading}
               >
-                {isLoading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
+                {isLoading ? 'جاري الدخول...' : 'الدخول إلى مساحة العمل'}
+                <ArrowRight size={18} className="mr-1" />
               </Button>
             </form>
           ) : (
@@ -289,7 +307,7 @@ function LoginView({ error: externalError }: { error?: string }) {
               <Button 
                 onClick={handleGoogleLogin} 
                 disabled={isLoading}
-                className="btn-primary w-full h-14 text-sm font-black rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:hover:scale-100"
+                className="w-full h-14 rounded-2xl text-[14px] font-black bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70"
               >
                 {isLoading ? (
                   <span className="animate-pulse">جاري تسجيل الدخول...</span>
@@ -452,7 +470,20 @@ function AppContent() {
     }
   };
 
-  if (authLoading) return null;
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-200/50 animate-bounce mb-6">
+          <svg className="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <h2 className="text-xl font-black text-slate-800 tracking-tight">جاري تحميل النظام...</h2>
+        <p className="text-sm font-bold text-slate-400 mt-2">يرجى الانتظار لحظات قليلة</p>
+      </div>
+    );
+  }
 
   return user ? (
     <MainApp 
@@ -940,7 +971,7 @@ function PayrollMasterReport({
   }, [compositionData]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-8 animate-in fade-in duration-200 pb-20">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 print:hidden">
         <div>
           <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">تقرير الأجور الشامل</h2>
@@ -972,7 +1003,7 @@ function PayrollMasterReport({
         </div>
         
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
-          <div className="flex bg-white p-2 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 items-center gap-3">
+          <div className="flex bg-white p-2 rounded-[14px] shadow-xl shadow-slate-200/50 border border-slate-100 items-center gap-3">
             <Input 
               placeholder="بحث بالاسم..."
               value={reportSearch}
@@ -1004,7 +1035,7 @@ function PayrollMasterReport({
           <Button 
             onClick={() => safePrint()}
             variant="outline" 
-            className="h-12 px-6 rounded-2xl font-black border-slate-200 bg-white hover:bg-slate-50 flex items-center gap-2 print:hidden shadow-xl shadow-slate-200/30 transition-all hover:-translate-y-0.5 active:scale-95"
+            className="h-12 px-6 rounded-[14px] font-black border-slate-200 bg-white hover:bg-slate-50 flex items-center gap-2 print:hidden shadow-xl shadow-slate-200/30 transition-all hover:-translate-y-0.5 active:scale-95"
           >
             <Printer size={18} className="text-slate-600" />
             طباعة كشف الأجور المجمع
@@ -1025,7 +1056,7 @@ function PayrollMasterReport({
       </div>
 
       {/* Department Filter Pills */}
-      <div className="flex flex-wrap items-center gap-2 pb-2 overflow-x-auto print:hidden bg-slate-50 p-4 rounded-2xl border border-slate-100">
+      <div className="flex flex-wrap items-center gap-2 pb-2 overflow-x-auto print:hidden bg-slate-50 p-4 rounded-[14px] border border-slate-100">
         <span className="text-sm font-black text-slate-500 ml-2">تصفية حسب القسم:</span>
         {departments.map(dept => (
           <button
@@ -1052,7 +1083,7 @@ function PayrollMasterReport({
         <Card className="dribbble-card bg-primary text-white border-none shadow-2xl shadow-primary/20">
           <CardContent className="pt-8">
             <div className="flex flex-col gap-2">
-              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+              <div className="w-12 h-12 bg-white/20 rounded-[14px] flex items-center justify-center backdrop-blur-md">
                 <DollarSign size={24} />
               </div>
               <p className="text-[10px] font-black uppercase tracking-widest opacity-80">إجمالي الأجور</p>
@@ -1064,7 +1095,7 @@ function PayrollMasterReport({
         <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50">
           <CardContent className="pt-8">
             <div className="flex flex-col gap-2">
-              <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
+              <div className="w-12 h-12 bg-green-50 rounded-[14px] flex items-center justify-center text-green-600">
                 <Users size={24} />
               </div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">عدد الموظفين المعنيين</p>
@@ -1076,7 +1107,7 @@ function PayrollMasterReport({
         <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50">
           <CardContent className="pt-8">
             <div className="flex flex-col gap-2">
-              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
+              <div className="w-12 h-12 bg-indigo-50 rounded-[14px] flex items-center justify-center text-indigo-600">
                 <LayoutGrid size={24} />
               </div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">متوسط دخل الفرد</p>
@@ -1088,7 +1119,7 @@ function PayrollMasterReport({
         <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50">
           <CardContent className="pt-8">
             <div className="flex flex-col gap-2">
-              <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-600">
+              <div className="w-12 h-12 bg-orange-50 rounded-[14px] flex items-center justify-center text-orange-600">
                 <Plus size={24} />
               </div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الحوافز</p>
@@ -1100,7 +1131,7 @@ function PayrollMasterReport({
         <Card className="dribbble-card border-none shadow-xl shadow-slate-200/50">
           <CardContent className="pt-8">
             <div className="flex flex-col gap-2">
-              <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-600">
+              <div className="w-12 h-12 bg-red-50 rounded-[14px] flex items-center justify-center text-red-600">
                 <AlertCircle size={24} />
               </div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الاستقطاعات والمصاريف</p>
@@ -1110,7 +1141,7 @@ function PayrollMasterReport({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Trend Chart */}
         <Card className="dribbble-card lg:col-span-2 border-none shadow-2xl shadow-slate-200/50 overflow-hidden group">
           <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-row items-center justify-between">
@@ -1393,6 +1424,7 @@ function MainApp({
   const { user, profile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [inventoryMenuOpen, setInventoryMenuOpen] = useState(false);
   const [productionMenuOpen, setProductionMenuOpen] = useState(false);
   const [maintenanceMenuOpen, setMaintenanceMenuOpen] = useState(false);
@@ -1452,6 +1484,28 @@ function MainApp({
   const [productionLogs, setProductionLogs] = useState<ProductionLog[]>([]);
   const [productionMachines, setProductionMachines] = useState<ProductionMachine[]>([]);
   const [productionTeams, setProductionTeams] = useState<ProductionTeam[]>([]);
+
+  // Keyboard Shortcuts
+  useHotkeys('alt+n', () => {
+    const addButton = document.querySelector('[data-hotkey="new"]') as HTMLButtonElement;
+    if (addButton) addButton.click();
+  });
+
+  useHotkeys('ctrl+f', (e) => {
+    e.preventDefault();
+    const searchInput = document.querySelector('[data-hotkey="search"]') as HTMLInputElement;
+    if (searchInput) searchInput.focus();
+  });
+
+  useHotkeys('alt+1', () => setActiveTab('dashboard'));
+  useHotkeys('alt+2', () => setActiveTab('inventory'));
+  useHotkeys('alt+3', () => setActiveTab('purchases'));
+  useHotkeys('alt+4', () => setActiveTab('sales'));
+  useHotkeys('alt+5', () => setActiveTab('production'));
+  useHotkeys('esc', () => {
+    const closeButtons = document.querySelectorAll('[data-hotkey="close"]') as NodeListOf<HTMLButtonElement>;
+    if (closeButtons.length > 0) closeButtons[closeButtons.length - 1].click();
+  });
 
   const [hrMenuOpen, setHrMenuOpen] = useState(false);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
@@ -2530,11 +2584,12 @@ function MainApp({
         )}
       </AnimatePresence>
 
-      <aside className={`
-        fixed inset-y-0 right-0 w-72 bg-white border-l border-slate-100 flex flex-col z-50 transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)
-        md:relative md:translate-x-0 no-print shadow-xl shadow-slate-200/20
-        ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
-      `}>
+      <aside className={cn(
+        "fixed inset-y-0 right-0 bg-white border-l border-slate-200/60 flex flex-col z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden",
+        sidebarCollapsed ? "w-20" : "w-64",
+        "md:relative md:translate-x-0 no-print shadow-xl shadow-slate-200/20 md:shadow-none xl:shadow-xl xl:shadow-slate-200/20",
+        mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
+      )}>
         {/* Mobile Sidebar Close Button */}
         <div className="md:hidden absolute left-4 top-6 z-[60]">
           <Button 
@@ -2547,320 +2602,322 @@ function MainApp({
           </Button>
         </div>
 
-        {/* Brand Header */}
-        <div className="p-6 pb-4">
-          <div className="flex items-center gap-4 group cursor-pointer" onClick={() => handleNavClick('dashboard')}>
+        {/* Brand Header with Collapse Toggle */}
+        <div className="p-5 pb-3 flex items-center justify-between border-b border-slate-100">
+          <div className="flex items-center gap-3 group cursor-pointer overflow-hidden" onClick={() => handleNavClick('dashboard')}>
             <motion.div 
               whileHover={{ rotate: 12, scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl shadow-slate-900/20 text-white relative overflow-hidden"
+              className="w-10 h-10 shrink-0 rounded-[14px] flex items-center justify-center shadow-lg shadow-blue-600/20 text-white relative overflow-hidden"
             >
               <img src={elNaggarLogo} alt="النجار ديزاين" className="w-full h-full object-cover" />
             </motion.div>
-            <div className="flex flex-col text-right">
-              <h1 className="font-extrabold text-base text-slate-900 leading-none">
-                النجار ديزاين
-              </h1>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <div className="flex gap-0.5">
-                  <span className="w-1 h-1 rounded-full bg-primary animate-pulse" />
-                  <span className="w-1 h-1 rounded-full bg-primary/60 animate-pulse delay-75" />
-                  <span className="w-1 h-1 rounded-full bg-primary/30 animate-pulse delay-150" />
-                </div>
-                <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.2em]">المنظومة المتكاملة</p>
+            {!sidebarCollapsed && (
+              <div className="flex flex-col text-right overflow-hidden whitespace-nowrap transition-all duration-300">
+                <h1 className="font-extrabold text-sm text-slate-900 leading-none">
+                  النجار ديزاين
+                </h1>
+                <p className="text-[9px] text-blue-600 font-black uppercase tracking-[0.15em] mt-1">المنظومة المتكاملة</p>
               </div>
-            </div>
+            )}
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hidden md:flex h-8 w-8 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors shrink-0"
+            title={sidebarCollapsed ? "توسيع القائمة" : "طي القائمة"}
+          >
+            {sidebarCollapsed ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+          </Button>
         </div>
 
-        {/* Quick Access Area */}
-        <div className="px-10 py-4 mb-4">
-          <div className="relative group/search">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300" size={16} />
-            <input 
-              type="text" 
-              placeholder="البحث الذكي..."
-              className="w-full bg-slate-50 border border-slate-100 rounded-2xl h-12 pr-12 text-[11px] font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all placeholder:text-slate-300 shadow-inner"
-            />
+        {/* Quick Search */}
+        {!sidebarCollapsed && (
+          <div className="px-4 py-3">
+            <div className="relative group/search">
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/search:text-blue-600 transition-all" size={15} />
+              <input 
+                type="text" 
+                placeholder="البحث الذكي في الأقسام..."
+                className="w-full bg-slate-50 border border-slate-200/80 rounded-xl h-10 pr-10 pl-3 text-[11px] font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
+              />
+            </div>
           </div>
-        </div>
+        )}
         
-        <nav className="flex-1 px-4 pb-10 space-y-2 overflow-y-auto custom-scrollbar pt-2">
-          <NavButton active={activeTab === 'dashboard'} onClick={() => handleNavClick('dashboard')} icon={<LayoutDashboard size={20} />} label="لوحة التحكم" permission="dashboard" profile={profile} />
-          <NavButton active={activeTab === 'chat'} onClick={() => handleNavClick('chat')} icon={<MessageSquare size={20} />} label="المحادثة الجماعية" />
+        {/* Navigation Groups */}
+        <nav className="flex-1 px-3 pb-8 space-y-4 overflow-y-auto custom-scrollbar pt-2">
           
+          {/* Group 1: لوحة التحكم */}
+          <div className="space-y-1">
+            {!sidebarCollapsed && (
+              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <span>لوحة التحكم</span>
+              </div>
+            )}
+            <NavButton active={activeTab === 'dashboard'} onClick={() => handleNavClick('dashboard')} icon={<LayoutDashboard size={18} />} label="لوحة التحكم الرئيسية" permission="dashboard" profile={profile} />
+            <NavButton active={activeTab === 'chat'} onClick={() => handleNavClick('chat')} icon={<MessageSquare size={18} />} label="المحادثة الجماعية" />
+          </div>
+
+          {/* Group 2: المبيعات */}
+          <div className="space-y-1">
+            {!sidebarCollapsed && (
+              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                <span>المبيعات</span>
+              </div>
+            )}
+            <NavButton active={activeTab === 'sales'} onClick={() => handleNavClick('sales')} icon={<Store size={18} />} label="المبيعات والمعارض" permission="sales" profile={profile} />
+          </div>
+
+          {/* Group 3: المشتريات */}
+          <div className="space-y-1">
+            {!sidebarCollapsed && (
+              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                <span>المشتريات</span>
+              </div>
+            )}
+            <NavButton active={activeTab === 'suppliers'} onClick={() => handleNavClick('suppliers')} icon={<Truck size={18} />} label="الموردين والمشتريات" permission="suppliers" profile={profile} />
+          </div>
+
+          {/* Group 4: المخازن */}
           {(profile?.isAdmin || profile?.permissions?.inventory) && (
             <div className="space-y-1">
-              <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
-                <span>المخازن والمواد</span>
-                <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
-              </div>
-              
-              <div>
-                <motion.button 
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setInventoryMenuOpen(!inventoryMenuOpen)}
-                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                    ['inventory', 'issuances', 'returns', 'itemCard', 'waste', 'stockAudit', 'stockTransfers'].includes(activeTab) 
-                    ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' 
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Package size={20} className={['inventory', 'issuances', 'returns', 'itemCard', 'waste', 'stockAudit', 'stockTransfers'].includes(activeTab) ? 'text-primary' : ''} />
-                    <span className="font-black text-sm">المخازن</span>
-                  </div>
-                  <ChevronDown size={14} className={`transition-transform duration-300 ${inventoryMenuOpen ? 'rotate-180' : ''}`} />
-                </motion.button>
-                
-                <AnimatePresence>
-                  {inventoryMenuOpen && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden bg-slate-100/50 rounded-2xl mt-1 mx-1"
-                    >
-                      <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
-                        <SubNavButton active={activeTab === 'inventory'} onClick={() => handleNavClick('inventory')} label="أرصدة الأصناف" permission="inventory" profile={profile} />
-                        <SubNavButton active={activeTab === 'itemCard'} onClick={() => handleNavClick('itemCard')} label="كارت الحركة" permission="inventory" profile={profile} />
-                        <SubNavButton active={activeTab === 'stockTransfers'} onClick={() => handleNavClick('stockTransfers')} label="التحويل المخزني" permission="inventory" profile={profile} />
-                        <SubNavButton active={activeTab === 'issuances'} onClick={() => handleNavClick('issuances')} label="صرف المواد" permission="inventory" profile={profile} />
-                        <SubNavButton active={activeTab === 'returns'} onClick={() => handleNavClick('returns')} label="المرتجعات" permission="inventory" profile={profile} />
-                        <SubNavButton active={activeTab === 'stockAudit'} onClick={() => handleNavClick('stockAudit')} label="جرد المخزن" permission="inventory" profile={profile} />
-                        <SubNavButton active={activeTab === 'waste'} onClick={() => handleNavClick('waste')} label="سجل الهالك" permission="inventory" profile={profile} />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
-
-          {(profile?.isAdmin || profile?.permissions?.production) && (
-            <div className="space-y-1">
-              <div>
-                <motion.button 
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setProductionMenuOpen(!productionMenuOpen)}
-                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                    ['productionManager', 'productionReports', 'production', 'productRecipes', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator'].includes(activeTab) 
-                    ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' 
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Layers size={20} className={['productionManager', 'productionReports', 'production', 'productRecipes', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator'].includes(activeTab) ? 'text-primary' : ''} />
-                    <span className="font-black text-sm">إدارة التصنيع</span>
-                  </div>
-                  <ChevronDown size={14} className={`transition-transform duration-300 ${productionMenuOpen ? 'rotate-180' : ''}`} />
-                </motion.button>
-                
-                <AnimatePresence>
-                  {productionMenuOpen && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden bg-slate-100/50 rounded-2xl mt-1 mx-1"
-                    >
-                      <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
-                        <SubNavButton active={activeTab === 'productionManager'} onClick={() => handleNavClick('productionManager')} label="مخطط الإنتاج الذكي ⚙️" permission="production" profile={profile} />
-                        <SubNavButton active={activeTab === 'productionReports'} onClick={() => handleNavClick('productionReports')} label="تقارير التصنيع والإنتاج (14) 📊" permission="production" profile={profile} />
-                        <SubNavButton active={activeTab === 'production'} onClick={() => handleNavClick('production')} label="لوحة تحكم التصنيع" permission="production" profile={profile} />
-                        <SubNavButton active={activeTab === 'productRecipes'} onClick={() => handleNavClick('productRecipes')} label="قوائم المواد (BoM)" permission="production" profile={profile} />
-                        <SubNavButton active={activeTab === 'materialCalculator'} onClick={() => handleNavClick('materialCalculator')} label="حاسبة الخامات والقياسات" permission="production" profile={profile} />
-                        <SubNavButton active={activeTab === 'productionCosts'} onClick={() => handleNavClick('productionCosts')} label="تحليل التكاليف" permission="production" profile={profile} />
-                        <SubNavButton active={activeTab === 'loading'} onClick={() => handleNavClick('loading')} label="بيان التحميل" permission="production" profile={profile} />
-                        <SubNavButton active={activeTab === 'deliveryReceipts'} onClick={() => handleNavClick('deliveryReceipts')} label="محاضر الاستلام" permission="production" profile={profile} />
-                        <SubNavButton active={activeTab === 'whatsapp'} onClick={() => handleNavClick('whatsapp')} label="مساعد واتساب الذكي ✨" permission="production" profile={profile} />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
-
-          {(profile?.isAdmin || profile?.permissions?.maintenance) && (
-            <div className="space-y-1">
-              <NavButton active={activeTab === 'maintenanceOrders'} onClick={() => handleNavClick('maintenanceOrders')} icon={<Wrench size={20} />} label="قسم الصيانة" permission="maintenance" profile={profile} />
-            </div>
-          )}
-
-          {(profile?.isAdmin || profile?.permissions?.finance) && (
-            <div className="space-y-1">
-               <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
-                <span>المودول المالي</span>
-                <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
-              </div>
-              <NavButton active={activeTab === 'safe'} onClick={() => handleNavClick('safe')} icon={<Building2 size={20} />} label="المالية والخزنة" permission="finance" profile={profile} />
-              <NavButton active={activeTab === 'monthlyStipends'} onClick={() => handleNavClick('monthlyStipends')} icon={<HeartHandshake size={20} />} label="الشهريات والمساعدات" permission="finance" profile={profile} />
-            </div>
-          )}
-
-          {(profile?.isAdmin || profile?.permissions?.hr) && (
-            <div className="space-y-1">
-               <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
-                <span>الموارد البشرية</span>
-                <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
-              </div>
-
-              <NavButton active={activeTab === 'hrModule'} onClick={() => handleNavClick('hrModule')} icon={<Users size={20} />} label="إدارة الموارد البشرية" permission="hr" profile={profile} />
-              <NavButton active={activeTab === 'banks'} onClick={() => handleNavClick('banks')} icon={<Landmark size={20} />} label="إدارة البنوك" permission="financials" profile={profile} />
-
-              <div>
-                <motion.button 
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setHrMenuOpen(!hrMenuOpen)}
-                  className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                    ['employees', 'attendance', 'loans', 'payroll', 'hrTransactions', 'hrProduction', 'archive'].includes(activeTab) 
-                    ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' 
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <DollarSign size={20} className={['employees', 'attendance', 'loans', 'payroll', 'hrTransactions', 'hrProduction', 'archive'].includes(activeTab) ? 'text-primary' : ''} />
-                    <span className="font-black text-sm">الأجور والمرتبات</span>
-                  </div>
-                  <ChevronDown size={14} className={`transition-transform duration-300 ${hrMenuOpen ? 'rotate-180' : ''}`} />
-                </motion.button>
-                
-                <AnimatePresence>
-                  {hrMenuOpen && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden bg-slate-100/50 rounded-2xl mt-1 mx-1"
-                    >
-                      <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
-                        <SubNavButton active={activeTab === 'employees'} onClick={() => handleNavClick('employees')} label="ملفات الموظفين" permission="hr" profile={profile} />
-                        <SubNavButton active={activeTab === 'attendance'} onClick={() => handleNavClick('attendance')} label="دفتر الحضور" permission="hr" profile={profile} />
-                        <SubNavButton active={activeTab === 'hrProduction'} onClick={() => handleNavClick('hrProduction')} label="سجل الإنتاج" permission="hr" profile={profile} />
-                        <SubNavButton active={activeTab === 'hrTransactions'} onClick={() => handleNavClick('hrTransactions')} label="تسويات مالية" permission="hr" profile={profile} />
-                        <SubNavButton active={activeTab === 'loans'} onClick={() => handleNavClick('loans')} label="طلبات السلف" permission="hr" profile={profile} />
-                        <SubNavButton active={activeTab === 'payroll'} onClick={() => handleNavClick('payroll')} label="مسير الرواتب" permission="hr" profile={profile} />
-                        <SubNavButton active={activeTab === 'archive'} onClick={() => handleNavClick('archive')} label="الأرشيف" permission="hr" profile={profile} />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
-
-          {(profile?.isAdmin || profile?.permissions?.vehicles) && (
-            <div className="space-y-1">
-               <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
-                <span>الأسطول والحركة</span>
-                <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
-              </div>
-              <NavButton active={activeTab === 'vehicles'} onClick={() => handleNavClick('vehicles')} icon={<Truck size={20} />} label="إدارة السيارات" permission="vehicles" profile={profile} />
-            </div>
-          )}
-
-          {(profile?.isAdmin || profile?.permissions?.reports || profile?.permissions?.suppliers) && (
-            <div className="pt-6 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
-              <span>الإدارة العليا</span>
-              <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
-            </div>
-          )}
-          
-          {(profile?.isAdmin || profile?.permissions?.reports) && (
-            <div>
-              <motion.button 
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                  ['reports', 'payrollMasterReport'].includes(activeTab) 
-                  ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' 
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <BarChart3 size={20} className={['reports', 'productionReports', 'payrollMasterReport'].includes(activeTab) ? 'text-primary' : ''} />
-                  <span className="font-black text-sm">مركز التقارير</span>
+              {!sidebarCollapsed && (
+                <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <span>المخازن</span>
                 </div>
-                <ChevronDown size={14} className={`transition-transform duration-300 ${reportsMenuOpen ? 'rotate-180' : ''}`} />
-              </motion.button>
-              
+              )}
+              <CollapsibleNavButton
+                active={['inventory', 'issuances', 'returns', 'itemCard', 'waste', 'stockAudit', 'stockTransfers'].includes(activeTab)}
+                isOpen={inventoryMenuOpen}
+                onClick={() => setInventoryMenuOpen(!inventoryMenuOpen)}
+                icon={<Box size={18} />}
+                label="إدارة المخازن"
+              />
               <AnimatePresence>
-                {reportsMenuOpen && (
+                {inventoryMenuOpen && !sidebarCollapsed && (
                   <motion.div 
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden bg-slate-100/50 rounded-2xl mt-1 mx-1"
+                    className="overflow-hidden bg-slate-50 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-100"
                   >
-                    <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
-                      <SubNavButton active={activeTab === 'reports'} onClick={() => handleNavClick('reports')} label="التحليل العام" permission="reports" profile={profile} />
-                      <SubNavButton active={activeTab === 'productionReports'} onClick={() => handleNavClick('productionReports')} label="تقارير التصنيع والإنتاج (14) 📊" permission="reports" profile={profile} />
-                      <SubNavButton active={activeTab === 'payrollMasterReport'} onClick={() => handleNavClick('payrollMasterReport')} label="كشف الأجور المجمع" permission="reports" profile={profile} />
-                    </div>
+                    <SubNavButton active={activeTab === 'inventory'} onClick={() => handleNavClick('inventory')} label="أرصدة الأصناف" permission="inventory" profile={profile} />
+                    <SubNavButton active={activeTab === 'itemCard'} onClick={() => handleNavClick('itemCard')} label="كارت الحركة" permission="inventory" profile={profile} />
+                    <SubNavButton active={activeTab === 'stockTransfers'} onClick={() => handleNavClick('stockTransfers')} label="التحويل المخزني" permission="inventory" profile={profile} />
+                    <SubNavButton active={activeTab === 'issuances'} onClick={() => handleNavClick('issuances')} label="صرف المواد" permission="inventory" profile={profile} />
+                    <SubNavButton active={activeTab === 'returns'} onClick={() => handleNavClick('returns')} label="المرتجعات" permission="inventory" profile={profile} />
+                    <SubNavButton active={activeTab === 'stockAudit'} onClick={() => handleNavClick('stockAudit')} label="جرد المخزن" permission="inventory" profile={profile} />
+                    <SubNavButton active={activeTab === 'waste'} onClick={() => handleNavClick('waste')} label="سجل الهالك" permission="inventory" profile={profile} />
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           )}
 
-          <NavButton active={activeTab === 'suppliers'} onClick={() => handleNavClick('suppliers')} icon={<Users size={20} />} label="الموردين" permission="suppliers" profile={profile} />
-          <NavButton active={activeTab === 'sales'} onClick={() => handleNavClick('sales')} icon={<ShoppingBag size={20} />} label="المبيعات والمعارض" permission="sales" profile={profile} />
-          <NavButton active={activeTab === 'customers'} onClick={() => handleNavClick('customers')} icon={<Users size={20} />} label="العملاء" permission="sales" profile={profile} />                
-          <NavButton active={activeTab === 'workOrders'} onClick={() => handleNavClick('workOrders')} icon={<ClipboardList size={20} />} label="أوامر التشغيل" permission="production" profile={profile} />
-          
-          <div className="pt-8 pb-2 px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
-            <span>النظام</span>
-            <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
+          {/* Group 5: التصنيع */}
+          {(profile?.isAdmin || profile?.permissions?.production) && (
+            <div className="space-y-1">
+              {!sidebarCollapsed && (
+                <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <span>التصنيع</span>
+                </div>
+              )}
+              <CollapsibleNavButton
+                active={['productionManager', 'productionReports', 'production', 'productRecipes', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator', 'whatsapp'].includes(activeTab)}
+                isOpen={productionMenuOpen}
+                onClick={() => setProductionMenuOpen(!productionMenuOpen)}
+                icon={<Cpu size={18} />}
+                label="التصنيع والإنتاج"
+              />
+              <AnimatePresence>
+                {productionMenuOpen && !sidebarCollapsed && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-slate-50 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-100"
+                  >
+                    <SubNavButton active={activeTab === 'productionManager'} onClick={() => handleNavClick('productionManager')} label="مخطط الإنتاج الذكي ⚙️" permission="production" profile={profile} />
+                    <SubNavButton active={activeTab === 'productionReports'} onClick={() => handleNavClick('productionReports')} label="تقارير التصنيع (14) 📊" permission="production" profile={profile} />
+                    <SubNavButton active={activeTab === 'production'} onClick={() => handleNavClick('production')} label="لوحة تحكم التصنيع" permission="production" profile={profile} />
+                    <SubNavButton active={activeTab === 'productRecipes'} onClick={() => handleNavClick('productRecipes')} label="قوائم المواد (BoM)" permission="production" profile={profile} />
+                    <SubNavButton active={activeTab === 'materialCalculator'} onClick={() => handleNavClick('materialCalculator')} label="حاسبة الخامات والقياسات" permission="production" profile={profile} />
+                    <SubNavButton active={activeTab === 'productionCosts'} onClick={() => handleNavClick('productionCosts')} label="تحليل التكاليف" permission="production" profile={profile} />
+                    <SubNavButton active={activeTab === 'loading'} onClick={() => handleNavClick('loading')} label="بيان التحميل" permission="production" profile={profile} />
+                    <SubNavButton active={activeTab === 'deliveryReceipts'} onClick={() => handleNavClick('deliveryReceipts')} label="محاضر الاستلام" permission="production" profile={profile} />
+                    <SubNavButton active={activeTab === 'whatsapp'} onClick={() => handleNavClick('whatsapp')} label="مساعد واتساب الذكي ✨" permission="production" profile={profile} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Group 6: المحاسبة */}
+          {(profile?.isAdmin || profile?.permissions?.finance) && (
+            <div className="space-y-1">
+              {!sidebarCollapsed && (
+                <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <span>المحاسبة</span>
+                </div>
+              )}
+              <NavButton active={activeTab === 'safe'} onClick={() => handleNavClick('safe')} icon={<CreditCard size={18} />} label="المالية والخزنة" permission="finance" profile={profile} />
+              <NavButton active={activeTab === 'monthlyStipends'} onClick={() => handleNavClick('monthlyStipends')} icon={<HeartHandshake size={18} />} label="الشهريات والمساعدات" permission="finance" profile={profile} />
+              <NavButton active={activeTab === 'banks'} onClick={() => handleNavClick('banks')} icon={<Landmark size={18} />} label="إدارة البنوك" permission="financials" profile={profile} />
+            </div>
+          )}
+
+          {/* Group 7: الموارد البشرية */}
+          {(profile?.isAdmin || profile?.permissions?.hr) && (
+            <div className="space-y-1">
+              {!sidebarCollapsed && (
+                <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <span>الموارد البشرية</span>
+                </div>
+              )}
+              <NavButton active={activeTab === 'hrModule'} onClick={() => handleNavClick('hrModule')} icon={<Users size={18} />} label="إدارة الموارد البشرية" permission="hr" profile={profile} />
+              <CollapsibleNavButton
+                active={['employees', 'attendance', 'loans', 'payroll', 'hrTransactions', 'hrProduction', 'archive'].includes(activeTab)}
+                isOpen={hrMenuOpen}
+                onClick={() => setHrMenuOpen(!hrMenuOpen)}
+                icon={<Receipt size={18} />}
+                label="الأجور والمرتبات"
+              />
+              <AnimatePresence>
+                {hrMenuOpen && !sidebarCollapsed && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-slate-50 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-100"
+                  >
+                    <SubNavButton active={activeTab === 'employees'} onClick={() => handleNavClick('employees')} label="ملفات الموظفين" permission="hr" profile={profile} />
+                    <SubNavButton active={activeTab === 'attendance'} onClick={() => handleNavClick('attendance')} label="دفتر الحضور" permission="hr" profile={profile} />
+                    <SubNavButton active={activeTab === 'hrProduction'} onClick={() => handleNavClick('hrProduction')} label="سجل الإنتاج" permission="hr" profile={profile} />
+                    <SubNavButton active={activeTab === 'hrTransactions'} onClick={() => handleNavClick('hrTransactions')} label="تسويات مالية" permission="hr" profile={profile} />
+                    <SubNavButton active={activeTab === 'loans'} onClick={() => handleNavClick('loans')} label="طلبات السلف" permission="hr" profile={profile} />
+                    <SubNavButton active={activeTab === 'payroll'} onClick={() => handleNavClick('payroll')} label="مسير الرواتب" permission="hr" profile={profile} />
+                    <SubNavButton active={activeTab === 'archive'} onClick={() => handleNavClick('archive')} label="الأرشيف" permission="hr" profile={profile} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Group 8: إدارة العملاء */}
+          <div className="space-y-1">
+            {!sidebarCollapsed && (
+              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                <span>إدارة العملاء</span>
+              </div>
+            )}
+            <NavButton active={activeTab === 'customers'} onClick={() => handleNavClick('customers')} icon={<Contact size={18} />} label="العملاء" permission="sales" profile={profile} />
+            <NavButton active={activeTab === 'workOrders'} onClick={() => handleNavClick('workOrders')} icon={<FileCheck2 size={18} />} label="أوامر التشغيل" permission="production" profile={profile} />
           </div>
-          
+
+          {/* Group 9: التقارير */}
+          {(profile?.isAdmin || profile?.permissions?.reports) && (
+            <div className="space-y-1">
+              {!sidebarCollapsed && (
+                <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <span>التقارير</span>
+                </div>
+              )}
+              <CollapsibleNavButton
+                active={['reports', 'payrollMasterReport'].includes(activeTab)}
+                isOpen={reportsMenuOpen}
+                onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
+                icon={<BarChart3 size={18} />}
+                label="مركز التقارير والتحليل"
+              />
+              <AnimatePresence>
+                {reportsMenuOpen && !sidebarCollapsed && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-slate-50 rounded-xl mt-1 p-1.5 space-y-1 border border-slate-100"
+                  >
+                    <SubNavButton active={activeTab === 'reports'} onClick={() => handleNavClick('reports')} label="التحليل العام" permission="reports" profile={profile} />
+                    <SubNavButton active={activeTab === 'productionReports'} onClick={() => handleNavClick('productionReports')} label="تقارير التصنيع (14) 📊" permission="reports" profile={profile} />
+                    <SubNavButton active={activeTab === 'payrollMasterReport'} onClick={() => handleNavClick('payrollMasterReport')} label="كشف الأجور المجمع" permission="reports" profile={profile} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Group 10: الإعدادات والنظام */}
           {profile?.isAdmin && (
-            <>
-              <NavButton active={activeTab === 'userManagement'} onClick={() => handleNavClick('userManagement')} icon={<ShieldAlert size={20} />} label="المستخدمين" />
-              <NavButton active={activeTab === 'settings'} onClick={() => handleNavClick('settings')} icon={<SettingsIcon size={20} />} label="الإعدادات" />
-            </>
+            <div className="space-y-1">
+              {!sidebarCollapsed && (
+                <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <span>الإعدادات</span>
+                </div>
+              )}
+              <NavButton active={activeTab === 'userManagement'} onClick={() => handleNavClick('userManagement')} icon={<Fingerprint size={18} />} label="المستخدمين والصلاحيات" />
+              <NavButton active={activeTab === 'settings'} onClick={() => handleNavClick('settings')} icon={<Sliders size={18} />} label="الإعدادات العامة" />
+            </div>
+          )}
+
+          {/* Fleet / Vehicles if enabled */}
+          {(profile?.isAdmin || profile?.permissions?.vehicles) && (
+            <div className="space-y-1">
+              <NavButton active={activeTab === 'vehicles'} onClick={() => handleNavClick('vehicles')} icon={<CarFront size={18} />} label="إدارة السيارات" permission="vehicles" profile={profile} />
+            </div>
+          )}
+
+          {/* Maintenance if enabled */}
+          {(profile?.isAdmin || profile?.permissions?.maintenance) && (
+            <div className="space-y-1">
+              <NavButton active={activeTab === 'maintenanceOrders'} onClick={() => handleNavClick('maintenanceOrders')} icon={<Wrench size={18} />} label="قسم الصيانة" permission="maintenance" profile={profile} />
+            </div>
           )}
           
         </nav>
 
         {/* User Profile Footer */}
-        <div className="p-4 bg-white border-t border-slate-100">
-          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-[1.25rem] border border-slate-200 shadow-inner">
-            <div className="relative">
-              <img 
-                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&bg=2563eb&color=fff`} 
-                className="w-10 h-10 rounded-xl border-2 border-white shadow-sm" 
-                referrerPolicy="no-referrer" 
-              />
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-black truncate text-slate-900 uppercase tracking-tight">{user.displayName}</p>
-              <div className="flex items-center gap-1">
-                 <Badge variant="outline" className="text-[8px] px-1 py-0 border-primary/20 text-primary font-black uppercase">
-                   {profile?.isAdmin ? 'مدير النظام' : 'مستخدم'}
-                 </Badge>
+        {!sidebarCollapsed && (
+          <div className="p-3 bg-white border-t border-slate-100">
+            <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-2xl border border-slate-200/80 shadow-inner">
+              <div className="relative shrink-0">
+                <img 
+                  src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}&bg=2563eb&color=fff`} 
+                  className="w-9 h-9 rounded-xl border-2 border-white shadow-sm object-cover" 
+                  referrerPolicy="no-referrer" 
+                />
+                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
               </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black truncate text-slate-900">{user.displayName}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                   <Badge variant="outline" className="text-[8px] px-1 py-0 border-blue-500/20 text-blue-600 font-black uppercase">
+                     {profile?.isAdmin ? 'مدير النظام' : 'مستخدم'}
+                   </Badge>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={logout}
+                className="h-8 w-8 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                title="تسجيل الخروج"
+              >
+                <LogOut size={16} />
+              </Button>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={logout}
-              className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-            >
-              <LogOut size={16} />
-            </Button>
           </div>
-        </div>
+        )}
       </aside>
 
 
       {/* Main Content */}
-      <main className="flex-1 overflow-x-hidden overflow-y-auto allow-print relative bg-slate-50">
+      <main className="flex-1 overflow-x-hidden overflow-y-auto allow-print relative bg-slate-50 pb-20 md:pb-0">
         {/* Mobile Top Header */}
-        <div className="md:hidden sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 h-20 flex items-center justify-between z-40 transition-all">
+        <div className="md:hidden sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 h-12 flex items-center justify-between z-40 transition-all">
            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-slate-900/20 relative overflow-hidden">
+              <div className="w-12 h-12 bg-slate-900 rounded-[14px] flex items-center justify-center text-white shadow-xl shadow-slate-900/20 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-transparent" />
                 <Package size={22} className="relative z-10" />
               </div>
@@ -2875,13 +2932,13 @@ function MainApp({
             variant="ghost" 
             size="icon" 
             onClick={() => setMobileMenuOpen(true)}
-            className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-600 shadow-sm border border-slate-100 hover:bg-slate-100"
+            className="w-12 h-12 rounded-[14px] bg-slate-50 text-slate-600 shadow-sm border border-slate-100 hover:bg-slate-100"
            >
              <Menu size={24} />
            </Button>
         </div>
 
-        <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto w-full">
+        <div className="p-6 md:p-8 lg:p-10 max-w-[1680px] mx-auto w-full">
           {['employees', 'attendance', 'loans', 'payroll', 'hrTransactions', 'hrProduction'].includes(activeTab) && (
             <HRWorkflowGuide activeTab={activeTab} onTabChange={setActiveTab} />
           )}
@@ -3224,6 +3281,51 @@ function MainApp({
         </div>
       </main>
 
+      {/* Mobile Bottom Navigation & FAB */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200/60 z-40 pb-safe">
+        <div className="flex items-center justify-around h-16 px-2 relative">
+          <button 
+            onClick={() => handleNavClick('dashboard')}
+            className={cn("flex flex-col items-center justify-center w-16 h-full transition-colors", activeTab === 'dashboard' ? "text-indigo-600" : "text-slate-400")}
+          >
+            <LayoutDashboard size={20} strokeWidth={activeTab === 'dashboard' ? 2.5 : 2} />
+            <span className="text-[9px] font-black mt-1">الرئيسية</span>
+          </button>
+          <button 
+            onClick={() => handleNavClick('inventory')}
+            className={cn("flex flex-col items-center justify-center w-16 h-full transition-colors", ['inventory', 'itemCard', 'issuances'].includes(activeTab) ? "text-indigo-600" : "text-slate-400")}
+          >
+            <Box size={20} strokeWidth={['inventory', 'itemCard', 'issuances'].includes(activeTab) ? 2.5 : 2} />
+            <span className="text-[9px] font-black mt-1">المخازن</span>
+          </button>
+          
+          {/* Main Action FAB Wrapper */}
+          <div className="relative -top-5 flex justify-center w-16">
+            <button 
+              onClick={() => setMobileMenuOpen(true)}
+              className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-600/30 active:scale-95 transition-transform"
+            >
+              <LayoutGrid size={24} />
+            </button>
+          </div>
+
+          <button 
+            onClick={() => handleNavClick('productionManager')}
+            className={cn("flex flex-col items-center justify-center w-16 h-full transition-colors", ['productionManager', 'productionReports', 'productRecipes'].includes(activeTab) ? "text-indigo-600" : "text-slate-400")}
+          >
+            <Zap size={20} strokeWidth={['productionManager', 'productionReports', 'productRecipes'].includes(activeTab) ? 2.5 : 2} />
+            <span className="text-[9px] font-black mt-1">التصنيع</span>
+          </button>
+          <button 
+            onClick={() => handleNavClick('employees')}
+            className={cn("flex flex-col items-center justify-center w-16 h-full transition-colors", ['employees', 'attendance', 'payroll'].includes(activeTab) ? "text-indigo-600" : "text-slate-400")}
+          >
+            <Receipt size={20} strokeWidth={['employees', 'attendance', 'payroll'].includes(activeTab) ? 2.5 : 2} />
+            <span className="text-[9px] font-black mt-1">الأجور</span>
+          </button>
+        </div>
+      </div>
+
       {/* Lifted Modals */}
       {editingWarehouse && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -3365,7 +3467,7 @@ function MainApp({
                 <label className="text-sm font-bold text-slate-700">اسم الصنف</label>
                 <Input className="rounded-xl h-11" value={itemForm.name} onChange={e => setItemForm({...itemForm, name: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">المخزن</label>
                   <select 
@@ -3385,7 +3487,7 @@ function MainApp({
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">السعر الافتراضي</label>
                   <Input type="number" className="rounded-xl h-11" value={itemForm.price} onChange={e => setItemForm({...itemForm, price: Number(e.target.value)})} />
@@ -3398,7 +3500,7 @@ function MainApp({
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">الكمية (رصيد أول المدة)</label>
                   <Input type="number" className="rounded-xl h-11" value={itemForm.openingBalance} onChange={e => setItemForm({...itemForm, openingBalance: Number(e.target.value)})} />
@@ -3473,7 +3575,7 @@ function MainApp({
                 <label className="text-sm font-bold text-slate-700">اسم الصنف</label>
                 <Input className="rounded-xl h-11" value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">المخزن</label>
                   <select 
@@ -3495,7 +3597,7 @@ function MainApp({
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">السعر</label>
                   <Input type="number" className="rounded-xl h-11" value={editingItem.price} onChange={e => setEditingItem({...editingItem, price: Number(e.target.value)})} />
@@ -3620,7 +3722,7 @@ function MainApp({
       {/* Print Iframe Warning Dialog */}
       {showPrintIframeWarning && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] print:hidden" dir="rtl">
-          <Card className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border-none overflow-hidden p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200 text-right">
+          <Card className="w-full max-w-lg bg-white rounded-[14px] shadow-2xl border-none overflow-hidden p-6 space-y-6 animate-in fade-in zoom-in-95 duration-200 text-right">
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center shadow-lg shadow-blue-100">
                 <Printer size={32} />
@@ -3632,7 +3734,7 @@ function MainApp({
               </p>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-3 text-right">
+            <div className="bg-slate-50 rounded-[14px] p-5 border border-slate-100 space-y-3 text-right">
               <div className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</div>
                 <p className="text-xs font-black text-slate-700 leading-normal">
@@ -3653,7 +3755,7 @@ function MainApp({
                   window.open(window.location.href, '_blank');
                   setShowPrintIframeWarning(false);
                 }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-12 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-[14px] h-12 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
               >
                 <ArrowUpRight size={18} />
                 فتح في نافذة مستقلة
@@ -3661,7 +3763,7 @@ function MainApp({
               <Button 
                 variant="outline"
                 onClick={() => setShowPrintIframeWarning(false)}
-                className="flex-1 rounded-2xl h-12 font-bold border-slate-200 text-slate-500 hover:bg-slate-50"
+                className="flex-1 rounded-[14px] h-12 font-bold border-slate-200 text-slate-500 hover:bg-slate-50"
               >
                 إغلاق التنبيه
               </Button>
@@ -3673,48 +3775,67 @@ function MainApp({
   );
 }
 
+function CollapsibleNavButton({ active, isOpen, onClick, icon, label, permission, profile }: { active: boolean, isOpen: boolean, onClick: () => void, icon: React.ReactNode, label: string, permission?: string, profile?: UserProfile | null }) {
+  if (permission && profile && !profile.isAdmin && !profile.permissions[permission as keyof UserProfile['permissions']]) return null;
+  return (
+    <motion.button 
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center justify-between px-3 py-3 rounded-2xl transition-all duration-300 ease-in-out group relative overflow-hidden",
+        active 
+          ? "bg-blue-600 text-white font-extrabold shadow-lg shadow-blue-500/25" 
+          : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
+      )}
+    >
+      <div className="flex items-center gap-3 w-full">
+        <div className={cn(
+          "flex items-center justify-center shrink-0 w-9 h-9 rounded-xl transition-all duration-300 relative z-10",
+          active 
+            ? "bg-white/20 text-white shadow-sm" 
+            : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-blue-600 group-hover:shadow-sm"
+        )}>
+          {icon}
+        </div>
+        <span className={cn(
+          "font-bold text-sm tracking-tight flex-1 text-right relative z-10 transition-colors duration-300 whitespace-nowrap overflow-hidden text-ellipsis md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto xl:opacity-100 xl:w-auto",
+          active ? "text-white" : "text-slate-700 group-hover:text-slate-900"
+        )}>
+          {label}
+        </span>
+      </div>
+      <ChevronDown size={14} className={cn("transition-transform duration-300 text-slate-400 md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto xl:opacity-100 xl:w-auto", isOpen ? "rotate-180" : "", active ? "text-white/80" : "")} />
+    </motion.button>
+  );
+}
+
 function NavButton({ active, onClick, icon, label, permission, profile }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, permission?: string, profile?: UserProfile | null }) {
   if (permission && profile && !profile.isAdmin && !profile.permissions[permission as keyof UserProfile['permissions']]) return null;
   return (
     <motion.button
-      whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-500 group relative overflow-hidden",
+        "w-full flex items-center gap-3 px-3 py-3 rounded-2xl transition-all duration-300 ease-in-out group relative overflow-hidden",
         active 
-          ? "bg-slate-900 text-white shadow-xl shadow-slate-900/20" 
-          : "text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-lg hover:shadow-slate-200/50"
+          ? "bg-blue-600 text-white font-extrabold shadow-lg shadow-blue-500/25" 
+          : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"
       )}
     >
       <div className={cn(
-        "flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-700 relative z-10",
+        "flex items-center justify-center shrink-0 w-9 h-9 rounded-xl transition-all duration-300 relative z-10",
         active 
-          ? "bg-primary text-white shadow-lg shadow-primary/30 rotate-[8deg] scale-105" 
-          : "bg-slate-100 text-slate-400 group-hover:bg-primary/10 group-hover:text-primary group-hover:rotate-[-8deg]"
+          ? "bg-white/20 text-white shadow-sm" 
+          : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-blue-600 group-hover:shadow-sm"
       )}>
         {icon}
       </div>
       <span className={cn(
-        "font-black text-sm tracking-tight flex-1 text-right relative z-10 transition-colors duration-500",
-        active ? "text-white" : "text-slate-600 group-hover:text-slate-900"
+        "font-bold text-sm tracking-tight flex-1 text-right relative z-10 transition-colors duration-300 whitespace-nowrap overflow-hidden text-ellipsis md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto xl:opacity-100 xl:w-auto",
+        active ? "text-white" : "text-slate-700 group-hover:text-slate-900"
       )}>
         {label}
       </span>
-      {active && (
-        <motion.div 
-          initial={{ x: 20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="relative z-10"
-        >
-          <div className="w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_12px_rgba(37,99,235,1)]" />
-        </motion.div>
-      )}
-      
-      {/* Background glow effect for active state */}
-      {active && (
-        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-      )}
     </motion.button>
   );
 }
@@ -3723,21 +3844,20 @@ function SubNavButton({ active, onClick, label, permission, profile }: { active:
   if (permission && profile && !profile.isAdmin && !profile.permissions[permission as keyof UserProfile['permissions']]) return null;
   return (
     <motion.button 
-      whileHover={{ y: -1 }}
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
       className={cn(
-        "w-full flex items-center px-4 py-2 rounded-xl transition-all duration-300 text-[11px] font-black relative overflow-hidden group",
+        "w-full flex items-center px-4 py-2 rounded-xl transition-all duration-200 text-xs font-bold relative overflow-hidden group",
         active 
-          ? "bg-white text-primary shadow-sm shadow-slate-200/50 border border-slate-100" 
-          : "text-slate-400 hover:text-slate-900 hover:bg-white/50"
+          ? "bg-white text-indigo-700 shadow-sm border border-slate-100" 
+          : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
       )}
     >
       <div className={cn(
-        "w-1.5 h-1.5 rounded-full ml-3 transition-all duration-300",
-        active ? "bg-primary shadow-[0_0_6px_rgba(37,99,235,0.4)] scale-125" : "bg-slate-200 group-hover:bg-primary/40"
+        "w-1.5 h-1.5 shrink-0 rounded-full ml-3 transition-all duration-200",
+        active ? "bg-indigo-600 scale-125" : "bg-slate-300 group-hover:bg-slate-400"
       )} />
-      <span className="flex-1 text-right tracking-tight">{label}</span>
+      <span className="flex-1 text-right tracking-tight whitespace-nowrap overflow-hidden text-ellipsis md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto xl:opacity-100 xl:w-auto">{label}</span>
       {active && (
          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-3 bg-primary rounded-l-full" />
       )}
@@ -3823,10 +3943,10 @@ function UserManagement() {
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-200">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
-          <div className="w-16 h-16 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-slate-900/20">
+          <div className="w-16 h-16 bg-slate-900 rounded-[14px] flex items-center justify-center text-white shadow-2xl shadow-slate-900/20">
             <Users size={32} />
           </div>
           <div>
@@ -3839,20 +3959,20 @@ function UserManagement() {
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <Input 
             placeholder="بحث بالاسم أو البريد الإلكتروني..." 
-            className="h-12 pr-12 rounded-2xl border-slate-200 bg-white/50 backdrop-blur-sm focus:bg-white transition-all shadow-sm font-bold"
+            className="h-12 pr-12 rounded-[14px] border-slate-200 bg-white/50 backdrop-blur-sm focus:bg-white transition-all shadow-sm font-bold"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 md:grid-cols-3 gap-6">
         {filteredUsers.map((u) => (
-          <Card key={u.uid} className="dribbble-card border-none overflow-hidden group hover:shadow-2xl transition-all duration-300">
+          <Card key={u.uid} className="dribbble-card border-none overflow-hidden group hover:shadow-2xl transition-all duration-200">
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                  <div className="w-14 h-14 rounded-[14px] bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all duration-200">
                     <UserCircle size={32} />
                   </div>
                   <div>
@@ -3892,10 +4012,10 @@ function UserManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mt-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8">
                 <Button 
                   onClick={() => { setEditingUser(u); setIsModalOpen(true); }}
-                  className="rounded-2xl bg-slate-900 text-white hover:bg-slate-800 font-black h-11"
+                  className="rounded-[14px] bg-slate-900 text-white hover:bg-slate-800 font-black h-11"
                 >
                   <ShieldCheck size={16} className="ml-2" />
                   الصلاحيات
@@ -3903,7 +4023,7 @@ function UserManagement() {
                 <Button 
                   variant="outline"
                   onClick={() => setDeleteConfirm(u.uid)}
-                  className="rounded-2xl border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 font-black h-11"
+                  className="rounded-[14px] border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50 hover:border-red-100 font-black h-11"
                 >
                   <Trash2 size={16} className="ml-2" />
                   حذف السجل
@@ -3915,7 +4035,7 @@ function UserManagement() {
       </div>
 
       {filteredUsers.length === 0 && (
-        <div className="text-center py-20 bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
+        <div className="text-center py-20 bg-slate-50 rounded-[14px] border border-dashed border-slate-200">
           <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300 mb-4">
             <Search size={32} />
           </div>
@@ -3929,20 +4049,20 @@ function UserManagement() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300"
+            className="w-full max-w-2xl bg-white rounded-[14px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
           >
-            <div className="bg-slate-900 p-8 text-white relative">
+            <div className="bg-slate-900 p-6 text-white relative">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setIsModalOpen(false)} 
-                className="absolute left-6 top-6 text-slate-400 hover:text-white hover:bg-white/10 rounded-2xl"
+                className="absolute left-6 top-6 text-slate-400 hover:text-white hover:bg-white/10 rounded-[14px]"
               >
                 <X size={24} />
               </Button>
               
               <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white backdrop-blur-md">
+                <div className="w-20 h-20 bg-white/10 rounded-[14px] flex items-center justify-center text-white backdrop-blur-md">
                   <ShieldCheck size={40} />
                 </div>
                 <div>
@@ -3952,10 +4072,10 @@ function UserManagement() {
               </div>
             </div>
 
-            <div className="p-10 space-y-10">
-              <div className="bg-orange-50 p-6 rounded-[2rem] border border-orange-100/50 flex items-center justify-between">
+            <div className="p-6 space-y-10">
+              <div className="bg-orange-50 p-6 rounded-[14px] border border-orange-100/50 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm">
+                  <div className="w-12 h-12 bg-white rounded-[14px] flex items-center justify-center text-orange-500 shadow-sm">
                     <ShieldAlert size={24} />
                   </div>
                   <div>
@@ -3964,10 +4084,10 @@ function UserManagement() {
                   </div>
                 </div>
                 <div 
-                  className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-all duration-300 ${editingUser.isAdmin ? 'bg-orange-500' : 'bg-slate-200'}`}
+                  className={`w-14 h-8 rounded-full p-1 cursor-pointer transition-all duration-200 ${editingUser.isAdmin ? 'bg-orange-500' : 'bg-slate-200'}`}
                   onClick={() => setEditingUser({ ...editingUser, isAdmin: !editingUser.isAdmin })}
                 >
-                  <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${editingUser.isAdmin ? 'translate-x-6' : 'translate-x-0'}`} />
+                  <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-all duration-200 ${editingUser.isAdmin ? 'translate-x-6' : 'translate-x-0'}`} />
                 </div>
               </div>
 
@@ -3977,7 +4097,7 @@ function UserManagement() {
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">تفعيل/تعطيل بالتفصيل</span>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {Object.entries(editingUser.permissions).map(([key, val]) => (
                     <div 
                       key={key} 
@@ -4040,7 +4160,7 @@ function UserManagement() {
 
       {deleteConfirm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xl z-[110] flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 border-0 text-center animate-in zoom-in-95">
+          <Card className="w-full max-w-md bg-white rounded-[14px] shadow-2xl p-6 border-0 text-center animate-in zoom-in-95">
             <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-500 mb-6">
               <AlertTriangle size={40} />
             </div>
@@ -4051,14 +4171,14 @@ function UserManagement() {
             <div className="flex flex-col gap-3">
               <Button 
                 variant="destructive" 
-                className="w-full h-14 rounded-2xl font-black text-lg bg-red-600 hover:bg-red-700 shadow-xl shadow-red-600/20"
+                className="w-full h-14 rounded-[14px] font-black text-lg bg-red-600 hover:bg-red-700 shadow-xl shadow-red-600/20"
                 onClick={() => handleDeleteUserRecord(deleteConfirm)}
               >
                 نعم، احذف السجل نهائياً
               </Button>
               <Button 
                 variant="ghost" 
-                className="w-full h-12 rounded-2xl font-bold text-slate-400 hover:bg-slate-50"
+                className="w-full h-12 rounded-[14px] font-bold text-slate-400 hover:bg-slate-50"
                 onClick={() => setDeleteConfirm(null)}
               >
                 تراجع عن الأمر
@@ -4078,7 +4198,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
   const movements = selectedId ? getItemMovements(selectedId) : [];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-200">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest px-3 py-1 bg-primary/10 rounded-full w-fit">
@@ -4089,14 +4209,14 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
           <p className="text-slate-500 font-bold text-lg max-w-lg mt-2">عرض دفتر أستاذ المخزون لكل صنف للرقابة وتتبع الحركات</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => safePrint()} className="h-14 px-8 rounded-2xl font-black text-slate-700 bg-white hover:bg-slate-50 shadow-xl shadow-slate-200/50 border border-slate-100 transition-all hover:-translate-y-1">
+          <Button onClick={() => safePrint()} className="h-14 px-8 rounded-[14px] font-black text-slate-700 bg-white hover:bg-slate-50 shadow-xl shadow-slate-200/50 border border-slate-100 transition-all hover:-translate-y-1">
             <Printer size={20} className="ml-2" />
             طباعة كارت الصنف
           </Button>
         </div>
       </div>
 
-      <Card className="dribbble-card border-none p-8 bg-white shadow-xl shadow-slate-200/50 print:hidden relative overflow-hidden">
+      <Card className="dribbble-card border-none p-6 bg-white shadow-xl shadow-slate-200/50 print:hidden relative overflow-hidden">
         <div className="absolute left-0 top-0 w-32 h-32 bg-primary/5 rounded-br-full pointer-events-none" />
         <div className="flex flex-col md:flex-row gap-6 items-end relative z-10">
           <div className="flex-1 space-y-3">
@@ -4108,7 +4228,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
               <select 
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
-                className="w-full pl-6 pr-12 h-16 rounded-2xl border-2 border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-primary/20 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 font-bold text-lg text-slate-700 appearance-none cursor-pointer transition-all outline-none"
+                className="w-full pl-6 pr-12 h-16 rounded-[14px] border-2 border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-primary/20 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 font-bold text-lg text-slate-700 appearance-none cursor-pointer transition-all outline-none"
               >
                 <option value="">--- اضغط هنا للاختيار من القائمة ---</option>
                 {items.slice().sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(item => (
@@ -4124,7 +4244,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
       </Card>
 
       {selectedItem ? (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-200">
           <div className="hidden print:block text-center mb-12 border-b-2 border-slate-100 pb-8 relative">
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter">سجل حركة صنف: {selectedItem.name}</h1>
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-900 rounded-full" />
@@ -4139,13 +4259,13 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
               { label: 'الرصيد الفعلي الحالي', value: selectedItem.currentBalance || 0, color: 'text-white', highlight: true, icon: <Package size={24} />, bg: "bg-slate-900" }
             ].map((stat, i) => (
               <div key={i} className={cn(
-                "p-8 rounded-[2.5rem] border transition-all duration-700 relative overflow-hidden group/stat flex flex-col justify-between h-[180px]",
+                "p-6 rounded-[14px] border transition-all duration-200 relative overflow-hidden group/stat flex flex-col justify-between h-[180px]",
                 stat.highlight 
                   ? "bg-slate-900 text-white border-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.3)]" 
                   : cn(stat.bg, "border-transparent hover:border-slate-100 hover:bg-white hover:shadow-2xl hover:-translate-y-2")
               )}>
                  <div className="flex items-center justify-between relative z-10">
-                    <div className={cn("p-3 rounded-2.5xl transition-transform duration-500 group-hover/stat:scale-110 group-hover/stat:rotate-12", 
+                    <div className={cn("p-3 rounded-2.5xl transition-transform duration-200 group-hover/stat:scale-110 group-hover/stat:rotate-12", 
                       stat.highlight ? "bg-white/10 text-primary shadow-lg" : "bg-white text-slate-400 shadow-sm border border-slate-50")}>
                        {stat.icon}
                     </div>
@@ -4160,14 +4280,14 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
                     </p>
                  </div>
                  {stat.highlight && (
-                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover/stat:bg-primary/20 transition-all duration-1000" />
+                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover/stat:bg-primary/20 transition-all duration-200" />
                  )}
               </div>
             ))}
           </div>
 
-          <Card className="dribbble-card border-none overflow-hidden bg-white shadow-[0_10px_40px_rgba(0,0,0,0.03)] rounded-[3rem]">
-            <div className="p-8 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center relative overflow-hidden">
+          <Card className="dribbble-card border-none overflow-hidden bg-white shadow-[0_10px_40px_rgba(0,0,0,0.03)] rounded-[14px]">
+            <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center relative overflow-hidden">
                <div className="relative z-10">
                   <h4 className="font-black text-slate-900 uppercase tracking-[0.2em] text-[11px] flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white shadow-lg">
@@ -4277,7 +4397,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-32 bg-slate-50/50 rounded-[4rem] border-2 border-dashed border-slate-200 shadow-inner">
-          <div className="w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center mb-8 shadow-xl shadow-slate-200/50 rotate-3 transition-transform hover:rotate-6">
+          <div className="w-32 h-32 bg-white rounded-[14px] flex items-center justify-center mb-8 shadow-xl shadow-slate-200/50 rotate-3 transition-transform hover:rotate-6">
             <Search className="text-slate-300" size={56} />
           </div>
           <h3 className="text-2xl font-black text-slate-800 tracking-tighter mb-2">لم يتم تحديد صنف</h3>
@@ -4307,13 +4427,13 @@ function StatCardBento({ title, value, unit, icon, trend, color, className }: {
   };
 
   return (
-    <Card className={cn("dribbble-card border-none overflow-hidden group relative bg-white shadow-2xl shadow-slate-200/40 hover:shadow-indigo-500/10 transition-all duration-700", className)}>
-       <div className={`absolute -top-20 -right-20 w-64 h-64 ${colorStyles[color].split(' ')[1]} rounded-full blur-[100px] opacity-30 group-hover:opacity-50 group-hover:scale-150 transition-all duration-1000 rotate-12 pointer-events-none`} />
+    <Card className={cn("dribbble-card border-none overflow-hidden group relative bg-white shadow-2xl shadow-slate-200/40 hover:shadow-indigo-500/10 transition-all duration-200", className)}>
+       <div className={`absolute -top-20 -right-20 w-64 h-64 ${colorStyles[color].split(' ')[1]} rounded-full blur-[100px] opacity-30 group-hover:opacity-50 group-hover:scale-150 transition-all duration-200 rotate-12 pointer-events-none`} />
        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.1] pointer-events-none" />
        
-       <CardContent className="p-10 relative z-10 flex flex-col h-full min-h-[220px]">
+       <CardContent className="p-6 relative z-10 flex flex-col h-full min-h-[220px]">
           <div className="flex items-center justify-between mb-8">
-             <div className={cn("w-16 h-16 rounded-2.5xl flex items-center justify-center shadow-sm border transition-all duration-700 group-hover:scale-110 group-hover:rotate-6 bg-white", colorStyles[color])}>
+             <div className={cn("w-16 h-16 rounded-2.5xl flex items-center justify-center shadow-sm border transition-all duration-200 group-hover:scale-110 group-hover:rotate-6 bg-white", colorStyles[color])}>
                 {icon}
              </div>
              <div className="flex flex-col items-end">
@@ -4350,9 +4470,9 @@ function StatMiniCard({ title, value, unit, sub, icon, color }: {
   };
 
   return (
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 group hover:-translate-y-1 transition-all duration-300">
+    <div className="bg-white p-6 rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/40 group hover:-translate-y-1 transition-all duration-200">
        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorStyles[color]} group-hover:scale-110 transition-transform`}>
+          <div className={`w-12 h-12 rounded-[14px] flex items-center justify-center ${colorStyles[color]} group-hover:scale-110 transition-transform`}>
              {icon}
           </div>
           <div className="flex flex-col">
@@ -4550,102 +4670,88 @@ function Dashboard({
   const greetingText = hour < 12 ? 'صباح الخير والبركة' : 'مساء الخير والنجاح';
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20" dir="rtl">
-      {/* Spectacular Premium Executive Header */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-8 lg:p-12 text-white shadow-2xl border border-slate-800">
-        <div className="absolute -right-16 -top-16 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute -left-16 -bottom-16 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.03] pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col lg:flex-row justify-between lg:items-center gap-8">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs font-black tracking-widest">
-              <Zap size={14} className="text-blue-400 animate-pulse" />
-              <span className="font-sans">لوحة القيادة التنفيذية الذكية</span>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-200 pb-20" dir="rtl">
+      {/* Clean, Refined Enterprise Header */}
+      <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-6 pb-6 border-b border-slate-200/60">
+        <div className="space-y-1">
+          <h1 className="text-2xl lg:text-[28px] font-black tracking-tight text-slate-900 leading-tight">
+            {greetingText}، {profile?.name || 'صاحب العمل'}
+          </h1>
+          <p className="text-slate-500 font-bold text-sm">إليك نظرة عامة على أداء المنظومة اليوم.</p>
+        </div>
+
+        <div className="flex flex-wrap gap-3 items-center self-start lg:self-auto">
+          {/* Refined Quick Summary Widgets */}
+          <div className="bg-white border border-slate-200/60 p-3 px-4 rounded-[14px] flex items-center gap-3 shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <CheckCircle2 size={16} strokeWidth={2.5} />
             </div>
-            
-            <h1 className="text-3xl lg:text-5xl font-black tracking-tight leading-tight">
-              {greetingText}، <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-300 to-indigo-200">{profile?.name || 'صاحب العمل'}</span>
-            </h1>
-            
-            <p className="text-slate-300 font-medium text-sm lg:text-base max-w-xl pr-3 border-r-2 border-indigo-500/40">
-              مرحباً بك في مركز التحكم الشامل لمصنعك. إليك تقرير حي متكامل يلخص السيولة النقدية، حركة المخزون، انضباط العاملين، وكفاءة خطوط الإنتاج.
-            </p>
+            <div className="text-right">
+              <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">الحضور اليوم</span>
+              <span className="text-[15px] font-black text-slate-900 font-mono tracking-tight tabular-nums">{attendanceRate}%</span>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-4 items-center self-start lg:self-auto">
-            {/* Quick Summary Widgets inside Hero */}
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-3xl flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <CheckCircle2 size={18} />
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] text-slate-400 block font-bold">نسبة حضور العمل</span>
-                <span className="text-base font-black text-emerald-400 font-mono tracking-tight tabular-nums">{attendanceRate}%</span>
-              </div>
+          <div className="bg-white border border-slate-200/60 p-3 px-4 rounded-[14px] flex items-center gap-3 shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+              <Clock size={16} strokeWidth={2.5} />
             </div>
-
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-3xl flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                <Clock size={18} />
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] text-slate-400 block font-bold">تاريخ كشف اليوم</span>
-                <span className="text-xs font-black text-blue-300 font-mono tracking-tight tabular-nums">{lastAttendanceDate}</span>
-              </div>
+            <div className="text-right">
+              <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">آخر تحديث</span>
+              <span className="text-[13px] font-black text-slate-900 font-mono tracking-tight tabular-nums">{lastAttendanceDate}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Interactive Tabs for Dashboard Perspectives */}
-      <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-100 pb-4">
-        <div className="flex flex-wrap items-center gap-2 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-5">
+        <div className="flex overflow-x-auto md:flex-wrap items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 hide-scrollbar w-full md:w-auto">
           <button 
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${activeTab === 'all' ? 'bg-white text-indigo-950 shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
+            className={`whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-black transition-all duration-200 ${activeTab === 'all' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
           >
             الرؤية الشاملة
           </button>
           <button 
             onClick={() => setActiveTab('financial')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${activeTab === 'financial' ? 'bg-white text-indigo-950 shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
+            className={`whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-black transition-all duration-200 ${activeTab === 'financial' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
           >
             التحليل المالي والسيولة
           </button>
           <button 
             onClick={() => setActiveTab('operations')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${activeTab === 'operations' ? 'bg-white text-indigo-950 shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
+            className={`whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-black transition-all duration-200 ${activeTab === 'operations' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
           >
             حركة الإنتاج والمستودعات
           </button>
           <button 
             onClick={() => setActiveTab('hr')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all ${activeTab === 'hr' ? 'bg-white text-indigo-950 shadow-md' : 'text-slate-500 hover:text-slate-900'}`}
+            className={`whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-black transition-all duration-200 ${activeTab === 'hr' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
           >
             الموارد البشرية والانضباط
           </button>
         </div>
 
-        <div className="text-slate-400 text-xs font-extrabold flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          <span>مزامنة تفاعلية حية</span>
+        <div className="text-slate-400 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-white px-4 py-2.5 rounded-xl border border-slate-200/60 shadow-sm w-full md:w-auto">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>مزامنة حية</span>
         </div>
       </div>
 
       {/* Strategic Focus: Net Financial Position Dashboard Widget (Visible when all/financial selected) */}
       {(activeTab === 'all' || activeTab === 'financial') && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-6 rounded-[1.5rem] border border-slate-100 animate-in fade-in zoom-in-95 duration-500">
+        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-6 rounded-[14px] border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
           <div className="md:col-span-2 space-y-2 text-right">
             <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">المركز المالي الموحد للمنشأة</span>
-            <h4 className="text-xl font-black text-slate-800">صافي السيولة النقدية المتوفرة حالياً</h4>
-            <p className="text-slate-500 text-xs font-bold leading-relaxed font-sans max-w-xl">
+            <h4 className="text-lg font-black text-slate-800">صافي السيولة النقدية المتوفرة حالياً</h4>
+            <p className="text-slate-500 text-[11px] font-bold leading-relaxed font-sans max-w-xl">
               يمثل هذا المؤشر النقدية الفعلية المتاحة بجميع الخزائن والبنك مخصوماً منها إجمالي مستحقات الموردين القائمة والمطالب دفعها. يعطيك هذا الرقم رؤية حقيقية حول الملاءة الحالية والقدرة على دفع الالتزامات والأجور وتجنب الأزمات النقدية.
             </p>
           </div>
-          <div className="flex flex-col justify-center items-end bg-white p-5 rounded-2xl shadow-sm border border-slate-100 text-right space-y-2">
+          <div className="flex flex-col justify-center items-end bg-white p-5 rounded-[14px] shadow-sm border border-slate-100 text-right space-y-2">
             <span className="text-[10px] font-black text-slate-400 block">صافي السيولة النقدية المغطاة</span>
-            <h3 className="text-2xl lg:text-3xl font-black leading-none">
+            <h3 className="text-xl lg:text-2xl font-black leading-none">
               <NumberDisplay 
                 value={netFinancialPosition} 
                 system={settings.numberSystem} 
@@ -4654,8 +4760,8 @@ function Dashboard({
                 colored 
               />
             </h3>
-            <span className={`text-[10.5px] font-black px-2.5 py-1 rounded-full ${netFinancialPosition >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
-              {netFinancialPosition >= 0 ? '✓ ملاءة مالية ممتازة وتغطية كاملة' : '⚠️ عجز سيولة مقابل المستحقات'}
+            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${netFinancialPosition >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+              {netFinancialPosition >= 0 ? '✓ ملاءة مالية ممتازة' : '⚠️ عجز سيولة مقابل المستحقات'}
             </span>
           </div>
         </div>
@@ -4664,10 +4770,10 @@ function Dashboard({
       {/* High-Impact Executive Bento Grid (5 Premium Cards with outstanding typography) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Card 1: Total Safe/Account Liquidity */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
               <Wallet className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-emerald-50 text-emerald-700 text-[9px] sm:text-[10px] font-black tracking-wide">متوفرة حيّاً</span>
@@ -4686,10 +4792,10 @@ function Dashboard({
         </Card>
 
         {/* Card 2: Inventory Asset Valuation */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
               <Package className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             {lowStockItems.length > 0 ? (
@@ -4712,10 +4818,10 @@ function Dashboard({
         </Card>
 
         {/* Card 3: Supplier Debts */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
               <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-orange-50 text-orange-700 text-[9px] sm:text-[10px] font-black tracking-wide">مستحقة للدفع</span>
@@ -4735,10 +4841,10 @@ function Dashboard({
         </Card>
 
         {/* Card 4: Outstanding Loans & Advances */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'hr' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'hr' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
               <Coins className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-purple-50 text-purple-700 text-[9px] sm:text-[10px] font-black tracking-wide">سلفيات العاملين</span>
@@ -4757,10 +4863,10 @@ function Dashboard({
         </Card>
 
         {/* Card 5: Current Manufacturing Cost */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-500 p-5 sm:p-6 lg:p-8 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-red-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-red-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-600 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
               <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-red-50 text-red-700 text-[9px] sm:text-[10px] font-black tracking-wide">منهكة التشغيل</span>
@@ -4781,10 +4887,10 @@ function Dashboard({
 
       {/* Row 2: Deep Analytics & Core Flow Charts */}
       {(activeTab === 'all' || activeTab === 'operations') && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Chart 1: Inventory Flows and Material Cost Control */}
           <Card className="lg:col-span-8 dribbble-card border-none shadow-xl shadow-slate-200/40 overflow-hidden text-right">
-            <CardHeader className="flex flex-row items-center justify-between p-8 pb-4 border-b border-slate-50">
+            <CardHeader className="flex flex-row items-center justify-between p-6 pb-4 border-b border-slate-50">
               <div className="space-y-1 text-right">
                 <CardTitle className="text-xl font-black text-slate-900 block text-right">تحليل حركة التدفقات والمواد</CardTitle>
                 <CardDescription className="font-bold text-slate-400 block text-right mt-1">المقارنة بين المشتريات والمنصرف الفعلي وقيمة الهالك والتالف (آخر 14 يوم)</CardDescription>
@@ -4800,7 +4906,7 @@ function Dashboard({
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-8 pt-6">
+            <CardContent className="p-6 pt-6">
               <div className="h-[350px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
@@ -4833,17 +4939,17 @@ function Dashboard({
 
           {/* Left Widget: Critical Inventory shortages + Mini stats */}
           <Card className="lg:col-span-4 dribbble-card border-none shadow-xl shadow-slate-200/40 bg-slate-900 text-white flex flex-col h-full text-right">
-            <CardHeader className="p-8 pb-4">
-              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-6">
+            <CardHeader className="p-6 pb-4">
+              <div className="w-12 h-12 bg-white/10 rounded-[14px] flex items-center justify-center mb-6">
                 <AlertTriangle size={24} className="text-orange-400 animate-bounce" />
               </div>
               <CardTitle className="text-2xl font-black tracking-tight block text-right">نقص المواد والمستلزمات</CardTitle>
               <CardDescription className="text-slate-400 font-bold block text-right mt-1">أصناف بالمستودع تجاوزت حد الأمان المقررة ({lowStockItems.length})</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 pt-0 flex-1 overflow-y-auto max-h-[310px] custom-scrollbar text-right">
+            <CardContent className="p-6 pt-0 flex-1 overflow-y-auto max-h-[310px] custom-scrollbar text-right">
               <div className="space-y-3">
                 {lowStockItems.slice(0, 5).map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all group">
+                  <div key={item.id} className="flex items-center justify-between p-4 bg-white/5 rounded-[14px] border border-white/5 hover:bg-white/10 transition-all group">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-orange-400/20 flex items-center justify-center text-orange-400 font-extrabold font-mono text-sm tabular-nums">
                         {item.currentBalance}
@@ -4880,17 +4986,17 @@ function Dashboard({
 
       {/* Row 3: Advanced Business Intelligence (Wages vs Safe & Attendance & Production Intensity) */}
       {(activeTab === 'all' || activeTab === 'financial' || activeTab === 'hr') && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Wages & Safe spending analysis */}
           <Card className="lg:col-span-12 xl:col-span-8 dribbble-card border-none shadow-xl shadow-slate-200/40 overflow-hidden text-right">
-            <CardHeader className="bg-slate-50/50 p-8 border-b border-slate-100">
+            <CardHeader className="bg-slate-50/50 p-6 border-b border-slate-100">
               <CardTitle className="text-xl font-black flex items-center gap-3 justify-end text-slate-900 block text-right font-bold">
                 <DollarSign className="text-indigo-600" size={24} />
                 تحليل الرواتب والمصاريف الشهرية المنصرفة
               </CardTitle>
               <CardDescription className="font-bold text-slate-400 block text-right mt-1">مقارنة بين إجمالي الرواتب المصدرة ومصروفات الخزائن والأوعية النقدية (آخر 6 أشهر)</CardDescription>
             </CardHeader>
-            <CardContent className="p-8">
+            <CardContent className="p-6">
               <div className="h-[350px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={salaryChartData.map((s, i) => ({ ...s, safeOut: safeOutgoingsData[i]?.amount || 0 }))}>
@@ -4914,14 +5020,14 @@ function Dashboard({
 
           {/* Workforce discipline and distribution */}
           <Card className="lg:col-span-12 xl:col-span-4 dribbble-card border-none shadow-xl shadow-slate-200/40 overflow-hidden text-right">
-            <CardHeader className="bg-slate-50/50 p-8 border-b border-slate-100">
+            <CardHeader className="bg-slate-50/50 p-6 border-b border-slate-100">
               <CardTitle className="text-xl font-black flex items-center gap-3 justify-end text-slate-900 block text-right font-bold">
                 <ClipboardCheck className="text-blue-500" size={24} />
                 انضباط العمل الفصلي
               </CardTitle>
               <CardDescription className="font-bold text-slate-400 block text-right mt-1">نسب وحالات الحضور والالتزام (آخر 30 يوماً متراكمة)</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 flex flex-col items-center justify-center">
+            <CardContent className="p-6 flex flex-col items-center justify-center">
               <div className="h-[230px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -4945,7 +5051,7 @@ function Dashboard({
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="mt-6 grid grid-cols-3 gap-3 w-full border-t border-slate-100 pt-5 text-right">
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3 w-full border-t border-slate-100 pt-5 text-right">
                 {attendancePieData.map((stat, i) => {
                   const totalRecords = recentAttendance.length || 1;
                   const percentage = ((stat.value / totalRecords) * 100).toFixed(1);
@@ -4967,8 +5073,8 @@ function Dashboard({
 
       {/* Row 4: Manufacturing Output density */}
       {(activeTab === 'all' || activeTab === 'operations') && (
-        <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40 overflow-hidden text-right animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <CardHeader className="bg-slate-50/50 p-8 border-b border-slate-100">
+        <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40 overflow-hidden text-right animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <CardHeader className="bg-slate-50/50 p-6 border-b border-slate-100">
             <div className="flex justify-between items-center flex-wrap gap-4">
               <div className="space-y-1 text-right">
                 <CardTitle className="text-xl font-black flex items-center gap-3 justify-end text-slate-900 block text-right font-bold">
@@ -4977,7 +5083,7 @@ function Dashboard({
                 </CardTitle>
                 <CardDescription className="font-bold text-slate-400 block text-right mt-1">حجم ومعدل القطع التامة المصنعة يومياً من الورش والأقسام (آخر 14 يوم)</CardDescription>
               </div>
-              <div className="text-right bg-orange-50 p-3.5 rounded-2xl border border-orange-100">
+              <div className="text-right bg-orange-50 p-3.5 rounded-[14px] border border-orange-100">
                 <div className="text-[10px] font-black text-orange-600 uppercase mb-0.5">إجمالي إنتاج الفترة بالكامل</div>
                 <div className="text-2xl font-black text-orange-600 font-mono leading-none tracking-tight tabular-nums">
                   {productionStatData.reduce((s, d) => s + d.output, 0).toLocaleString()} <span className="text-sm font-sans font-bold text-orange-500 mr-1">قطعة</span>
@@ -4985,7 +5091,7 @@ function Dashboard({
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-8">
+          <CardContent className="p-6">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={productionStatData}>
@@ -5013,7 +5119,7 @@ function Dashboard({
       )}
 
       {/* Row 5: Operational Dashboard Lists (Recent Actions & Items) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 md:grid-cols-3 gap-6">
         {/* Active Production Orders list with dynamic progress */}
         {(activeTab === 'all' || activeTab === 'operations') && (
           <DashboardList 
@@ -5024,7 +5130,7 @@ function Dashboard({
               const workflowStepNum = job.workflowStep || 1;
               const progressPct = Math.round((workflowStepNum / 6) * 100);
               return (
-                <div key={job.id} className="flex flex-col p-4 rounded-2xl bg-white border border-slate-100 hover:shadow-lg hover:border-indigo-100 transition-all group gap-2.5">
+                <div key={job.id} className="flex flex-col p-4 rounded-[14px] bg-white border border-slate-100 hover:shadow-lg hover:border-indigo-100 transition-all group gap-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all font-mono text-sm">
@@ -5044,7 +5150,7 @@ function Dashboard({
                       <span className="font-mono text-indigo-600">{progressPct}%</span>
                     </div>
                     <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-600 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+                      <div className="h-full bg-indigo-600 rounded-full transition-all duration-200" style={{ width: `${progressPct}%` }} />
                     </div>
                   </div>
                 </div>
@@ -5060,7 +5166,7 @@ function Dashboard({
             icon={<ArrowUpRight className="text-emerald-600" />} 
             data={safeTransactions.slice(-4).reverse()} 
             renderItem={(tx) => (
-              <div key={tx.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:shadow-lg hover:border-emerald-100 transition-all group">
+              <div key={tx.id} className="flex items-center justify-between p-4 rounded-[14px] bg-white border border-slate-100 hover:shadow-lg hover:border-emerald-100 transition-all group">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 group-hover:bg-emerald-500 group-hover:text-white transition-all font-mono">
                     {tx.type === 'شحن خزينة' || tx.type === 'إيداع' ? '📥' : '📤'}
@@ -5087,7 +5193,7 @@ function Dashboard({
             icon={<DollarSign className="text-blue-500" />} 
             data={hrTransactions.slice(-4).reverse()} 
             renderItem={(trans) => (
-              <div key={trans.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:shadow-lg hover:border-blue-100 transition-all group">
+              <div key={trans.id} className="flex items-center justify-between p-4 rounded-[14px] bg-white border border-slate-100 hover:shadow-lg hover:border-blue-100 transition-all group">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 group-hover:bg-blue-500 group-hover:text-white transition-all">
                     <Users size={18} />
@@ -5127,10 +5233,10 @@ function StatCard({ title, value, icon, color = "text-primary" }: { title: strin
 
   return (
     <Card className="dribbble-card overflow-hidden group relative border-none">
-      <div className={`absolute -top-12 -right-12 w-32 h-32 ${bgClass} opacity-[0.06] rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700 pointer-events-none`} />
-      <CardContent className="p-8 relative z-10">
+      <div className={`absolute -top-12 -right-12 w-32 h-32 ${bgClass} opacity-[0.06] rounded-full blur-2xl group-hover:scale-150 transition-transform duration-200 pointer-events-none`} />
+      <CardContent className="p-6 relative z-10">
         <div className="flex items-start justify-between mb-10">
-          <div className="w-14 h-14 rounded-[22px] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)] border border-slate-50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+          <div className="w-14 h-14 rounded-[22px] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.06)] border border-slate-50 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-transform duration-200">
             {icon}
           </div>
           <div className="flex gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
@@ -5223,81 +5329,112 @@ function Inventory({
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      {/* PROFESSIONAL SUMMARY CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { label: 'إجمالي قيمة المخزون', value: items.reduce((sum, item) => sum + (item.currentBalance * (item.price || 0)), 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 }), icon: DollarSign, color: 'text-emerald-500' },
-          { label: 'إجمالي الأصناف', value: items.length.toString(), icon: Package, color: 'text-blue-500' },
-          { label: 'أصناف منخفضة الرصيد', value: items.filter(i => i.currentBalance <= i.safetyLimit).length.toString(), icon: AlertCircle, color: 'text-amber-500' },
-          { label: 'أصناف معدومة', value: items.filter(i => i.currentBalance === 0).length.toString(), icon: AlertTriangle, color: 'text-rose-500' },
-        ].map((stat, i) => (
-          <Card key={i} className="p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{stat.label}</p>
-                <p className="text-2xl font-black text-slate-900 tracking-tighter">{stat.value}</p>
-              </div>
-              <stat.icon className={cn("w-6 h-6", stat.color)} />
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-10 pb-6 relative">
-        <div className="space-y-6 relative z-10">
-          <div className="flex items-center gap-3 text-primary font-black text-xs uppercase tracking-[0.3em] px-5 py-2.5 bg-primary/5 border border-primary/10 rounded-full w-fit shadow-sm">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <WarehouseIcon size={16} />
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-200">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-[0.2em] px-4 py-1.5 bg-primary/5 border border-primary/10 rounded-full w-fit shadow-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <WarehouseIcon size={14} />
             إدارة المخزون والعهدة الرقمية
           </div>
-          <h2 className="text-5xl lg:text-8xl font-black tracking-tighter text-slate-900 leading-[0.8]">
-            المركز <br />
-            <span className="text-slate-300">اللوجستي</span>
+          <h2 className="text-3xl lg:text-4xl font-black tracking-tighter text-slate-900 leading-tight">
+            المركز اللوجستي <br />
+            <span className="text-slate-300">للمواد الخام</span>
           </h2>
         </div>
-        <div className="flex flex-wrap items-center gap-5 bg-white/50 backdrop-blur-xl p-4 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-white/60 relative z-10">
-          <div className="flex bg-slate-100/50 p-2 rounded-2xl border border-slate-200/50">
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("grid")} className={`rounded-xl h-12 px-6 transition-all duration-500 ${viewMode === "grid" ? "bg-white text-primary shadow-xl font-black scale-105" : "text-slate-400 hover:text-slate-600"}`}>
-              <LayoutGrid size={20} className="ml-2" />
-              شبكة
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("table")} className={`rounded-xl h-12 px-6 transition-all duration-500 ${viewMode === "table" ? "bg-white text-primary shadow-xl font-black scale-105" : "text-slate-400 hover:text-slate-600"}`}>
-              <List size={20} className="ml-2" />
-              جدول
-            </Button>
-          </div>
-          <Button onClick={() => setShowItemAdd(true)} className="h-16 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3">
-            <Plus size={22} strokeWidth={3} />
+        <div className="flex flex-wrap gap-4">
+          <Button onClick={() => setShowItemAdd(true)} className="h-12 px-8 rounded-[14px] bg-slate-900 hover:bg-slate-800 text-white font-black text-base shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3">
+            <Plus size={20} strokeWidth={3} />
             إضافة صنف جديد
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button variant="outline" className="h-16 w-16 rounded-2xl p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-sm flex items-center justify-center transition-all hover:rotate-90">
-                  <SettingsIcon size={24} />
+                <Button variant="outline" className="h-12 w-12 rounded-[14px] p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-sm flex items-center justify-center transition-all hover:rotate-90">
+                  <SettingsIcon size={20} />
                 </Button>
               }
             />
-            <DropdownMenuContent align="end" className="w-64 p-3 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-slate-100">
-              <DropdownMenuItem onClick={() => setShowCostCenterAdd(true)} className="rounded-xl p-4 font-black gap-3 text-slate-700 hover:bg-slate-50">
-                <Layers size={18} className="text-blue-500" />
+            <DropdownMenuContent align="end" className="w-60 p-2 rounded-[14px] shadow-2xl border-slate-100">
+              <DropdownMenuItem onClick={() => setShowCostCenterAdd(true)} className="rounded-lg p-3 font-black gap-3 text-slate-700 hover:bg-slate-50">
+                <Layers size={16} className="text-blue-500" />
                 إضافة مركز تكلفة
               </DropdownMenuItem>
-              <div className="h-px bg-slate-50 my-2" />
-              <DropdownMenuItem onClick={() => safePrint()} className="rounded-xl p-4 font-black gap-3 text-slate-700 md:flex hidden hover:bg-slate-50">
-                <Printer size={18} className="text-slate-400" />
-                طباعة جرد المخزن
+              <div className="h-px bg-slate-50 my-1" />
+              <DropdownMenuItem onClick={() => safePrint()} className="rounded-lg p-3 font-black gap-3 text-slate-700 md:flex hidden hover:bg-slate-50">
+                <Printer size={16} className="text-slate-400" />
+                طباعة الكشف
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
 
+      {/* PROFESSIONAL SUMMARY CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'إجمالي قيمة المخزون', value: items.reduce((sum, item) => sum + (item.currentBalance * (item.price || 0)), 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 }), icon: DollarSign, color: 'text-emerald-500' },
+          { label: 'إجمالي الأصناف', value: items.length.toString(), icon: Package, color: 'text-blue-500' },
+          { label: 'أصناف منخفضة الرصيد', value: items.filter(i => i.currentBalance <= i.safetyLimit).length.toString(), icon: AlertCircle, color: 'text-amber-500' },
+          { label: 'أصناف معدومة', value: items.filter(i => i.currentBalance === 0).length.toString(), icon: AlertTriangle, color: 'text-rose-500' },
+        ].map((stat, i) => (
+          <Card key={i} className="p-6 rounded-[14px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className="text-xl font-black text-slate-900 tracking-tighter">{stat.value}</p>
+              </div>
+              <stat.icon className={cn("w-5 h-5", stat.color)} />
+            </div>
+          </Card>
+        ))}
+      </div>
 
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="relative group min-w-[300px] max-w-full">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-all duration-200 group-focus-within:scale-110" size={18} />
+            <Input 
+              placeholder="ابحث عن صنف بالاسم أو الكود..." 
+              className="pr-12 h-12 rounded-[14px] border-slate-100 bg-slate-50 focus:bg-white font-black text-base shadow-inner focus:ring-[6px] focus:ring-primary/5 transition-all"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         <Card className="lg:col-span-2 dribbble-card border-none overflow-hidden bg-slate-900 text-white shadow-2xl rounded-[3rem] relative p-10 flex flex-col justify-between min-h-[320px]">
+          <Button 
+            variant={lowStockOnly ? "destructive" : "outline"} 
+            onClick={() => setLowStockOnly(!lowStockOnly)}
+            className={cn(
+              "h-12 px-6 rounded-[14px] font-black text-xs transition-all duration-200",
+              lowStockOnly ? "bg-rose-500 text-white shadow-lg shadow-rose-200" : "hover:border-rose-100 hover:bg-rose-50/30"
+            )}
+          >
+            <AlertCircle size={18} className="ml-2" />
+            النواقص الحرجة
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex bg-slate-100/50 p-1 rounded-[14px] border border-slate-200/50 backdrop-blur-sm">
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("grid")} className={`rounded-[10px] h-10 px-4 ${viewMode === "grid" ? "bg-white text-primary shadow-lg font-black scale-105" : "text-slate-400 hover:text-slate-600"}`}>
+              <LayoutGrid size={18} className="ml-2" />
+              شبكة
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setViewMode("table")} className={`rounded-[10px] h-10 px-4 ${viewMode === "table" ? "bg-white text-primary shadow-lg font-black scale-105" : "text-slate-400 hover:text-slate-600"}`}>
+              <List size={18} className="ml-2" />
+              جدول
+            </Button>
+          </div>
+          <Button variant="outline" onClick={exportToExcel} className="h-16 px-8 rounded-[1.5rem] font-black text-sm border-slate-200 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
+            <Download size={20} className="ml-3" />
+            تصدير البيانات
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-3 gap-6">
+         <Card className="lg:col-span-2 dribbble-card border-none overflow-hidden bg-slate-900 text-white shadow-2xl rounded-[14px] relative p-6 flex flex-col justify-between min-h-[320px]">
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
             <div className="relative z-10 space-y-6">
               <h4 className="font-black text-white/50 uppercase tracking-[0.3em] text-[11px] flex items-center gap-3">
@@ -5305,7 +5442,7 @@ function Inventory({
                  ملـخص الكـفـاءة التشـغيـلية للمخـزون
               </h4>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
                  {[
                    { label: 'أصناف آمنة (متوفرة)', count: items.filter(i => i.currentBalance > i.safetyLimit).length, color: 'bg-emerald-500', shadow: 'shadow-emerald-500/30', percentage: items.length ? (items.filter(i => i.currentBalance > i.safetyLimit).length / items.length) * 100 : 0 },
                    { label: 'أصناف تحت المراقبة', count: items.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length, color: 'bg-amber-500', shadow: 'shadow-amber-500/30', percentage: items.length ? (items.filter(i => i.currentBalance > 0 && i.currentBalance <= i.safetyLimit).length / items.length) * 100 : 0 },
@@ -5343,47 +5480,47 @@ function Inventory({
             </div>
          </Card>
 
-         <Card className="dribbble-card border-none bg-white p-10 shadow-xl shadow-slate-200/50 rounded-[3rem] flex flex-col justify-between min-h-[320px]">
+         <Card className="dribbble-card border-none bg-white p-6 shadow-xl shadow-slate-200/50 rounded-[14px] flex flex-col justify-between min-h-[320px]">
             <div className="space-y-4">
                <h3 className="text-2xl font-black text-slate-900">التحليل السريع</h3>
                <p className="text-slate-500 font-bold text-sm leading-relaxed">يمكنك تصفية المخزون للوصول الفوري للأصناف منخفضة الرصيد لسرعة التوريد وتفادي توقف الإنتاج.</p>
             </div>
             <div className="space-y-4">
-               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-[14px] border border-slate-100">
                   <span className="text-sm font-bold text-slate-700">عدد الأصناف الكلي</span>
                   <span className="font-black text-xl text-slate-900">{items.length} صنف</span>
                </div>
-               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-[14px] border border-slate-100">
                   <span className="text-sm font-bold text-slate-700">إجمالي قيمة المخزون الحالي</span>
                   <span className="font-black text-xl text-primary">
                     {items.reduce((sum, item) => sum + (item.currentBalance * (item.price || 0)), 0).toLocaleString()} ج.م
                   </span>
                </div>
-               <Button onClick={exportToExcel} className="w-full h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/60 font-black text-slate-700 transition-all">
+               <Button onClick={exportToExcel} className="w-full h-14 rounded-[14px] bg-slate-50 hover:bg-slate-100 border border-slate-200/60 font-black text-slate-700 transition-all">
                   تصدير تقرير الجرد الكامل (Excel)
                </Button>
             </div>
          </Card>
       </div>
 
-      <div className="bg-white/50 backdrop-blur-3xl p-10 rounded-[3.5rem] border border-white/60 shadow-2xl shadow-slate-200/50 space-y-10 relative overflow-hidden group/filter">
-        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none group-hover/filter:scale-110 transition-transform duration-1000" />
-        <div className="flex flex-col lg:flex-row gap-8 justify-between relative z-10">
+      <div className="bg-white/50 backdrop-blur-3xl p-6 rounded-[14px] border border-white/60 shadow-2xl shadow-slate-200/50 space-y-10 relative overflow-hidden group/filter">
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none group-hover/filter:scale-110 transition-transform duration-200" />
+        <div className="flex flex-col lg:flex-row gap-6 justify-between relative z-10">
            <div className="flex-1 relative max-w-2xl">
               <div className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300">
                 <Search size={22} strokeWidth={2.5} />
               </div>
               <Input 
                 placeholder="منـصة الـبحث الذكـي عن الأصـناف والأكـواد..." 
-                className="w-full h-24 pr-24 pl-10 rounded-[2.5rem] border-none bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] focus-visible:ring-0 focus-visible:shadow-[0_20px_60px_-15px_rgba(99,102,241,0.15)] font-black text-xl placeholder:text-slate-300 placeholder:italic transition-all duration-700 hover:shadow-indigo-500/5" 
+                className="w-full h-24 pr-24 pl-10 rounded-[14px] border-none bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] focus-visible:ring-0 focus-visible:shadow-[0_20px_60px_-15px_rgba(99,102,241,0.15)] font-black text-xl placeholder:text-slate-300 placeholder:italic transition-all duration-200 hover:shadow-indigo-500/5" 
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
            </div>
 
            <div className="flex flex-wrap items-center gap-4">
-               <div className="p-2.5 bg-white/60 backdrop-blur-xl rounded-[2.5rem] border border-white/80 shadow-xl shadow-slate-200/20 flex items-center gap-2">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-lg">
+               <div className="p-2.5 bg-white/60 backdrop-blur-xl rounded-[14px] border border-white/80 shadow-xl shadow-slate-200/20 flex items-center gap-2">
+                  <div className="w-12 h-12 rounded-[14px] bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-lg">
                      <Filter size={18} strokeWidth={2.5} />
                   </div>
                   <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-sm px-2">
@@ -5392,7 +5529,7 @@ function Inventory({
                          key={cat}
                          onClick={() => setCategory(cat === 'الكل' ? 'all' : cat)}
                          className={cn(
-                           "h-12 px-8 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all duration-500 shrink-0 whitespace-nowrap",
+                           "h-12 px-8 rounded-[14px] font-black text-[11px] uppercase tracking-widest transition-all duration-200 shrink-0 whitespace-nowrap",
                            (category === 'all' && cat === 'الكل') || (category === cat)
                              ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105"
                              : "text-slate-400 hover:bg-white hover:text-slate-600"
@@ -5407,7 +5544,7 @@ function Inventory({
                <button
                  onClick={() => setLowStockOnly(!lowStockOnly)}
                  className={cn(
-                   "h-16 px-8 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all duration-500 flex items-center gap-3 border shadow-lg",
+                   "h-16 px-8 rounded-[14px] font-black text-xs uppercase tracking-widest transition-all duration-200 flex items-center gap-3 border shadow-lg",
                    lowStockOnly
                      ? "bg-rose-500 text-white border-rose-500 shadow-rose-500/20 scale-105"
                      : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50 shadow-slate-200/20"
@@ -5420,7 +5557,7 @@ function Inventory({
         </div>
 
         <div className="flex flex-wrap items-center gap-5 pt-2 border-t border-slate-100/60 relative z-10">
-           <div className="flex items-center gap-3 px-6 py-3 bg-slate-50/50 rounded-2xl border border-slate-100/50">
+           <div className="flex items-center gap-3 px-6 py-3 bg-slate-50/50 rounded-[14px] border border-slate-100/50">
               <WarehouseIcon size={16} className="text-slate-400" />
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">تصنيف المستودعات:</span>
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
@@ -5442,7 +5579,7 @@ function Inventory({
               </div>
            </div>
            
-           <div className="flex items-center gap-3 px-6 py-3 bg-slate-50/50 rounded-2xl border border-slate-100/50 ml-auto">
+           <div className="flex items-center gap-3 px-6 py-3 bg-slate-50/50 rounded-[14px] border border-slate-100/50 ml-auto">
               <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">مراكز التكلفة:</span>
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
                   <button 
@@ -5466,7 +5603,7 @@ function Inventory({
       </div>
 
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 md:grid-cols-3 gap-6">
           {filtered.map((item, idx) => (
             <motion.div
               key={item.id}
@@ -5475,43 +5612,43 @@ function Inventory({
               transition={{ delay: idx * 0.05, duration: 0.8, ease: "easeOut" }}
               className="h-full"
             >
-               <Card className="dribbble-card border-none group h-full flex flex-col relative overflow-hidden bg-white shadow-[0_15px_40px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_45px_100px_-10px_rgba(99,102,241,0.12)] transition-all duration-700 rounded-[3rem] border border-slate-100/40 hover:border-primary/10">
+               <Card className="dribbble-card border-none group h-full flex flex-col relative overflow-hidden bg-white shadow-[0_15px_40px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_45px_100px_-10px_rgba(99,102,241,0.12)] transition-all duration-200 rounded-[14px] border border-slate-100/40 hover:border-primary/10">
                   <div className={cn(
-                    "absolute top-0 inset-x-0 h-2 transition-all duration-700 z-20",
+                    "absolute top-0 inset-x-0 h-2 transition-all duration-200 z-20",
                     item.currentBalance <= item.safetyLimit ? "bg-red-500 shadow-[0_5px_15px_rgba(239,68,68,0.3)] animate-pulse" : "bg-slate-100 group-hover:bg-primary"
                   )} />
                   
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-slate-50 opacity-40 rounded-bl-[10rem] -mr-16 -mt-16 group-hover:bg-primary/5 transition-all duration-1000 rotate-12 pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-slate-50 opacity-40 rounded-bl-[10rem] -mr-16 -mt-16 group-hover:bg-primary/5 transition-all duration-200 rotate-12 pointer-events-none" />
                   
-                  <CardContent className="p-10 pb-6 flex-1 relative z-10 flex flex-col">
+                  <CardContent className="p-6 pb-6 flex-1 relative z-10 flex flex-col">
                     <div className="flex justify-between items-start mb-8 gap-4">
                        <div className="flex flex-col min-w-0 flex-1">
                           <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-primary/10 group-hover:rotate-12 transition-all duration-700 border border-slate-100">
+                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-primary/10 group-hover:rotate-12 transition-all duration-200 border border-slate-100">
                               <Package size={16} className="text-slate-400 group-hover:text-primary transition-colors" />
                             </div>
-                            <Badge variant="outline" className="bg-white border-slate-100 text-[9px] font-black tracking-widest text-slate-400 px-3 uppercase rounded-full group-hover:border-primary/20 group-hover:text-primary transition-all duration-700">
+                            <Badge variant="outline" className="bg-white border-slate-100 text-[9px] font-black tracking-widest text-slate-400 px-3 uppercase rounded-full group-hover:border-primary/20 group-hover:text-primary transition-all duration-200">
                                 {warehouses.find(w => w.id === item.warehouseId)?.name || 'غير معروف'}
                             </Badge>
                           </div>
-                          <h3 className="font-black text-2xl text-slate-900 group-hover:text-primary transition-colors leading-[1.2] line-clamp-2 tracking-tight group-hover:translate-x-1 duration-700">
+                          <h3 className="font-black text-2xl text-slate-900 group-hover:text-primary transition-colors leading-[1.2] line-clamp-2 tracking-tight group-hover:translate-x-1 duration-200">
                              {item.name}
                           </h3>
                        </div>
                        <div className="shrink-0 flex flex-col items-end text-left">
-                          <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 text-white flex items-center justify-center font-black text-xl shadow-xl shadow-slate-900/20 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-700">
+                          <div className="w-14 h-14 rounded-[14px] bg-slate-900 border border-slate-800 text-white flex items-center justify-center font-black text-xl shadow-xl shadow-slate-900/20 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-200">
                              {item.unit}
                           </div>
                        </div>
                     </div>
 
                     <div className="mt-8 space-y-6 flex-1">
-                       <div className="grid grid-cols-2 gap-6 p-6 rounded-[2rem] bg-slate-50/50 border border-slate-100 shadow-sm relative group-hover:bg-white group-hover:border-primary/10 transition-all duration-700 overflow-hidden">
+                       <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-[14px] bg-slate-50/50 border border-slate-100 shadow-sm relative group-hover:bg-white group-hover:border-primary/10 transition-all duration-200 overflow-hidden">
                           <div>
                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-right">الرصيد المتاح</p>
                              <div className="flex items-baseline gap-2 justify-end">
                                 <span className={cn(
-                                  "text-4xl font-black tracking-tighter transition-all duration-700 group-hover:scale-110 origin-right",
+                                  "text-4xl font-black tracking-tighter transition-all duration-200 group-hover:scale-110 origin-right",
                                   item.currentBalance <= item.safetyLimit ? "text-red-600" : "text-slate-900"
                                 )}>
                                   {item.currentBalance}
@@ -5528,7 +5665,7 @@ function Inventory({
                           </div>
                        </div>
                        
-                       <div className="flex items-center justify-between p-6 rounded-[2rem] bg-indigo-50/30 border border-indigo-100/50 group-hover:bg-indigo-500 group-hover:border-indigo-500 transition-all duration-700">
+                       <div className="flex items-center justify-between p-6 rounded-[14px] bg-indigo-50/30 border border-indigo-100/50 group-hover:bg-indigo-500 group-hover:border-indigo-500 transition-all duration-200">
                           <TrendingUp size={24} className="text-indigo-200 group-hover:text-white transition-colors" />
                           <div className="text-left">
                              <p className="text-[9px] font-black text-indigo-400 group-hover:text-white/60 uppercase tracking-widest mb-1">القيمة السوقية</p>
@@ -5543,17 +5680,17 @@ function Inventory({
                     </div>
                   </CardContent>
 
-                  <CardFooter className="p-8 pt-0 flex gap-4 transition-all duration-700 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                    <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-black bg-slate-50 hover:bg-slate-900 hover:text-white transition-all duration-500" onClick={() => setSelectedItemCard(item)}>
+                  <CardFooter className="p-6 pt-0 flex gap-4 transition-all duration-200 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+                    <Button variant="ghost" className="flex-1 rounded-[14px] h-14 font-black bg-slate-50 hover:bg-slate-900 hover:text-white transition-all duration-200" onClick={() => setSelectedItemCard(item)}>
                       <Eye size={18} className="ml-2" />
                       التفاصيل
                     </Button>
-                    <Button variant="ghost" className="flex-1 rounded-2xl h-14 font-black bg-indigo-50 text-primary hover:bg-primary hover:text-white transition-all duration-500" onClick={() => setEditingItem(item)}>
+                    <Button variant="ghost" className="flex-1 rounded-[14px] h-14 font-black bg-indigo-50 text-primary hover:bg-primary hover:text-white transition-all duration-200" onClick={() => setEditingItem(item)}>
                       <Edit2 size={18} className="ml-2" />
                       تعديل
                     </Button>
                     {(profile?.isAdmin || profile?.permissions.canDelete) && (
-                      <Button variant="ghost" className="rounded-2xl h-14 w-14 font-black bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-500" onClick={() => setShowDeleteConfirm(item.id)}>
+                      <Button variant="ghost" className="rounded-[14px] h-14 w-14 font-black bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200" onClick={() => setShowDeleteConfirm(item.id)}>
                         <Trash2 size={18} />
                       </Button>
                     )}
@@ -5563,7 +5700,7 @@ function Inventory({
           ))}
         </div>
       ) : (
-        <Card className="dribbble-card border-none bg-white shadow-xl overflow-hidden rounded-[3rem]">
+        <Card className="dribbble-card border-none bg-white shadow-xl overflow-hidden rounded-[14px]">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-slate-50/50 h-16 border-none">
@@ -5583,7 +5720,7 @@ function Inventory({
                     <TableCell className="px-10">
                        <div className="flex items-center gap-4">
                           <div className={cn(
-                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 relative overflow-hidden",
+                            "w-12 h-12 rounded-[14px] flex items-center justify-center transition-all duration-200 relative overflow-hidden",
                             item.currentBalance <= item.safetyLimit ? "bg-red-50 text-red-500" : "bg-slate-100 text-slate-400 group-hover:bg-primary/10 group-hover:text-primary"
                           )}>
                              <Package size={22} className="relative z-10" />
@@ -5636,15 +5773,15 @@ function Inventory({
                     </TableCell>
                     <TableCell className="text-center print:hidden px-6">
                        <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                          <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-slate-400 hover:text-primary hover:bg-primary/5 transition-all border border-transparent hover:border-primary/10" onClick={() => setEditingItem(item)}>
+                          <Button variant="ghost" size="icon" className="h-11 w-11 rounded-[14px] text-slate-400 hover:text-primary hover:bg-primary/5 transition-all border border-transparent hover:border-primary/10" onClick={() => setEditingItem(item)}>
                             <Edit2 size={18} />
                           </Button>
                           {(profile?.isAdmin || profile?.permissions.canDelete) && (
-                            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100" onClick={() => setShowDeleteConfirm(item.id)}>
+                            <Button variant="ghost" size="icon" className="h-11 w-11 rounded-[14px] text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-transparent hover:border-red-100" onClick={() => setShowDeleteConfirm(item.id)}>
                               <Trash2 size={18} />
                             </Button>
                           )}
-                          <Button variant="ghost" size="icon" className="h-11 w-11 rounded-2xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200" onClick={() => setSelectedItemCard(item)}>
+                          <Button variant="ghost" size="icon" className="h-11 w-11 rounded-[14px] text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200" onClick={() => setSelectedItemCard(item)}>
                             <History size={18} />
                           </Button>
                        </div>
@@ -5709,18 +5846,18 @@ function Inventory({
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white rounded-[2.5rem] p-10 max-w-sm w-full shadow-2xl text-center space-y-6"
+                className="bg-white rounded-[14px] p-6 max-w-sm w-full shadow-2xl text-center space-y-6"
               >
-                 <div className="w-20 h-20 bg-red-50 rounded-[2rem] flex items-center justify-center mx-auto text-red-500">
+                 <div className="w-20 h-20 bg-red-50 rounded-[14px] flex items-center justify-center mx-auto text-red-500">
                     <Trash2 size={40} />
                  </div>
                  <div>
                     <h3 className="text-2xl font-black text-slate-900">هل أنت متأكد؟</h3>
                     <p className="text-slate-500 font-bold mt-2 leading-relaxed">بمجرد الحذف لن يمكنك استرجاع بيانات هذا الصنف مرة أخرى من النظام.</p>
                  </div>
-                 <div className="grid grid-cols-2 gap-4 pt-2">
-                    <Button variant="ghost" className="h-14 rounded-2xl font-black text-slate-400 hover:bg-slate-100" onClick={() => setShowDeleteConfirm(null)}>إلغاء</Button>
-                    <Button className="btn-danger h-14 rounded-2xl font-black" onClick={confirmDelete}>تأكيد الحذف</Button>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <Button variant="ghost" className="h-14 rounded-[14px] font-black text-slate-400 hover:bg-slate-100" onClick={() => setShowDeleteConfirm(null)}>إلغاء</Button>
+                    <Button className="btn-danger h-14 rounded-[14px] font-black" onClick={confirmDelete}>تأكيد الحذف</Button>
                  </div>
               </motion.div>
            </div>
@@ -5743,7 +5880,7 @@ function Inventory({
                     <h2 className="text-4xl font-black tracking-tight text-slate-900">تعديل صنف</h2>
                     <p className="text-slate-400 font-bold mt-1 uppercase tracking-widest text-[10px]">تعديل بيانات {editingItem.name}</p>
                  </div>
-                 <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-slate-50 hover:bg-red-50 hover:text-red-500" onClick={() => setEditingItem(null)}>
+                 <Button variant="ghost" size="icon" className="h-12 w-12 rounded-[14px] bg-slate-50 hover:bg-red-50 hover:text-red-500" onClick={() => setEditingItem(null)}>
                     <X size={24} />
                  </Button>
               </div>
@@ -5751,14 +5888,14 @@ function Inventory({
               <div className="space-y-8">
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest">اسم الصنف المعرف</label>
-                    <Input className="h-16 rounded-2xl bg-slate-50 border-none font-bold text-lg px-6 focus-visible:ring-2 focus-visible:ring-primary/20" value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} />
+                    <Input className="h-16 rounded-[14px] bg-slate-50 border-none font-bold text-lg px-6 focus-visible:ring-2 focus-visible:ring-primary/20" value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest">المخزن الأساسي</label>
                       <select 
-                        className="w-full h-16 rounded-2xl bg-slate-50 border-none px-6 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none bg-no-repeat bg-[right_1.5rem_center]" 
+                        className="w-full h-16 rounded-[14px] bg-slate-50 border-none px-6 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 appearance-none bg-no-repeat bg-[right_1.5rem_center]" 
                         value={editingItem.warehouseId} 
                         onChange={e => setEditingItem({...editingItem, warehouseId: e.target.value})}
                       >
@@ -5768,7 +5905,7 @@ function Inventory({
                     <div className="space-y-2">
                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">مركز التكلفة / القسم</label>
                        <select 
-                         className="w-full h-16 rounded-2xl bg-slate-50 border-none px-6 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20" 
+                         className="w-full h-16 rounded-[14px] bg-slate-50 border-none px-6 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20" 
                          value={editingItem.department || ''} 
                          onChange={e => setEditingItem({...editingItem, department: e.target.value})}
                        >
@@ -5778,24 +5915,24 @@ function Inventory({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest">وحدة القياس</label>
-                      <Input className="h-16 rounded-2xl bg-slate-50 border-none font-bold text-lg px-6" value={editingItem.unit} onChange={e => setEditingItem({...editingItem, unit: e.target.value})} />
+                      <Input className="h-16 rounded-[14px] bg-slate-50 border-none font-bold text-lg px-6" value={editingItem.unit} onChange={e => setEditingItem({...editingItem, unit: e.target.value})} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest">متوسط السعر (ج.م)</label>
-                      <Input type="number" className="h-16 rounded-2xl bg-slate-50 border-none font-bold text-lg px-6" value={editingItem.price} onChange={e => setEditingItem({...editingItem, price: Number(e.target.value)})} />
+                      <Input type="number" className="h-16 rounded-[14px] bg-slate-50 border-none font-bold text-lg px-6" value={editingItem.price} onChange={e => setEditingItem({...editingItem, price: Number(e.target.value)})} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest">حد الأمان (تنبيه)</label>
-                      <Input type="number" className="h-16 rounded-2xl bg-slate-50 border-none font-bold text-lg px-6" value={editingItem.safetyLimit} onChange={e => setEditingItem({...editingItem, safetyLimit: Number(e.target.value)})} />
+                      <Input type="number" className="h-16 rounded-[14px] bg-slate-50 border-none font-bold text-lg px-6" value={editingItem.safetyLimit} onChange={e => setEditingItem({...editingItem, safetyLimit: Number(e.target.value)})} />
                     </div>
                   </div>
 
                   <div className="pt-12 flex gap-4">
-                     <Button variant="ghost" className="h-16 flex-1 rounded-2xl font-black text-slate-400 hover:bg-slate-50" onClick={() => setEditingItem(null)}>إلغاء التغييرات</Button>
-                     <Button className="btn-primary h-16 flex-1 rounded-2xl font-black" onClick={async () => {
+                     <Button variant="ghost" className="h-16 flex-1 rounded-[14px] font-black text-slate-400 hover:bg-slate-50" onClick={() => setEditingItem(null)}>إلغاء التغييرات</Button>
+                     <Button className="btn-primary h-16 flex-1 rounded-[14px] font-black" onClick={async () => {
                         try {
                            const { id, ...data } = editingItem;
                            await updateDoc(doc(db, 'items', id), data);
@@ -5819,7 +5956,7 @@ function Inventory({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[3.5rem] w-full max-w-7xl max-h-[92vh] overflow-hidden flex flex-col shadow-[0_32px_128px_rgba(0,0,0,0.1)] border border-slate-100"
+              className="bg-white rounded-[14px] w-full max-w-7xl max-h-[92vh] overflow-hidden flex flex-col shadow-[0_32px_128px_rgba(0,0,0,0.1)] border border-slate-100"
             >
               <div className="p-12 border-b border-slate-100 flex items-center justify-between bg-slate-50/30 relative">
                   <div className="absolute top-0 right-0 w-64 h-full bg-primary/5 rounded-bl-[5rem] -mr-20 pointer-events-none blur-3xl opacity-50" />
@@ -5866,7 +6003,7 @@ function Inventory({
 
                <div className="flex-1 overflow-auto bg-white custom-scrollbar">
                 <div className="px-12 pt-12 pb-8">
-                   <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+                   <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                       {[
                         { label: 'رصيد أول المدة', value: selectedItemCard.openingBalance || 0, color: 'text-slate-400', icon: <History size={24} />, bg: "bg-slate-50" },
                         { label: 'إجمالي التوريدات', value: (selectedItemCard.inward || 0) + (selectedItemCard.returned || 0), color: 'text-emerald-500', icon: <ArrowDownLeft size={24} />, bg: "bg-emerald-50/30" },
@@ -5875,13 +6012,13 @@ function Inventory({
                         { label: 'رصيد المخزن الحالي', value: selectedItemCard.currentBalance || 0, color: 'text-white', highlight: true, icon: <Package size={24} />, bg: "bg-slate-900" }
                       ].map((stat, i) => (
                         <div key={i} className={cn(
-                          "p-10 rounded-[3rem] border transition-all duration-700 relative overflow-hidden group/stat flex flex-col justify-between h-[180px]",
+                          "p-6 rounded-[14px] border transition-all duration-200 relative overflow-hidden group/stat flex flex-col justify-between h-[180px]",
                           stat.highlight 
                             ? "bg-slate-900 text-white border-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.3)]" 
                             : cn(stat.bg, "border-transparent hover:border-slate-100 hover:bg-white hover:shadow-2xl hover:-translate-y-2")
                         )}>
                            <div className="flex items-center justify-between relative z-10">
-                              <div className={cn("p-3 rounded-2.5xl transition-transform duration-500 group-hover/stat:scale-110 group-hover/stat:rotate-12", 
+                              <div className={cn("p-3 rounded-2.5xl transition-transform duration-200 group-hover/stat:scale-110 group-hover/stat:rotate-12", 
                                 stat.highlight ? "bg-white/10 text-primary shadow-lg" : "bg-white text-slate-400 shadow-sm border border-slate-50")}>
                                  {stat.icon}
                               </div>
@@ -5896,7 +6033,7 @@ function Inventory({
                               </p>
                            </div>
                            {stat.highlight && (
-                              <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover/stat:bg-primary/20 transition-all duration-1000" />
+                              <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl group-hover/stat:bg-primary/20 transition-all duration-200" />
                            )}
                         </div>
                       ))}
@@ -5904,9 +6041,9 @@ function Inventory({
                 </div>
 
                 <div className="px-12 pb-12">
-                   <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] group/table transition-all duration-700">
-                      <div className="p-10 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center relative overflow-hidden">
-                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/table:opacity-100 transition-opacity duration-1000" />
+                   <div className="bg-white rounded-[14px] border border-slate-100 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] group/table transition-all duration-200">
+                      <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center relative overflow-hidden">
+                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/table:opacity-100 transition-opacity duration-200" />
                          <div className="relative z-10">
                             <h4 className="font-black text-slate-900 uppercase tracking-[0.25em] text-[11px] flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
@@ -5958,7 +6095,7 @@ function Inventory({
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-center">
-                                  <div className="inline-flex items-center justify-center min-w-[100px] h-12 rounded-2xl bg-slate-50 group-hover/row:bg-white group-hover/row:shadow-sm border border-transparent group-hover/row:border-slate-100 transition-all">
+                                  <div className="inline-flex items-center justify-center min-w-[100px] h-12 rounded-[14px] bg-slate-50 group-hover/row:bg-white group-hover/row:shadow-sm border border-transparent group-hover/row:border-slate-100 transition-all">
                                     <span className="font-black text-slate-900 text-2xl tracking-tighter font-mono">
                                       {(m.balance || 0).toLocaleString()}
                                     </span>
@@ -5991,7 +6128,7 @@ function Inventory({
 
 function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: any }) {
   return (
-    <div className="hidden print:block p-8 bg-white text-slate-900 font-sans dir-rtl">
+    <div className="hidden print:block p-6 bg-white text-slate-900 font-sans dir-rtl">
       <div className="flex justify-between items-start border-b-4 border-slate-900 pb-6 mb-8">
         <div>
           <h1 className="text-4xl font-black uppercase tracking-tighter">{companyInfo.name}</h1>
@@ -6002,7 +6139,7 @@ function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: a
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-12 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         <div className="space-y-4">
           <div className="border-b border-slate-100 pb-2">
             <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">العميل</span>
@@ -6018,7 +6155,7 @@ function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: a
           </div>
         </div>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border-b border-slate-100 pb-2">
               <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-1">تاريخ التعاقد</span>
             </div>
@@ -6042,7 +6179,7 @@ function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: a
       <div className="grid grid-cols-1 mb-10">
         <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200">
           <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4">المواصفات الفنية والتفصيلية للمصنع (Technical Specs)</span>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-6 border-b border-slate-200 pb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 border-b border-slate-200 pb-6">
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">نوع الخشب</p>
               <p className="font-black text-slate-900">{job.woodType || '---'}</p>
@@ -6077,16 +6214,16 @@ function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: a
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-10 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         <div>
           <span className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-3">تفاصيل التنجيد</span>
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 font-bold text-sm">
+          <div className="p-4 bg-slate-50 rounded-[14px] border border-slate-100 font-bold text-sm">
             {job.upholsteryDetails || 'لا توجد تفاصيل'}
           </div>
         </div>
         <div>
           {job.cuttingListUrl && (
-            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center text-emerald-700">
+            <div className="p-4 bg-emerald-50 rounded-[14px] border border-emerald-100 flex flex-col items-center justify-center text-emerald-700">
                <span className="text-[10px] font-black uppercase tracking-widest mb-1">Cutting List Attached</span>
                <span className="font-bold text-xs truncate w-full text-center">{job.cuttingListUrl}</span>
             </div>
@@ -6110,7 +6247,7 @@ function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: a
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mt-auto pt-12 border-t-2 border-slate-100">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-auto pt-12 border-t-2 border-slate-100">
         <div className="text-center">
           <div className="w-full h-16 border-b border-slate-200 mb-2"></div>
           <span className="text-xs font-black text-slate-400 uppercase tracking-widest">توقيع المدير</span>
@@ -6153,7 +6290,7 @@ function PrintDeliveryReceipt({ receipt, companyInfo }: { receipt: DeliveryRecei
         {/* Top Header Row representing the exact layout: Logo on the right, calligraphic name, and details on left */}
         <div className="flex justify-between items-start mb-4">
           {/* Metadata Section Left-aligned */}
-          <div className="space-y-3.5 text-right font-black text-slate-900 min-w-[280px]">
+          <div className="space-y-3.5 text-right font-black text-slate-900 min-w-[280px] max-w-full">
             <div className="flex items-center gap-2">
               <span className="text-slate-500 font-bold whitespace-nowrap min-w-[110px]">تاريخ الاستلام :</span>
               <span className="text-lg font-black">{receipt.date ? receipt.date.split('-').reverse().join(' / ') : ''}</span>
@@ -6177,9 +6314,9 @@ function PrintDeliveryReceipt({ receipt, companyInfo }: { receipt: DeliveryRecei
           </div>
 
           {/* Right logo and Document Title pill */}
-          <div className="flex flex-col items-end gap-3 min-w-[280px]">
+          <div className="flex flex-col items-end gap-3 min-w-[280px] max-w-full">
             {/* Elegant Golden and Black Furniture brand Logo */}
-            <div className="w-20 h-20 bg-stone-950 flex items-center justify-center rounded-2xl shadow-md border-2 border-stone-800">
+            <div className="w-20 h-20 bg-stone-950 flex items-center justify-center rounded-[14px] shadow-md border-2 border-stone-800">
               <svg viewBox="0 0 100 100" className="w-14 h-14 text-amber-500 fill-current">
                 <path d="M50 15 L85 80 L65 80 L50 45 L35 80 L15 80 Z" />
                 <path d="M50 35 L60 60 L40 60 Z" className="fill-stone-950" />
@@ -6258,9 +6395,9 @@ function PrintDeliveryReceipt({ receipt, companyInfo }: { receipt: DeliveryRecei
         {/* Shipping and Delivery Acknowledgment exactly like uploaded photo */}
         <div className="text-center space-y-2 mb-6 mt-1">
           <p className="text-xl font-black text-stone-950 tracking-wide">
-            تم استلام جميع الغرف بمعرفة شركة الشحن .... الحاج / محمود العزبي .. هاتف : ٠١٠٦٦٩٠٨٠٨٧
+            تم استلام جميع الغرف بمعرفة شركة الشحن .... الحاج / محمود العزبي .. هاتف : 01066908087
           </p>
-          <p className="text-xl font-black text-stone-950 inline-block bg-stone-100 px-8 py-1.5 rounded-2xl border border-stone-200">
+          <p className="text-xl font-black text-stone-950 inline-block bg-stone-100 px-8 py-1.5 rounded-[14px] border border-stone-200">
             وتم استلامها خالية من العيوب او خدوش او كسور
           </p>
         </div>
@@ -6301,7 +6438,7 @@ function PrintDeliveryReceipt({ receipt, companyInfo }: { receipt: DeliveryRecei
 
 function PrintManifest({ manifest, companyInfo }: { manifest: LoadingManifest, companyInfo: any }) {
   return (
-    <div className="hidden print:block p-10 bg-white text-slate-900 font-sans dir-rtl min-h-screen">
+    <div className="hidden print:block p-6 bg-white text-slate-900 font-sans dir-rtl min-h-screen">
       <div className="flex justify-between items-start border-b-4 border-slate-900 pb-6 mb-8">
         <div>
           <h1 className="text-4xl font-black uppercase tracking-tighter">{companyInfo.name}</h1>
@@ -6315,7 +6452,7 @@ function PrintManifest({ manifest, companyInfo }: { manifest: LoadingManifest, c
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-12 mb-10 border border-slate-200 p-6 rounded-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 border border-slate-200 p-6 rounded-[14px]">
         <div className="space-y-4">
           <div className="flex justify-between border-b border-slate-100 pb-2">
             <span className="font-black text-slate-500">اسم السائق:</span>
@@ -6371,7 +6508,7 @@ function PrintManifest({ manifest, companyInfo }: { manifest: LoadingManifest, c
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-12 pt-20">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-20">
         <div className="text-center">
           <p className="font-black mb-16">توقيع السائق</p>
           <div className="border-t-2 border-slate-900 w-full"></div>
@@ -6593,7 +6730,7 @@ const ProductionLine = React.memo(function ProductionLine({
           <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">إدارة دورة حياة المنتج من النجارة حتى التسليم</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => setShowLogistics(!showLogistics)} className={`h-10 md:h-12 px-4 md:px-6 font-black rounded-2xl shadow-lg border-2 transition-all ${showLogistics ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-amber-600 border-amber-100'}`}>
+          <Button onClick={() => setShowLogistics(!showLogistics)} className={`h-10 md:h-12 px-4 md:px-6 font-black rounded-[14px] shadow-lg border-2 transition-all ${showLogistics ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-amber-600 border-amber-100'}`}>
             <Truck size={20} className="ml-2" />
             أتمتة اللوجستيات
           </Button>
@@ -6621,7 +6758,7 @@ const ProductionLine = React.memo(function ProductionLine({
       </div>
 
       {showLogistics && (
-        <Card className="border-4 border-amber-500 shadow-2xl rounded-[2.5rem] overflow-hidden bg-slate-50 mb-8">
+        <Card className="border-4 border-amber-500 shadow-2xl rounded-[14px] overflow-hidden bg-slate-50 mb-8">
           <div className="bg-amber-500 p-4 flex items-center justify-between text-white">
             <h3 className="font-black text-xl flex items-center gap-3">
               <Truck size={24} />
@@ -6632,7 +6769,7 @@ const ProductionLine = React.memo(function ProductionLine({
             </Button>
           </div>
           
-          <CardContent className="p-8 space-y-8">
+          <CardContent className="p-6 space-y-8">
             {/* Section 1: Search */}
             <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
@@ -6645,7 +6782,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   <div className="relative">
                     <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <Input 
-                      className="h-14 pr-12 rounded-2xl border-2 border-slate-100 focus:border-amber-500 font-bold text-lg w-full"
+                      className="h-14 pr-12 rounded-[14px] border-2 border-slate-100 focus:border-amber-500 font-bold text-lg w-full"
                       placeholder="اكتب اسم العميل هنا..." 
                       value={logisticsSearch}
                       onChange={e => setLogisticsSearch(e.target.value)}
@@ -6657,7 +6794,7 @@ const ProductionLine = React.memo(function ProductionLine({
                     const client = productionJobs.find(j => j.clientName.includes(logisticsSearch))?.clientName;
                     if (client) setSelectedLogisticsClient(client);
                   }}
-                  className="h-14 px-8 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-2xl gap-2 min-w-[200px]"
+                  className="h-14 px-8 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-[14px] gap-2 min-w-[200px]"
                 >
                   <Search size={20} />
                   ابحث في التشغيل
@@ -6667,7 +6804,7 @@ const ProductionLine = React.memo(function ProductionLine({
 
             {/* Section 2: Order Review */}
             {selectedLogisticsClient && (
-              <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm animate-in zoom-in-95 duration-300">
+              <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm animate-in zoom-in-95 duration-200">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="bg-amber-100 text-amber-700 font-bold px-3 py-1 rounded-full text-xs">قسم ثانياً</span>
                   <h4 className="font-black text-slate-800">مراجعة أوامر الشغل المكتشفة قبل الطباعة</h4>
@@ -6675,7 +6812,7 @@ const ProductionLine = React.memo(function ProductionLine({
                 
                 <div className="space-y-4">
                   {logisticsOrders.map(order => (
-                    <div key={order.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col md:flex-row gap-4">
+                    <div key={order.id} className="p-4 rounded-[14px] bg-slate-50 border border-slate-100 flex flex-col md:flex-row gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
                           <span className="font-black text-amber-600">#{order.orderNo}</span>
@@ -6721,7 +6858,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   <span className="bg-amber-100 text-amber-700 font-bold px-3 py-1 rounded-full text-xs">قسم ثالثاً</span>
                   <h4 className="font-black text-slate-800">طباعة إيصال استلام العميل الفردي</h4>
                 </div>
-                <Button className="w-full h-14 bg-slate-900 hover:bg-black text-white font-black rounded-2xl gap-3 shadow-lg">
+                <Button className="w-full h-14 bg-slate-900 hover:bg-black text-white font-black rounded-[14px] gap-3 shadow-lg">
                   <Printer size={20} />
                   إصدار وطباعة إيصال الاستلام المدمج PDF للعميل الحالي
                 </Button>
@@ -6805,12 +6942,12 @@ const ProductionLine = React.memo(function ProductionLine({
                     variant="outline" 
                     disabled={!selectedLogisticsClient}
                     onClick={handleAddClientToTrip}
-                    className="flex-1 h-14 rounded-2xl border-2 border-amber-200 text-amber-700 font-black gap-2 hover:bg-amber-50"
+                    className="flex-1 h-14 rounded-[14px] border-2 border-amber-200 text-amber-700 font-black gap-2 hover:bg-amber-50"
                   >
                     <Plus size={20} />
                     إضافة العميل الحالي للرحلة
                   </Button>
-                  <Button className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black gap-2 shadow-lg shadow-emerald-600/20">
+                  <Button className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[14px] font-black gap-2 shadow-lg shadow-emerald-600/20">
                     <Truck size={20} />
                     طباعة كشف حمولة السيارة المجمع PDF
                   </Button>
@@ -6833,14 +6970,14 @@ const ProductionLine = React.memo(function ProductionLine({
         <div className="relative flex-1">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <Input 
-            className="h-12 pr-12 rounded-2xl border-none shadow-sm bg-white font-bold" 
+            className="h-12 pr-12 rounded-[14px] border-none shadow-sm bg-white font-bold" 
             placeholder="ابحث برقم الطلب، اسم العميل، أو المنتج..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
         <select 
-          className="h-12 px-4 rounded-2xl border-none shadow-sm bg-white font-bold text-slate-600 min-w-[150px]"
+          className="h-12 px-4 rounded-[14px] border-none shadow-sm bg-white font-bold text-slate-600 min-w-[150px]"
           value={filterPriority}
           onChange={e => setFilterPriority(e.target.value)}
         >
@@ -6855,7 +6992,7 @@ const ProductionLine = React.memo(function ProductionLine({
         <div className="flex-1 overflow-x-auto pb-4">
           <div className="flex gap-6 h-full min-w-max">
             {costCenters.map(column => (
-              <div key={column.id} className="w-80 flex flex-col bg-zinc-100/50 rounded-2xl border border-zinc-200/60">
+              <div key={column.id} className="w-80 flex flex-col bg-zinc-100/50 rounded-[14px] border border-zinc-200/60">
                 <div className="px-4 py-3 flex items-center justify-between mb-4">
                   <h3 className="font-black text-slate-900 flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
@@ -6929,7 +7066,7 @@ const ProductionLine = React.memo(function ProductionLine({
                                     {/* Manufacturing Progress */}
                                     <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                                       <div 
-                                        className="bg-primary h-full transition-all duration-500"
+                                        className="bg-primary h-full transition-all duration-200"
                                         style={{ width: `${(Math.min(job.workflowStep || 0, costCenters.length) / costCenters.length) * 100}%` }}
                                       />
                                     </div>
@@ -7044,7 +7181,7 @@ const ProductionLine = React.memo(function ProductionLine({
                                       </div>
                                       <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                                         <div 
-                                          className="h-full bg-primary transition-all duration-500"
+                                          className="h-full bg-primary transition-all duration-200"
                                           style={{ width: `${((job.workflowStep || 0) / Math.max(1, costCenters.length)) * 100}%` }}
                                         />
                                       </div>
@@ -7086,7 +7223,7 @@ const ProductionLine = React.memo(function ProductionLine({
               <CardDescription className="font-medium">تحديث بيانات الطلب رقم {editingJob.orderNo}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">رقم الطلب</label>
                   <Input className="rounded-xl h-11" value={editingJob.orderNo} onChange={e => setEditingJob({...editingJob, orderNo: e.target.value})} />
@@ -7104,7 +7241,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">اسم العميل</label>
                   <Input className="rounded-xl h-11" value={editingJob.clientName} onChange={e => setEditingJob({...editingJob, clientName: e.target.value})} />
@@ -7149,7 +7286,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   <Input className="rounded-xl h-11" type="date" value={editingJob.deadline} onChange={e => setEditingJob({...editingJob, deadline: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">سعر البيع</label>
                   <Input type="number" className="rounded-xl h-11" value={editingJob.sellingPrice || 0} onChange={e => setEditingJob({...editingJob, sellingPrice: Number(e.target.value)})} />
@@ -7159,7 +7296,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   <Input type="number" className="rounded-xl h-11" value={editingJob.estimatedCost || 0} onChange={e => setEditingJob({...editingJob, estimatedCost: Number(e.target.value)})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">نوع الخشب</label>
                   <Input className="rounded-xl h-11" value={editingJob.woodType || ''} onChange={e => setEditingJob({...editingJob, woodType: e.target.value})} placeholder="مثلاً: زان أحمر" />
@@ -7169,7 +7306,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   <Input className="rounded-xl h-11" value={editingJob.dimensions || ''} onChange={e => setEditingJob({...editingJob, dimensions: e.target.value})} placeholder="مثلاً: 200x180 سم" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">لون الدهان</label>
                   <Input className="rounded-xl h-11" value={editingJob.paintColor || ''} onChange={e => setEditingJob({...editingJob, paintColor: e.target.value})} placeholder="مثلاً: أستر بني غامق" />
@@ -7183,7 +7320,7 @@ const ProductionLine = React.memo(function ProductionLine({
                 <label className="text-sm font-bold text-slate-700">تفاصيل التنجيد</label>
                 <Input className="rounded-xl h-11" value={editingJob.upholsteryDetails || ''} onChange={e => setEditingJob({...editingJob, upholsteryDetails: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">رابط صورة المرجع</label>
                   <Input className="rounded-xl h-11" value={editingJob.referenceImage || ''} onChange={e => setEditingJob({...editingJob, referenceImage: e.target.value})} placeholder="رابط الصورة (Pinterest/WhatsApp)" />
@@ -7231,7 +7368,7 @@ const ProductionLine = React.memo(function ProductionLine({
               <div className="space-y-2 pb-4 border-b border-slate-100">
                 <label className="text-sm font-black text-primary">استخدام نموذج تكاليف جاهز</label>
                 <select 
-                  className="w-full h-12 rounded-2xl border-none bg-primary/5 px-4 font-black text-primary outline-none shadow-inner"
+                  className="w-full h-12 rounded-[14px] border-none bg-primary/5 px-4 font-black text-primary outline-none shadow-inner"
                   onChange={e => {
                     const recipe = productRecipes.find(r => r.id === e.target.value);
                     if (recipe) {
@@ -7255,7 +7392,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">رقم الطلب</label>
                   <Input className="rounded-xl h-11" value={formData.orderNo} onChange={e => setFormData({...formData, orderNo: e.target.value})} placeholder="مثلاً: 2024-001" />
@@ -7273,7 +7410,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">اسم العميل</label>
                   <Input className="rounded-xl h-11" value={formData.clientName} onChange={e => setFormData({...formData, clientName: e.target.value})} />
@@ -7318,7 +7455,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   <Input className="rounded-xl h-11" type="date" value={formData.deadline} onChange={e => setFormData({...formData, deadline: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">سعر البيع</label>
                   <Input type="number" className="rounded-xl h-11" value={formData.sellingPrice} onChange={e => setFormData({...formData, sellingPrice: Number(e.target.value)})} placeholder="سعر البيع للعميل" />
@@ -7328,7 +7465,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   <Input type="number" className="rounded-xl h-11" value={formData.estimatedCost} onChange={e => setFormData({...formData, estimatedCost: Number(e.target.value)})} placeholder="المقايسة المبدئية" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">نوع الخشب</label>
                   <Input className="rounded-xl h-11" value={formData.woodType} onChange={e => setFormData({...formData, woodType: e.target.value})} placeholder="مثلاً: زان أحمر" />
@@ -7338,7 +7475,7 @@ const ProductionLine = React.memo(function ProductionLine({
                   <Input className="rounded-xl h-11" value={formData.dimensions} onChange={e => setFormData({...formData, dimensions: e.target.value})} placeholder="مثلاً: 200x180 سم" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">لون الدهان</label>
                   <Input className="rounded-xl h-11" value={formData.paintColor} onChange={e => setFormData({...formData, paintColor: e.target.value})} placeholder="مثلاً: أستر بني غامق" />
@@ -7352,7 +7489,7 @@ const ProductionLine = React.memo(function ProductionLine({
                 <label className="text-sm font-bold text-slate-700">تفاصيل التنجيد</label>
                 <Input className="rounded-xl h-11" value={formData.upholsteryDetails} onChange={e => setFormData({...formData, upholsteryDetails: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">رابط صورة المرجع</label>
                   <Input className="rounded-xl h-11" value={formData.referenceImage} onChange={e => setFormData({...formData, referenceImage: e.target.value})} placeholder="رابط الصورة (Pinterest/WhatsApp)" />
@@ -7393,7 +7530,7 @@ const ProductionLine = React.memo(function ProductionLine({
             className="w-full max-w-5xl bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]"
           >
             {/* Sidebar with Image & Summary */}
-            <div className="w-full md:w-80 bg-slate-900 p-8 text-white flex flex-col">
+            <div className="w-full md:w-80 bg-slate-900 p-6 text-white flex flex-col">
               <div className="flex justify-between items-start mb-8">
                 <Badge className="bg-primary/20 text-primary border-none font-black">#{viewingJob.orderNo}</Badge>
                 <div className="flex flex-col items-end border-none">
@@ -7401,7 +7538,7 @@ const ProductionLine = React.memo(function ProductionLine({
                 </div>
               </div>
               
-              <div className="aspect-square rounded-2xl overflow-hidden border border-slate-800 bg-slate-800 mb-6">
+              <div className="aspect-square rounded-[14px] overflow-hidden border border-slate-800 bg-slate-800 mb-6">
                 {viewingJob.referenceImage ? (
                   <img src={viewingJob.referenceImage} alt="Product" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
@@ -7439,8 +7576,8 @@ const ProductionLine = React.memo(function ProductionLine({
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 p-10 overflow-y-auto bg-slate-50">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div className="flex-1 p-6 overflow-y-auto bg-slate-50">
+              <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Technical Specs */}
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
@@ -7448,26 +7585,26 @@ const ProductionLine = React.memo(function ProductionLine({
                     <h4 className="font-black text-xl text-slate-900">المواصفات الفنية</h4>
                   </div>
                   <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-slate-50 rounded-2xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 bg-slate-50 rounded-[14px]">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right mb-1">نوع الخشب</p>
                         <p className="font-black text-slate-900 text-right">{viewingJob.woodType || '---'}</p>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-2xl">
+                      <div className="p-3 bg-slate-50 rounded-[14px]">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right mb-1">المقاسات</p>
                         <p className="font-black text-slate-900 text-right">{viewingJob.dimensions || '---'}</p>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-2xl">
+                      <div className="p-3 bg-slate-50 rounded-[14px]">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right mb-1">لون الدهان</p>
                         <p className="font-black text-slate-900 text-right">{viewingJob.paintColor || '---'}</p>
                       </div>
-                      <div className="p-3 bg-slate-50 rounded-2xl">
+                      <div className="p-3 bg-slate-50 rounded-[14px]">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right mb-1">نوع القماش</p>
                         <p className="font-black text-slate-900 text-right">{viewingJob.fabricType || '---'}</p>
                       </div>
                     </div>
                     
-                    <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                    <div className="p-4 bg-blue-50/50 rounded-[14px] border border-blue-100">
                       <p className="text-xs font-black text-primary mb-2 text-right">المواصفات التفصيلية للمصنع</p>
                       <pre className="text-sm font-bold text-slate-700 whitespace-pre-wrap leading-relaxed text-right">
                         {viewingJob.technicalSpecs || 'لا توجد مواصفات فنية تفصيلية مسجلة'}
@@ -7479,7 +7616,7 @@ const ProductionLine = React.memo(function ProductionLine({
                         href={viewingJob.cuttingListUrl} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="flex items-center justify-center gap-3 w-full p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-black hover:bg-emerald-100 transition-colors"
+                        className="flex items-center justify-center gap-3 w-full p-4 bg-emerald-50 text-emerald-700 rounded-[14px] border border-emerald-100 font-black hover:bg-emerald-100 transition-colors"
                       >
                         <Download size={18} />
                         معاينة أمر التقطيع (Cutting List)
@@ -7663,7 +7800,7 @@ function LoadingManifests({
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input 
               placeholder="بحث في الحمولات..." 
-              className="pr-12 h-10 md:h-12 rounded-xl md:rounded-2xl border-slate-200 bg-white font-bold text-sm md:text-base"
+              className="pr-12 h-10 md:h-12 rounded-xl md:rounded-[14px] border-slate-200 bg-white font-bold text-sm md:text-base"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -7675,7 +7812,7 @@ function LoadingManifests({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 md:grid-cols-3 gap-6">
         {filteredManifests.slice().reverse().map(m => (
           <Card key={m.id} className="dribbble-card group overflow-hidden">
             <CardHeader className="pb-4">
@@ -7737,7 +7874,7 @@ function LoadingManifests({
               <CardDescription className="font-medium">أدخل تفاصيل الحمولة والمنتجات بدقة</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">التاريخ</label>
                   <Input type="date" className="rounded-xl h-11" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
@@ -7752,7 +7889,7 @@ function LoadingManifests({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">الوجهة</label>
                   <select 
@@ -7797,7 +7934,7 @@ function LoadingManifests({
                 
                 <div className="grid grid-cols-1 gap-4">
                   {formData.products.map((p, idx) => (
-                    <div key={idx} className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-4 relative group">
+                    <div key={idx} className="p-6 bg-slate-50/50 rounded-[14px] border border-slate-100 space-y-4 relative group">
                       {formData.products.length > 1 && (
                         <Button 
                           variant="ghost" 
@@ -7808,7 +7945,7 @@ function LoadingManifests({
                           <Trash2 size={16} />
                         </Button>
                       )}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <label className="text-xs font-black text-slate-400 uppercase tracking-widest">اسم المنتج</label>
                           <Input className="rounded-xl h-11 bg-white" value={p.name} onChange={e => handleProductChange(idx, 'name', e.target.value)} />
@@ -7818,7 +7955,7 @@ function LoadingManifests({
                           <Input className="rounded-xl h-11 bg-white" value={p.salesPerson} onChange={e => handleProductChange(idx, 'salesPerson', e.target.value)} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <label className="text-xs font-black text-slate-400 uppercase tracking-widest">المكونات</label>
                           <Input className="rounded-xl h-11 bg-white" value={p.components} onChange={e => handleProductChange(idx, 'components', e.target.value)} placeholder="مثلاً: 4 كراسي + ترابيزة" />
@@ -7837,7 +7974,7 @@ function LoadingManifests({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">القائم بالتحميل</label>
                   <Input className="rounded-xl h-11" value={formData.loaderName} onChange={e => setFormData({...formData, loaderName: e.target.value})} />
@@ -7877,8 +8014,8 @@ function LoadingManifests({
                   <Button variant="ghost" onClick={() => setSelectedManifest(null)} className="rounded-xl font-bold text-slate-400">إغلاق</Button>
                 </div>
               </CardHeader>
-              <CardContent className="p-10 space-y-10">
-                <div className="grid grid-cols-2 gap-10 border border-slate-100 p-8 rounded-3xl bg-slate-50/30">
+              <CardContent className="p-6 space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border border-slate-100 p-6 rounded-3xl bg-slate-50/30">
                   <div className="space-y-4">
                     <div className="flex justify-between border-b border-slate-100 pb-2">
                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">التاريخ</span>
@@ -8090,7 +8227,7 @@ function DeliveryReceipts({
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input 
               placeholder="بحث في المحاضر..." 
-              className="pr-12 h-10 md:h-12 rounded-xl md:rounded-2xl border-slate-200 bg-white font-bold text-sm md:text-base"
+              className="pr-12 h-10 md:h-12 rounded-xl md:rounded-[14px] border-slate-200 bg-white font-bold text-sm md:text-base"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -8102,7 +8239,7 @@ function DeliveryReceipts({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 md:grid-cols-3 gap-6">
         {filteredReceipts.slice().reverse().map(r => (
           <Card key={r.id} className="dribbble-card group overflow-hidden">
             <CardHeader className="pb-4">
@@ -8162,7 +8299,7 @@ function DeliveryReceipts({
               <CardDescription className="font-medium">أدخل تفاصيل الاستلام والمنتجات بدقة</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">رقم الإيصال</label>
                   <Input className="rounded-xl h-11 bg-slate-50" value={formData.receiptNumber} readOnly />
@@ -8227,7 +8364,7 @@ function DeliveryReceipts({
                 
                 <div className="grid grid-cols-1 gap-4">
                   {formData.products.map((p, idx) => (
-                    <div key={idx} className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-4 relative group">
+                    <div key={idx} className="p-6 bg-slate-50/50 rounded-[14px] border border-slate-100 space-y-4 relative group">
                       {formData.products.length > 1 && (
                         <Button 
                           variant="ghost" 
@@ -8238,7 +8375,7 @@ function DeliveryReceipts({
                           <Trash2 size={16} />
                         </Button>
                       )}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-2 space-y-2">
                           <label className="text-xs font-black text-slate-400 uppercase tracking-widest">اسم المنتج</label>
                           <Input className="rounded-xl h-11 bg-white" value={p.name} onChange={e => handleProductChange(idx, 'name', e.target.value)} />
@@ -8292,7 +8429,7 @@ function DeliveryReceipts({
                 </div>
               </CardHeader>
               <CardContent className="p-0 overflow-auto max-h-[70vh]">
-                <div className="bg-slate-50 p-8">
+                <div className="bg-slate-50 p-6">
                   <div className="bg-white shadow-2xl rounded-[32px] overflow-hidden scale-[0.8] origin-top border-2 border-slate-200">
                     <div className="p-12 relative overflow-hidden h-[800px] flex flex-col">
                       <div className="absolute top-0 left-0 w-24 h-24 bg-red-600" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }} />
@@ -8302,7 +8439,7 @@ function DeliveryReceipts({
                         </div>
                         <h4 className="mt-4 border-2 border-black px-8 py-1 font-black">محضر استلام منتج</h4>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-xs font-bold mb-4 relative z-10">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold mb-4 relative z-10">
                         <div className="border-b border-slate-200 pb-1">العميل: {selectedReceipt.clientName}</div>
                         <div className="border-b border-slate-200 pb-1">التاريخ: {selectedReceipt.date}</div>
                         <div className="border-b border-slate-200 pb-1">الفرع: {selectedReceipt.branch}</div>
@@ -8382,7 +8519,7 @@ function ExpenseAnalytics({ transactions, costCenters }: { transactions: SafeTra
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="dribbble-card border-none shadow-sm">
           <CardHeader>
             <CardTitle className="font-black text-slate-800">المصروفات حسب التصنيف</CardTitle>
@@ -8769,33 +8906,33 @@ const Finance = React.memo(function Finance({
   } catch (err) { console.error(err); } };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-8 animate-in fade-in duration-200 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">الإدارة المالية</h2>
           <p className="text-slate-500 mt-2 font-bold text-lg">تتبع التدفقات النقدية والسيولة والمشتريات</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={() => setShowSettlement(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black gap-2 border-2">
+          <Button onClick={() => setShowSettlement(true)} variant="outline" className="h-12 px-6 rounded-[14px] font-black gap-2 border-2">
             <ReceiptText size={20} />
             تسوية عهدة
           </Button>
-          <Button onClick={() => setShowAudit(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black gap-2 border-2 text-primary border-primary/20 hover:bg-primary/5">
+          <Button onClick={() => setShowAudit(true)} variant="outline" className="h-12 px-6 rounded-[14px] font-black gap-2 border-2 text-primary border-primary/20 hover:bg-primary/5">
             <ClipboardCheck size={20} />
             جرد الخزنة
           </Button>
-          <Button onClick={() => setShowAddSafe(true)} variant="outline" className="h-12 px-6 rounded-2xl font-black gap-2 border-2">
+          <Button onClick={() => setShowAddSafe(true)} variant="outline" className="h-12 px-6 rounded-[14px] font-black gap-2 border-2">
             <Building2 size={20} />
             إضافة خزنة/عهدة
           </Button>
-          <Button onClick={() => setShowAddTransaction(true)} className="btn-primary h-12 px-8 rounded-2xl font-black gap-2 shadow-xl shadow-primary/20">
+          <Button onClick={() => setShowAddTransaction(true)} className="btn-primary h-12 px-8 rounded-[14px] font-black gap-2 shadow-xl shadow-primary/20">
             <Plus size={20} />
             حركة نقدية
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
+      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-[14px] w-fit">
         <Button 
           onClick={() => setActiveTab('overview')} 
           variant={activeTab === 'overview' ? 'default' : 'ghost'}
@@ -8856,13 +8993,13 @@ const Finance = React.memo(function Finance({
 
       {activeTab === 'overview' ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {safes.map(safe => (
               <Card key={safe.id} className="dribbble-card border-none shadow-xl shadow-slate-200/50 group overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-200" />
                 <CardContent className="pt-8 relative z-10">
                   <div className="flex flex-col gap-2">
-                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                    <div className="w-12 h-12 bg-blue-50 rounded-[14px] flex items-center justify-center text-blue-600">
                       <Building2 size={24} />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{safe.name}</p>
@@ -8880,27 +9017,27 @@ const Finance = React.memo(function Finance({
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="lg:col-span-1 dribbble-card border-none shadow-xl shadow-slate-200/50">
               <CardHeader>
                 <CardTitle className="font-black text-xl">ملخص الفترة</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex justify-between items-center">
+                <div className="p-4 bg-emerald-50 rounded-[14px] border border-emerald-100 flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black text-emerald-600 uppercase">إجمالي الإيداعات</p>
                     <p className="text-xl font-black text-emerald-700">+{totalIn.toLocaleString()}</p>
                   </div>
                   <ArrowUpRight className="text-emerald-500" />
                 </div>
-                <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex justify-between items-center">
+                <div className="p-4 bg-red-50 rounded-[14px] border border-red-100 flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black text-red-600 uppercase">إجمالي السحوبات</p>
                     <p className="text-xl font-black text-red-700">-{totalOut.toLocaleString()}</p>
                   </div>
                   <ArrowUpRight className="text-red-500 rotate-90" />
                 </div>
-                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center">
+                <div className="p-4 bg-blue-50 rounded-[14px] border border-blue-100 flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black text-blue-600 uppercase">صافي التدفق</p>
                     <p className="text-xl font-black text-blue-700">{(totalIn - totalOut).toLocaleString()}</p>
@@ -9019,11 +9156,11 @@ const Finance = React.memo(function Finance({
           </div>
         </>
       ) : activeTab === 'scrapSales' ? (
-        <div className="animate-in slide-in-from-left duration-300">
+        <div className="animate-in slide-in-from-left duration-200">
           <ByproductSalesView safes={safes} profile={profile} />
         </div>
       ) : activeTab === 'purchases' ? (
-        <div className="animate-in slide-in-from-left duration-300">
+        <div className="animate-in slide-in-from-left duration-200">
           <Purchases 
             items={items} 
             suppliers={suppliers} 
@@ -9033,7 +9170,7 @@ const Finance = React.memo(function Finance({
           />
         </div>
       ) : activeTab === 'audits' ? (
-        <div className="animate-in slide-in-from-right duration-300">
+        <div className="animate-in slide-in-from-right duration-200">
           <Card className="dribbble-card border-none shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-black text-2xl">سجل جرد الخزينة</CardTitle>
@@ -9086,7 +9223,7 @@ const Finance = React.memo(function Finance({
           </Card>
         </div>
       ) : activeTab === 'settlements' ? (
-        <div className="animate-in slide-in-from-left duration-300">
+        <div className="animate-in slide-in-from-left duration-200">
           <Card className="dribbble-card border-none shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-black text-2xl">سجل تسوية العهد</CardTitle>
@@ -9129,11 +9266,11 @@ const Finance = React.memo(function Finance({
           </Card>
         </div>
       ) : activeTab === 'analytics' ? (
-        <div className="animate-in slide-in-from-bottom duration-300">
+        <div className="animate-in slide-in-from-bottom duration-200">
           <ExpenseAnalytics transactions={safeTransactions} costCenters={costCenters} />
         </div>
       ) : activeTab === 'chartOfAccounts' ? (
-        <div className="animate-in slide-in-from-bottom duration-300">
+        <div className="animate-in slide-in-from-bottom duration-200">
           <ChartOfAccountsView 
             safes={safes} 
             safeTransactions={safeTransactions} 
@@ -9146,7 +9283,7 @@ const Finance = React.memo(function Finance({
 
       {showSettlement && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <Card className="dribbble-card w-full max-w-2xl border-none shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden">
+          <Card className="dribbble-card w-full max-w-2xl border-none shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
             <div className="bg-indigo-600 p-6 text-white">
               <div className="flex justify-between items-center">
                 <div>
@@ -9157,7 +9294,7 @@ const Finance = React.memo(function Finance({
               </div>
             </div>
             <CardContent className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase">اختر العهدة</label>
                   <select 
@@ -9178,7 +9315,7 @@ const Finance = React.memo(function Finance({
               </div>
 
               {/* Expense Items Builder */}
-              <div className="space-y-4 p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+              <div className="space-y-4 p-4 bg-slate-50 rounded-[14px] border-2 border-dashed border-slate-200">
                 <h3 className="font-black text-slate-700 flex items-center gap-2">
                   <PlusCircle size={18} />
                   إضافة بنود المصاريف
@@ -9330,7 +9467,7 @@ const Finance = React.memo(function Finance({
       {/* Safe Audit Modal */}
       {showAudit && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <Card className="dribbble-card w-full max-w-md border-none shadow-2xl animate-in fade-in zoom-in duration-300">
+          <Card className="dribbble-card w-full max-w-md border-none shadow-2xl animate-in fade-in zoom-in duration-200">
             <CardHeader>
               <CardTitle className="text-2xl font-black">جرد الخزنة / العهدة</CardTitle>
               <p className="text-slate-500 text-sm font-bold">تحديد الرصيد المادي الفعلي لتسوية العجز أو الزيادة</p>
@@ -9349,8 +9486,8 @@ const Finance = React.memo(function Finance({
               </div>
               
               {auditForm.safeId && (
-                <div className="space-y-4 animate-in slide-in-from-top duration-300">
-                  <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center">
+                <div className="space-y-4 animate-in slide-in-from-top duration-200">
+                  <div className="p-4 bg-blue-50 rounded-[14px] border border-blue-100 flex justify-between items-center">
                     <span className="text-blue-700 font-bold">رصيد النظام الحالي:</span>
                     <span className="text-blue-900 font-black text-xl">
                       {safes.find(s => s.id === auditForm.safeId)?.balance.toLocaleString()}
@@ -9367,7 +9504,7 @@ const Finance = React.memo(function Finance({
                     />
                   </div>
 
-                  <div className={`p-4 rounded-2xl border flex justify-between items-center ${
+                  <div className={`p-4 rounded-[14px] border flex justify-between items-center ${
                     (auditForm.physicalBalance - (safes.find(s => s.id === auditForm.safeId)?.balance || 0)) === 0 
                       ? 'bg-slate-50 border-slate-100' 
                       : (auditForm.physicalBalance - (safes.find(s => s.id === auditForm.safeId)?.balance || 0)) > 0 
@@ -9405,7 +9542,7 @@ const Finance = React.memo(function Finance({
       {/* Add Safe Modal */}
       {showAddSafe && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <Card className="dribbble-card w-full max-w-md border-none shadow-2xl animate-in fade-in zoom-in duration-300">
+          <Card className="dribbble-card w-full max-w-md border-none shadow-2xl animate-in fade-in zoom-in duration-200">
             <CardHeader>
               <CardTitle className="text-2xl font-black">إضافة خزنة أو عهدة جديدة</CardTitle>
             </CardHeader>
@@ -9430,12 +9567,12 @@ const Finance = React.memo(function Finance({
       {/* Add Transaction Modal */}
       {showAddTransaction && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <Card className="dribbble-card w-full max-w-lg border-none shadow-2xl animate-in fade-in zoom-in duration-300">
+          <Card className="dribbble-card w-full max-w-lg border-none shadow-2xl animate-in fade-in zoom-in duration-200">
             <CardHeader>
               <CardTitle className="text-2xl font-black">تسجيل حركة نقدية</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase">
                     {transactionForm.type === 'تحويل' ? 'من (الخزنة المصدر)' : 'اختر الخزنة'}
@@ -9491,7 +9628,7 @@ const Finance = React.memo(function Finance({
                   </Button>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase">المبلغ</label>
                   <Input type="number" value={transactionForm.amount} onChange={e => setTransactionForm({...transactionForm, amount: Number(e.target.value)})} className="h-12 rounded-xl font-bold" />
@@ -9525,7 +9662,7 @@ const Finance = React.memo(function Finance({
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input value={transactionForm.category || ''} onChange={e => setTransactionForm({...transactionForm, category: e.target.value})} placeholder="تصنيف مخصص..." className="h-12 rounded-xl font-bold" />
                   <select 
                     className="h-12 px-4 bg-slate-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-primary/20"
@@ -9536,7 +9673,7 @@ const Finance = React.memo(function Finance({
                     {costCenters.map(cc => <option key={cc.id} value={cc.id}>{cc.name}</option>)}
                   </select>
                 </div>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                   <select 
                     className="w-full h-12 px-4 bg-purple-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-purple-200"
                     value={transactionForm.accountId || ''}
@@ -9558,7 +9695,7 @@ const Finance = React.memo(function Finance({
                     ))}
                   </select>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <select 
                     className="w-full h-12 px-4 bg-blue-50 border-none rounded-xl font-bold text-sm focus:ring-2 ring-blue-200"
                     value={transactionForm.driverId}
@@ -9768,22 +9905,22 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           <p className="text-slate-500 font-bold">تسجيل ومتابعة فواتير شراء الخامات وربطها بالخزنة</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button onClick={handleExportExcel} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl border-slate-200 hover:bg-slate-50 font-bold">
+          <Button onClick={handleExportExcel} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-[14px] border-slate-200 hover:bg-slate-50 font-bold">
             <Download size={18} className="ml-2" />
             تصدير إكسيل
           </Button>
-          <Button onClick={() => safePrint()} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-2xl border-slate-200 hover:bg-slate-50 font-bold">
+          <Button onClick={() => safePrint()} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-xl md:rounded-[14px] border-slate-200 hover:bg-slate-50 font-bold">
             <Printer size={18} className="ml-2" />
             طباعة
           </Button>
-          <Button onClick={() => setShowAdd(true)} className="btn-primary h-12 px-8 rounded-2xl font-black gap-2 shadow-xl shadow-primary/20">
+          <Button onClick={() => setShowAdd(true)} className="btn-primary h-12 px-8 rounded-[14px] font-black gap-2 shadow-xl shadow-primary/20">
             <Plus size={20} />
             فاتورة شراء جديدة
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm print:hidden">
+      <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-4 rounded-[14px] border border-slate-100 shadow-sm print:hidden">
         <div className="relative flex-1 w-full">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <Input 
@@ -9822,7 +9959,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
         <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">إجمالي المشتريات</p>
           <p className="text-2xl font-black text-slate-900">{filteredPurchases.reduce((acc, p) => acc + p.total, 0).toLocaleString()} ج.م</p>
@@ -9924,7 +10061,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
 
                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                   {formData.selectedItems.map((item, idx) => (
-                    <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3 relative group">
+                    <div key={idx} className="p-4 bg-slate-50 rounded-[14px] border border-slate-100 space-y-3 relative group">
                       {formData.selectedItems.length > 1 && (
                         <Button 
                           variant="ghost" 
@@ -9973,7 +10110,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">المبلغ المدفوع</label>
                   <Input type="number" className="rounded-xl h-11" value={formData.paidAmount} onChange={e => setFormData({...formData, paidAmount: Number(e.target.value)})} />
@@ -9993,7 +10130,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
               </div>
 
               {formData.paidAmount > 0 && (
-                <div className="space-y-2 animate-in slide-in-from-top duration-300">
+                <div className="space-y-2 animate-in slide-in-from-top duration-200">
                   <label className="text-sm font-bold text-primary">الخزنة / العهدة (لخصم المبلغ)</label>
                   <select 
                     className="w-full h-11 rounded-xl border-2 border-primary/20 px-3 bg-white font-black text-primary"
@@ -10011,7 +10148,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
                 <Input className="rounded-xl h-11" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="أي ملاحظات إضافية..." />
               </div>
 
-              <div className="flex justify-between items-center py-4 bg-slate-900 rounded-2xl px-6 text-white">
+              <div className="flex justify-between items-center py-4 bg-slate-900 rounded-[14px] px-6 text-white">
                 <span className="font-bold">إجمالي الفاتورة:</span>
                 <span className="text-xl font-black">{formData.selectedItems.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0).toLocaleString()} ج.م</span>
               </div>
@@ -10032,6 +10169,8 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [costCenterFilter, setCostCenterFilter] = useState('all');
+  const [targetFilter, setTargetFilter] = useState('');
   const [dateFilterVal, setDateFilterVal] = useState({ start: '', end: '' });
   const [formData, setFormData] = useState({
     jobOrderNo: '',
@@ -10060,8 +10199,15 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
     const matchesStart = !dateFilterVal.start || (iss.date || '') >= dateFilterVal.start;
     const matchesEnd = !dateFilterVal.end || (iss.date || '') <= dateFilterVal.end;
 
-    return matchesSearch && matchesStart && matchesEnd;
+    const matchesCostCenter = costCenterFilter === 'all' || iss.costCenter === costCenterFilter;
+    const matchesTarget = !targetFilter || (iss.manufactureTarget || '').toLowerCase().includes(targetFilter.toLowerCase());
+
+    return matchesSearch && matchesStart && matchesEnd && matchesCostCenter && matchesTarget;
   });
+
+  const totalValue = filteredIssuances.reduce((acc, curr) => acc + (curr.total || 0), 0);
+  const totalQty = filteredIssuances.reduce((acc, curr) => acc + (curr.quantity || 0), 0);
+  const distinctJobOrders = new Set(filteredIssuances.map(i => i.jobOrderNo)).size;
 
   const handleExportExcel = () => {
     const data = filteredIssuances.map(iss => ({
@@ -10147,7 +10293,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-200">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest px-3 py-1 bg-primary/10 rounded-full w-fit">
@@ -10158,70 +10304,166 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
           <p className="text-slate-500 font-bold text-lg max-w-lg mt-2">إدارة وتوثيق عمليات صرف الخامات من المستودعات إلى مراحل الإنتاج المختلفة</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button onClick={handleExportExcel} variant="outline" className="h-14 px-6 rounded-2xl border-slate-200 hover:bg-slate-50 font-black text-slate-600 bg-white shadow-sm transition-all hover:-translate-y-1">
+          <Button onClick={handleExportExcel} variant="outline" className="h-14 px-6 rounded-[14px] border-slate-200 hover:bg-slate-50 font-black text-slate-600 bg-white shadow-sm transition-all hover:-translate-y-1">
             <Download size={20} className="ml-2" />
             تصدير البيانات
           </Button>
-          <Button onClick={() => safePrint()} variant="outline" className="h-14 px-6 rounded-2xl border-slate-200 hover:bg-slate-50 font-black text-slate-600 bg-white shadow-sm transition-all hover:-translate-y-1">
+          <Button onClick={() => safePrint()} variant="outline" className="h-14 px-6 rounded-[14px] border-slate-200 hover:bg-slate-50 font-black text-slate-600 bg-white shadow-sm transition-all hover:-translate-y-1">
             <Printer size={20} className="ml-2" />
             طباعة الكشف
           </Button>
-          <Button onClick={() => setShowAdd(true)} className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black shadow-xl shadow-primary/20 transition-all hover:-translate-y-1">
+          <Button onClick={() => setShowAdd(true)} className="h-14 px-8 rounded-[14px] bg-primary hover:bg-primary/90 text-white font-black shadow-xl shadow-primary/20 transition-all hover:-translate-y-1">
             <Plus size={20} className="ml-2" />
             إذن صرف جديد
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 print:hidden relative overflow-hidden">
-        <div className="absolute left-0 top-0 w-32 h-32 bg-primary/5 rounded-br-full pointer-events-none" />
-        <div className="relative flex-1 w-full group">
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
-            <Search size={18} />
-          </div>
-          <Input 
-            placeholder="البحث باسم الصنف، مركز التكلفة، أو رقم أمر الشغل..." 
-            className="pr-14 h-14 rounded-2xl border-slate-100 bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 font-bold text-slate-700"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-2 w-full md:w-auto relative z-10">
-              <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
-                <div className="flex flex-col px-3">
-                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">من تاريخ</span>
-                  <Input 
-                    type="date" 
-                    className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
-                    value={dateFilterVal.start}
-                    onChange={e => setDateFilterVal({...dateFilterVal, start: e.target.value})}
-                  />
-                </div>
-                <div className="w-px h-8 bg-slate-200 mx-2" />
-                <div className="flex flex-col px-3">
-                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">إلى تاريخ</span>
-                  <Input 
-                    type="date" 
-                    className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
-                    value={dateFilterVal.end}
-                    onChange={e => setDateFilterVal({...dateFilterVal, end: e.target.value})}
-                  />
-                </div>
-                {(dateFilterVal.start || dateFilterVal.end) && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-10 w-10 text-slate-400 hover:text-red-500 rounded-xl"
-                    onClick={() => setDateFilterVal({ start: '', end: '' })}
-                  >
-                    <X size={16} />
-                  </Button>
-                )}
+      {/* Metrics Section */}
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
+        <Card className="p-6 transition-all hover:shadow-md">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 rounded-[14px] bg-primary/10 text-primary flex items-center justify-center">
+              <DollarSign size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي قيمة المنصرف</p>
+              <div className="text-3xl font-black text-slate-900 mt-1">
+                <NumberDisplay value={totalValue} unit="ج.م" />
               </div>
+            </div>
+          </div>
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div className="bg-primary h-full w-[70%]" />
+          </div>
+        </Card>
+
+        <Card className="p-6 transition-all hover:shadow-md">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Layers size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي الكميات المنصرفة</p>
+              <div className="text-3xl font-black text-slate-900 mt-1">
+                <NumberDisplay value={totalQty} /> <span className="text-sm text-slate-400">قطعة/وحدة</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div className="bg-emerald-500 h-full w-[55%]" />
+          </div>
+        </Card>
+
+        <Card className="p-6 transition-all hover:shadow-md">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 rounded-[14px] bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <ClipboardList size={28} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">أوامر الشغل المستفيدة</p>
+              <div className="text-3xl font-black text-slate-900 mt-1">
+                <NumberDisplay value={distinctJobOrders} /> <span className="text-sm text-slate-400">أمر شغل</span>
+              </div>
+            </div>
+          </div>
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div className="bg-indigo-500 h-full w-[40%]" />
+          </div>
+        </Card>
+      </div>
+
+      <div className="flex flex-col lg:flex-row items-stretch gap-4 bg-white p-6 rounded-[14px] border border-slate-100/50 shadow-sm shadow-slate-200/30 print:hidden relative overflow-hidden">
+        <div className="absolute left-0 top-0 w-32 h-32 bg-primary/5 rounded-br-full pointer-events-none" />
+        
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 relative z-10">
+          {/* Search */}
+          <div className="relative group">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
+              <Search size={18} />
+            </div>
+            <Input 
+              placeholder="ابحث بالصنف أو رقم الأمر..." 
+              className="pr-14 h-14 rounded-[14px] border-slate-100 bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 font-bold text-slate-700"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Target Filter (صنع ماذا) */}
+          <div className="relative group">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
+              <Box size={18} />
+            </div>
+            <Input 
+              placeholder="فلترة بالمنتج المستهدف..." 
+              className="pr-14 h-14 rounded-[14px] border-slate-100 bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 font-bold text-slate-700"
+              value={targetFilter}
+              onChange={e => setTargetFilter(e.target.value)}
+            />
+          </div>
+
+          {/* Cost Center Filter */}
+          <div className="relative group">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
+              <Target size={18} />
+            </div>
+            <select
+              value={costCenterFilter}
+              onChange={e => setCostCenterFilter(e.target.value)}
+              className="w-full h-14 pr-14 rounded-[14px] border border-slate-100 bg-slate-50/50 focus:bg-white focus:ring-4 focus:ring-primary/10 font-bold text-slate-700 outline-none appearance-none cursor-pointer"
+            >
+              <option value="all">كل مراكز التكلفة</option>
+              {costCenters.map(cc => (
+                <option key={cc.id} value={cc.name}>{cc.name}</option>
+              ))}
+            </select>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <ChevronDown size={18} />
+            </div>
+          </div>
+
+          {/* Date Filter Container */}
+          <div className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-[14px] border border-slate-100">
+            <div className="flex-1 flex flex-col px-3">
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">من</span>
+              <Input 
+                type="date" 
+                className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
+                value={dateFilterVal.start}
+                onChange={e => setDateFilterVal({...dateFilterVal, start: e.target.value})}
+              />
+            </div>
+            <div className="w-px h-8 bg-slate-200" />
+            <div className="flex-1 flex flex-col px-3">
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">إلى</span>
+              <Input 
+                type="date" 
+                className="h-8 border-none bg-transparent font-black text-sm p-0 focus-visible:ring-0" 
+                value={dateFilterVal.end}
+                onChange={e => setDateFilterVal({...dateFilterVal, end: e.target.value})}
+              />
+            </div>
+            {(dateFilterVal.start || dateFilterVal.end || costCenterFilter !== 'all' || targetFilter) && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-10 w-10 text-slate-400 hover:text-red-500 rounded-xl shrink-0"
+                onClick={() => {
+                  setDateFilterVal({ start: '', end: '' });
+                  setCostCenterFilter('all');
+                  setTargetFilter('');
+                  setSearchTerm('');
+                }}
+              >
+                <X size={16} />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[2.5rem] relative">
+      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[14px] relative">
         <div className="hidden print:block text-center mb-12 py-8 border-b-2 border-slate-900 border-dashed">
           <h1 className="text-4xl font-black tracking-tight">تقرير أذونات صرف الخامات</h1>
         </div>
@@ -10253,11 +10495,11 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
                     {items.find(i => i.id === iss.itemId)?.name || 'غير معروف'}
                   </TableCell>
                   <TableCell className="font-black text-primary">
-                    {iss.quantity} {iss.unit}
+                    <NumberDisplay value={iss.quantity} /> {iss.unit}
                   </TableCell>
                   <TableCell className="font-bold text-slate-500">{iss.costCenter}</TableCell>
                   <TableCell className="px-8 font-black text-slate-900">
-                    {iss.total.toLocaleString()} <span className="text-[10px] text-slate-400">ج.م</span>
+                    <NumberDisplay value={iss.total} unit="ج.م" />
                   </TableCell>
                 </TableRow>
               ))}
@@ -10278,16 +10520,16 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
 
       {showAdd && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
-          <Card className="dribbble-card w-full max-w-lg max-h-[90vh] overflow-auto border-none shadow-2xl animate-in zoom-in duration-300">
+          <Card className="dribbble-card w-full max-w-lg max-h-[90vh] overflow-auto border-none shadow-2xl animate-in zoom-in duration-200">
             <CardHeader className="pb-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-[14px] flex items-center justify-center text-primary mb-4">
                 <PlusCircle size={24} />
               </div>
               <CardTitle className="font-black text-2xl text-slate-900 tracking-tight">إضافة إذن صرف خامات</CardTitle>
               <CardDescription className="font-bold text-slate-500">أدخل تفاصيل صرف الخامات لتحديث المخزون وتكاليف الإنتاج</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">رقم أمر الشغل</label>
                   <Input 
@@ -10321,7 +10563,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
               </div>
 
               <div className="space-y-4">
-                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
+                <div className="flex justify-between items-center bg-slate-50 p-4 rounded-[14px]">
                   <label className="text-sm font-black text-slate-900 tracking-tighter">الأصناف المراد صرفها</label>
                   <Button 
                     variant="outline" 
@@ -10335,7 +10577,7 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
                 </div>
                 <div className="space-y-3 max-h-[40vh] overflow-auto pr-2 custom-scrollbar">
                   {formData.selectedItems.map((item, idx) => (
-                    <div key={idx} className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-4 relative group hover:border-primary/20 transition-all">
+                    <div key={idx} className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-sm space-y-4 relative group hover:border-primary/20 transition-all">
                       {formData.selectedItems.length > 1 && (
                         <Button 
                           variant="ghost" 
@@ -10347,24 +10589,30 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
                         </Button>
                       )}
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">اختر الصنف</label>
-                        <select 
-                          className="w-full h-11 rounded-xl border border-slate-100 bg-slate-50 px-3 font-bold text-slate-800 focus:bg-white transition-all outline-none"
-                          value={item.itemId}
-                          onChange={e => handleItemChange(idx, 'itemId', e.target.value)}
-                        >
-                          <option value="">-- اضغط للاختيار --</option>
-                          {items.map(i => <option key={i.id} value={i.id}>{i.name} (المتاح: {i.currentBalance})</option>)}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الكمية الصادرة</label>
-                        <Input 
-                          type="number" 
-                          className="h-11 rounded-xl bg-slate-50 border-slate-100 font-black text-lg focus:bg-white transition-all" 
-                          value={item.quantity} 
-                          onChange={e => handleItemChange(idx, 'quantity', Number(e.target.value))} 
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">اختر الصنف المراد صرفه</label>
+                        <SearchableSelect
+                          options={items.map(i => ({ id: i.id, name: i.name, subtext: `المتاح: ${i.currentBalance} ${i.unit}` }))}
+                          selectedValue={item.itemId}
+                          onChange={val => handleItemChange(idx, 'itemId', val)}
+                          placeholder="ابحث واختر الصنف..."
                         />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الكمية الصادرة</label>
+                          <Input 
+                            type="number" 
+                            className="h-11 rounded-xl bg-slate-50 border-slate-100 font-black text-lg focus:bg-white transition-all" 
+                            value={item.quantity} 
+                            onChange={e => handleItemChange(idx, 'quantity', Number(e.target.value))} 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي القيمة التقديرية</label>
+                          <div className="h-11 flex items-center px-4 rounded-xl bg-slate-50 border border-slate-100 font-black text-indigo-600">
+                            <NumberDisplay value={(items.find(i => i.id === item.itemId)?.price || 0) * (item.quantity || 0)} unit="ج.م" />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -10494,7 +10742,7 @@ function Suppliers({
   const totalBalance = suppliers.reduce((acc, s) => acc + (s.balance || 0), 0);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-200">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest px-3 py-1 bg-primary/10 rounded-full w-fit">
@@ -10510,18 +10758,18 @@ function Suppliers({
           </div>
           <Input 
             placeholder="بحث بالاسم أو رقم الهاتف..." 
-            className="pr-14 h-14 rounded-2xl border-slate-100 bg-white shadow-xl shadow-slate-200/40 font-bold text-slate-700"
+            className="pr-14 h-14 rounded-[14px] border-slate-100 bg-white shadow-xl shadow-slate-200/40 font-bold text-slate-700"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="relative p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="relative p-5 sm:p-6 bg-white rounded-[14px] sm:rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-200">
           <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
           <div className="flex items-center gap-3 sm:gap-5 relative z-10">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner shrink-0">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[14px] bg-primary/10 flex items-center justify-center text-primary shadow-inner shrink-0">
               <ShoppingBag className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="min-w-0">
@@ -10534,10 +10782,10 @@ function Suppliers({
           </div>
         </div>
 
-        <div className="relative p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-500">
+        <div className="relative p-5 sm:p-6 bg-white rounded-[14px] sm:rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-200">
           <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-emerald-50 rounded-full blur-2xl group-hover:bg-emerald-100 transition-colors" />
           <div className="flex items-center gap-3 sm:gap-5 relative z-10">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner shrink-0">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[14px] bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner shrink-0">
               <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="min-w-0">
@@ -10550,10 +10798,10 @@ function Suppliers({
           </div>
         </div>
 
-        <div className="relative p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group border-r-4 border-r-orange-500 hover:-translate-y-1 transition-all duration-500">
+        <div className="relative p-5 sm:p-6 bg-white rounded-[14px] sm:rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group border-r-4 border-r-orange-500 hover:-translate-y-1 transition-all duration-200">
           <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-orange-50 rounded-full blur-2xl group-hover:bg-orange-100 transition-colors" />
           <div className="flex items-center gap-3 sm:gap-5 relative z-10">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 shadow-inner shrink-0">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[14px] bg-orange-100 flex items-center justify-center text-orange-600 shadow-inner shrink-0">
               <Scale className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="min-w-0">
@@ -10567,7 +10815,7 @@ function Suppliers({
         </div>
       </div>
       
-      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[2.5rem]">
+      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[14px]">
         <div className="overflow-x-auto custom-scrollbar">
           <Table>
             <TableHeader className="bg-slate-50/50 h-20">
@@ -10585,7 +10833,7 @@ function Suppliers({
                 <TableRow key={s.id} className="h-24 border-slate-50 hover:bg-slate-50 transition-all group border-b last:border-0">
                   <TableCell className="px-8 font-black text-slate-900 text-lg tracking-tight">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black group-hover:bg-primary group-hover:text-white transition-all duration-200">
                         {s.name.charAt(0)}
                       </div>
                       {s.name}
@@ -10652,9 +10900,9 @@ function Suppliers({
 
       {/* Supplier Account Statement Dialog */}
       {selectedSupplier && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
-          <Card className="dribbble-card w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[3rem]">
-            <CardHeader className="p-10 pb-6 shrink-0 relative overflow-hidden bg-white">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <Card className="dribbble-card w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[14px]">
+            <CardHeader className="p-6 pb-6 shrink-0 relative overflow-hidden bg-white">
               <div className="absolute right-0 top-0 w-48 h-48 bg-primary/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
@@ -10667,11 +10915,11 @@ function Suppliers({
                   </div>
                 </div>
                 <div className="flex items-center gap-3 print:hidden">
-                  <Button variant="outline" onClick={() => safePrint()} className="h-12 px-6 rounded-2xl border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
+                  <Button variant="outline" onClick={() => safePrint()} className="h-12 px-6 rounded-[14px] border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
                     <Printer size={18} className="ml-2" />
                     طباعة الكشف
                   </Button>
-                  <Button variant="ghost" className="h-12 w-12 rounded-2xl text-slate-400 hover:bg-red-50 hover:text-red-500" onClick={() => setSelectedSupplier(null)}>
+                  <Button variant="ghost" className="h-12 w-12 rounded-[14px] text-slate-400 hover:bg-red-50 hover:text-red-500" onClick={() => setSelectedSupplier(null)}>
                      <X size={24} />
                   </Button>
                 </div>
@@ -10679,28 +10927,28 @@ function Suppliers({
             </CardHeader>
             <CardContent className="p-0 overflow-hidden flex-1 flex flex-col">
               <div className="px-10 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 bg-slate-50/50 border-y border-slate-100 print:bg-white relative">
-                <div className="p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all">
+                <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">رصيد أول المدة</p>
                   <div className="flex items-baseline gap-1">
                     <p className="text-xl font-black text-slate-900 tracking-tighter">{(selectedSupplier.openingBalance || 0).toLocaleString()}</p>
                     <span className="text-[10px] font-bold text-slate-300">ج.م</span>
                   </div>
                 </div>
-                <div className="p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all">
+                <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي المشتريات</p>
                   <div className="flex items-baseline gap-1">
                     <p className="text-xl font-black text-slate-900 tracking-tighter">{selectedSupplier.totalPurchases.toLocaleString()}</p>
                     <span className="text-[10px] font-bold text-slate-300">ج.م</span>
                   </div>
                 </div>
-                <div className="p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all border-emerald-100">
+                <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all border-emerald-100">
                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">إجمالي المسدد</p>
                   <div className="flex items-baseline gap-1">
                     <p className="text-xl font-black text-emerald-600 tracking-tighter">{selectedSupplier.totalPayments.toLocaleString()}</p>
                     <span className="text-[10px] font-bold text-emerald-200">ج.م</span>
                   </div>
                 </div>
-                <div className="p-5 bg-white rounded-[2rem] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all border-orange-100">
+                <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all border-orange-100">
                   <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">الرصيد المتبقي</p>
                   <div className="flex items-baseline gap-1">
                     <p className="text-xl font-black text-orange-600 tracking-tighter">{selectedSupplier.balance.toLocaleString()}</p>
@@ -10710,7 +10958,7 @@ function Suppliers({
               </div>
               
               <div className="overflow-auto flex-1 custom-scrollbar px-10 pt-6">
-                <div className="rounded-[2rem] border border-slate-100 overflow-hidden mb-10 shadow-sm">
+                <div className="rounded-[14px] border border-slate-100 overflow-hidden mb-10 shadow-sm">
                   <Table>
                     <TableHeader className="bg-slate-50/50 h-16">
                       <TableRow className="hover:bg-transparent border-slate-100">
@@ -10768,9 +11016,9 @@ function Suppliers({
 
       {/* Payment Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-300">
-          <Card className="dribbble-card w-full max-w-xl border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[3rem] overflow-hidden">
-            <CardHeader className="p-10 pb-6 shrink-0 relative overflow-hidden bg-white">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
+          <Card className="dribbble-card w-full max-w-xl border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[14px] overflow-hidden">
+            <CardHeader className="p-6 pb-6 shrink-0 relative overflow-hidden bg-white">
                <div className="absolute right-0 top-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
                <div className="relative z-10">
                  <div className="w-16 h-16 bg-emerald-600 rounded-2.5xl flex items-center justify-center text-white shadow-2xl shadow-emerald-600/30 mb-6">
@@ -10783,13 +11031,13 @@ function Suppliers({
                  </CardDescription>
                </div>
             </CardHeader>
-            <CardContent className="p-10 pt-4 space-y-8">
-              <div className="grid grid-cols-2 gap-6">
+            <CardContent className="p-6 pt-4 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                      <Calendar size={12} /> التاريخ
                   </label>
-                  <Input type="date" className="h-14 rounded-2xl bg-slate-50 border-none font-black text-xl px-5 focus:ring-4 focus:ring-primary/10 transition-all" value={paymentData.date} onChange={e => setPaymentData({...paymentData, date: e.target.value})} />
+                  <Input type="date" className="h-14 rounded-[14px] bg-slate-50 border-none font-black text-xl px-5 focus:ring-4 focus:ring-primary/10 transition-all" value={paymentData.date} onChange={e => setPaymentData({...paymentData, date: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -10797,7 +11045,7 @@ function Suppliers({
                   </label>
                   <Input 
                     type="number" 
-                    className="h-14 rounded-2xl bg-slate-50 border-none font-black text-2xl tracking-tighter font-mono px-5 focus:ring-4 focus:ring-emerald-500/10 transition-all text-emerald-600 text-center" 
+                    className="h-14 rounded-[14px] bg-slate-50 border-none font-black text-2xl tracking-tighter font-mono px-5 focus:ring-4 focus:ring-emerald-500/10 transition-all text-emerald-600 text-center" 
                     value={paymentData.amount || ''} 
                     onChange={e => setPaymentData({...paymentData, amount: Number(e.target.value)})} 
                     placeholder="0.00"
@@ -10805,11 +11053,11 @@ function Suppliers({
                 </div>
               </div>
               
-              <div className="space-y-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-6 bg-slate-50/50 p-6 rounded-[14px] border border-slate-100">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">طريقة الدفع</label>
-                    <select className="w-full h-14 rounded-2xl border-none bg-white px-5 font-black text-lg appearance-none shadow-sm focus:ring-4 focus:ring-primary/10 outline-none" value={paymentData.paymentMethod} onChange={e => setPaymentData({...paymentData, paymentMethod: e.target.value as any})}>
+                    <select className="w-full h-14 rounded-[14px] border-none bg-white px-5 font-black text-lg appearance-none shadow-sm focus:ring-4 focus:ring-primary/10 outline-none" value={paymentData.paymentMethod} onChange={e => setPaymentData({...paymentData, paymentMethod: e.target.value as any})}>
                       <option value="نقدي">💵 نـقـدي</option>
                       <option value="شيك">📝 شـيـك بـنـكـي</option>
                       <option value="تحويل بنكي">🏛 تحـويـل بـنـكـي</option>
@@ -10818,7 +11066,7 @@ function Suppliers({
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest font-mono">خصم المبلغ من خزينة:</label>
                     <select 
-                      className="w-full h-14 rounded-2xl border-2 border-emerald-500/20 bg-white px-5 font-black text-lg text-emerald-600 shadow-sm focus:ring-4 focus:ring-emerald-500/10 outline-none"
+                      className="w-full h-14 rounded-[14px] border-2 border-emerald-500/20 bg-white px-5 font-black text-lg text-emerald-600 shadow-sm focus:ring-4 focus:ring-emerald-500/10 outline-none"
                       value={paymentData.safeId}
                       onChange={e => setPaymentData({...paymentData, safeId: e.target.value})}
                     >
@@ -10831,22 +11079,22 @@ function Suppliers({
                 {(paymentData.paymentMethod === 'شيك' || paymentData.paymentMethod === 'تحويل بنكي') && (
                   <div className="space-y-2 animate-in slide-in-from-top-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم المرجع (الشيك / التحويل)</label>
-                    <Input className="h-14 rounded-2xl border-none bg-white px-5 font-black text-lg shadow-sm focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-300" value={paymentData.referenceNumber} onChange={e => setPaymentData({...paymentData, referenceNumber: e.target.value})} placeholder="أدخل رقم العملية..." />
+                    <Input className="h-14 rounded-[14px] border-none bg-white px-5 font-black text-lg shadow-sm focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-300" value={paymentData.referenceNumber} onChange={e => setPaymentData({...paymentData, referenceNumber: e.target.value})} placeholder="أدخل رقم العملية..." />
                   </div>
                 )}
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">تفاصيل إضافية / ملاحظات</label>
-                  <Input className="h-14 rounded-2xl border-none bg-white px-5 font-black text-lg shadow-sm focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-300" value={paymentData.notes} onChange={e => setPaymentData({...paymentData, notes: e.target.value})} placeholder="أي تفاصيل عن الحركة..." />
+                  <Input className="h-14 rounded-[14px] border-none bg-white px-5 font-black text-lg shadow-sm focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-300" value={paymentData.notes} onChange={e => setPaymentData({...paymentData, notes: e.target.value})} placeholder="أي تفاصيل عن الحركة..." />
                 </div>
               </div>
 
               <div className="flex justify-end gap-4 pt-4 border-t border-slate-100">
-                <Button variant="ghost" className="h-14 px-8 rounded-2xl font-black text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all" onClick={() => {
+                <Button variant="ghost" className="h-14 px-8 rounded-[14px] font-black text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all" onClick={() => {
                   setShowPaymentModal(false);
                   setPaymentSupplierId(null);
                 }}>إلغاء وتراجع</Button>
-                <Button onClick={handleAddPayment} className="h-14 px-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-2xl shadow-emerald-600/30 transition-all hover:-translate-y-1">
+                <Button onClick={handleAddPayment} className="h-14 px-12 rounded-[14px] bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-2xl shadow-emerald-600/30 transition-all hover:-translate-y-1">
                    تأكيد واعتماد السند
                 </Button>
               </div>
@@ -10956,19 +11204,19 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
 
   if (showHistory) {
     return (
-      <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="space-y-8 animate-in fade-in duration-200">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-black text-slate-900">سجل الجرد</h2>
             <p className="text-slate-500 font-bold">تاريخ عمليات الجرد السابقة</p>
           </div>
-          <Button onClick={() => setShowHistory(false)} variant="outline" className="rounded-2xl border-slate-200">
+          <Button onClick={() => setShowHistory(false)} variant="outline" className="rounded-[14px] border-slate-200">
             <ArrowRight size={18} className="ml-2" />
             العودة للجرد الحالي
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 md:grid-cols-3 gap-6">
           {audits.slice().reverse().map(a => (
             <Card key={a.id} className="dribbble-card group overflow-hidden border-none shadow-xl shadow-slate-200/40">
               <CardHeader className="pb-4">
@@ -10983,7 +11231,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between">
+                <div className="p-4 bg-slate-50 rounded-[14px] flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-500">عدد الأصناف</span>
                   <span className="font-black text-primary">{a.auditItems.length}</span>
                 </div>
@@ -10997,12 +11245,12 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
 
         {selectedAudit && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl p-8 border-0">
+            <Card className="w-full max-w-4xl bg-white rounded-[14px] shadow-2xl p-6 border-0">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <p className="text-slate-500 font-bold">{warehouses.find(w => w.id === selectedAudit.warehouseId)?.name}</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setSelectedAudit(null)} className="rounded-2xl hover:bg-slate-100">
+                <Button variant="ghost" size="icon" onClick={() => setSelectedAudit(null)} className="rounded-[14px] hover:bg-slate-100">
                   <X size={24} />
                 </Button>
               </div>
@@ -11033,7 +11281,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
               </div>
 
               <div className="mt-8 flex justify-end">
-                <Button onClick={() => setSelectedAudit(null)} className="btn-primary rounded-2xl px-12 h-12 font-black">إغلاق</Button>
+                <Button onClick={() => setSelectedAudit(null)} className="btn-primary rounded-[14px] px-12 h-12 font-black">إغلاق</Button>
               </div>
             </Card>
           </div>
@@ -11043,8 +11291,8 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
   }
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-500 pb-24">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+    <div className="space-y-12 animate-in fade-in duration-200 pb-24">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 text-primary font-black text-xs uppercase tracking-widest px-4 py-1.5 bg-primary/10 rounded-full w-fit mb-4">
             <ClipboardCheck size={14} />
@@ -11054,12 +11302,12 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
           <p className="text-slate-500 mt-3 font-bold text-lg max-w-xl">عملية دورية لمطابقة الرصيد الفعلي في العنابر مع رصيد النظام وتصحيح الفروقات تلقائياً</p>
         </div>
         <div className="flex items-center gap-4">
-          <Button onClick={() => setShowHistory(true)} variant="outline" className="h-14 px-8 rounded-2xl border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
+          <Button onClick={() => setShowHistory(true)} variant="outline" className="h-14 px-8 rounded-[14px] border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
             <History size={18} className="ml-2" />
             سجل عمليات الجرد
           </Button>
           {!isAuditing && (
-            <Button onClick={startAudit} className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg shadow-2xl shadow-primary/30 transition-all hover:-translate-y-1">
+            <Button onClick={startAudit} className="h-14 px-10 rounded-[14px] bg-primary hover:bg-primary/90 text-white font-black text-lg shadow-2xl shadow-primary/30 transition-all hover:-translate-y-1">
               <Plus size={20} className="ml-2" />
               بدء جرد جديد
             </Button>
@@ -11068,8 +11316,8 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
       </div>
 
       {!isAuditing ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <Card className="dribbble-card border-none p-12 bg-white shadow-2xl shadow-slate-200/40 rounded-[3rem] relative overflow-hidden group">
+        <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <Card className="dribbble-card border-none p-12 bg-white shadow-2xl shadow-slate-200/40 rounded-[14px] relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary/10 transition-colors" />
               
               <div className="relative z-10 space-y-10">
@@ -11087,7 +11335,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
                     <select 
                       value={selectedWarehouseId}
                       onChange={e => setSelectedWarehouseId(e.target.value)}
-                      className="w-full h-20 rounded-[2rem] border-2 border-slate-100 bg-slate-50/50 px-10 font-black text-2xl text-slate-800 shadow-inner focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none appearance-none cursor-pointer"
+                      className="w-full h-20 rounded-[14px] border-2 border-slate-100 bg-slate-50/50 px-10 font-black text-2xl text-slate-800 shadow-inner focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none appearance-none cursor-pointer"
                     >
                       <option value="">-- اضغط للاختيار --</option>
                       {warehouses.map(w => (
@@ -11102,7 +11350,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
                   <Button 
                     onClick={startAudit} 
                     disabled={!selectedWarehouseId} 
-                    className="w-full h-20 rounded-[2rem] bg-slate-900 hover:bg-black text-white font-black text-xl shadow-2xl shadow-slate-900/20 disabled:opacity-30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full h-20 rounded-[14px] bg-slate-900 hover:bg-black text-white font-black text-xl shadow-2xl shadow-slate-900/20 disabled:opacity-30 transition-all hover:scale-[1.02] active:scale-[0.98]"
                   >
                     بدء المراجعة الآن
                   </Button>
@@ -11112,7 +11360,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
 
             <div className="space-y-8 hidden lg:block">
                <div className="flex gap-6 items-start">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex shrink-0 items-center justify-center text-emerald-600">
+                  <div className="w-12 h-12 rounded-[14px] bg-emerald-100 flex shrink-0 items-center justify-center text-emerald-600">
                      <CheckCircle2 size={24} />
                   </div>
                   <div>
@@ -11121,7 +11369,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
                   </div>
                </div>
                <div className="flex gap-6 items-start">
-                  <div className="w-12 h-12 rounded-2xl bg-orange-100 flex shrink-0 items-center justify-center text-orange-600">
+                  <div className="w-12 h-12 rounded-[14px] bg-orange-100 flex shrink-0 items-center justify-center text-orange-600">
                      <AlertCircle size={24} />
                   </div>
                   <div>
@@ -11130,7 +11378,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
                   </div>
                </div>
                <div className="flex gap-6 items-start">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-100 flex shrink-0 items-center justify-center text-blue-600">
+                  <div className="w-12 h-12 rounded-[14px] bg-blue-100 flex shrink-0 items-center justify-center text-blue-600">
                      <ShieldCheck size={24} />
                   </div>
                   <div>
@@ -11142,11 +11390,11 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
         </div>
       ) : (
         <div className="space-y-10">
-          <Card className="dribbble-card border-none p-10 shadow-2xl shadow-slate-200/40 rounded-[2.5rem] bg-white">
-            <div className="flex flex-col lg:flex-row gap-10 items-end">
+          <Card className="dribbble-card border-none p-6 shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white">
+            <div className="flex flex-col lg:flex-row gap-6 items-end">
               <div className="space-y-3 flex-1">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mr-1">المخزن المفتوح للجرد</label>
-                <div className="h-16 px-8 rounded-2xl bg-slate-50 flex items-center gap-4 text-slate-900 font-black text-xl border border-slate-100">
+                <div className="h-16 px-8 rounded-[14px] bg-slate-50 flex items-center gap-4 text-slate-900 font-black text-xl border border-slate-100">
                    <WarehouseIcon size={24} className="text-primary" />
                    {warehouses.find(w => w.id === selectedWarehouseId)?.name}
                 </div>
@@ -11156,7 +11404,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
               </div>
               <div className="space-y-3 flex-[2]">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mr-1">بيان أو ملاحظات الجرد</label>
-                <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="مثال: جرد الربع السنوي الأول..." className="h-16 rounded-2xl border-none bg-slate-50 focus:ring-4 focus:ring-primary/10 font-bold text-lg text-slate-700 px-8" />
+                <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="مثال: جرد الربع السنوي الأول..." className="h-16 rounded-[14px] border-none bg-slate-50 focus:ring-4 focus:ring-primary/10 font-bold text-lg text-slate-700 px-8" />
               </div>
             </div>
           </Card>
@@ -11183,7 +11431,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
              </div>
           </div>
 
-          <Card className="dribbble-card border-none overflow-hidden shadow-2xl shadow-slate-200/30 rounded-[2.5rem] bg-white">
+          <Card className="dribbble-card border-none overflow-hidden shadow-2xl shadow-slate-200/30 rounded-[14px] bg-white">
             <div className="overflow-x-auto custom-scrollbar">
               <Table>
                 <TableHeader className="bg-slate-50 h-20">
@@ -11223,12 +11471,12 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
                                 type="number"
                                 value={actualValue}
                                 onChange={e => handleAuditChange(item.id, e.target.value)}
-                                className="h-14 rounded-2xl text-center font-black text-xl border-2 border-slate-100 bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-slate-900"
+                                className="h-14 rounded-[14px] text-center font-black text-xl border-2 border-slate-100 bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-slate-900"
                               />
                            </div>
                         </TableCell>
                         <TableCell className="text-center px-10">
-                           <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black text-lg shadow-sm ${
+                           <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-[14px] font-black text-lg shadow-sm ${
                              diff > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
                              diff < 0 ? 'bg-rose-50 text-rose-600 border border-rose-100' : 
                              'bg-slate-50 text-slate-300'
@@ -11253,7 +11501,7 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
             </div>
           </Card>
 
-          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white z-40">
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 flex gap-4 bg-white/80 backdrop-blur-xl p-4 rounded-[14px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-white z-40">
             <Button variant="ghost" onClick={() => setIsAuditing(false)} className="h-16 px-10 rounded-3xl font-black text-slate-500 hover:bg-slate-100 transition-all">إلغاء العملية</Button>
             <Button onClick={submitAudit} className="h-16 px-16 rounded-3xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xl shadow-2xl shadow-emerald-600/30 transition-all hover:scale-[1.05] active:scale-95">
               <CheckCircle2 size={24} className="ml-3" />
@@ -11335,8 +11583,8 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+    <div className="space-y-12 animate-in fade-in duration-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 text-orange-600 font-black text-xs uppercase tracking-widest px-4 py-1.5 bg-orange-50 rounded-full w-fit mb-4">
             <RotateCcw size={14} />
@@ -11345,18 +11593,18 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
           <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">قسم المرتجعات</h2>
           <p className="text-slate-500 mt-3 font-bold text-lg max-w-xl">معالجة الخامات الـعـائـدة سواء من مراكز الإنتاج أو الـمُـصـدّرة للموردين مرة أخرى</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1">
+        <Button onClick={() => setShowAdd(true)} className="h-14 px-10 rounded-[14px] bg-slate-900 hover:bg-black text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1">
           <Plus size={20} className="ml-2" />
           تسجيل مرتجع جديد
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
         <Card 
-          className="dribbble-card p-12 text-center border-none bg-white rounded-[3rem] shadow-2xl shadow-slate-200/40 hover:shadow-primary/10 transition-all cursor-pointer group" 
+          className="dribbble-card p-12 text-center border-none bg-white rounded-[14px] shadow-2xl shadow-slate-200/40 hover:shadow-primary/10 transition-all cursor-pointer group" 
           onClick={() => { setReturnType('cost_center'); setShowAdd(true); }}
         >
-          <div className="mx-auto w-24 h-24 bg-primary/10 rounded-[2rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 shadow-inner text-primary">
+          <div className="mx-auto w-24 h-24 bg-primary/10 rounded-[14px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-200 shadow-inner text-primary">
             <ArrowDownToLine size={40} className="rotate-180" />
           </div>
           <h3 className="font-black text-3xl text-slate-900 mb-4 tracking-tight">مرتجع من مركز إنتاج</h3>
@@ -11367,10 +11615,10 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
         </Card>
 
         <Card 
-          className="dribbble-card p-12 text-center border-none bg-white rounded-[3rem] shadow-2xl shadow-slate-200/40 hover:shadow-orange-500/10 transition-all cursor-pointer group" 
+          className="dribbble-card p-12 text-center border-none bg-white rounded-[14px] shadow-2xl shadow-slate-200/40 hover:shadow-orange-500/10 transition-all cursor-pointer group" 
           onClick={() => { setReturnType('supplier'); setShowAdd(true); }}
         >
-          <div className="mx-auto w-24 h-24 bg-orange-50 rounded-[2rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 shadow-inner text-orange-600">
+          <div className="mx-auto w-24 h-24 bg-orange-50 rounded-[14px] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-200 shadow-inner text-orange-600">
             <ArrowUpToLine size={40} />
           </div>
           <h3 className="font-black text-3xl text-slate-900 mb-4 tracking-tight">مرتجع إلى المورد</h3>
@@ -11383,9 +11631,9 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
 
       {/* Add Return Dialog */}
       {showAdd && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-300">
-          <Card className="dribbble-card w-full max-w-xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[3rem]">
-            <CardHeader className="p-10 pb-6 shrink-0 relative overflow-hidden bg-white">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
+          <Card className="dribbble-card w-full max-w-xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[14px]">
+            <CardHeader className="p-6 pb-6 shrink-0 relative overflow-hidden bg-white">
                <div className={`absolute right-0 top-0 w-32 h-32 ${returnType === 'cost_center' ? 'bg-primary/5' : 'bg-orange-50'} rounded-bl-full -mr-10 -mt-10 pointer-events-none`} />
                <div className="relative z-10">
                  <div className={`w-16 h-16 ${returnType === 'cost_center' ? 'bg-primary' : 'bg-orange-600'} rounded-2.5xl flex items-center justify-center text-white shadow-2xl mb-6`}>
@@ -11399,14 +11647,14 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
                  </CardDescription>
                </div>
             </CardHeader>
-            <CardContent className="p-10 pt-4 space-y-8 overflow-y-auto custom-scrollbar">
+            <CardContent className="p-6 pt-4 space-y-8 overflow-y-auto custom-scrollbar">
               <div className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Box size={14} /> اختيار الصنف الـمُـرتـجع
                   </label>
                   <select 
-                    className="w-full h-16 rounded-2xl border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
+                    className="w-full h-16 rounded-[14px] border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
                     value={formData.itemId}
                     onChange={e => setFormData({...formData, itemId: e.target.value})}
                   >
@@ -11421,7 +11669,7 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
                       <Target size={14} /> من مركز التكلفة (المرحلة)
                     </label>
                     <select 
-                      className="w-full h-16 rounded-2xl border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
+                      className="w-full h-16 rounded-[14px] border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-primary/10 transition-all outline-none appearance-none cursor-pointer"
                       value={formData.costCenter}
                       onChange={e => setFormData({...formData, costCenter: e.target.value})}
                     >
@@ -11437,7 +11685,7 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
                       <Truck size={14} /> إلى المورد المعتمد
                     </label>
                     <select 
-                      className="w-full h-16 rounded-2xl border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-orange-500/10 transition-all outline-none appearance-none cursor-pointer"
+                      className="w-full h-16 rounded-[14px] border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-orange-500/10 transition-all outline-none appearance-none cursor-pointer"
                       value={formData.supplierId}
                       onChange={e => setFormData({...formData, supplierId: e.target.value})}
                     >
@@ -11453,7 +11701,7 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
                   </label>
                   <div className="relative">
                     <Input 
-                      className="h-16 rounded-2xl border-none bg-slate-50 px-8 font-black text-2xl tracking-tighter text-center focus:ring-4 focus:ring-primary/10 transition-all" 
+                      className="h-16 rounded-[14px] border-none bg-slate-50 px-8 font-black text-2xl tracking-tighter text-center focus:ring-4 focus:ring-primary/10 transition-all" 
                       type="number" 
                       value={formData.quantity || ''} 
                       onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} 
@@ -11470,7 +11718,7 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
                     <FileText size={14} /> ملاحظات الارتجاع
                   </label>
                   <Input 
-                    className="h-16 rounded-2xl border-none bg-slate-50 px-8 font-bold text-lg focus:ring-4 focus:ring-primary/10 transition-all" 
+                    className="h-16 rounded-[14px] border-none bg-slate-50 px-8 font-bold text-lg focus:ring-4 focus:ring-primary/10 transition-all" 
                     value={formData.notes} 
                     onChange={e => setFormData({...formData, notes: e.target.value})} 
                     placeholder="اذكر سبب الارتجاع (تالف، فائض، إلغاء طلب...)" 
@@ -11479,8 +11727,8 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
               </div>
 
               <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
-                <Button variant="ghost" className="h-16 px-8 rounded-2xl font-black text-slate-500 hover:text-slate-900 transition-all" onClick={() => setShowAdd(false)}>تراجع وإلغاء</Button>
-                <Button onClick={handleAdd} className={`h-16 px-12 rounded-2xl ${returnType === 'cost_center' ? 'bg-primary' : 'bg-orange-600'} hover:opacity-90 text-white font-black text-lg shadow-2xl shadow-primary/20 transition-all hover:-translate-y-1`}>
+                <Button variant="ghost" className="h-16 px-8 rounded-[14px] font-black text-slate-500 hover:text-slate-900 transition-all" onClick={() => setShowAdd(false)}>تراجع وإلغاء</Button>
+                <Button onClick={handleAdd} className={`h-16 px-12 rounded-[14px] ${returnType === 'cost_center' ? 'bg-primary' : 'bg-orange-600'} hover:opacity-90 text-white font-black text-lg shadow-2xl shadow-primary/20 transition-all hover:-translate-y-1`}>
                     اعتمد الـمـرتـجع الآن
                 </Button>
               </div>
@@ -11536,8 +11784,8 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700 pb-24">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+    <div className="space-y-12 animate-in fade-in duration-200 pb-24">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 text-rose-600 font-black text-xs uppercase tracking-widest px-4 py-1.5 bg-rose-50 rounded-full w-fit mb-4">
             <Trash2 size={14} />
@@ -11546,15 +11794,15 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
           <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none">سجل الهوالك والتوالف</h2>
           <p className="text-slate-500 mt-3 font-bold text-lg max-w-xl">توثيق الخامات التالفة أثناء الإنتاج أو المنتهية صلاحيتها لخصمها من الرصيد والـقـيـمة</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="h-14 px-10 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-lg shadow-2xl shadow-rose-600/20 transition-all hover:-translate-y-1">
+        <Button onClick={() => setShowAdd(true)} className="h-14 px-10 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white font-black text-lg shadow-2xl shadow-rose-600/20 transition-all hover:-translate-y-1">
           <Plus size={20} className="ml-2" />
           تسجيل هالك جديد
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-         <div className="p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-3 sm:gap-5">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600 shadow-inner shrink-0">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
+         <div className="p-5 sm:p-6 bg-white rounded-[14px] sm:rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-3 sm:gap-5">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[14px] bg-rose-50 flex items-center justify-center text-rose-600 shadow-inner shrink-0">
                <AlertTriangle className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="min-w-0">
@@ -11562,8 +11810,8 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
                <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tighter break-all">{wasteRecords.length}</p>
             </div>
          </div>
-         <div className="p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-3 sm:gap-5">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-inner shrink-0">
+         <div className="p-5 sm:p-6 bg-white rounded-[14px] sm:rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-3 sm:gap-5">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[14px] bg-amber-50 flex items-center justify-center text-amber-600 shadow-inner shrink-0">
                <Scale className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="min-w-0">
@@ -11571,8 +11819,8 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
                <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tighter break-all">{wasteRecords.reduce((acc, r) => acc + r.quantity, 0).toLocaleString()}</p>
             </div>
          </div>
-         <div className="p-5 sm:p-8 bg-white rounded-2xl sm:rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-3 sm:gap-5 border-r-4 border-r-rose-500">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-inner shrink-0">
+         <div className="p-5 sm:p-6 bg-white rounded-[14px] sm:rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 flex items-center gap-3 sm:gap-5 border-r-4 border-r-rose-500">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[14px] bg-slate-900 flex items-center justify-center text-white shadow-inner shrink-0">
                <DollarSign className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div className="min-w-0">
@@ -11590,7 +11838,7 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
          </div>
       </div>
 
-      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[2.5rem]">
+      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[14px]">
         <div className="overflow-x-auto custom-scrollbar">
           <Table>
             <TableHeader className="bg-slate-50/50 h-20">
@@ -11634,7 +11882,7 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-24">
                      <div className="flex flex-col items-center justify-center gap-4">
-                        <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200">
+                        <div className="w-20 h-20 bg-slate-50 rounded-[14px] flex items-center justify-center text-slate-200">
                            <Trash2 size={40} />
                         </div>
                         <p className="text-slate-400 font-black text-lg">سجل الهوالك فارغ حالياً</p>
@@ -11648,9 +11896,9 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
       </Card>
 
       {showAdd && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-300">
-          <Card className="dribbble-card w-full max-w-xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[3rem]">
-            <CardHeader className="p-10 pb-6 shrink-0 relative overflow-hidden bg-white">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
+          <Card className="dribbble-card w-full max-w-xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[14px]">
+            <CardHeader className="p-6 pb-6 shrink-0 relative overflow-hidden bg-white">
                <div className="absolute right-0 top-0 w-32 h-32 bg-rose-50 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
                <div className="relative z-10">
                  <div className="w-16 h-16 bg-rose-600 rounded-2.5xl flex items-center justify-center text-white shadow-2xl shadow-rose-600/30 mb-6 font-inner">
@@ -11663,14 +11911,14 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
                  {error && <Badge className="mt-4 bg-rose-100 text-rose-600 border-none font-bold py-1.5 px-4 rounded-lg">{error}</Badge>}
                </div>
             </CardHeader>
-            <CardContent className="p-10 pt-4 space-y-8 overflow-y-auto custom-scrollbar">
+            <CardContent className="p-6 pt-4 space-y-8 overflow-y-auto custom-scrollbar">
               <div className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Box size={14} /> الصنف المتأثر
                   </label>
                   <select 
-                    className="w-full h-16 rounded-2xl border-none bg-slate-50 px-8 font-black text-lg focus:ring-4 focus:ring-rose-500/10 transition-all outline-none appearance-none cursor-pointer shadow-inner"
+                    className="w-full h-16 rounded-[14px] border-none bg-slate-50 px-8 font-black text-lg focus:ring-4 focus:ring-rose-500/10 transition-all outline-none appearance-none cursor-pointer shadow-inner"
                     value={formData.itemId}
                     onChange={e => setFormData({...formData, itemId: e.target.value})}
                   >
@@ -11679,14 +11927,14 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <Scale size={14} /> الكمية الهالكة
                     </label>
                     <div className="relative">
                       <Input 
-                        className="h-16 rounded-2xl border-none bg-slate-50 px-8 font-black text-2xl tracking-tighter text-center focus:ring-4 focus:ring-rose-500/10 transition-all shadow-inner" 
+                        className="h-16 rounded-[14px] border-none bg-slate-50 px-8 font-black text-2xl tracking-tighter text-center focus:ring-4 focus:ring-rose-500/10 transition-all shadow-inner" 
                         type="number" 
                         value={formData.quantity || ''} 
                         onChange={e => setFormData({...formData, quantity: Number(e.target.value)})} 
@@ -11699,7 +11947,7 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
                       <AlertTriangle size={14} /> سبب الهلاك
                     </label>
                     <select 
-                      className="w-full h-16 rounded-2xl border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-rose-500/10 transition-all outline-none appearance-none cursor-pointer shadow-inner"
+                      className="w-full h-16 rounded-[14px] border-none bg-slate-50 px-6 font-black text-lg focus:ring-4 focus:ring-rose-500/10 transition-all outline-none appearance-none cursor-pointer shadow-inner"
                       value={formData.reason}
                       onChange={e => setFormData({...formData, reason: e.target.value})}
                     >
@@ -11717,7 +11965,7 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
                     <FileText size={14} /> ملاحظات وتفاصيل إضافية
                   </label>
                   <Input 
-                    className="h-16 rounded-2xl border-none bg-slate-50 px-8 font-bold text-lg focus:ring-4 focus:ring-rose-500/10 transition-all shadow-inner" 
+                    className="h-16 rounded-[14px] border-none bg-slate-50 px-8 font-bold text-lg focus:ring-4 focus:ring-rose-500/10 transition-all shadow-inner" 
                     value={formData.notes} 
                     onChange={e => setFormData({...formData, notes: e.target.value})} 
                     placeholder="أي تـفـاصـيـل حـول واقـعـة الهـلاك..." 
@@ -11726,8 +11974,8 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
               </div>
 
               <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
-                <Button variant="ghost" className="h-16 px-8 rounded-2xl font-black text-slate-500 hover:text-slate-900 transition-all" onClick={() => setShowAdd(false)}>تراجع</Button>
-                <Button onClick={handleAdd} className="h-16 px-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-lg shadow-2xl shadow-rose-600/30 transition-all hover:-translate-y-1">
+                <Button variant="ghost" className="h-16 px-8 rounded-[14px] font-black text-slate-500 hover:text-slate-900 transition-all" onClick={() => setShowAdd(false)}>تراجع</Button>
+                <Button onClick={handleAdd} className="h-16 px-12 rounded-[14px] bg-rose-600 hover:bg-rose-700 text-white font-black text-lg shadow-2xl shadow-rose-600/30 transition-all hover:-translate-y-1">
                     تأكيد وتسجيل الهالك
                 </Button>
               </div>
@@ -11917,8 +12165,8 @@ function OldReportsView({
   };
 
   return (
-    <div className="space-y-12 pb-24 print:p-0 animate-in fade-in duration-1000">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 print:hidden">
+    <div className="space-y-12 pb-24 print:p-0 animate-in fade-in duration-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
         <div>
           <div className="flex items-center gap-3 text-indigo-600 font-black text-xs uppercase tracking-[0.2em] px-4 py-1.5 bg-indigo-50 rounded-full w-fit mb-4">
             <BarChart3 size={14} />
@@ -11928,11 +12176,11 @@ function OldReportsView({
           <p className="text-slate-500 mt-3 font-bold text-lg max-w-xl">تحليل كامل للتدفقات المخزنية، مديونيات الموردين، وهوامش ربحية الإنتاج</p>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="outline" className="h-14 px-8 rounded-2xl border-slate-200 bg-white hover:bg-slate-50 font-black text-slate-600 shadow-sm transition-all hover:-translate-y-1" onClick={() => exportToExcel(warehouseData, 'جرد_المخازن_الشامل')}>
+          <Button variant="outline" className="h-14 px-8 rounded-[14px] border-slate-200 bg-white hover:bg-slate-50 font-black text-slate-600 shadow-sm transition-all hover:-translate-y-1" onClick={() => exportToExcel(warehouseData, 'جرد_المخازن_الشامل')}>
             <Download size={18} className="ml-2" />
             تصدير XLSX
           </Button>
-          <Button onClick={() => safePrint()} className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1">
+          <Button onClick={() => safePrint()} className="h-14 px-10 rounded-[14px] bg-slate-900 hover:bg-slate-800 text-white font-black text-lg shadow-2xl shadow-slate-900/20 transition-all hover:-translate-y-1">
             <Printer size={20} className="ml-2" />
             طباعة PDF
           </Button>
@@ -11946,7 +12194,7 @@ function OldReportsView({
       </div>
 
       {/* Modern Tabs */}
-      <div className="flex overflow-x-auto pb-2 scrollbar-none gap-2 p-2 bg-slate-100/80 backdrop-blur-sm rounded-[2rem] w-fit border border-slate-200/50 print:hidden sticky top-4 z-40 shadow-xl shadow-slate-200/20">
+      <div className="flex overflow-x-auto pb-2 scrollbar-none gap-2 p-2 bg-slate-100/80 backdrop-blur-sm rounded-[14px] w-fit border border-slate-200/50 print:hidden sticky top-4 z-40 shadow-xl shadow-slate-200/20">
           {[
             { id: 'dashboard', label: 'لوحة القيادة', icon: <Box size={18} /> },
             { id: 'warehouse', label: 'الجرد التفصيلي', icon: <Package size={18} /> },
@@ -11956,7 +12204,7 @@ function OldReportsView({
             <button 
               key={tab.id}
               onClick={() => setActiveReportTab(tab.id as any)}
-              className={`flex items-center gap-3 px-8 py-4 rounded-[1.5rem] font-black transition-all duration-300 relative ${activeReportTab === tab.id ? 'bg-white shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] text-primary translate-y-0' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
+              className={`flex items-center gap-3 px-8 py-4 rounded-[1.5rem] font-black transition-all duration-200 relative ${activeReportTab === tab.id ? 'bg-white shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] text-primary translate-y-0' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
             >
               <span className={activeReportTab === tab.id ? 'text-primary' : 'text-slate-400'}>{tab.icon}</span>
               {tab.label}
@@ -11966,12 +12214,12 @@ function OldReportsView({
       </div>
 
       {activeReportTab === 'dashboard' && (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-blue-500/30 transition-all cursor-default overflow-hidden relative">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-blue-500/30 transition-all cursor-default overflow-hidden relative">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-200" />
                <div className="relative z-10">
-                 <div className="w-14 h-14 rounded-2xl bg-blue-500 flex items-center justify-center text-white shadow-2xl shadow-blue-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
+                 <div className="w-14 h-14 rounded-[14px] bg-blue-500 flex items-center justify-center text-white shadow-2xl shadow-blue-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
                    <Package size={28} />
                  </div>
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">القيمة الإجمالية للمخزون</p>
@@ -11982,10 +12230,10 @@ function OldReportsView({
                </div>
             </div>
 
-            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-rose-500/30 transition-all cursor-default overflow-hidden relative">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-rose-500/30 transition-all cursor-default overflow-hidden relative">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-200" />
                <div className="relative z-10">
-                 <div className="w-14 h-14 rounded-2xl bg-rose-500 flex items-center justify-center text-white shadow-2xl shadow-rose-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
+                 <div className="w-14 h-14 rounded-[14px] bg-rose-500 flex items-center justify-center text-white shadow-2xl shadow-rose-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
                    <Users size={28} />
                  </div>
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">إجمالي مديونيات الموردين</p>
@@ -11996,10 +12244,10 @@ function OldReportsView({
                </div>
             </div>
 
-            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-emerald-500/30 transition-all cursor-default overflow-hidden relative">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-emerald-500/30 transition-all cursor-default overflow-hidden relative">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-200" />
                <div className="relative z-10">
-                 <div className="w-14 h-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-2xl shadow-emerald-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
+                 <div className="w-14 h-14 rounded-[14px] bg-emerald-500 flex items-center justify-center text-white shadow-2xl shadow-emerald-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
                    <Activity size={28} />
                  </div>
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">تكلفة عمليات الإنتاج</p>
@@ -12010,10 +12258,10 @@ function OldReportsView({
                </div>
             </div>
 
-            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-amber-500/30 transition-all cursor-default overflow-hidden relative">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 group hover:border-amber-500/30 transition-all cursor-default overflow-hidden relative">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-200" />
                <div className="relative z-10">
-                 <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center text-white shadow-2xl shadow-amber-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
+                 <div className="w-14 h-14 rounded-[14px] bg-amber-500 flex items-center justify-center text-white shadow-2xl shadow-amber-500/30 mb-8 transform group-hover:rotate-12 transition-transform">
                    <Trash2 size={28} />
                  </div>
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">قيمة الهالك والـفـاقـد</p>
@@ -12025,18 +12273,18 @@ function OldReportsView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+          <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+              <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                 <div>
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">رصد المخازن</h3>
                   <p className="text-slate-400 font-bold text-sm italic">القيمة السوقية لكل مستودع مـنـفـصـلاً</p>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+                <div className="w-12 h-12 rounded-[14px] bg-white flex items-center justify-center text-slate-400 shadow-sm">
                    <Database size={24} />
                 </div>
               </div>
-              <div className="p-10 h-[400px]">
+              <div className="p-6 h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={warehouseData}>
                     <defs>
@@ -12059,17 +12307,17 @@ function OldReportsView({
               </div>
             </Card>
 
-            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+              <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                 <div>
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">استهلاك القطاعات</h3>
                   <p className="text-slate-400 font-bold text-sm italic">نسب تـوزيـع المـواد الخـام حـسـب المـصـنـع</p>
                 </div>
-                <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+                <div className="w-12 h-12 rounded-[14px] bg-white flex items-center justify-center text-slate-400 shadow-sm">
                    <Target size={24} />
                 </div>
               </div>
-              <div className="p-10 h-[400px] flex items-center justify-center">
+              <div className="p-6 h-[400px] flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -12097,18 +12345,18 @@ function OldReportsView({
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-             <Card className="dribbble-card lg:col-span-2 border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-                <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+          <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-3 gap-6">
+             <Card className="dribbble-card lg:col-span-2 border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+                <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                   <div>
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">إحصائيات التدفق</h3>
                     <p className="text-slate-400 font-bold text-sm italic">مقارنة بـيـن إجمالي المشتريات والـمـنـصـرف شـهـريـاً</p>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+                  <div className="w-12 h-12 rounded-[14px] bg-white flex items-center justify-center text-slate-400 shadow-sm">
                     <TrendingUp size={24} />
                   </div>
                 </div>
-                <div className="p-10 h-[400px]">
+                <div className="p-6 h-[400px]">
                    <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={monthlyTrends}>
                         <defs>
@@ -12132,14 +12380,14 @@ function OldReportsView({
                 </div>
              </Card>
 
-             <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-                <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+             <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+                <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                   <div>
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">الصيانة والسن</h3>
                     <p className="text-slate-400 font-bold text-sm italic">توزيـع تكـالـيـف الـصـورمـة والـسـن</p>
                   </div>
                 </div>
-                <div className="p-10 h-[400px]">
+                <div className="p-6 h-[400px]">
                    <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={maintenanceData} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
@@ -12158,14 +12406,14 @@ function OldReportsView({
           </div>
 
       {/* Summary Tables for Dashboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-          <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+      <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+          <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
             <div>
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">رصد حركة المخزون</h3>
               <p className="text-slate-400 font-bold text-sm italic">الأصناف الأعلى قيمة المتاحة في المستودعات</p>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+            <div className="w-12 h-12 rounded-[14px] bg-white flex items-center justify-center text-slate-400 shadow-sm">
                <Layers size={24} />
             </div>
           </div>
@@ -12195,20 +12443,20 @@ function OldReportsView({
               </TableBody>
             </Table>
           </div>
-          <div className="p-8 bg-slate-50 text-center">
+          <div className="p-6 bg-slate-50 text-center">
              <Button variant="link" onClick={() => setActiveReportTab('warehouse')} className="text-primary font-black uppercase tracking-widest text-xs hover:no-underline">
                 عرض تقرير الجرد التفصيلي الكامل <ArrowLeft size={14} className="mr-2" />
              </Button>
           </div>
        </Card>
 
-        <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-          <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+        <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+          <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
             <div>
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">ديون الموردين الرئيسية</h3>
               <p className="text-slate-400 font-bold text-sm italic">الأرصدة المستحقة للموردين ونسب السداد</p>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm">
+            <div className="w-12 h-12 rounded-[14px] bg-white flex items-center justify-center text-slate-400 shadow-sm">
                <Briefcase size={24} />
             </div>
           </div>
@@ -12246,7 +12494,7 @@ function OldReportsView({
               </TableBody>
             </Table>
           </div>
-          <div className="p-8 bg-slate-50 text-center">
+          <div className="p-6 bg-slate-50 text-center">
              <Button variant="link" onClick={() => setActiveReportTab('suppliers')} className="text-primary font-black uppercase tracking-widest text-xs hover:no-underline">
                 مراجعة أرصدة وكشوف حسابات الموردين <ArrowLeft size={14} className="mr-2" />
              </Button>
@@ -12257,9 +12505,9 @@ function OldReportsView({
       )}
 
       {activeReportTab === 'warehouse' && (
-        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-            <div className="p-10 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50/30">
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-200">
+          <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+            <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50/30">
               <div>
                 <h3 className="text-3xl font-black text-slate-900 tracking-tight">تقرير جرد المخزن الشامل</h3>
                 <p className="text-slate-400 font-bold text-lg italic mt-1">تـفاصيل الأرصدة والـقـيمة لمـجمل نـشـاط الشـركـة</p>
@@ -12271,7 +12519,7 @@ function OldReportsView({
                 الرصيد: i.currentBalance,
                 سعر_الوحدة: i.price,
                 إجمالي_القيمة: i.currentBalance * i.price
-              })), 'تقرير_الجرد_التفصيلي')} className="h-14 px-10 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg shadow-2xl shadow-emerald-600/20 transition-all">
+              })), 'تقرير_الجرد_التفصيلي')} className="h-14 px-10 rounded-[14px] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg shadow-2xl shadow-emerald-600/20 transition-all">
                 <Download size={20} className="ml-2" />
                 تصدير إكسيل
               </Button>
@@ -12320,7 +12568,7 @@ function OldReportsView({
                 </TableBody>
               </Table>
             </div>
-            <div className="p-12 bg-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="p-12 bg-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-6">
                <div className="flex items-center gap-6">
                   <div className="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center border border-white/10">
                      <PieChartIcon size={32} />
@@ -12331,7 +12579,7 @@ function OldReportsView({
                   </div>
                </div>
                <div className="h-12 w-px bg-white/10 hidden md:block" />
-               <div className="flex items-center gap-12">
+               <div className="flex items-center gap-6">
                   <div className="text-center">
                      <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1">عـدد الأصـنـاف</p>
                      <p className="text-3xl font-black tracking-tight">{items.length}</p>
@@ -12347,10 +12595,10 @@ function OldReportsView({
       )}
 
       {activeReportTab === 'purchases' && (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden relative group">
-               <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-200">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden relative group">
+               <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                <div className="relative z-10">
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">إنـفـاق الـ 6 أشـهـر الأخـيـرة</p>
                  <div className="flex items-end gap-3 mb-2">
@@ -12362,7 +12610,7 @@ function OldReportsView({
                </div>
             </div>
 
-            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden relative group">
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden relative group">
                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">مـتـوسط قـيـمـة الفاتـورة</p>
                <div className="flex items-end gap-3 mb-2">
                  <h3 className="text-5xl font-black text-slate-900 tracking-tighter">
@@ -12372,7 +12620,7 @@ function OldReportsView({
                </div>
             </div>
 
-            <div className="p-10 bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-indigo-900/20 overflow-hidden relative text-white">
+            <div className="p-6 bg-slate-900 rounded-[14px] shadow-2xl shadow-indigo-900/20 overflow-hidden relative text-white">
                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">كـثـافة حـركـات الـشـراء</p>
                <div className="flex items-end gap-3 mb-2">
@@ -12384,15 +12632,15 @@ function OldReportsView({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+          <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+              <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">مـنـحـنى الـشـراء الـزمني</h3>
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
                    <Activity size={20} />
                 </div>
               </div>
-              <div className="p-10 h-[400px]">
+              <div className="p-6 h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={purchaseTrends}>
                     <defs>
@@ -12414,14 +12662,14 @@ function OldReportsView({
               </div>
             </Card>
 
-            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+              <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">أكبر 7 بنود مشتريات</h3>
                 <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
                    <Target size={20} />
                 </div>
               </div>
-              <div className="p-10 h-[400px] flex items-center justify-center">
+              <div className="p-6 h-[400px] flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -12449,8 +12697,8 @@ function OldReportsView({
             </Card>
           </div>
 
-          <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-            <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+          <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
               <div>
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">تـوزيـع المـشتـريـات حـسـب المـورد</h3>
                 <p className="text-slate-400 font-bold text-sm italic">إجمالي حجـم الـتـوريد النقـدي لأكـبر المـوردين</p>
@@ -12476,21 +12724,21 @@ function OldReportsView({
       )}
 
       {activeReportTab === 'suppliers' && (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="p-10 bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-slate-900/20 text-white relative overflow-hidden">
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="p-6 bg-slate-900 rounded-[14px] shadow-2xl shadow-slate-900/20 text-white relative overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full -mr-16 -mt-16" />
                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">إجمالي مـديـونـيات السـوق</p>
                <h3 className="text-4xl font-black tracking-tighter">{totalDebtAcrossSuppliers.toLocaleString()} <span className="text-lg text-slate-500">ج.م</span></h3>
             </div>
             
-            <div className="p-10 bg-indigo-600 rounded-[2.5rem] shadow-2xl shadow-indigo-600/20 text-white relative overflow-hidden">
+            <div className="p-6 bg-indigo-600 rounded-[14px] shadow-2xl shadow-indigo-600/20 text-white relative overflow-hidden">
                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -mr-16 -mt-16" />
                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] mb-4">إجمالي المـبـالـغ الـمـسـددة</p>
                <h3 className="text-4xl font-black tracking-tighter">{totalPaymentsAcrossSuppliers.toLocaleString()} <span className="text-lg text-indigo-300">ج.م</span></h3>
             </div>
 
-            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">مـعـدل الـسـداد الـعـام</p>
                <div className="flex items-center gap-6">
                  <h3 className="text-6xl font-black text-slate-900 tracking-tighter leading-none">
@@ -12507,21 +12755,21 @@ function OldReportsView({
                </div>
             </div>
 
-            <div className="p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">عـدد المـوردين المسـجـلين</p>
                <h3 className="text-6xl font-black text-slate-900 tracking-tighter leading-none">{suppliers.length}</h3>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+          <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+              <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">تحليل التعاملات لكل مورد</h3>
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
                    <TrendingUp size={20} />
                 </div>
               </div>
-              <div className="p-10 h-[450px]">
+              <div className="p-6 h-[450px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={supplierPurchasesData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -12539,14 +12787,14 @@ function OldReportsView({
               </div>
             </Card>
 
-            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden p-0">
-              <div className="p-10 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+            <Card className="dribbble-card border-none shadow-2xl shadow-slate-200/40 rounded-[14px] bg-white overflow-hidden p-0">
+              <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">أكبر 7 موردين دائنية</h3>
                 <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-500">
                    <AlertTriangle size={20} />
                 </div>
               </div>
-              <div className="p-10 h-[450px] flex items-center justify-center">
+              <div className="p-6 h-[450px] flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -12700,14 +12948,14 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input 
-              className="h-10 md:h-12 w-64 rounded-2xl border-slate-200 pr-10 font-bold text-sm" 
+              className="h-10 md:h-12 w-64 rounded-[14px] border-slate-200 pr-10 font-bold text-sm" 
               placeholder="بحث بالاسم..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <select 
-            className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm"
+            className="h-10 md:h-12 rounded-[14px] border border-slate-200 px-4 bg-white font-bold text-sm"
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
           >
@@ -12722,7 +12970,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
         {filteredEmployees.map(emp => (
           <Card key={emp.id} className="dribbble-card border-none overflow-hidden group">
             <CardHeader className="pb-4">
@@ -12809,7 +13057,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                 <label className="text-sm font-bold text-slate-700 block text-right">رقم الهاتف (للواتساب)</label>
                 <Input className="rounded-xl h-11 text-right font-bold" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="01xxxxxxxxx" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">الوظيفة / المسمى الوظيفي</label>
                   <Input className="rounded-xl h-11 text-right font-bold" value={formData.position} onChange={e => setFormData({...formData, position: e.target.value})} />
@@ -12819,7 +13067,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   <Input className="rounded-xl h-11 text-right font-bold" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} placeholder="مثال: الإنتاج، المخازن..." />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">الراتب الأساسي</label>
                   <Input type="number" className="rounded-xl h-11 text-right font-bold" value={formData.baseSalary} onChange={e => setFormData({...formData, baseSalary: Number(e.target.value)})} />
@@ -12832,7 +13080,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {formData.payMethod === 'daily' ? (
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700 block text-right">اليومية</label>
@@ -12862,7 +13110,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">موعد الحضور</label>
                   <Input type="time" className="rounded-xl h-11 text-right" value={formData.shiftStart} onChange={e => setFormData({...formData, shiftStart: e.target.value})} />
@@ -12904,7 +13152,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                 <label className="text-sm font-bold text-slate-700 block text-right">رقم الهاتف (للواتساب)</label>
                 <Input className="rounded-xl h-11 text-right font-bold" value={editingEmployee.phone || ''} onChange={e => setEditingEmployee({...editingEmployee, phone: e.target.value})} placeholder="01xxxxxxxxx" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">الوظيفة / المسمى الوظيفي</label>
                   <Input className="rounded-xl h-11 text-right font-bold" value={editingEmployee.position} onChange={e => setEditingEmployee({...editingEmployee, position: e.target.value})} />
@@ -12914,7 +13162,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   <Input className="rounded-xl h-11 text-right font-bold" value={editingEmployee.department || ''} onChange={e => setEditingEmployee({...editingEmployee, department: e.target.value})} placeholder="مثال: الإنتاج، المخازن..." />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">الراتب الأساسي</label>
                   <Input type="number" className="rounded-xl h-11 text-right font-bold" value={editingEmployee.baseSalary || 0} onChange={e => setEditingEmployee({...editingEmployee, baseSalary: Number(e.target.value)})} />
@@ -12927,7 +13175,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {editingEmployee.payMethod === 'daily' ? (
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700 block text-right">اليومية</label>
@@ -12961,7 +13209,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                 <label className="text-sm font-bold text-slate-700 block text-right">تاريخ التعيين</label>
                 <Input type="date" className="rounded-xl h-11 text-right font-bold" value={editingEmployee.hireDate} onChange={e => setEditingEmployee({...editingEmployee, hireDate: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">موعد الحضور</label>
                   <Input type="time" className="rounded-xl h-11" value={editingEmployee.shiftStart || '08:00'} onChange={e => setEditingEmployee({...editingEmployee, shiftStart: e.target.value})} />
@@ -13019,7 +13267,7 @@ function HRWorkflowGuide({ activeTab, onTabChange }: { activeTab: string, onTabC
   if (currentIndex === -1 && activeTab !== 'employees' && activeTab !== 'loans') return null;
 
   return (
-    <div className="mb-10 bg-white border border-slate-200 rounded-[2rem] p-4 shadow-sm">
+    <div className="mb-10 bg-white border border-slate-200 rounded-[14px] p-4 shadow-sm">
       <div className="flex flex-col md:flex-row items-stretch gap-2">
         {steps.map((step, index) => {
           const isActive = activeTab === step.id;
@@ -13029,7 +13277,7 @@ function HRWorkflowGuide({ activeTab, onTabChange }: { activeTab: string, onTabC
             <div 
               key={step.id}
               onClick={() => onTabChange(step.id)}
-              className={`flex-1 relative cursor-pointer group transition-all duration-300 rounded-2xl p-4 ${
+              className={`flex-1 relative cursor-pointer group transition-all duration-200 rounded-[14px] p-4 ${
                 isActive ? 'bg-primary/5 border-2 border-primary/20 shadow-inner' : 'hover:bg-slate-50'
               }`}
             >
@@ -13436,12 +13684,12 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
           <p className="text-slate-500 mt-1 font-medium text-sm md:text-base text-right">إدارة ومتابعة سلف ومستحقات الموظفين</p>
         </div>
         <div className="flex items-center gap-3 print:hidden">
-          <Button onClick={() => safePrint()} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-2xl border-slate-200 hover:bg-slate-50 font-bold hidden md:flex items-center gap-2">
+          <Button onClick={() => safePrint()} variant="outline" className="h-10 md:h-12 px-4 md:px-6 rounded-[14px] border-slate-200 hover:bg-slate-50 font-bold hidden md:flex items-center gap-2">
             <Printer size={18} />
             <span>طباعة</span>
           </Button>
           <select 
-            className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm text-right"
+            className="h-10 md:h-12 rounded-[14px] border border-slate-200 px-4 bg-white font-bold text-sm text-right"
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
           >
@@ -13449,14 +13697,14 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
               <option key={dept} value={dept}>{dept}</option>
             ))}
           </select>
-          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-4 md:px-6 font-black rounded-2xl shadow-lg shadow-primary/20 font-bold">
+          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-4 md:px-6 font-black rounded-[14px] shadow-lg shadow-primary/20 font-bold">
             <Plus size={20} className="ml-2" />
             <span>تسجيل سلفة جديدة</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40">
            <CardContent className="p-6">
             <div className="flex justify-between items-start">
@@ -13467,7 +13715,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                   <span className="text-slate-400 text-sm font-bold">ج.م</span>
                 </div>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-[14px] bg-blue-50 flex items-center justify-center">
                 <DollarSign className="text-blue-500" size={24} />
               </div>
             </div>
@@ -13484,7 +13732,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                   <span className="text-slate-400 text-sm font-bold">ج.م</span>
                 </div>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-[14px] bg-white/10 flex items-center justify-center">
                 <Users className="text-slate-300" size={24} />
               </div>
             </div>
@@ -13493,7 +13741,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex justify-start gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit print:hidden">
+      <div className="flex justify-start gap-2 bg-slate-100 p-1.5 rounded-[14px] w-fit print:hidden">
         <Button 
           variant={loansTab === 'all' ? 'default' : 'ghost'} 
           onClick={() => setLoansTab('all')} 
@@ -13626,7 +13874,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="border border-slate-300 p-4 rounded-xl bg-slate-50/50 text-right">
                 <span className="text-xs font-bold text-slate-600 block mb-1">إجمالي السلف النشطة</span>
                 <span className="text-xl font-black text-slate-950">{totalActiveLoans.toLocaleString()} ج.م</span>
@@ -13672,7 +13920,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
               </tbody>
             </table>
 
-            <div className="grid grid-cols-3 gap-8 mt-16 text-center text-xs font-bold">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 text-center text-xs font-bold">
               <div>
                 <p className="mb-8">المحاسب المسؤول</p>
                 <div className="border-b border-slate-400 w-32 mx-auto"></div>
@@ -13946,7 +14194,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                     {/* Individual active/inactive sulafe details */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-black text-slate-900 font-bold text-right block font-bold">تفاصيل السلف المستلمة والجدولة</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                         {employeeLoans.map(loan => (
                           <Card key={loan.id} className="dribbble-card border border-slate-100 p-5 space-y-4 text-right shadow-sm bg-white hover:shadow-md transition-all">
                             <div className="flex justify-between items-center">
@@ -14001,7 +14249,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                     </div>
 
                     {/* Professional Signature Block (Print Only) */}
-                    <div className="grid grid-cols-3 gap-8 mt-16 text-center text-xs font-bold hidden print:grid" dir="rtl">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 text-center text-xs font-bold hidden print:grid" dir="rtl">
                       <div>
                         <p className="mb-8">توقيع الموظف المقترض</p>
                         <div className="border-b border-slate-400 w-32 mx-auto"></div>
@@ -14048,7 +14296,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 text-right">
                   <label className="text-sm font-bold text-slate-700 block text-right">التاريخ</label>
                   <Input 
@@ -14146,7 +14394,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {formData.deductionMode === 'auto_installment' ? (
                   <div className="space-y-2 text-right animate-in fade-in slide-in-from-top-1 duration-150">
                     <label className="text-sm font-bold text-slate-700 block text-right">عدد الأقساط الأسبوعية</label>
@@ -14188,7 +14436,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
 
               {/* Plan Preview alert */}
               {parseFloat(formData.amount as string) > 0 && (
-                <div className="p-3.5 bg-blue-50/60 border border-blue-100/50 rounded-2xl text-right animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="p-3.5 bg-blue-50/60 border border-blue-100/50 rounded-[14px] text-right animate-in fade-in slide-in-from-top-1 duration-150">
                   <p className="text-xs font-bold text-blue-900 flex items-center gap-1.5 justify-end mb-1.5">
                     <span>خطة السداد الأسبوعية المقترحة</span>
                     <span>ℹ️</span>
@@ -14238,7 +14486,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 text-right">
                   <label className="text-sm font-bold text-slate-700 block text-right">التاريخ</label>
                   <Input type="date" value={editingLoan.date} onChange={e => setEditingLoan({...editingLoan, date: e.target.value})} className="h-12 rounded-xl bg-slate-100 font-bold text-right border-slate-200 text-slate-500" disabled />
@@ -14315,7 +14563,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {editingLoan.deductionMode === 'auto_installment' ? (
                   <div className="space-y-2 text-right animate-in fade-in slide-in-from-top-1 duration-150">
                     <label className="text-sm font-bold text-slate-700 block text-right">عدد الأقساط الأسبوعية</label>
@@ -14357,7 +14605,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
 
               {/* Plan Preview alert for editing */}
               {parseFloat(editingLoan.amount as any) > 0 && (
-                <div className="p-3.5 bg-blue-50/60 border border-blue-100/50 rounded-2xl text-right animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="p-3.5 bg-blue-50/60 border border-blue-100/50 rounded-[14px] text-right animate-in fade-in slide-in-from-top-1 duration-150">
                   <p className="text-xs font-bold text-blue-900 flex items-center gap-1.5 justify-end mb-1.5">
                     <span>خطة السداد الأسبوعية المعدلة</span>
                     <span>ℹ️</span>
@@ -14608,7 +14856,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
         </div>
         <div className="flex items-center gap-3">
           <select 
-            className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm"
+            className="h-10 md:h-12 rounded-[14px] border border-slate-200 px-4 bg-white font-bold text-sm"
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
           >
@@ -14713,7 +14961,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
               {formData.type === 'إضافي' ? (
                 <div className="pt-4 border-t border-slate-100 space-y-4 font-bold">
                   <h4 className="font-black text-sm text-slate-900 block text-right">تفاصيل الإضافي</h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700 block text-right">عدد الساعات</label>
                       <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={formData.overtimeHours} onChange={e => setFormData({...formData, overtimeHours: Number(e.target.value)})} />
@@ -14784,7 +15032,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
               {editingTransaction.type === 'إضافي' ? (
                 <div className="pt-4 border-t border-slate-100 space-y-4 font-bold">
                   <h4 className="font-black text-sm text-slate-900 block text-right">تفاصيل الإضافي</h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700 block text-right">عدد الساعات</label>
                       <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.overtimeHours || 0} onChange={e => setEditingTransaction({...editingTransaction, overtimeHours: Number(e.target.value)})} />
@@ -14826,7 +15074,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
           <Card className="dribbble-card w-full max-w-sm border-none shadow-2xl animate-in fade-in zoom-in duration-200">
             <CardHeader className="pb-2">
-              <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-red-50 rounded-[14px] flex items-center justify-center mb-4">
                 <AlertCircle className="text-red-500" size={24} />
               </div>
               <CardTitle className="font-black text-xl text-slate-900">تأكيد الحذف</CardTitle>
@@ -14990,7 +15238,7 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
           <Button 
             variant="outline" 
             onClick={() => setShowRatesConfig(!showRatesConfig)} 
-            className={`h-10 md:h-12 px-5 font-bold border-slate-200 text-slate-700 rounded-2xl flex items-center gap-2 transition-all ${
+            className={`h-10 md:h-12 px-5 font-bold border-slate-200 text-slate-700 rounded-[14px] flex items-center gap-2 transition-all ${
               showRatesConfig ? 'bg-primary/10 text-primary border-primary' : 'hover:bg-slate-50'
             }`}
           >
@@ -15000,7 +15248,7 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input 
-              className="h-10 md:h-12 w-48 rounded-2xl border-slate-200 pr-10 font-bold text-sm" 
+              className="h-10 md:h-12 w-48 rounded-[14px] border-slate-200 pr-10 font-bold text-sm" 
               placeholder="بحث بالاسم أو المنتج..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -15017,9 +15265,9 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
       </div>
 
       {showRatesConfig && (
-        <Card className="dribbble-card border-none bg-slate-50/50 p-6 animate-in fade-in slide-in-from-top-4 duration-300">
+        <Card className="dribbble-card border-none bg-slate-50/50 p-6 animate-in fade-in slide-in-from-top-4 duration-200">
           <div className="flex flex-col lg:flex-row gap-6 justify-between items-start">
-            <div className="w-full lg:w-1/3 space-y-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm text-right">
+            <div className="w-full lg:w-1/3 space-y-4 bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm text-right">
               <h3 className="font-black text-lg text-slate-900 flex items-center justify-end gap-2">
                 تعريف سعر قطعة/غرفة جديد
                 <Plus size={18} className="text-primary" />
@@ -15072,7 +15320,7 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
                 الأسعار المعرفة حالياً للمجموعات
                 <SettingsIcon size={18} className="text-primary" />
               </h3>
-              <div className="max-h-[300px] overflow-auto border border-slate-105 rounded-2xl bg-white shadow-sm">
+              <div className="max-h-[300px] overflow-auto border border-slate-105 rounded-[14px] bg-white shadow-sm">
                 <Table>
                   <TableHeader className="bg-slate-50/50 font-bold">
                     <TableRow>
@@ -15158,7 +15406,7 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
               </Button>
             </CardHeader>
             <CardContent className="flex-grow overflow-auto py-6 space-y-6 px-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 text-right">
                   <label className="text-sm font-bold text-slate-700 block text-right">الموظف / المقاول بالإنتاج</label>
                   <select 
@@ -15200,7 +15448,7 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
               </div>
 
               {selectedEmployee && (
-                <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex items-center justify-between gap-4 text-xs font-bold text-slate-700 text-right animate-in fade-in duration-150" dir="rtl">
+                <div className="p-4 rounded-[14px] bg-indigo-50/50 border border-indigo-100 flex items-center justify-between gap-4 text-xs font-bold text-slate-700 text-right animate-in fade-in duration-150" dir="rtl">
                   <div className="flex gap-2">
                     <span className="text-indigo-600">فئة حساب السعر:</span>
                     <span className="text-indigo-950 font-black">
@@ -15225,7 +15473,7 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
                   <h4 className="font-black text-slate-950 border-r-4 border-primary pr-3 text-right">القطع والغرف المنفذة</h4>
                 </div>
 
-                <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm bg-white font-bold">
+                <div className="border border-slate-100 rounded-[14px] overflow-hidden shadow-sm bg-white font-bold">
                   <Table>
                     <TableHeader className="bg-slate-50/50">
                       <TableRow className="hover:bg-transparent">
@@ -15322,7 +15570,7 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
                 </div>
               </div>
 
-              <div className="p-5 bg-slate-50 rounded-2xl flex flex-row-reverse justify-between items-center text-right">
+              <div className="p-5 bg-slate-50 rounded-[14px] flex flex-row-reverse justify-between items-center text-right">
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-right font-bold">إجمالي السجل</p>
                   <p className="text-3xl font-black text-slate-900 text-right font-bold">
@@ -16032,13 +16280,13 @@ const PayrollView = React.memo(function PayrollView({
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input 
-              className="h-10 md:h-12 w-48 rounded-2xl border-slate-200 pr-10 font-bold text-sm" 
+              className="h-10 md:h-12 w-48 rounded-[14px] border-slate-200 pr-10 font-bold text-sm" 
               placeholder="بحث بالاسم..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-2xl border border-slate-200 h-10 md:h-12">
+          <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-[14px] border border-slate-200 h-10 md:h-12">
             <span className="text-[10px] font-bold text-slate-400 uppercase">أسبوع:</span>
             <input 
               type="number" 
@@ -16055,7 +16303,7 @@ const PayrollView = React.memo(function PayrollView({
             />
           </div>
           <select 
-            className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm"
+            className="h-10 md:h-12 rounded-[14px] border border-slate-200 px-4 bg-white font-bold text-sm"
             value={selectedDept}
             onChange={(e) => setSelectedDept(e.target.value)}
           >
@@ -16063,7 +16311,7 @@ const PayrollView = React.memo(function PayrollView({
               <option key={dept} value={dept}>{dept}</option>
             ))}
           </select>
-          <Button onClick={() => setShowVouchers(true)} variant="outline" className="h-10 md:h-12 px-6 rounded-2xl font-bold border-slate-200">
+          <Button onClick={() => setShowVouchers(true)} variant="outline" className="h-10 md:h-12 px-6 rounded-[14px] font-bold border-slate-200">
             <Printer size={18} className="ml-2" />
             قسائم الصرف
           </Button>
@@ -16075,12 +16323,12 @@ const PayrollView = React.memo(function PayrollView({
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               disabled={isImporting}
             />
-            <Button variant="outline" className="h-10 md:h-12 px-6 rounded-2xl font-bold border-slate-200" disabled={isImporting}>
+            <Button variant="outline" className="h-10 md:h-12 px-6 rounded-[14px] font-bold border-slate-200" disabled={isImporting}>
               <Upload size={18} className="ml-2" />
               استيراد
             </Button>
           </div>
-          <Button onClick={handleExportExcel} variant="outline" className="h-10 md:h-12 px-6 rounded-2xl font-bold border-slate-200">
+          <Button onClick={handleExportExcel} variant="outline" className="h-10 md:h-12 px-6 rounded-[14px] font-bold border-slate-200">
             <Download size={18} className="ml-2" />
             تصدير
           </Button>
@@ -16115,9 +16363,9 @@ const PayrollView = React.memo(function PayrollView({
 
       {payrollSubTab === 'weekly' ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
+          <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-blue-50 rounded-[14px] flex items-center justify-center">
             <DollarSign className="text-blue-600" size={24} />
           </div>
           <div>
@@ -16140,28 +16388,28 @@ const PayrollView = React.memo(function PayrollView({
         <div className="md:col-span-2 flex items-center justify-end gap-3 flex-wrap">
           {selectedPayrollIds.length > 0 ? (
             <>
-              <Button onClick={() => window.print()} className="h-14 px-8 rounded-2xl font-black text-base bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200">
+              <Button onClick={() => window.print()} className="h-14 px-8 rounded-[14px] font-black text-base bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200">
                 <Printer size={18} className="ml-2" />
                 طباعة القسائم
               </Button>
               <span className="text-sm font-black text-slate-500 bg-slate-100 px-4 py-2.5 rounded-xl border border-slate-200">
                 تم تحديد {selectedPayrollIds.length} كشف
               </span>
-              <Button onClick={handleSelectedArchive} className="h-14 px-8 rounded-2xl font-black text-base bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-200">
+              <Button onClick={handleSelectedArchive} className="h-14 px-8 rounded-[14px] font-black text-base bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-200">
                 <History size={18} className="ml-2" />
                 ترحيل وقبض المحددين
               </Button>
-              <Button onClick={handleBulkDeleteSelected} variant="outline" className="h-14 px-6 rounded-2xl font-black text-base border-red-200 hover:border-red-300 hover:bg-red-50 text-red-600 shadow-sm">
+              <Button onClick={handleBulkDeleteSelected} variant="outline" className="h-14 px-6 rounded-[14px] font-black text-base border-red-200 hover:border-red-300 hover:bg-red-50 text-red-600 shadow-sm">
                 <Trash2 size={18} className="ml-2" />
                 حذف المحددين
               </Button>
-              <Button onClick={() => setSelectedPayrollIds([])} variant="ghost" className="h-14 px-4 rounded-2xl font-black text-sm text-slate-500 hover:bg-slate-100">
+              <Button onClick={() => setSelectedPayrollIds([])} variant="ghost" className="h-14 px-4 rounded-[14px] font-black text-sm text-slate-500 hover:bg-slate-100">
                 إلغاء التحديد
               </Button>
             </>
           ) : (
             draftPayrolls.length > 0 && (
-              <Button onClick={handleBulkArchive} className="h-14 px-10 rounded-2xl font-black text-lg bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-200">
+              <Button onClick={handleBulkArchive} className="h-14 px-10 rounded-[14px] font-black text-lg bg-orange-500 hover:bg-orange-600 text-white shadow-xl shadow-orange-200">
                 <History size={20} className="ml-2" />
                 ترحيل وأرشفة الكل
               </Button>
@@ -16310,7 +16558,7 @@ const PayrollView = React.memo(function PayrollView({
   ) : payrollSubTab === 'daily' ? (
     <>
       {/* Daily Payroll View */}
-      <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 space-y-6 print:hidden">
+      <div className="bg-slate-50 border border-slate-200 rounded-[14px] p-6 space-y-6 print:hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h3 className="font-black text-xl text-slate-800">تحديد تاريخ أو فترة الكشف اليومي</h3>
@@ -16388,11 +16636,11 @@ const PayrollView = React.memo(function PayrollView({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 print:hidden">
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي أجور {dailyMode === 'range' ? 'الفترة' : 'اليوم'}</p>
             <p className="text-2xl font-black font-mono tracking-tight text-slate-900 mt-1">{filteredDailyTotal.toLocaleString('en-US')} ج.م</p>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{dailyMode === 'range' ? 'عدد الموظفين الفعّالين' : 'العمال المتواجدين'}</p>
             <p className="text-2xl font-black text-blue-600 mt-1">
               <span className="font-mono tracking-tight font-black">
@@ -16403,13 +16651,13 @@ const PayrollView = React.memo(function PayrollView({
               </span> موظف
             </p>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي إضافي وحوافز {dailyMode === 'range' ? 'الفترة' : 'اليوم'}</p>
             <p className="text-2xl font-black font-mono tracking-tight text-emerald-600 mt-1">
               {filteredDailyPayroll.reduce((sum, d) => sum + d.totalOvertime + d.totalBonuses, 0).toLocaleString('en-US')} ج.م
             </p>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="bg-white p-5 rounded-[14px] border border-slate-100 shadow-sm">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">إجمالي خصومات ومصروف {dailyMode === 'range' ? 'الفترة' : 'اليوم'}</p>
             <p className="text-2xl font-black font-mono tracking-tight text-rose-600 mt-1">
               {filteredDailyPayroll.reduce((sum, d) => sum + d.totalDeductions + d.totalExpenses + d.totalLoans, 0).toLocaleString('en-US')} ج.م
@@ -16584,7 +16832,7 @@ const PayrollView = React.memo(function PayrollView({
 
           {/* 1. Modal View for Screen ONLY (hidden during printing) */}
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60] overflow-auto print:hidden">
-            <div className="w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[90vh]">
+            <div className="w-full max-w-5xl bg-white rounded-[14px] shadow-2xl overflow-hidden flex flex-col h-[90vh]">
               {/* Modal Header */}
               <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
                 <div>
@@ -16655,7 +16903,7 @@ const PayrollView = React.memo(function PayrollView({
               </div>
 
               {/* Modal Cards Grid list */}
-              <div className="p-8 overflow-auto flex-1 bg-slate-100/30">
+              <div className="p-6 overflow-auto flex-1 bg-slate-100/30">
                 {filteredModalVouchers.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                     <AlertCircle size={48} className="mb-4 opacity-20" />
@@ -16663,7 +16911,7 @@ const PayrollView = React.memo(function PayrollView({
                     <p className="text-xs">تأكد من كتابة الاسم بشكل صحيح أو تغيير القسم</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 md:grid-cols-3 gap-6">
                     {filteredModalVouchers.map((p) => {
                       const emp = employees.find(e => e.id === p.employeeId);
                       const isSelected = selectedVoucherIds.includes(p.id);
@@ -16676,7 +16924,7 @@ const PayrollView = React.memo(function PayrollView({
                               prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id]
                             );
                           }}
-                          className={`cursor-pointer group relative bg-white p-6 rounded-[2rem] border-2 transition-all duration-300 flex flex-col justify-between min-h-[21rem] ${
+                          className={`cursor-pointer group relative bg-white p-6 rounded-[14px] border-2 transition-all duration-200 flex flex-col justify-between min-h-[21rem] ${
                             isSelected 
                               ? 'border-blue-600 shadow-xl shadow-blue-100/50 scale-[1.02]' 
                               : 'border-slate-200/60 hover:border-slate-300 shadow-sm opacity-75 hover:opacity-100'
@@ -16716,7 +16964,7 @@ const PayrollView = React.memo(function PayrollView({
                             </div>
 
                             {/* Info Columns Grid */}
-                            <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                               {/* Employee Details */}
                               <div className="space-y-1.5 pr-2 border-r border-slate-100 flex flex-col justify-center text-right">
                                 <div className="flex justify-between border-b border-slate-100 pb-0.5">
@@ -16914,7 +17162,7 @@ const PayrollView = React.memo(function PayrollView({
               <CardDescription className="font-bold">يمكنك تعديل القيم يدوياً لهذا الموظف فقط.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">تاريخ بداية الفترة</label>
                   <Input 
@@ -16934,7 +17182,7 @@ const PayrollView = React.memo(function PayrollView({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">
                     {editingPayroll.payMethod === 'production' ? 'استحقاق الإنتاج' : 'أيام العمل'}
@@ -17036,7 +17284,7 @@ const PayrollView = React.memo(function PayrollView({
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Presets Helper */}
-              <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100 space-y-2 text-right">
+              <div className="bg-slate-50/80 p-3.5 rounded-[14px] border border-slate-100 space-y-2 text-right">
                 <span className="text-xs font-bold text-slate-500 block text-right">تعبئة تلقائية سريعة للفترة (السبت - الجمعة):</span>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
@@ -17100,7 +17348,7 @@ const PayrollView = React.memo(function PayrollView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 text-right">
                   <label className="text-sm font-bold text-slate-700 block text-right">من تاريخ</label>
                   <Input type="date" className="rounded-xl h-11 text-right font-bold border-slate-200" value={genData.startDate} onChange={e => setGenData({...genData, startDate: e.target.value})} />
@@ -17110,7 +17358,7 @@ const PayrollView = React.memo(function PayrollView({
                   <Input type="date" className="rounded-xl h-11 text-right font-bold border-slate-200" value={genData.endDate} onChange={e => setGenData({...genData, endDate: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 text-right">
                   <label className="text-sm font-bold text-slate-700 block text-right">رقم الأسبوع</label>
                   <Input type="number" className="rounded-xl h-11 text-right font-bold border-slate-200" value={genData.weekNumber} onChange={e => setGenData({...genData, weekNumber: Number(e.target.value)})} />
@@ -17186,7 +17434,7 @@ const PayrollView = React.memo(function PayrollView({
               }
             `}</style>
             <Card className="dribbble-card w-full max-w-xl bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-100">
-              <div id="print-slip-area" className="p-8 space-y-6 text-slate-800">
+              <div id="print-slip-area" className="p-6 space-y-6 text-slate-800">
                 {/* Header */}
                 <div className="text-center pb-6 border-b border-slate-100 space-y-2">
                   <h3 className="text-2xl font-black text-slate-900">{companyInfo?.name || 'مجموعة شركات الجودة والتميز'}</h3>
@@ -17199,7 +17447,7 @@ const PayrollView = React.memo(function PayrollView({
                 </div>
 
                 {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-[14px] text-sm">
                   <div className="space-y-1">
                     <span className="text-xs text-slate-400 font-bold">اسم الموظف:</span>
                     <p className="font-black text-slate-800">{emp?.name}</p>
@@ -17219,7 +17467,7 @@ const PayrollView = React.memo(function PayrollView({
                 </div>
 
                 {/* Financial Table */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                   {/* Earnings */}
                   <div className="space-y-3">
                     <h4 className="font-black text-sm text-emerald-600 pb-2 border-b-2 border-emerald-500/10 flex items-center gap-2">
@@ -17278,7 +17526,7 @@ const PayrollView = React.memo(function PayrollView({
                 </div>
 
                 {/* Net Total Box */}
-                <div className="mt-6 p-5 rounded-2xl bg-slate-900 text-white flex justify-between items-center">
+                <div className="mt-6 p-5 rounded-[14px] bg-slate-900 text-white flex justify-between items-center">
                   <div>
                     <span className="text-[10px] font-black uppercase text-white/50 tracking-[0.2em] block">المبلغ المستحق الدفع</span>
                     <span className="text-sm font-semibold text-emerald-400">صافي الراتب بعد التصفية والخصم</span>
@@ -17287,7 +17535,7 @@ const PayrollView = React.memo(function PayrollView({
                 </div>
 
                 {/* Signatures */}
-                <div className="grid grid-cols-2 gap-4 pt-8 text-center text-xs font-semibold text-slate-400">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-8 text-center text-xs font-semibold text-slate-400">
                   <div className="space-y-4">
                     <p>توقيع مستلم المرتب</p>
                     <div className="h-px w-24 bg-slate-200 mx-auto" />
@@ -17392,7 +17640,7 @@ const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, p
           <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">مرحباً بك.. إليك ملخص الحالة المالية الحالية.</p>
         </div>
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-green-50 rounded-[14px] flex items-center justify-center">
             <DollarSign className="text-green-600" size={24} />
           </div>
           <div>
@@ -17406,14 +17654,14 @@ const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, p
         <div className="relative flex-1">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <Input 
-            className="h-14 pr-12 rounded-2xl border-none shadow-sm bg-white font-bold text-lg" 
+            className="h-14 pr-12 rounded-[14px] border-none shadow-sm bg-white font-bold text-lg" 
             placeholder="ابحث باسم الموظف في الأرشيف..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
         <select 
-          className="h-14 rounded-2xl border-none shadow-sm bg-white font-bold text-lg px-6 min-w-[200px]"
+          className="h-14 rounded-[14px] border-none shadow-sm bg-white font-bold text-lg px-6 min-w-[200px]"
           value={selectedDept}
           onChange={(e) => setSelectedDept(e.target.value)}
         >
@@ -17421,7 +17669,7 @@ const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, p
             <option key={dept} value={dept}>{dept}</option>
           ))}
         </select>
-        <Button onClick={handleExportExcel} variant="outline" className="h-14 px-8 rounded-2xl font-black text-lg border-slate-200 bg-white shadow-sm">
+        <Button onClick={handleExportExcel} variant="outline" className="h-14 px-8 rounded-[14px] font-black text-lg border-slate-200 bg-white shadow-sm">
           <Download size={20} className="ml-2" />
           تصدير للأرشيف
         </Button>
@@ -17503,7 +17751,7 @@ const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, p
               </div>
             </CardHeader>
             <CardContent className="pt-6 space-y-6">
-              <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl">
+              <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-[14px]">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-black text-xl">
                   {employees.find(e => e.id === selectedPayroll.employeeId)?.name.charAt(0)}
                 </div>
@@ -17612,7 +17860,7 @@ const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, p
               <CardTitle className="font-black text-2xl">تعديل كشف الراتب</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">أيام العمل</label>
                   <Input type="number" step="0.25" className="rounded-xl h-11" value={editingPayroll.daysWorked} onChange={e => {
@@ -17628,7 +17876,7 @@ const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, p
                   }} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">المكافآت</label>
                   <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalBonuses} onChange={e => setEditingPayroll({...editingPayroll, totalBonuses: parseFloat(e.target.value) || 0})} />
@@ -17638,7 +17886,7 @@ const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, p
                   <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalOvertime} onChange={e => setEditingPayroll({...editingPayroll, totalOvertime: parseFloat(e.target.value) || 0})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">الخصومات</label>
                   <Input type="number" className="rounded-xl h-11" value={editingPayroll.totalDeductions} onChange={e => setEditingPayroll({...editingPayroll, totalDeductions: parseFloat(e.target.value) || 0})} />
@@ -17871,13 +18119,13 @@ function Settings({
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar */}
         <div className="w-full lg:w-64 shrink-0">
           <div className="flex flex-col gap-2 sticky top-6 bg-slate-50 p-4 rounded-3xl border border-slate-100">
             <button
               onClick={() => setSettingsTab('general')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-black text-sm transition-all text-right ${
                 settingsTab === 'general' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -17886,7 +18134,7 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('company')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-black text-sm transition-all text-right ${
                 settingsTab === 'company' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -17895,7 +18143,7 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('baseData')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-black text-sm transition-all text-right ${
                 settingsTab === 'baseData' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -17904,7 +18152,7 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('items')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-black text-sm transition-all text-right ${
                 settingsTab === 'items' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -17913,7 +18161,7 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('suppliers')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-black text-sm transition-all text-right ${
                 settingsTab === 'suppliers' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -17922,7 +18170,7 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('users')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-black text-sm transition-all text-right ${
                 settingsTab === 'users' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -17931,7 +18179,7 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('backup')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-black text-sm transition-all text-right ${
                 settingsTab === 'backup' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -17940,7 +18188,7 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('about')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-black text-sm transition-all text-right ${
                 settingsTab === 'about' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -17949,7 +18197,7 @@ function Settings({
             </button>
             <button
               onClick={() => setSettingsTab('security')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-sm transition-all text-right ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-[14px] font-black text-sm transition-all text-right ${
                 settingsTab === 'security' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -17964,10 +18212,10 @@ function Settings({
           
           {/* GENERAL TAB */}
           {settingsTab === 'general' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-[14px] bg-blue-50 text-blue-600 flex items-center justify-center">
                     <Package size={24} />
                   </div>
                   <div>
@@ -17977,7 +18225,7 @@ function Settings({
                 </div>
 
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-[14px] bg-amber-50 text-amber-600 flex items-center justify-center">
                     <Users size={24} />
                   </div>
                   <div>
@@ -17987,7 +18235,7 @@ function Settings({
                 </div>
 
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-[14px] bg-purple-50 text-purple-600 flex items-center justify-center">
                     <WarehouseIcon size={24} />
                   </div>
                   <div>
@@ -18000,7 +18248,7 @@ function Settings({
               <Card className="dribbble-card border-none bg-slate-900 text-white overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent pointer-events-none" />
                 <CardHeader>
-                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-4 backdrop-blur-md">
+                  <div className="w-12 h-12 bg-white/10 rounded-[14px] flex items-center justify-center mb-4 backdrop-blur-md">
                     <Upload className="text-primary" size={24} />
                   </div>
                   <CardTitle className="text-2xl font-black">استيراد بيانات من إكسيل</CardTitle>
@@ -18016,7 +18264,7 @@ function Settings({
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         disabled={isImporting}
                       />
-                      <Button variant="outline" className="h-14 w-full rounded-2xl border-white/10 hover:bg-white/5 font-black text-white hover:border-white/20 transition-all bg-white/5 flex items-center justify-center gap-2" disabled={isImporting}>
+                      <Button variant="outline" className="h-14 w-full rounded-[14px] border-white/10 hover:bg-white/5 font-black text-white hover:border-white/20 transition-all bg-white/5 flex items-center justify-center gap-2" disabled={isImporting}>
                         {isImporting ? <RotateCcw className="animate-spin" size={20} /> : <Upload size={20} />}
                         {isImporting ? 'جاري الاستيراد...' : 'اختر ملف إكسيل'}
                       </Button>
@@ -18047,7 +18295,7 @@ function Settings({
 
           {/* COMPANY INFO TAB */}
           {settingsTab === 'company' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
               <Card className="dribbble-card border-none">
                 <CardHeader>
                   <CardTitle className="text-2xl font-black text-slate-900">بيانات الشركة والمؤسسة</CardTitle>
@@ -18056,13 +18304,13 @@ function Settings({
                 <CardContent>
                   <form onSubmit={handleSaveCompanyInfo} className="space-y-6">
                     {saveSuccess && (
-                      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center gap-3 font-bold text-sm animate-in fade-in">
+                      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-[14px] flex items-center gap-3 font-bold text-sm animate-in fade-in">
                         <CheckCircle2 size={20} className="text-emerald-600" />
                         تم حفظ إعدادات الشركة بنجاح وتحديث النظام بالكامل!
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-sm font-bold text-slate-700">اسم الشركة / المصنع</label>
                         <Input 
@@ -18114,7 +18362,7 @@ function Settings({
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2">
                         <div className="space-y-2">
                           <label className="text-sm font-bold text-slate-700">الرقم الضريبي (إن وجد)</label>
                           <Input 
@@ -18136,7 +18384,7 @@ function Settings({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
                         <div className="md:col-span-2">
                           <h4 className="font-black text-slate-800 text-sm mb-1">تخصيص تنسيق الأرقام والعمليات المالية</h4>
                           <p className="text-xs text-slate-400 font-medium">قم بتعديل وتطوير طريقة كتابة وتنسيق الأرقام والمبالغ المالية عبر كافة لوحات المصنع والنظام بالكامل</p>
@@ -18147,10 +18395,9 @@ function Settings({
                           <select
                             className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
                             value={localSettings.numberSystem || 'western'}
-                            onChange={e => setLocalSettings({ ...localSettings, numberSystem: e.target.value as 'western' | 'eastern' })}
+                            disabled={true}
                           >
-                            <option value="western">الأرقام الإنجليزية/العربية الغربية (123,456.78)</option>
-                            <option value="eastern">الأرقام العربية الشرقية (١٢٣,٤٥٦٫٧٨)</option>
+                            <option value="western">الأرقام الإنجليزية (123,456.78)</option>
                           </select>
                         </div>
 
@@ -18168,7 +18415,7 @@ function Settings({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
                         <div className="md:col-span-3">
                           <h4 className="font-black text-slate-800 text-sm mb-1">العملات والضرائب والربحية</h4>
                           <p className="text-xs text-slate-400 font-medium">التحكم في الإعدادات المحاسبية الأساسية ونسب الضرائب والربح المستهدفة لتسعير الأصناف تلقائياً</p>
@@ -18211,7 +18458,7 @@ function Settings({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
                         <div className="md:col-span-3">
                           <h4 className="font-black text-slate-800 text-sm mb-1">إعدادات التصنيع والتشغيل الفنية</h4>
                           <p className="text-xs text-slate-400 font-medium">تهيئة المعايير التشغيلية لخطوط الإنتاج واحتساب أجور العمالة المباشرة ونسب هدر المواد</p>
@@ -18256,7 +18503,7 @@ function Settings({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
                         <div className="md:col-span-2">
                           <h4 className="font-black text-slate-800 text-sm mb-1">المخازن والتنبيهات الذكية</h4>
                           <p className="text-xs text-slate-400 font-medium">تحديد مستويات الأمان اللوجستية التي يطلق عندها النظام تنبيهات للمخازن</p>
@@ -18275,7 +18522,7 @@ function Settings({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 border-t border-slate-100 pt-6 mt-6">
                         <div className="md:col-span-2">
                           <h4 className="font-black text-slate-800 text-sm mb-1">إعدادات الأجور واستقطاعات الحضور والانصراف</h4>
                           <p className="text-xs text-slate-400 font-medium">التحكم في تفعيل أو إلغاء خصومات التأخير أو الانصراف المبكر للعمال والحد الأقصى اليومي للخصم</p>
@@ -18305,7 +18552,7 @@ function Settings({
                           </select>
                         </div>
 
-                        <div className="md:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs text-slate-600 font-bold leading-relaxed">
+                        <div className="md:col-span-2 bg-slate-50 p-4 rounded-[14px] border border-slate-200 text-xs text-slate-600 font-bold leading-relaxed">
                           ⚠️ ملاحظة نظام الحماية التلقائية: تم تفعيل ميزة حد أقصى تلقائي للخصم اليومي، بحيث لا يتجاوز إجمالي الخصم بسبب التأخر والانصراف المبكر قيمة "يومية الموظف" في اليوم الواحد إطلاقاً، وذلك لعدم الإجحاف بحقوق الموظف.
                         </div>
                       </div>
@@ -18342,7 +18589,7 @@ function Settings({
                       <Button 
                         type="submit" 
                         disabled={isSaving}
-                        className="btn-primary h-12 px-10 rounded-2xl font-black text-sm shadow-lg shadow-primary/25"
+                        className="btn-primary h-12 px-10 rounded-[14px] font-black text-sm shadow-lg shadow-primary/25"
                       >
                         {isSaving ? 'جاري الحفظ...' : 'حفظ بيانات الشركة'}
                       </Button>
@@ -18355,7 +18602,7 @@ function Settings({
 
           {/* BASE DATA TAB */}
           {settingsTab === 'baseData' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-200">
               
               {/* Warehouses Section */}
               <Card className="dribbble-card border-none">
@@ -18369,9 +18616,9 @@ function Settings({
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                     {warehouses.map(w => (
-                      <div key={w.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
+                      <div key={w.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-[14px] border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-white text-slate-400 group-hover:text-primary flex items-center justify-center transition-colors">
                             <WarehouseIcon size={18} />
@@ -18414,7 +18661,7 @@ function Settings({
                 <CardContent>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {units.map(u => (
-                      <div key={u.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
+                      <div key={u.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-[14px] border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
                             <Scale size={16} />
@@ -18485,7 +18732,7 @@ function Settings({
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {costCenters.map(c => (
-                      <div key={c.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-2xl border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
+                      <div key={c.id} className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-white rounded-[14px] border border-transparent hover:border-slate-100 hover:shadow-sm transition-all group">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
                             <BarChart3 size={16} />
@@ -18515,7 +18762,7 @@ function Settings({
 
           {/* MANAGE ITEMS TAB */}
           {settingsTab === 'items' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
               <Card className="dribbble-card border-none">
                 <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
                   <div>
@@ -18564,7 +18811,7 @@ function Settings({
                   </div>
 
                   {/* Items Table */}
-                  <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white">
+                  <div className="rounded-[14px] border border-slate-100 overflow-hidden bg-white">
                     <Table>
                       <TableHeader className="bg-slate-50/70">
                         <TableRow>
@@ -18627,7 +18874,7 @@ function Settings({
 
           {/* MANAGE SUPPLIERS TAB */}
           {settingsTab === 'suppliers' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
               <Card className="dribbble-card border-none">
                 <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6">
                   <div>
@@ -18652,7 +18899,7 @@ function Settings({
                   </div>
 
                   {/* Suppliers Grid / Table */}
-                  <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white">
+                  <div className="rounded-[14px] border border-slate-100 overflow-hidden bg-white">
                     <Table>
                       <TableHeader className="bg-slate-50/70">
                         <TableRow>
@@ -18718,7 +18965,7 @@ function Settings({
 
           {/* ABOUT TAB */}
           {settingsTab === 'about' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
               <Card className="dribbble-card border-none overflow-hidden relative">
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent pointer-events-none" />
                 <CardHeader className="text-center pb-8 border-b border-slate-100">
@@ -18737,8 +18984,8 @@ function Settings({
                   </div>
                 </CardHeader>
                 <CardContent className="pt-8 space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-slate-50 rounded-[14px] border border-slate-100">
                       <h4 className="font-black text-slate-800 text-lg flex items-center gap-2">
                         <Zap size={18} className="text-primary" />
                         القدرات والميزات الأساسية
@@ -18748,7 +18995,7 @@ function Settings({
                       </p>
                     </div>
 
-                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="p-6 bg-slate-50 rounded-[14px] border border-slate-100">
                       <h4 className="font-black text-slate-800 text-lg flex items-center gap-2">
                         <ShieldCheck size={18} className="text-emerald-600" />
                         الربط السحابي والآمان
@@ -18769,14 +19016,14 @@ function Settings({
 
           {/* USERS MANAGER TAB */}
           {settingsTab === 'users' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-200">
               <UsersManager />
             </div>
           )}
 
           {/* BACKUP TAB */}
           {settingsTab === 'backup' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
               <Card className="dribbble-card border-none">
                 <CardHeader>
                   <CardTitle className="text-2xl font-black text-slate-900 flex items-center gap-2">
@@ -18786,8 +19033,8 @@ function Settings({
                   <CardDescription className="font-bold text-slate-500">حفظ وتصدير بيانات النظام لتأمينها من الفقدان</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6">
-                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+                  <div className="bg-blue-50 border border-blue-100 p-6 rounded-[14px] flex flex-col md:flex-row items-center gap-6">
+                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-[14px] flex items-center justify-center shrink-0">
                       <Download size={32} />
                     </div>
                     <div className="flex-1 space-y-2 text-center md:text-right">
@@ -18815,7 +19062,7 @@ function Settings({
                     </Button>
                   </div>
                   
-                  <div className="bg-slate-50 border border-slate-100 p-6 rounded-2xl space-y-4">
+                  <div className="bg-slate-50 border border-slate-100 p-6 rounded-[14px] space-y-4">
                      <h4 className="font-black text-slate-800 flex items-center gap-2">
                        <ShieldCheck size={18} className="text-emerald-500" />
                        سجل مراقبة النظام (Audit Log)
@@ -18834,7 +19081,7 @@ function Settings({
 
           {/* DANGER ZONE / SECURITY TAB */}
           {settingsTab === 'security' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-200">
               <Card className="dribbble-card border-red-100 bg-red-50/30">
                 <CardHeader>
                   <CardTitle className="text-2xl font-black text-red-700 flex items-center gap-2">
@@ -18845,7 +19092,7 @@ function Settings({
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Warehouse Only Reset (Requested by User) */}
-                  <div className="bg-white p-6 rounded-2xl border border-amber-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="bg-white p-6 rounded-[14px] border border-amber-100 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="text-right">
                       <h4 className="font-black text-slate-900 text-lg">تصفير المخازن والكميات فقط</h4>
                       <p className="text-slate-500 text-sm mt-1">
@@ -18854,7 +19101,7 @@ function Settings({
                     </div>
                     <Button 
                       variant="destructive" 
-                      className="shrink-0 h-12 px-8 rounded-2xl font-black bg-amber-600 text-white hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20"
+                      className="shrink-0 h-12 px-8 rounded-[14px] font-black bg-amber-600 text-white hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20"
                       onClick={() => setShowWarehouseResetConfirm(true)}
                     >
                       تصفير المخازن فقط
@@ -18862,7 +19109,7 @@ function Settings({
                   </div>
 
                   {/* Attendance Only Reset (Requested by User) */}
-                  <div className="bg-white p-6 rounded-2xl border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="bg-white p-6 rounded-[14px] border border-blue-100 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="text-right">
                       <h4 className="font-black text-slate-900 text-lg">تصفير حركات الحضور والانصراف فقط</h4>
                       <p className="text-slate-500 text-sm mt-1">
@@ -18871,7 +19118,7 @@ function Settings({
                     </div>
                     <Button 
                       variant="destructive" 
-                      className="shrink-0 h-12 px-8 rounded-2xl font-black bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
+                      className="shrink-0 h-12 px-8 rounded-[14px] font-black bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
                       onClick={() => setShowAttendanceResetConfirm(true)}
                     >
                       تصفير الحضور والانصراف
@@ -18879,14 +19126,14 @@ function Settings({
                   </div>
 
                   {/* Complete Reset */}
-                  <div className="bg-white p-6 rounded-2xl border border-red-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="bg-white p-6 rounded-[14px] border border-red-100 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="text-right">
                       <h4 className="font-black text-slate-900 text-lg">تصفير حركات ومعاملات البرنامج</h4>
                       <p className="text-slate-500 text-sm mt-1">سيؤدي هذا الإجراء إلى مسح كافة الفواتير، الحسابات، والعمليات والقيود المسجلة نهائياً مع الاحتفاظ ببيانات الموظفين والأصناف والموردين كبنية أساسية.</p>
                     </div>
                     <Button 
                       variant="destructive" 
-                      className="shrink-0 h-12 px-8 rounded-2xl font-black bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/20"
+                      className="shrink-0 h-12 px-8 rounded-[14px] font-black bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/20"
                       onClick={() => setShowResetConfirm(true)}
                     >
                       تصفير العمليات فقط
@@ -18894,7 +19141,7 @@ function Settings({
                   </div>
 
                   {/* Factory Reset (Requested by User) */}
-                  <div className="bg-white p-6 rounded-2xl border border-red-200 bg-red-50/20 flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="bg-white p-6 rounded-[14px] border border-red-200 bg-red-50/20 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="text-right">
                       <h4 className="font-black text-red-700 text-lg flex items-center gap-2">
                         <ShieldAlert size={20} className="text-red-600 animate-pulse" />
@@ -18906,7 +19153,7 @@ function Settings({
                     </div>
                     <Button 
                       variant="destructive" 
-                      className="shrink-0 h-12 px-8 rounded-2xl font-black bg-slate-950 text-white hover:bg-red-600 transition-all shadow-lg hover:shadow-red-600/25 border border-slate-800"
+                      className="shrink-0 h-12 px-8 rounded-[14px] font-black bg-slate-950 text-white hover:bg-red-600 transition-all shadow-lg hover:shadow-red-600/25 border border-slate-800"
                       onClick={() => setShowFactoryResetConfirm(true)}
                     >
                       البدء من الصفر كلياً

@@ -173,7 +173,7 @@ export function MaintenanceOrdersView({
   const maxTypeCost = Math.max(...costByType.map(t => t.cost), 1);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500" dir="rtl">
+    <div className="space-y-6 animate-in fade-in duration-200" dir="rtl">
       {/* Header section with Stats Summary */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -195,7 +195,7 @@ export function MaintenanceOrdersView({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-none shadow-xl shadow-slate-100/50 rounded-3xl bg-white overflow-hidden hover:scale-[1.01] transition-transform">
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl">
+            <div className="p-4 bg-amber-50 text-amber-600 rounded-[14px]">
               <Clock size={24} className="animate-pulse" />
             </div>
             <div>
@@ -209,7 +209,7 @@ export function MaintenanceOrdersView({
 
         <Card className={`border-none shadow-xl shadow-slate-100/50 rounded-3xl bg-white overflow-hidden hover:scale-[1.01] transition-transform ${delayedCount > 0 ? 'ring-2 ring-red-500/20' : ''}`}>
           <CardContent className="p-6 flex items-center gap-4">
-            <div className={`p-4 rounded-2xl ${delayedCount > 0 ? 'bg-rose-100 text-rose-600 animate-bounce' : 'bg-slate-50 text-slate-400'}`}>
+            <div className={`p-4 rounded-[14px] ${delayedCount > 0 ? 'bg-rose-100 text-rose-600 animate-bounce' : 'bg-slate-50 text-slate-400'}`}>
               <AlertTriangle size={24} />
             </div>
             <div>
@@ -223,7 +223,7 @@ export function MaintenanceOrdersView({
 
         <Card className="border-none shadow-xl shadow-slate-100/50 rounded-3xl bg-white overflow-hidden hover:scale-[1.01] transition-transform">
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl">
+            <div className="p-4 bg-emerald-50 text-emerald-600 rounded-[14px]">
               <CheckCircle size={24} />
             </div>
             <div>
@@ -237,7 +237,7 @@ export function MaintenanceOrdersView({
 
         <Card className="border-none shadow-xl shadow-slate-100/50 rounded-3xl bg-indigo-600 text-white overflow-hidden hover:scale-[1.01] transition-transform">
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-4 bg-indigo-500/50 text-white rounded-2xl">
+            <div className="p-4 bg-indigo-500/50 text-white rounded-[14px]">
               <Wrench size={24} />
             </div>
             <div>
@@ -288,7 +288,7 @@ export function MaintenanceOrdersView({
                     </div>
                     <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden">
                       <div 
-                        className="bg-indigo-500 h-full rounded-full transition-all duration-500" 
+                        className="bg-indigo-500 h-full rounded-full transition-all duration-200" 
                         style={{ width: `${(item.cost / maxCenterCost) * 100}%` }}
                       />
                     </div>
@@ -307,7 +307,7 @@ export function MaintenanceOrdersView({
                     </div>
                     <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden">
                       <div 
-                        className="bg-purple-500 h-full rounded-full transition-all duration-500" 
+                        className="bg-purple-500 h-full rounded-full transition-all duration-200" 
                         style={{ width: `${(item.cost / maxTypeCost) * 100}%` }}
                       />
                     </div>
@@ -428,7 +428,7 @@ export function MaintenanceOrdersView({
 
       {/* Add Maintenance Order Dialog */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="max-w-2xl bg-white rounded-[2rem] p-8 border-none shadow-2xl" dir="rtl">
+        <DialogContent className="max-w-2xl bg-white rounded-[14px] p-6 border-none shadow-2xl" dir="rtl">
           <DialogHeader dir="rtl">
             <DialogTitle className="text-2xl font-black text-slate-900">إطلاق أمر صيانة خارجية جديد</DialogTitle>
             <CardDescription className="font-bold text-xs mt-1 text-slate-400">إرسال المعدات والأقلام والأسلحة للورش المتخصصة في مصر الجديدة أو دمياط للسن والتجديد</CardDescription>

@@ -33,6 +33,7 @@ import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { ChatMessage, UserProfile } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { forceEnglishDigits } from '../lib/numberUtils';
 
 export const ChatModule: React.FC = () => {
   const { profile } = useAuth();
@@ -157,7 +158,7 @@ export const ChatModule: React.FC = () => {
           <button
             onClick={() => setActiveRoom('global')}
             className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-2xl transition-all duration-200",
+              "w-full flex items-center gap-3 p-3 rounded-[14px] transition-all duration-200",
               activeRoom === 'global' 
                 ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20" 
                 : "hover:bg-white text-slate-600 hover:shadow-sm"
@@ -191,7 +192,7 @@ export const ChatModule: React.FC = () => {
                 key={user.uid}
                 onClick={() => setActiveRoom(roomId)}
                 className={cn(
-                  "w-full flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group",
+                  "w-full flex items-center gap-3 p-3 rounded-[14px] transition-all duration-200 group",
                   isActive 
                     ? "bg-white border border-slate-100 shadow-md ring-2 ring-blue-500/10" 
                     : "hover:bg-white text-slate-600 border border-transparent hover:border-slate-100 hover:shadow-sm"
@@ -261,7 +262,7 @@ export const ChatModule: React.FC = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/30">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
           <AnimatePresence initial={false}>
             {messages.map((msg, index) => {
               const isMe = msg.senderId === profile?.uid;
@@ -293,15 +294,15 @@ export const ChatModule: React.FC = () => {
                       <span className="text-[10px] font-black text-slate-400 mr-1">{msg.senderName}</span>
                     )}
                     <div className={cn(
-                      "px-4 py-3 rounded-2xl text-sm font-medium leading-relaxed shadow-sm",
+                      "px-4 py-3 rounded-[14px] text-sm font-medium leading-relaxed shadow-sm",
                       isMe 
                         ? "bg-slate-900 text-white rounded-tl-none" 
                         : "bg-white text-slate-700 border border-slate-100 rounded-tr-none"
                     )}>
                       {msg.text}
                     </div>
-                    <span className="text-[9px] font-bold text-slate-400 px-1">
-                      {msg.timestamp ? format(new Date(msg.timestamp), 'hh:mm a', { locale: ar }) : ''}
+                    <span className="text-[9px] font-mono font-bold text-slate-400 px-1">
+                      {msg.timestamp ? forceEnglishDigits(format(new Date(msg.timestamp), 'hh:mm a', { locale: ar })) : ''}
                     </span>
                   </div>
                 </motion.div>
@@ -313,7 +314,7 @@ export const ChatModule: React.FC = () => {
 
         {/* Input Area */}
         <div className="p-6 bg-white border-t border-slate-100">
-          <form onSubmit={handleSendMessage} className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-100 focus-within:border-blue-500/50 focus-within:ring-4 focus-within:ring-blue-500/5 transition-all">
+          <form onSubmit={handleSendMessage} className="flex items-center gap-3 bg-slate-50 p-2 rounded-[14px] border border-slate-100 focus-within:border-blue-500/50 focus-within:ring-4 focus-within:ring-blue-500/5 transition-all">
             <div className="flex gap-1">
               <Button type="button" variant="ghost" size="icon" className="w-10 h-10 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                 <Smile size={20} />

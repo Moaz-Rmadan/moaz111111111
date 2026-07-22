@@ -34,7 +34,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts';
 import { Vehicle, VehicleExpense, Employee, Safe, Supplier } from '../types';
-import { NumberDisplay } from '../lib/numberUtils';
+import { NumberDisplay, forceEnglishDigits } from '../lib/numberUtils';
 import * as XLSX from 'xlsx';
 
 interface VehiclesViewProps {
@@ -114,7 +114,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
     const last6Months = Array.from({ length: 6 }).map((_, i) => {
       const d = subMonths(new Date(), i);
       return {
-        month: format(d, 'MMM yyyy', { locale: ar }),
+        month: forceEnglishDigits(format(d, 'MMM yyyy', { locale: ar })),
         fuel: 0,
         maintenance: 0,
         other: 0,
@@ -362,10 +362,10 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
+    <div className="space-y-6 animate-in fade-in duration-200 pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
-           <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+           <div className="w-14 h-14 bg-primary/10 rounded-[14px] flex items-center justify-center text-primary">
              <Truck size={32} strokeWidth={2.5} />
            </div>
            <div>
@@ -374,11 +374,11 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <Button onClick={() => setShowAddVehicle(true)} className="btn-primary flex-1 md:flex-none rounded-2xl h-12 px-6 shadow-lg shadow-primary/20">
+          <Button onClick={() => setShowAddVehicle(true)} className="btn-primary flex-1 md:flex-none rounded-[14px] h-12 px-6 shadow-lg shadow-primary/20">
             <Plus size={18} className="ml-2" />
             إضافة مركبة
           </Button>
-          <Button onClick={() => setShowAddExpense(true)} variant="outline" className="flex-1 md:flex-none h-12 px-6 rounded-2xl border-slate-200 font-bold bg-white hover:bg-slate-50">
+          <Button onClick={() => setShowAddExpense(true)} variant="outline" className="flex-1 md:flex-none h-12 px-6 rounded-[14px] border-slate-200 font-bold bg-white hover:bg-slate-50">
             <Fuel size={18} className="ml-2 text-primary" />
             تسجيل مصروف
           </Button>
@@ -389,7 +389,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
         <Card className="border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-all">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div className="w-12 h-12 bg-blue-50 group-hover:bg-blue-100 rounded-2xl flex items-center justify-center transition-colors">
+              <div className="w-12 h-12 bg-blue-50 group-hover:bg-blue-100 rounded-[14px] flex items-center justify-center transition-colors">
                 <Truck className="text-blue-600" size={24} />
               </div>
               <Badge className="bg-blue-50 text-blue-700 border-none font-bold">الأسطول</Badge>
@@ -407,7 +407,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
         <Card className="border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-all">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div className="w-12 h-12 bg-red-50 group-hover:bg-red-100 rounded-2xl flex items-center justify-center transition-colors">
+              <div className="w-12 h-12 bg-red-50 group-hover:bg-red-100 rounded-[14px] flex items-center justify-center transition-colors">
                 <Wrench className="text-red-600" size={24} />
               </div>
               <Badge className="bg-red-50 text-red-700 border-none font-bold">تنبيهات الصيانة</Badge>
@@ -427,7 +427,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
         <Card className="border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-all">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div className="w-12 h-12 bg-amber-50 group-hover:bg-amber-100 rounded-2xl flex items-center justify-center transition-colors">
+              <div className="w-12 h-12 bg-amber-50 group-hover:bg-amber-100 rounded-[14px] flex items-center justify-center transition-colors">
                 <ShieldCheck className="text-amber-600" size={24} />
               </div>
               <Badge className="bg-amber-50 text-amber-700 border-none font-bold">أوراق ثبوتية</Badge>
@@ -445,7 +445,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
         <Card className="border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-all">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
-              <div className="w-12 h-12 bg-emerald-50 group-hover:bg-emerald-100 rounded-2xl flex items-center justify-center transition-colors">
+              <div className="w-12 h-12 bg-emerald-50 group-hover:bg-emerald-100 rounded-[14px] flex items-center justify-center transition-colors">
                 <Activity className="text-emerald-600" size={24} />
               </div>
               <Badge className="bg-emerald-50 text-emerald-700 border-none font-bold">تحليل التكاليف</Badge>
@@ -582,11 +582,11 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
                 placeholder="بحث برقم اللوحة، الماركة، أو اسم السائق..." 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pr-12 h-12 rounded-2xl border-slate-100 bg-slate-50 focus:bg-white transition-all font-bold"
+                className="pr-12 h-12 rounded-[14px] border-slate-100 bg-slate-50 focus:bg-white transition-all font-bold"
               />
             </div>
             <div className="flex items-center gap-2">
-               <Button variant="outline" className="h-12 w-12 p-0 rounded-2xl border-slate-100">
+               <Button variant="outline" className="h-12 w-12 p-0 rounded-[14px] border-slate-100">
                  <Filter size={18} />
                </Button>
             </div>
@@ -613,11 +613,13 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-slate-100 group-hover:bg-primary/5 rounded-2xl flex items-center justify-center text-slate-600 group-hover:text-primary transition-colors">
+                        <div className="w-12 h-12 bg-slate-100 group-hover:bg-primary/5 rounded-[14px] flex items-center justify-center text-slate-600 group-hover:text-primary transition-colors">
                           <Car size={26} strokeWidth={2.5} />
                         </div>
                         <div>
-                          <CardTitle className="text-xl font-black text-slate-900">{vehicle.plateNumber}</CardTitle>
+                          <CardTitle className="text-xl font-black text-slate-900 font-mono">
+                            {forceEnglishDigits(vehicle.plateNumber)}
+                          </CardTitle>
                           <CardDescription className="font-bold flex items-center gap-1">
                             {vehicle.brand} <span className="text-slate-300">|</span> {vehicle.type}
                           </CardDescription>
@@ -635,15 +637,15 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
 
                   <CardContent className="space-y-5 flex-1">
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100/50">
+                      <div className="bg-slate-50 p-3 rounded-[14px] border border-slate-100/50">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">السائق المسؤول</p>
                         <p className="text-sm font-black text-slate-900 mt-0.5 truncate">{vehicle.driverName || 'غير محدد'}</p>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100/50">
+                      <div className="bg-slate-50 p-3 rounded-[14px] border border-slate-100/50">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">قراءة العداد</p>
                         <div className="flex items-center gap-1 mt-0.5">
                           <Gauge size={12} className="text-primary" />
-                          <p className="text-sm font-black text-slate-900">{vehicle.odometerReading.toLocaleString()}</p>
+                          <p className="text-sm font-black text-slate-900 font-mono tracking-tight">{vehicle.odometerReading.toLocaleString()}</p>
                           <span className="text-[10px] font-bold text-slate-400">كم</span>
                         </div>
                       </div>
@@ -653,13 +655,13 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
                        <div className="space-y-1.5">
                           <div className="flex justify-between items-center text-[11px] font-black text-slate-500 uppercase">
                             <span>دورة الصيانة (الزيت)</span>
-                            <span className={maintenanceProgress > 90 ? 'text-red-600' : 'text-slate-900'}>
+                            <span className={`font-mono ${maintenanceProgress > 90 ? 'text-red-600' : 'text-slate-900'}`}>
                               {kmSinceMaintenance.toLocaleString()} / {vehicle.maintenanceInterval?.toLocaleString()} كم
                             </span>
                           </div>
                           <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                             <div 
-                              className={`h-full transition-all duration-500 ${
+                              className={`h-full transition-all duration-200 ${
                                 maintenanceProgress > 90 ? 'bg-red-500' : 
                                 maintenanceProgress > 70 ? 'bg-amber-500' : 'bg-emerald-500'
                               }`}
@@ -742,7 +744,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
             <div className="flex items-center gap-3 w-full md:w-auto">
               <Select value={selectedVehicleId || 'all'} onValueChange={v => setSelectedVehicleId(v === 'all' ? null : v)}>
-                <SelectTrigger className="w-full md:w-[280px] h-12 rounded-2xl border-slate-100 bg-slate-50 font-bold">
+                <SelectTrigger className="w-full md:w-[280px] h-12 rounded-[14px] border-slate-100 bg-slate-50 font-bold">
                   <SelectValue placeholder="تصفية حسب المركبة" />
                 </SelectTrigger>
                 <SelectContent>
@@ -753,11 +755,11 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
                 </SelectContent>
               </Select>
               {selectedVehicleId && (
-                <Button variant="ghost" size="sm" onClick={() => setSelectedVehicleId(null)} className="h-12 rounded-2xl text-red-500 font-black">إلغاء</Button>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedVehicleId(null)} className="h-12 rounded-[14px] text-red-500 font-black">إلغاء</Button>
               )}
             </div>
             <div className="flex items-center gap-3">
-               <Button onClick={handleExportExpenses} variant="outline" className="h-12 px-6 rounded-2xl border-slate-200 font-bold bg-white">
+               <Button onClick={handleExportExpenses} variant="outline" className="h-12 px-6 rounded-[14px] border-slate-200 font-bold bg-white">
                 <Download size={18} className="ml-2" />
                 تصدير إكسيل
               </Button>
@@ -861,9 +863,9 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
       {/* Forms stay similar but enhanced */}
       <Dialog open={showAddVehicle} onOpenChange={setShowAddVehicle}>
         <DialogContent className="sm:max-w-[700px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-8 bg-slate-900 text-white">
+          <DialogHeader className="p-6 bg-slate-900 text-white">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-white/10 rounded-[14px] flex items-center justify-center">
                 <Car size={24} />
               </div>
               <div>
@@ -872,7 +874,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
               </div>
             </div>
           </DialogHeader>
-          <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white max-h-[60vh] overflow-y-auto">
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">رقم اللوحة</label>
               <Input 
@@ -971,18 +973,18 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
               />
             </div>
           </div>
-          <DialogFooter className="p-8 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+          <DialogFooter className="p-6 bg-slate-50 flex items-center justify-between border-t border-slate-100">
             <Button variant="ghost" onClick={() => setShowAddVehicle(false)} className="font-bold text-slate-500 hover:text-slate-900">إلغاء</Button>
-            <Button onClick={handleAddVehicle} className="btn-primary rounded-2xl h-12 px-10 shadow-lg shadow-primary/20">حفظ البيانات</Button>
+            <Button onClick={handleAddVehicle} className="btn-primary rounded-[14px] h-12 px-10 shadow-lg shadow-primary/20">حفظ البيانات</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
         <DialogContent className="sm:max-w-[700px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-8 bg-emerald-600 text-white">
+          <DialogHeader className="p-6 bg-emerald-600 text-white">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+              <div className="w-14 h-14 bg-white/20 rounded-[14px] flex items-center justify-center backdrop-blur-md">
                 <Fuel size={32} strokeWidth={2.5} />
               </div>
               <div>
@@ -991,11 +993,11 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
               </div>
             </div>
           </DialogHeader>
-          <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white overflow-y-auto max-h-[70vh]">
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white overflow-y-auto max-h-[70vh]">
             <div className="space-y-2 col-span-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-1">المركبة المستهدفة</label>
               <Select value={expenseForm.vehicleId} onValueChange={v => setExpenseForm({...expenseForm, vehicleId: v})}>
-                <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white font-black text-slate-900">
+                <SelectTrigger className="h-14 rounded-[14px] bg-slate-50 border-slate-100 focus:bg-white font-black text-slate-900">
                   <SelectValue placeholder="اختر السيارة من الأسطول" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1106,9 +1108,9 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
               />
             </div>
           </div>
-          <DialogFooter className="p-8 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+          <DialogFooter className="p-6 bg-slate-50 flex items-center justify-between border-t border-slate-100">
             <Button variant="ghost" onClick={() => setShowAddExpense(false)} className="font-black text-slate-500 hover:text-slate-900">إلغاء</Button>
-            <Button onClick={handleAddExpense} className="btn-primary bg-emerald-600 hover:bg-emerald-700 rounded-2xl h-14 px-12 text-lg font-black shadow-lg shadow-emerald-200">
+            <Button onClick={handleAddExpense} className="btn-primary bg-emerald-600 hover:bg-emerald-700 rounded-[14px] h-14 px-12 text-lg font-black shadow-lg shadow-emerald-200">
               تأكيد وتسجيل المصروف
             </Button>
           </DialogFooter>

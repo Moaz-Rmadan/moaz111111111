@@ -78,19 +78,19 @@ export const GlassCalculator = ({
         <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
           {...props}
-          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-900"
+          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-[14px] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-slate-900"
         />
       </div>
     </div>
   );
 
   return (
-    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 space-y-8">
+    <div className="bg-white p-6 rounded-[14px] shadow-sm border border-slate-100 space-y-8">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-black text-slate-900 tracking-tighter">
           حاسبة الزجاج
         </h2>
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl">
+        <div className="flex bg-slate-100 p-1.5 rounded-[14px]">
           <button
             onClick={() => setMode("manual")}
             className={cn(
@@ -122,7 +122,7 @@ export const GlassCalculator = ({
             اختر المنتج (لجلب الخامات)
           </label>
           <select
-            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900"
+            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-[14px] font-bold text-slate-900"
             onChange={(e) => handleProductSelect(e.target.value)}
           >
             <option value="">اختر المنتج...</option>
@@ -143,7 +143,7 @@ export const GlassCalculator = ({
           <select
             value={type}
             onChange={(e) => setType(e.target.value as any)}
-            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900"
+            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-[14px] font-bold text-slate-900"
           >
             <option value="plain">عادي</option>
             <option value="tinted">ملون</option>
@@ -189,7 +189,7 @@ export const GlassCalculator = ({
       </div>
 
       {calcResult && (
-        <div className="bg-slate-900 p-8 rounded-[2rem] text-white flex items-center justify-between shadow-2xl">
+        <div className="bg-slate-900 p-6 rounded-[14px] text-white flex items-center justify-between shadow-2xl">
           <div>
             <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-1">
               التكلفة الإجمالية
@@ -202,7 +202,7 @@ export const GlassCalculator = ({
           </div>
           <button
             onClick={() => onAdd(calcResult)}
-            className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-sm transition-all shadow-lg shadow-indigo-900/20"
+            className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-[14px] font-black text-sm transition-all shadow-lg shadow-indigo-900/20"
           >
             <PlusCircle size={18} />
             إضافة للحساب

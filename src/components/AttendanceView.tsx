@@ -280,7 +280,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-8 animate-in fade-in duration-200">
       
       {/* Header section with explicit configuration info */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
@@ -327,7 +327,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
 
       {/* Overview Cards for Today */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-none bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-500/10 rounded-2xl relative overflow-hidden">
+        <Card className="border-none bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-500/10 rounded-[14px] relative overflow-hidden">
           <CardContent className="p-5">
             <div className="flex justify-between items-start">
               <div className="space-y-1">
@@ -350,7 +350,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
           </CardContent>
         </Card>
 
-        <Card className="border-none bg-white shadow-sm rounded-2xl border border-slate-100">
+        <Card className="border-none bg-white shadow-sm rounded-[14px] border border-slate-100">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-slate-400 font-bold text-xs">حضور اليوم</p>
@@ -362,7 +362,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
           </CardContent>
         </Card>
 
-        <Card className="border-none bg-white shadow-sm rounded-2xl border border-slate-100">
+        <Card className="border-none bg-white shadow-sm rounded-[14px] border border-slate-100">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-slate-400 font-bold text-xs">تأخير اليوم</p>
@@ -375,7 +375,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
         </Card>
 
         {/* Configurations Quick Panel */}
-        <Card className="border-none bg-slate-900 text-white shadow-sm rounded-2xl">
+        <Card className="border-none bg-slate-900 text-white shadow-sm rounded-[14px]">
           <CardContent className="p-5">
             <h4 className="text-xs font-black text-slate-400 flex items-center gap-1 mb-2">
               <Settings size={14} className="text-primary" />
@@ -498,7 +498,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
         </div>
 
         {/* Info indicators */}
-        <div className="flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-400 bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-100 w-full xl:w-auto justify-center xl:justify-start">
+        <div className="flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-400 bg-slate-50 px-4 py-2.5 rounded-[14px] border border-slate-100 w-full xl:w-auto justify-center xl:justify-start">
           <span>نتائج البحث الحالية:</span>
           <span className="text-primary font-black bg-white px-2 py-0.5 rounded-lg border border-slate-200">
             {filteredHistory.length} حركة مسجلة
@@ -528,7 +528,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
             <span className="text-[11px] font-bold text-slate-400">{filteredEmployeeStatus.length} موظف</span>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 max-h-[500px] overflow-y-auto divide-y divide-slate-50">
+          <div className="bg-white rounded-[14px] p-4 shadow-sm border border-slate-100 max-h-[500px] overflow-y-auto divide-y divide-slate-50">
             {filteredEmployeeStatus.map(emp => (
               <div key={emp.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -600,7 +600,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
             </Button>
           </div>
 
-          <Card className="border-none shadow-sm border border-slate-100 rounded-2xl overflow-hidden bg-white">
+          <Card className="border-none shadow-sm border border-slate-100 rounded-[14px] overflow-hidden bg-white">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-slate-50">
@@ -697,7 +697,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
       {/* Add manually card modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <Card className="w-full max-w-md overflow-hidden border-none shadow-2xl rounded-2xl bg-white">
+          <Card className="w-full max-w-md overflow-hidden border-none shadow-2xl rounded-[14px] bg-white">
             <CardHeader className="bg-slate-50 border-b border-slate-100 pb-5">
               <CardTitle className="font-black text-xl flex items-center gap-2 text-slate-900">
                 <Plus size={20} className="text-primary" />
@@ -770,7 +770,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
       {/* Edit modal */}
       {editingAttendance && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <Card className="w-full max-w-md overflow-hidden border-none shadow-2xl rounded-2xl bg-white">
+          <Card className="w-full max-w-md overflow-hidden border-none shadow-2xl rounded-[14px] bg-white">
             <CardHeader className="bg-slate-50 border-b border-slate-100 pb-5">
               <CardTitle className="font-black text-xl flex items-center gap-2 text-slate-900">
                 <Edit2 size={24} className="text-blue-500" />
@@ -779,7 +779,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
               <CardDescription className="text-slate-400 text-xs font-bold font-sans">تحديث تفاصيل الرصد وتصحيح الحركات لتسجيلها بشكل دقيق</CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 flex items-center gap-3">
+              <div className="bg-slate-50 p-3.5 rounded-[14px] border border-slate-100 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-extrabold flex items-center justify-center text-xs animate-pulse">
                   {employees.find(e => e.id === editingAttendance.employeeId)?.name.charAt(0) || 'م'}
                 </div>
@@ -858,7 +858,7 @@ export function AttendanceView({ employees, attendance }: { employees: Employee[
       {/* Delete confirmation modal */}
       {deletingId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <Card className="w-full max-w-sm overflow-hidden border-none shadow-2xl rounded-2xl bg-white">
+          <Card className="w-full max-w-sm overflow-hidden border-none shadow-2xl rounded-[14px] bg-white">
             <CardHeader className="bg-red-50 text-red-900 p-5 border-b border-red-100">
               <CardTitle className="font-black text-lg flex items-center gap-2">
                 <AlertCircle size={20} className="text-red-600 animate-pulse" />

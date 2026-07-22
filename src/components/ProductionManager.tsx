@@ -233,7 +233,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
   return (
     <div className="space-y-6">
       {/* Master Header Banner */}
-      <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white p-6 sm:p-8 shadow-2xl border border-slate-800/80">
+      <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white p-6 sm:p-6 shadow-2xl border border-slate-800/80">
         {/* Subtle Ambient Decorative Gradients */}
         <div className="absolute -left-16 -top-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute right-1/3 -bottom-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -264,7 +264,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
 
             {/* Live Metrics Pills Header Row */}
             <div className="pt-2 flex items-center gap-3 overflow-x-auto scrollbar-hide py-1">
-              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-[14px] bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
                 <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
                   <Activity size={16} />
                 </div>
@@ -274,7 +274,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-[14px] bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
                 <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
                   <Clock size={16} />
                 </div>
@@ -284,7 +284,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-[14px] bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
                   <ShieldCheck size={16} />
                 </div>
@@ -294,7 +294,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-[14px] bg-white/5 border border-white/10 backdrop-blur-md shrink-0">
                 <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold">
                   <Package size={16} />
                 </div>
@@ -310,7 +310,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
             <Button 
               onClick={() => setShowAddMO(true)} 
-              className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl h-12 px-6 font-black text-xs shadow-xl shadow-indigo-600/30 transition-all flex items-center gap-2"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-[14px] h-12 px-6 font-black text-xs shadow-xl shadow-indigo-600/30 transition-all flex items-center gap-2"
             >
               <Plus size={18} />
               <span>أمر تصنيع جديد (MO)</span>
@@ -319,7 +319,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
             <Button 
               onClick={() => setShowAddRoute(true)} 
               variant="outline"
-              className="bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-2xl h-12 px-5 font-black text-xs backdrop-blur-md transition-all flex items-center gap-2"
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white rounded-[14px] h-12 px-5 font-black text-xs backdrop-blur-md transition-all flex items-center gap-2"
             >
               <Map size={18} className="text-indigo-300" />
               <span>إضافة مسار عمل</span>
@@ -335,7 +335,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
             
             <TabsTrigger 
               value="dashboard" 
-              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+              className="rounded-[14px] px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
             >
               <LayoutDashboard size={18} className="shrink-0" />
               <span>لوحة المتابعة</span>
@@ -346,7 +346,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
 
             <TabsTrigger 
               value="orders" 
-              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+              className="rounded-[14px] px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
             >
               <Activity size={18} className="shrink-0" />
               <span>أوامر التصنيع</span>
@@ -357,7 +357,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
 
             <TabsTrigger 
               value="workorders" 
-              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+              className="rounded-[14px] px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
             >
               <Clock size={18} className="shrink-0" />
               <span>أوامر التشغيل (WO)</span>
@@ -368,7 +368,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
 
             <TabsTrigger 
               value="routes" 
-              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+              className="rounded-[14px] px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
             >
               <Map size={18} className="shrink-0" />
               <span>المسارات والمراحل</span>
@@ -379,7 +379,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
 
             <TabsTrigger 
               value="quality" 
-              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+              className="rounded-[14px] px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
             >
               <ShieldCheck size={18} className="shrink-0" />
               <span>الجودة والفحص</span>
@@ -392,7 +392,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
 
             <TabsTrigger 
               value="packing" 
-              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+              className="rounded-[14px] px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
             >
               <Package size={18} className="shrink-0" />
               <span>التغليف والمخزن</span>
@@ -403,7 +403,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
 
             <TabsTrigger 
               value="showroom_link" 
-              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+              className="rounded-[14px] px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
             >
               <Store size={18} className="shrink-0 text-amber-400" />
               <span>ربط المعرض (MTO) 🔗</span>
@@ -414,7 +414,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
 
             <TabsTrigger 
               value="reports" 
-              className="rounded-2xl px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
+              className="rounded-[14px] px-5 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-400 hover:text-white hover:bg-slate-800/80 font-black text-xs transition-all flex items-center gap-2.5 shrink-0"
             >
               <BarChart3 size={18} className="shrink-0" />
               <span>التقارير التحليلية</span>
@@ -615,7 +615,7 @@ export const ProductionManager: React.FC<ProductionManagerProps> = ({
             <Button 
               onClick={handleCreateMO} 
               disabled={!moForm.productName || !moForm.routeId}
-              className="bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-11 px-8 font-black text-white text-xs shadow-lg shadow-indigo-100 disabled:opacity-50"
+              className="bg-indigo-600 hover:bg-indigo-700 rounded-[14px] h-11 px-8 font-black text-white text-xs shadow-lg shadow-indigo-100 disabled:opacity-50"
             >
               اعتماد وإنشاء أمر التصنيع
             </Button>
@@ -636,9 +636,9 @@ const ProductionDashboard = ({ orders, tracking, workOrders }: any) => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-8 transition-all hover:shadow-md">
+      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-6 transition-all hover:shadow-md">
         <div className="flex items-center justify-between mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-[14px] bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
             <Activity size={24} />
           </div>
           <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[10px]">مباشر</Badge>
@@ -649,9 +649,9 @@ const ProductionDashboard = ({ orders, tracking, workOrders }: any) => {
         </div>
       </Card>
 
-      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-8 transition-all hover:shadow-md">
+      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-6 transition-all hover:shadow-md">
         <div className="flex items-center justify-between mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
             <CheckCircle2 size={24} />
           </div>
           <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[10px]">اليوم</Badge>
@@ -662,9 +662,9 @@ const ProductionDashboard = ({ orders, tracking, workOrders }: any) => {
         </div>
       </Card>
 
-      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-8 transition-all hover:shadow-md">
+      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-6 transition-all hover:shadow-md">
         <div className="flex items-center justify-between mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-[14px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
             <Clock size={24} />
           </div>
           <Badge className="bg-amber-50 text-amber-600 border-none font-black text-[10px]">نشط</Badge>
@@ -675,9 +675,9 @@ const ProductionDashboard = ({ orders, tracking, workOrders }: any) => {
         </div>
       </Card>
 
-      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-8 transition-all hover:shadow-md">
+      <Card className="rounded-[32px] border-none shadow-sm bg-white p-6 sm:p-6 transition-all hover:shadow-md">
         <div className="flex items-center justify-between mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-[14px] bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
             <AlertTriangle size={24} />
           </div>
           <Badge className="bg-rose-50 text-rose-600 border-none font-black text-[10px]">تنبيه</Badge>
@@ -798,12 +798,12 @@ const RouteBuilderForm = ({ form, setForm, onSave, onCancel, departments = [], e
 
   return (
     <div className="flex flex-col h-[88vh]">
-      <div className="p-8 bg-indigo-600 text-white shrink-0">
+      <div className="p-6 bg-indigo-600 text-white shrink-0">
         <DialogTitle className="text-2xl font-black">بناء وتكوين مسار إنتاج ديناميكي</DialogTitle>
         <p className="text-indigo-100 font-bold text-sm mt-1">إضافة وإدارة مراحل التصنيع، تحديد الترتيب، المشرفين، زمن الأداء، ومسارات الرفض والتوازي</p>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white">
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-white">
         {/* Route Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-3xl border border-slate-100">
           <div className="space-y-2">
@@ -812,7 +812,7 @@ const RouteBuilderForm = ({ form, setForm, onSave, onCancel, departments = [], e
               value={form.name} 
               onChange={e => setForm({...form, name: e.target.value})}
               placeholder="مثال: مسار خط إنتاج غرف النوم خشبي"
-              className="h-12 rounded-2xl bg-white border-slate-200 focus:border-indigo-600 font-bold"
+              className="h-12 rounded-[14px] bg-white border-slate-200 focus:border-indigo-600 font-bold"
             />
           </div>
           <div className="space-y-2">
@@ -821,7 +821,7 @@ const RouteBuilderForm = ({ form, setForm, onSave, onCancel, departments = [], e
               value={form.description} 
               onChange={e => setForm({...form, description: e.target.value})}
               placeholder="وصف مختصر لمراحل هذا المسار والموديلات المستهدفة..."
-              className="h-12 rounded-2xl bg-white border-slate-200 focus:border-indigo-600 font-bold"
+              className="h-12 rounded-[14px] bg-white border-slate-200 focus:border-indigo-600 font-bold"
             />
           </div>
         </div>
@@ -836,7 +836,7 @@ const RouteBuilderForm = ({ form, setForm, onSave, onCancel, departments = [], e
           </div>
           
           {(!form.stages || form.stages.length === 0) ? (
-            <div className="text-center p-8 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+            <div className="text-center p-6 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
               <p className="font-bold text-slate-400 text-sm">لم يتم إضافة أي مراحل بهذا المسار بعد. استخدم النموذج أدناه لإضافة مرحلة.</p>
             </div>
           ) : (
@@ -851,7 +851,7 @@ const RouteBuilderForm = ({ form, setForm, onSave, onCancel, departments = [], e
                   <div key={stage.id || idx} className="p-5 bg-slate-50/80 hover:bg-slate-50 rounded-3xl border border-slate-100 transition-all space-y-3">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-indigo-100">
+                        <div className="w-9 h-9 rounded-[14px] bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-indigo-100">
                           {stage.order || idx + 1}
                         </div>
                         <div>
@@ -1109,9 +1109,9 @@ const RouteBuilderForm = ({ form, setForm, onSave, onCancel, departments = [], e
       </div>
       </div>
 
-      <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+      <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
         <Button variant="ghost" onClick={onCancel} className="font-black text-slate-500 hover:text-slate-900">إلغاء</Button>
-        <Button onClick={onSave} className="bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-12 px-10 font-black shadow-lg shadow-indigo-100">حفظ المسار بالكامل</Button>
+        <Button onClick={onSave} className="bg-indigo-600 hover:bg-indigo-700 rounded-[14px] h-12 px-10 font-black shadow-lg shadow-indigo-100">حفظ المسار بالكامل</Button>
       </div>
     </div>
   );
@@ -1152,7 +1152,7 @@ const MOList = ({ orders = [] }: any) => {
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="البحث برقم الأمر أو اسم المنتج..."
-            className="pr-11 h-11 rounded-2xl bg-slate-50 border-slate-200 font-bold text-xs focus:bg-white"
+            className="pr-11 h-11 rounded-[14px] bg-slate-50 border-slate-200 font-bold text-xs focus:bg-white"
           />
         </div>
 
@@ -1322,7 +1322,7 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
           <p className="text-xs font-bold text-slate-500">إدارة التنفيذ المباشر للورش والمراحل، تحديث الإنجاز، وإحالة المنتجات للفحص</p>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl overflow-x-auto">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-[14px] overflow-x-auto">
           <Button
             onClick={() => setFilter('active')}
             className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'active' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
@@ -1352,7 +1352,7 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
 
       {filteredWOs.length === 0 ? (
         <Card className="rounded-[32px] border-none shadow-sm bg-white p-12 text-center space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+          <div className="w-16 h-16 rounded-[14px] bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
             <Clock size={32} />
           </div>
           <div>
@@ -1380,7 +1380,7 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
                   <h3 className="text-xl font-black text-slate-900">{wo.stageName}</h3>
                   <p className="text-slate-500 font-bold text-xs mt-0.5">المنتج: <span className="text-slate-800 font-black">{wo.productName}</span> (أمر تصنيع: {wo.moNumber})</p>
                 </div>
-                <div className="text-left bg-slate-50 p-3 rounded-2xl min-w-[90px] sm:min-w-[110px]">
+                <div className="text-left bg-slate-50 p-3 rounded-[14px] min-w-[90px] sm:min-w-[110px]">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">نسبة الإنجاز</span>
                   <span className="text-xl sm:text-2xl lg:text-3xl font-black text-indigo-600 leading-none">
                     <NumberDisplay value={wo.progress || 0} unit="%" />
@@ -1392,7 +1392,7 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
               <div className="space-y-1.5">
                 <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
                   <div 
-                    className={`h-full transition-all duration-500 ${wo.progress >= 100 ? 'bg-emerald-500' : 'bg-indigo-600'}`} 
+                    className={`h-full transition-all duration-200 ${wo.progress >= 100 ? 'bg-emerald-500' : 'bg-indigo-600'}`} 
                     style={{ width: `${Math.min(100, wo.progress || 0)}%` }} 
                   />
                 </div>
@@ -1418,7 +1418,7 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
               </div>
 
               {/* Operator & Time Info */}
-              <div className="bg-slate-50 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-100">
+              <div className="bg-slate-50 rounded-[14px] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-white shadow-xs flex items-center justify-center text-slate-500 shrink-0">
                     <User size={18} />
@@ -1455,7 +1455,7 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
                   <Button 
                     disabled={updatingId === wo.id}
                     onClick={() => handleStartWO(wo)}
-                    className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-lg shadow-indigo-100"
+                    className="w-full h-12 rounded-[14px] bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-lg shadow-indigo-100"
                   >
                     <Play size={18} className="ml-2" />
                     بدء التشغيل والعمل الفعلي
@@ -1467,7 +1467,7 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
                     <Button 
                       disabled={updatingId === wo.id}
                       onClick={() => handleUpdateProgress(wo, 100)}
-                      className="flex-1 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-100"
+                      className="flex-1 h-12 rounded-[14px] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-100"
                     >
                       <CheckCircle2 size={18} className="ml-2" />
                       إكمال التشغيل وإرسال للجودة 100%
@@ -1476,7 +1476,7 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
                 )}
 
                 {wo.status === 'completed' && (
-                  <div className="bg-emerald-50 text-emerald-800 p-3 rounded-2xl font-black text-xs text-center border border-emerald-200 flex items-center justify-center gap-2">
+                  <div className="bg-emerald-50 text-emerald-800 p-3 rounded-[14px] font-black text-xs text-center border border-emerald-200 flex items-center justify-center gap-2">
                     <CheckCircle2 size={16} />
                     تم الإكمال بأساس المرحلة وهو متاح الآن بفحص الجودة
                   </div>
@@ -1497,10 +1497,10 @@ const RouteManager = ({ routes = [], onAdd, departments = [], employees = [] }: 
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {routes.map((route: ProductionRoute) => (
-          <Card key={route.id} className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden p-8 group flex flex-col justify-between">
+          <Card key={route.id} className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden p-6 group flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-md shadow-indigo-50">
+                <div className="w-14 h-14 rounded-[14px] bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-md shadow-indigo-50">
                   <Map size={28} />
                 </div>
                 <Badge className="bg-indigo-50 text-indigo-700 border-none font-black text-xs px-3.5 py-1 rounded-xl">
@@ -1510,7 +1510,7 @@ const RouteManager = ({ routes = [], onAdd, departments = [], employees = [] }: 
               <h3 className="text-xl font-black text-slate-900 mb-1">{route.name}</h3>
               <p className="text-slate-400 font-bold text-xs mb-6 leading-relaxed">{route.description || 'مسار إنتاج مخصص للمصنع'}</p>
               
-              <div className="space-y-3 mb-8 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div className="space-y-3 mb-8 bg-slate-50 p-4 rounded-[14px] border border-slate-100">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">تسلسل مراحل المسار</p>
                 {(route.stages || []).slice(0, 4).map((stage, idx) => (
                   <div key={stage.id || idx} className="flex items-center justify-between text-xs font-bold text-slate-700">
@@ -1536,15 +1536,15 @@ const RouteManager = ({ routes = [], onAdd, departments = [], employees = [] }: 
             <Button 
               onClick={() => setSelectedRoute(route)}
               variant="outline" 
-              className="w-full h-12 rounded-2xl border-slate-200 font-black text-slate-700 hover:border-indigo-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+              className="w-full h-12 rounded-[14px] border-slate-200 font-black text-slate-700 hover:border-indigo-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
             >
               عرض وتدقيق تفاصيل المراحل
             </Button>
           </Card>
         ))}
 
-        <button onClick={onAdd} className="min-h-[320px] rounded-[32px] border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/20 transition-all group flex flex-col items-center justify-center text-center p-8 space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-md shadow-indigo-50">
+        <button onClick={onAdd} className="min-h-[320px] rounded-[32px] border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/20 transition-all group flex flex-col items-center justify-center text-center p-6 space-y-4">
+          <div className="w-16 h-16 rounded-[14px] bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-md shadow-indigo-50">
             <Plus size={32} />
           </div>
           <div>
@@ -1559,7 +1559,7 @@ const RouteManager = ({ routes = [], onAdd, departments = [], employees = [] }: 
         <DialogContent className="sm:max-w-[850px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
           {selectedRoute && (
             <div className="space-y-6">
-              <div className="p-8 bg-slate-900 text-white">
+              <div className="p-6 bg-slate-900 text-white">
                 <div className="flex items-center justify-between">
                   <div>
                     <Badge className="bg-indigo-500/20 text-indigo-300 border-none font-bold text-xs mb-2">تفاصيل المسار والمراحل</Badge>
@@ -1572,7 +1572,7 @@ const RouteManager = ({ routes = [], onAdd, departments = [], employees = [] }: 
                 </div>
               </div>
 
-              <div className="p-8 pt-0 max-h-[60vh] overflow-y-auto space-y-4">
+              <div className="p-6 pt-0 max-h-[60vh] overflow-y-auto space-y-4">
                 <Table>
                   <TableHeader className="bg-slate-50">
                     <TableRow>
@@ -1637,7 +1637,7 @@ const RouteManager = ({ routes = [], onAdd, departments = [], employees = [] }: 
               </div>
 
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
-                <Button onClick={() => setSelectedRoute(null)} className="rounded-2xl px-8 font-black bg-slate-900 text-white">
+                <Button onClick={() => setSelectedRoute(null)} className="rounded-[14px] px-8 font-black bg-slate-900 text-white">
                   إغلاق
                 </Button>
               </div>
@@ -1842,7 +1842,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="rounded-3xl border-none p-5 bg-white shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center font-black">
+          <div className="w-12 h-12 rounded-[14px] bg-slate-100 text-slate-700 flex items-center justify-center font-black">
             <ShieldCheck size={24} />
           </div>
           <div className="min-w-0">
@@ -1854,7 +1854,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
         </Card>
 
         <Card className="rounded-3xl border-none p-5 bg-white shadow-sm flex items-center gap-4 border-r-4 border-r-emerald-500">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
+          <div className="w-12 h-12 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
             PASS
           </div>
           <div className="min-w-0">
@@ -1866,7 +1866,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
         </Card>
 
         <Card className="rounded-3xl border-none p-5 bg-white shadow-sm flex items-center gap-4 border-r-4 border-r-rose-500">
-          <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-black">
+          <div className="w-12 h-12 rounded-[14px] bg-rose-50 text-rose-600 flex items-center justify-center font-black">
             FAIL
           </div>
           <div className="min-w-0">
@@ -1878,7 +1878,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
         </Card>
 
         <Card className="rounded-3xl border-none p-5 bg-white shadow-sm flex items-center gap-4 border-r-4 border-r-amber-500">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-black">
+          <div className="w-12 h-12 rounded-[14px] bg-amber-50 text-amber-600 flex items-center justify-center font-black">
             REWORK
           </div>
           <div className="min-w-0">
@@ -1890,7 +1890,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
         </Card>
 
         <Card className="rounded-3xl border-none p-5 bg-white shadow-sm flex items-center gap-4 border-r-4 border-r-slate-700">
-          <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-xs">
+          <div className="w-12 h-12 rounded-[14px] bg-slate-900 text-white flex items-center justify-center font-black text-xs">
             SCRAP
           </div>
           <div>
@@ -1901,7 +1901,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
       </div>
 
       {/* View Toggle */}
-      <div className="flex items-center justify-between bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex items-center justify-between bg-white p-2 rounded-[14px] border border-slate-100 shadow-sm">
         <div className="flex items-center gap-2">
           <Button 
             onClick={() => setActiveSubTab('pending')} 
@@ -2039,7 +2039,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
         <DialogContent className="sm:max-w-[700px] rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
           {inspectingWO && (
             <div className="space-y-6">
-              <div className="p-8 bg-slate-900 text-white">
+              <div className="p-6 bg-slate-900 text-white">
                 <Badge className="bg-indigo-500/20 text-indigo-300 border-none font-bold text-xs mb-2">اتخاذ قرار فحص الجودة</Badge>
                 <DialogTitle className="text-2xl font-black">فحص أمر التشغيل: {inspectingWO.woNumber}</DialogTitle>
                 <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-300 mt-2">
@@ -2051,7 +2051,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
                 </div>
               </div>
 
-              <div className="p-8 pt-0 space-y-6 max-h-[65vh] overflow-y-auto">
+              <div className="p-6 pt-0 space-y-6 max-h-[65vh] overflow-y-auto">
                 {/* 4 Decision Selector */}
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-700 uppercase tracking-widest">قرار الفحص *</label>
@@ -2059,7 +2059,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
                     <button
                       type="button"
                       onClick={() => setResult('pass')}
-                      className={`p-4 rounded-2xl border-2 text-right transition-all flex flex-col justify-between ${
+                      className={`p-4 rounded-[14px] border-2 text-right transition-all flex flex-col justify-between ${
                         result === 'pass' 
                           ? 'border-emerald-500 bg-emerald-50/50 shadow-md' 
                           : 'border-slate-100 bg-slate-50 hover:border-slate-200'
@@ -2075,7 +2075,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
                     <button
                       type="button"
                       onClick={() => setResult('fail')}
-                      className={`p-4 rounded-2xl border-2 text-right transition-all flex flex-col justify-between ${
+                      className={`p-4 rounded-[14px] border-2 text-right transition-all flex flex-col justify-between ${
                         result === 'fail' 
                           ? 'border-rose-500 bg-rose-50/50 shadow-md' 
                           : 'border-slate-100 bg-slate-50 hover:border-slate-200'
@@ -2091,7 +2091,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
                     <button
                       type="button"
                       onClick={() => setResult('rework')}
-                      className={`p-4 rounded-2xl border-2 text-right transition-all flex flex-col justify-between ${
+                      className={`p-4 rounded-[14px] border-2 text-right transition-all flex flex-col justify-between ${
                         result === 'rework' 
                           ? 'border-amber-500 bg-amber-50/50 shadow-md' 
                           : 'border-slate-100 bg-slate-50 hover:border-slate-200'
@@ -2107,7 +2107,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
                     <button
                       type="button"
                       onClick={() => setResult('scrap')}
-                      className={`p-4 rounded-2xl border-2 text-right transition-all flex flex-col justify-between ${
+                      className={`p-4 rounded-[14px] border-2 text-right transition-all flex flex-col justify-between ${
                         result === 'scrap' 
                           ? 'border-slate-800 bg-slate-900 text-white shadow-md' 
                           : 'border-slate-100 bg-slate-50 hover:border-slate-200'
@@ -2124,7 +2124,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
 
                 {/* Auto Reroute Info Box for FAIL */}
                 {result === 'fail' && (
-                  <div className="p-4 bg-rose-50 rounded-2xl border border-rose-200 space-y-1">
+                  <div className="p-4 bg-rose-50 rounded-[14px] border border-rose-200 space-y-1">
                     <p className="font-black text-rose-800 text-xs flex items-center gap-2">
                       <AlertTriangle size={16} />
                       نظام الإرجاع التلقائي عند الرفض (FAIL):
@@ -2195,7 +2195,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
                   type="button"
                   variant="ghost" 
                   onClick={() => setInspectingWO(null)} 
-                  className="rounded-2xl font-bold text-xs text-slate-500"
+                  className="rounded-[14px] font-bold text-xs text-slate-500"
                 >
                   إلغاء
                 </Button>
@@ -2204,7 +2204,7 @@ const QualityControl = ({ workOrders = [], inspections = [], routes = [], orders
                   type="button"
                   disabled={isSaving}
                   onClick={handleSaveInspection} 
-                  className={`rounded-2xl h-11 px-8 font-black text-white shadow-lg ${
+                  className={`rounded-[14px] h-11 px-8 font-black text-white shadow-lg ${
                     result === 'pass' ? 'bg-emerald-600 hover:bg-emerald-700' :
                     result === 'fail' ? 'bg-rose-600 hover:bg-rose-700' :
                     result === 'rework' ? 'bg-amber-600 hover:bg-amber-700' :
@@ -2515,7 +2515,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
             disabled={isSaving}
             onClick={handleGenerateDemoOrders}
             variant="outline"
-            className="rounded-2xl h-11 border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-black text-xs"
+            className="rounded-[14px] h-11 border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-black text-xs"
           >
             <Sparkles size={16} className="ml-2 text-amber-400" />
             توليد شحنات أثاث للتجربة
@@ -2523,7 +2523,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
 
           <Button 
             onClick={() => setShowQuickPackageModal(true)}
-            className="rounded-2xl h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30"
+            className="rounded-[14px] h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg shadow-indigo-600/30"
           >
             <Plus size={18} className="ml-1.5" />
             إضافة طرد أثاث للتغليف
@@ -2534,7 +2534,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
       {/* Top Header & Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4 transition-transform hover:scale-[1.02] active:scale-100">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-[14px] bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
             <Package size={24} />
           </div>
                   <div className="min-w-0">
@@ -2546,7 +2546,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
         </Card>
 
         <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4 transition-transform hover:scale-[1.02] active:scale-100">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-[14px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
             <Clock3 size={24} />
           </div>
                   <div className="min-w-0">
@@ -2558,7 +2558,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
         </Card>
 
         <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4 transition-transform hover:scale-[1.02] active:scale-100">
-          <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-[14px] bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
             <PackageCheck size={24} />
           </div>
                   <div className="min-w-0">
@@ -2570,7 +2570,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
         </Card>
 
         <Card className="rounded-3xl border-none shadow-sm bg-white p-5 flex items-center gap-4 transition-transform hover:scale-[1.02] active:scale-100">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-[14px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
             <CheckCircle2 size={24} />
           </div>
                   <div className="min-w-0">
@@ -2584,7 +2584,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
 
       {/* Filter Tabs & Search */}
       <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl overflow-x-auto">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-[14px] overflow-x-auto">
           <Button
             onClick={() => setFilter('all')}
             className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
@@ -2617,7 +2617,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="بحث بمنتج أو أمر تصنيع..."
-            className="pr-9 h-10 rounded-2xl bg-slate-50 border-slate-200 text-xs font-bold"
+            className="pr-9 h-10 rounded-[14px] bg-slate-50 border-slate-200 text-xs font-bold"
           />
         </div>
       </div>
@@ -2637,7 +2637,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button 
               onClick={() => setShowQuickPackageModal(true)}
-              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-2xl h-11 px-8 shadow-md"
+              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-[14px] h-11 px-8 shadow-md"
             >
               <Plus size={16} className="ml-2" />
               إضافة طرد أثاث جديد
@@ -2646,7 +2646,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
               disabled={isSaving}
               onClick={handleGenerateDemoOrders}
               variant="outline"
-              className="w-full sm:w-auto border-slate-200 text-slate-700 hover:bg-slate-50 font-black text-xs rounded-2xl h-11 px-8"
+              className="w-full sm:w-auto border-slate-200 text-slate-700 hover:bg-slate-50 font-black text-xs rounded-[14px] h-11 px-8"
             >
               <Sparkles size={16} className="ml-2 text-amber-500" />
               توليد شحنات تجريبية
@@ -2663,7 +2663,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
               <Card key={mo.id} className="rounded-[32px] border-none shadow-sm bg-white overflow-hidden p-6 hover:shadow-xl transition-all space-y-5 flex flex-col justify-between">
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <div className="w-12 h-12 rounded-[14px] bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
                       <Package size={24} />
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -2685,7 +2685,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
                   </div>
 
                   {/* Packaging Status Info */}
-                  <div className="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100 text-xs font-bold">
+                  <div className="bg-slate-50 rounded-[14px] p-4 space-y-2 border border-slate-100 text-xs font-bold">
                     <div className="flex items-center justify-between text-slate-600">
                       <span className="text-slate-400">حالة التغليف:</span>
                       <span className="font-black text-slate-900">{isPacked ? 'تم التغليف والتكويد ✅' : 'قيد الانتظار'}</span>
@@ -2716,7 +2716,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
                   {!isPacked && (
                     <Button 
                       onClick={() => handleOpenPackingModal(mo)}
-                      className="w-full h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-100"
+                      className="w-full h-11 rounded-[14px] bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-100"
                     >
                       <PackageCheck size={16} className="ml-2" />
                       تغليف الشحنة وتكويد الكراتين
@@ -2727,7 +2727,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
                     <div className="grid grid-cols-2 gap-2">
                       <Button 
                         onClick={() => handleOpenWarehouseModal(mo)}
-                        className="h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-100"
+                        className="h-11 rounded-[14px] bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md shadow-emerald-100"
                       >
                         <Building2 size={16} className="ml-1.5" />
                         إذن توريد مخزني
@@ -2735,7 +2735,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
                       <Button 
                         onClick={() => { setSelectedOrderForLabel(mo); setShowLabelModal(true); }}
                         variant="outline"
-                        className="h-11 rounded-2xl border-slate-200 text-slate-700 font-black text-xs hover:bg-slate-50"
+                        className="h-11 rounded-[14px] border-slate-200 text-slate-700 font-black text-xs hover:bg-slate-50"
                       >
                         <Printer size={16} className="ml-1.5" />
                         بطاقة الطرد
@@ -2747,7 +2747,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
                     <div className="grid grid-cols-2 gap-2">
                       <Button 
                         onClick={() => { setSelectedOrderForReceipt(mo); setShowReceiptModal(true); }}
-                        className="h-11 rounded-2xl bg-slate-900 hover:bg-black text-white font-black text-xs shadow-md"
+                        className="h-11 rounded-[14px] bg-slate-900 hover:bg-black text-white font-black text-xs shadow-md"
                       >
                         <FileCheck size={16} className="ml-1.5" />
                         إذن التسليم المخزني
@@ -2755,7 +2755,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
                       <Button 
                         onClick={() => { setSelectedOrderForLabel(mo); setShowLabelModal(true); }}
                         variant="outline"
-                        className="h-11 rounded-2xl border-slate-200 text-slate-700 font-black text-xs hover:bg-slate-50"
+                        className="h-11 rounded-[14px] border-slate-200 text-slate-700 font-black text-xs hover:bg-slate-50"
                       >
                         <Printer size={16} className="ml-1.5" />
                         بطاقة البيان
@@ -2783,7 +2783,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
           </div>
 
           <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-            <div className="bg-indigo-50 border border-indigo-100 p-3.5 rounded-2xl flex items-center justify-between">
+            <div className="bg-indigo-50 border border-indigo-100 p-3.5 rounded-[14px] flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-black text-indigo-500 uppercase">المنتج المراد تغليفه</p>
                 <p className="font-black text-slate-900 text-sm mt-0.5">{selectedOrderForPacking?.productName}</p>
@@ -2908,7 +2908,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
             <Button 
               disabled={isSaving}
               onClick={handleSavePacking} 
-              className="bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-11 px-8 font-black text-white text-xs shadow-lg shadow-indigo-100"
+              className="bg-indigo-600 hover:bg-indigo-700 rounded-[14px] h-11 px-8 font-black text-white text-xs shadow-lg shadow-indigo-100"
             >
               {isSaving ? 'جاري الحفظ...' : 'اعتماد التغليف وإصدار بطاقات البيان'}
             </Button>
@@ -2930,7 +2930,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
           </div>
 
           <div className="p-6 space-y-4">
-            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center justify-between">
+            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-[14px] flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-black text-emerald-600 uppercase">الشحنة المراد توريدها</p>
                 <p className="font-black text-slate-900 text-sm mt-0.5">{selectedOrderForWarehouse?.productName}</p>
@@ -2993,7 +2993,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
             <Button 
               disabled={isSaving}
               onClick={handleSaveWarehouseIntake} 
-              className="bg-emerald-600 hover:bg-emerald-700 rounded-2xl h-11 px-8 font-black text-white text-xs shadow-lg shadow-emerald-100"
+              className="bg-emerald-600 hover:bg-emerald-700 rounded-[14px] h-11 px-8 font-black text-white text-xs shadow-lg shadow-emerald-100"
             >
               {isSaving ? 'جاري الحفظ والتوريد...' : 'تأكيد الاستلام والتوريد لرصيد المخزن ✅'}
             </Button>
@@ -3004,7 +3004,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
       {/* Package Label Printable Modal */}
       <Dialog open={showLabelModal} onOpenChange={setShowLabelModal}>
         <DialogContent className="sm:max-w-[500px] rounded-[32px] p-6 bg-white border-2 border-slate-900 shadow-2xl">
-          <div id="printable-package-label" className="space-y-4 border-2 border-dashed border-slate-300 p-6 rounded-2xl bg-amber-50/20">
+          <div id="printable-package-label" className="space-y-4 border-2 border-dashed border-slate-300 p-6 rounded-[14px] bg-amber-50/20">
             {/* Label Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div>
@@ -3037,7 +3037,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
             </div>
 
             {/* Visual Barcode & QR code simulation */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 text-center space-y-2">
+            <div className="bg-white border border-slate-200 rounded-[14px] p-4 text-center space-y-2">
               <div className="font-mono text-2xl font-black tracking-[8px] text-slate-900">
                 |||| | |||||| || | |||| ||
               </div>
@@ -3091,7 +3091,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
             </div>
 
             {/* Document Meta Table */}
-            <div className="grid grid-cols-2 gap-4 text-xs font-bold text-slate-800 bg-slate-50 p-4 rounded-2xl">
+            <div className="grid grid-cols-2 gap-4 text-xs font-bold text-slate-800 bg-slate-50 p-4 rounded-[14px]">
               <div>
                 <span className="text-slate-400 block text-[10px]">أمر التصنيع:</span>
                 <span className="font-black">{selectedOrderForReceipt?.moNumber}</span>
@@ -3148,7 +3148,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
               <DialogTitle className="text-xl font-black">إدراج طرد أثاث للتغليف</DialogTitle>
               <p className="text-slate-400 text-xs font-bold mt-1">إنشاء سجل شحنة أثاث جاهزة للتسليم للمخزن</p>
             </div>
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-[14px] bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-bold">
               <Package size={20} />
             </div>
           </div>
@@ -3160,7 +3160,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
                 value={quickPackageForm.productName}
                 onChange={e => setQuickPackageForm({ ...quickPackageForm, productName: e.target.value })}
                 placeholder="مثال: طقم كنب كلاسيك 7 مقاعد (خشب زان أصلي)"
-                className="rounded-2xl h-11 bg-slate-50 border-slate-200 text-xs font-bold"
+                className="rounded-[14px] h-11 bg-slate-50 border-slate-200 text-xs font-bold"
               />
             </div>
 
@@ -3170,7 +3170,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
                 <Input 
                   value={quickPackageForm.moNumber}
                   onChange={e => setQuickPackageForm({ ...quickPackageForm, moNumber: e.target.value })}
-                  className="rounded-2xl h-11 bg-slate-50 border-slate-200 text-xs font-mono font-bold"
+                  className="rounded-[14px] h-11 bg-slate-50 border-slate-200 text-xs font-mono font-bold"
                 />
               </div>
 
@@ -3181,7 +3181,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
                   min="1"
                   value={quickPackageForm.quantity}
                   onChange={e => setQuickPackageForm({ ...quickPackageForm, quantity: Number(e.target.value) })}
-                  className="rounded-2xl h-11 bg-slate-50 border-slate-200 text-xs font-bold"
+                  className="rounded-[14px] h-11 bg-slate-50 border-slate-200 text-xs font-bold"
                 />
               </div>
             </div>
@@ -3191,7 +3191,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
               <Input 
                 value={quickPackageForm.notes}
                 onChange={e => setQuickPackageForm({ ...quickPackageForm, notes: e.target.value })}
-                className="rounded-2xl h-11 bg-slate-50 border-slate-200 text-xs font-bold"
+                className="rounded-[14px] h-11 bg-slate-50 border-slate-200 text-xs font-bold"
               />
             </div>
           </div>
@@ -3201,7 +3201,7 @@ const PackingView = ({ orders = [], packingRecords = [], workOrders = [], employ
             <Button 
               disabled={isSaving || !quickPackageForm.productName}
               onClick={handleCreateQuickPackage}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-2xl h-11 px-8 shadow-md"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-[14px] h-11 px-8 shadow-md"
             >
               {isSaving ? 'جاري الحفظ...' : 'تأكيد وإضافة الطرد 📦'}
             </Button>
@@ -3397,7 +3397,7 @@ const ProductionReports = ({
   return (
     <div className="space-y-6">
       {/* Top Banner & Control Bar */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-8 rounded-[32px] text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-[32px] text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
           <Badge className="bg-indigo-500/20 text-indigo-300 border-none font-bold text-xs mb-2">
             مركز التقارير والتحليلات الرقمية للمصنع
@@ -3411,7 +3411,7 @@ const ProductionReports = ({
         <div className="flex items-center gap-3">
           <Button 
             onClick={handlePrintReport}
-            className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-black rounded-2xl h-11 px-5 backdrop-blur-md"
+            className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-black rounded-[14px] h-11 px-5 backdrop-blur-md"
           >
             <Printer size={18} className="ml-2" />
             طباعة التقرير الحالي
@@ -3420,7 +3420,7 @@ const ProductionReports = ({
       </div>
 
       {/* 6 Major Sub-Tab Navigators */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 bg-white p-2 rounded-[14px] border border-slate-100 shadow-sm">
         <button
           onClick={() => setReportCategory('orders_wo')}
           className={`py-3 px-2 rounded-xl text-xs font-black transition-all text-center flex flex-col items-center gap-1 ${
@@ -3493,25 +3493,25 @@ const ProductionReports = ({
                   <Badge className="bg-indigo-50 text-indigo-700 border-none font-bold text-[10px] mb-1">تقرير 1</Badge>
                   <h3 className="text-lg font-black text-slate-900">تقرير أوامر التصنيع (MOs)</h3>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm sm:text-lg">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-[14px] bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm sm:text-lg">
                   <NumberDisplay value={moStats.total} />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-800 min-w-0">
+                <div className="p-3 bg-emerald-50 rounded-[14px] text-emerald-800 min-w-0">
                   <p className="text-[10px] font-black uppercase truncate">مكتملة</p>
                   <p className="text-lg sm:text-xl font-black mt-1">
                     <NumberDisplay value={moStats.completed} />
                   </p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-2xl text-amber-800 min-w-0">
+                <div className="p-3 bg-amber-50 rounded-[14px] text-amber-800 min-w-0">
                   <p className="text-[10px] font-black uppercase truncate">قيد التصنيع</p>
                   <p className="text-lg sm:text-xl font-black mt-1">
                     <NumberDisplay value={moStats.inProgress} />
                   </p>
                 </div>
-                <div className="p-3 bg-slate-100 rounded-2xl text-slate-800 min-w-0">
+                <div className="p-3 bg-slate-100 rounded-[14px] text-slate-800 min-w-0">
                   <p className="text-[10px] font-black uppercase truncate">مخططة</p>
                   <p className="text-lg sm:text-xl font-black mt-1">
                     <NumberDisplay value={moStats.planned} />
@@ -3537,25 +3537,25 @@ const ProductionReports = ({
                   <Badge className="bg-indigo-50 text-indigo-700 border-none font-bold text-[10px] mb-1">تقرير 2</Badge>
                   <h3 className="text-lg font-black text-slate-900">تقرير أوامر التشغيل (WO)</h3>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm sm:text-lg">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-[14px] bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm sm:text-lg">
                   <NumberDisplay value={woStats.total} />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-800 min-w-0">
+                <div className="p-3 bg-emerald-50 rounded-[14px] text-emerald-800 min-w-0">
                   <p className="text-[10px] font-black uppercase truncate">WO منجزة</p>
                   <p className="text-lg sm:text-xl font-black mt-1">
                     <NumberDisplay value={woStats.completed} />
                   </p>
                 </div>
-                <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-800 min-w-0">
+                <div className="p-3 bg-indigo-50 rounded-[14px] text-indigo-800 min-w-0">
                   <p className="text-[10px] font-black uppercase truncate">WO نشطة</p>
                   <p className="text-lg sm:text-xl font-black mt-1">
                     <NumberDisplay value={woStats.active} />
                   </p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-2xl text-amber-800 min-w-0">
+                <div className="p-3 bg-amber-50 rounded-[14px] text-amber-800 min-w-0">
                   <p className="text-[10px] font-black uppercase truncate">WO بانتظار</p>
                   <p className="text-lg sm:text-xl font-black mt-1">
                     <NumberDisplay value={woStats.pending} />
@@ -3628,7 +3628,7 @@ const ProductionReports = ({
 
               <div className="space-y-3">
                 {departmentProduction.map((dept, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-50 rounded-2xl flex items-center justify-between">
+                  <div key={idx} className="p-3.5 bg-slate-50 rounded-[14px] flex items-center justify-between">
                     <div>
                       <p className="font-black text-slate-900 text-xs">{dept.name}</p>
                       <p className="text-[11px] font-bold text-slate-400 mt-0.5">عدد الأوامر المنجزة: <NumberDisplay value={dept.completedWOs} /> من <NumberDisplay value={dept.totalWOs} /></p>
@@ -3656,7 +3656,7 @@ const ProductionReports = ({
 
               <div className="space-y-3">
                 {workerProduction.map((emp, idx) => (
-                  <div key={idx} className="p-3.5 bg-slate-50 rounded-2xl flex items-center justify-between">
+                  <div key={idx} className="p-3.5 bg-slate-50 rounded-[14px] flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs">
                         {emp.name.charAt(0)}
@@ -3695,13 +3695,13 @@ const ProductionReports = ({
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-900 min-w-0">
+                <div className="p-4 bg-emerald-50 rounded-[14px] text-emerald-900 min-w-0">
                   <p className="text-xs font-black truncate">نسبة القبول الفوري (FPY)</p>
                   <p className="text-2xl sm:text-3xl font-black mt-2">
                     <NumberDisplay value={qualityReport.passRate} unit="%" colored />
                   </p>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-2xl text-slate-800 min-w-0">
+                <div className="p-4 bg-slate-50 rounded-[14px] text-slate-800 min-w-0">
                   <p className="text-xs font-black truncate">إجمالي الفحوصات المنفذة</p>
                   <p className="text-2xl sm:text-3xl font-black mt-2">
                     <NumberDisplay value={qualityReport.totalInspec} />
@@ -3721,19 +3721,19 @@ const ProductionReports = ({
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-rose-50 rounded-2xl text-rose-800 min-w-0">
+                <div className="p-3 bg-rose-50 rounded-[14px] text-rose-800 min-w-0">
                   <p className="text-[10px] font-black truncate">مرفوض مع أرجاع</p>
                   <p className="text-lg sm:text-xl font-black mt-1">
                     <NumberDisplay value={qualityReport.failed} colored />
                   </p>
                 </div>
-                <div className="p-3 bg-amber-50 rounded-2xl text-amber-800 min-w-0">
+                <div className="p-3 bg-amber-50 rounded-[14px] text-amber-800 min-w-0">
                   <p className="text-[10px] font-black truncate">إعادة عمل (Rework)</p>
                   <p className="text-lg sm:text-xl font-black mt-1">
                     <NumberDisplay value={qualityReport.rework} colored />
                   </p>
                 </div>
-                <div className="p-3 bg-slate-900 text-white rounded-2xl min-w-0">
+                <div className="p-3 bg-slate-900 text-white rounded-[14px] min-w-0">
                   <p className="text-[10px] font-black truncate">خردة (Scrap)</p>
                   <p className="text-lg sm:text-xl font-black mt-1">
                     <NumberDisplay value={qualityReport.scrap} />
@@ -3761,7 +3761,7 @@ const ProductionReports = ({
 
               <div className="space-y-3">
                 {stageLeadTimes.map((item, idx) => (
-                  <div key={idx} className="p-3 bg-slate-50 rounded-2xl flex items-center justify-between text-xs">
+                  <div key={idx} className="p-3 bg-slate-50 rounded-[14px] flex items-center justify-between text-xs">
                     <div>
                       <p className="font-black text-slate-900">{item.stage}</p>
                       <p className="text-slate-400 font-bold text-[11px]">مستهدف: {item.standardHours}س • فعلي: {item.actualHours}س</p>
@@ -3786,7 +3786,7 @@ const ProductionReports = ({
 
               <div className="space-y-3">
                 {delayReasons.map((item, idx) => (
-                  <div key={idx} className="p-3 bg-slate-50 rounded-2xl space-y-1.5">
+                  <div key={idx} className="p-3 bg-slate-50 rounded-[14px] space-y-1.5">
                     <div className="flex items-center justify-between text-xs font-black">
                       <span className="text-slate-900">{item.reason}</span>
                       <span className="text-indigo-700">{item.count} حالات ({item.percentage}%)</span>
@@ -3818,7 +3818,7 @@ const ProductionReports = ({
 
               <div className="space-y-2">
                 {dailyOutput.map((item, idx) => (
-                  <div key={idx} className="p-3 bg-slate-50 rounded-2xl flex items-center justify-between text-xs">
+                  <div key={idx} className="p-3 bg-slate-50 rounded-[14px] flex items-center justify-between text-xs">
                     <span className="font-black text-slate-800">{item.date}</span>
                     <span className="font-bold text-slate-600">المستهدف: <NumberDisplay value={item.target} /> • الفعلي: <span className="font-black text-slate-900"><NumberDisplay value={item.actual} /></span></span>
                     <Badge className="bg-indigo-100 text-indigo-800 font-black">
@@ -3841,7 +3841,7 @@ const ProductionReports = ({
 
               <div className="space-y-3">
                 {monthlyOutput.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-slate-50 rounded-2xl space-y-2">
+                  <div key={idx} className="p-4 bg-slate-50 rounded-[14px] space-y-2">
                     <div className="flex items-center justify-between text-xs font-black">
                       <span className="text-slate-900">{item.month}</span>
                       <span className="text-emerald-700">
@@ -3874,19 +3874,19 @@ const ProductionReports = ({
               </div>
 
               <div className="grid grid-cols-4 gap-2 text-center">
-                <div className="p-3 bg-slate-50 rounded-2xl">
+                <div className="p-3 bg-slate-50 rounded-[14px]">
                   <p className="text-[10px] font-black text-slate-400">التوفر</p>
                   <p className="text-lg font-black text-slate-900 mt-1">{oeeMetrics.availability}%</p>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-2xl">
+                <div className="p-3 bg-slate-50 rounded-[14px]">
                   <p className="text-[10px] font-black text-slate-400">الأداء</p>
                   <p className="text-lg font-black text-slate-900 mt-1">{oeeMetrics.performance}%</p>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-2xl">
+                <div className="p-3 bg-slate-50 rounded-[14px]">
                   <p className="text-[10px] font-black text-slate-400">الجودة</p>
                   <p className="text-lg font-black text-slate-900 mt-1">{oeeMetrics.quality}%</p>
                 </div>
-                <div className="p-3 bg-indigo-600 text-white rounded-2xl">
+                <div className="p-3 bg-indigo-600 text-white rounded-[14px]">
                   <p className="text-[10px] font-black text-indigo-200">مؤشر OEE</p>
                   <p className="text-lg font-black mt-1">{oeeMetrics.overallOEE}%</p>
                 </div>
@@ -4157,7 +4157,7 @@ const ShowroomFactoryIntegration = ({
   return (
     <div className="space-y-6">
       {/* Header & Sub-Navigation */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-8 rounded-[32px] text-white shadow-xl space-y-6">
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-[32px] text-white shadow-xl space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <Badge className="bg-indigo-500/20 text-indigo-300 border-none font-bold text-xs mb-2">
@@ -4169,7 +4169,7 @@ const ShowroomFactoryIntegration = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-white/10 p-1.5 rounded-2xl backdrop-blur-md border border-white/10">
+          <div className="flex items-center gap-2 bg-white/10 p-1.5 rounded-[14px] backdrop-blur-md border border-white/10">
             <Button
               onClick={() => setActiveSubView('sheet')}
               className={`rounded-xl font-black text-xs h-10 px-4 ${activeSubView === 'sheet' ? 'bg-indigo-600 text-white shadow-md' : 'bg-transparent text-slate-300 hover:text-white'}`}
@@ -4198,35 +4198,35 @@ const ShowroomFactoryIntegration = ({
 
         {/* 4 Summary Analytics KPI Badges */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
-          <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 min-w-0">
+          <div className="p-4 rounded-[14px] bg-white/10 backdrop-blur-md border border-white/10 min-w-0">
             <p className="text-[11px] font-bold text-slate-300 truncate">إجمالي الطلبات</p>
             <p className="text-lg sm:text-xl lg:text-2xl font-black text-white mt-1">
               <NumberDisplay value={stats.total} />
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 min-w-0">
+          <div className="p-4 rounded-[14px] bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 min-w-0">
             <p className="text-[11px] font-bold text-emerald-300 truncate">تم واكتمل وتسليم</p>
             <p className="text-lg sm:text-xl lg:text-2xl font-black text-emerald-400 mt-1">
               <NumberDisplay value={stats.completed} />
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30 min-w-0">
+          <div className="p-4 rounded-[14px] bg-amber-500/20 backdrop-blur-md border border-amber-500/30 min-w-0">
             <p className="text-[11px] font-bold text-amber-300 truncate">جاري التشغيل بالمصنع</p>
             <p className="text-lg sm:text-xl lg:text-2xl font-black text-amber-400 mt-1">
               <NumberDisplay value={stats.inProgress} />
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-rose-500/20 backdrop-blur-md border border-rose-500/30 min-w-0">
+          <div className="p-4 rounded-[14px] bg-rose-500/20 backdrop-blur-md border border-rose-500/30 min-w-0">
             <p className="text-[11px] font-bold text-rose-300 truncate">بانتظار الخامات</p>
             <p className="text-lg sm:text-xl lg:text-2xl font-black text-rose-400 mt-1">
               <NumberDisplay value={stats.pending} />
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-indigo-500/20 backdrop-blur-md border border-indigo-500/30 col-span-2 sm:col-span-1 min-w-0">
+          <div className="p-4 rounded-[14px] bg-indigo-500/20 backdrop-blur-md border border-indigo-500/30 col-span-2 sm:col-span-1 min-w-0">
             <p className="text-[11px] font-bold text-indigo-300 truncate">نسبة الإنجاز العامة</p>
             <p className="text-lg sm:text-xl lg:text-2xl font-black text-indigo-400 mt-1">
               <NumberDisplay value={stats.completionRate} unit="%" />
@@ -4248,7 +4248,7 @@ const ShowroomFactoryIntegration = ({
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="ابحث باسم العميل، الشغل المطلوب، المكونات، الملاحظات..."
-                  className="pr-11 h-11 rounded-2xl bg-slate-50 border-slate-200 font-bold text-xs focus:bg-white"
+                  className="pr-11 h-11 rounded-[14px] bg-slate-50 border-slate-200 font-bold text-xs focus:bg-white"
                 />
               </div>
 
@@ -4333,7 +4333,7 @@ const ShowroomFactoryIntegration = ({
                 <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-800">
                   {filteredOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-slate-400 font-bold">
+                      <td colSpan={8} className="p-6 text-center text-slate-400 font-bold">
                         لا توجد سجلات مطابقة لخيارات البحث أو التصفية الحالية
                       </td>
                     </tr>
@@ -4432,7 +4432,7 @@ const ShowroomFactoryIntegration = ({
 
             <Button 
               onClick={() => alert('يمكنك إنشاء بيان حمولة جديد بانتخاب الشحنات المكتملة وجدولة سائق النقل.')}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs h-11 px-5 rounded-2xl shadow-md"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs h-11 px-5 rounded-[14px] shadow-md"
             >
               <Plus size={16} className="ml-1.5" />
               إنشاء بيان حمولة جديد (Cargo Manifest)
@@ -4444,7 +4444,7 @@ const ShowroomFactoryIntegration = ({
               <Card key={manifest.id} className="rounded-[32px] border-none shadow-sm p-6 bg-white space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-black">
+                    <div className="w-12 h-12 rounded-[14px] bg-indigo-50 text-indigo-700 flex items-center justify-center font-black">
                       <Truck size={22} />
                     </div>
                     <div>
@@ -4458,7 +4458,7 @@ const ShowroomFactoryIntegration = ({
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl text-xs font-bold">
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-[14px] text-xs font-bold">
                   <div>
                     <span className="text-slate-400">اسم السائق:</span>
                     <p className="text-slate-800 font-black mt-0.5">{manifest.driverName}</p>
@@ -4550,7 +4550,7 @@ const ShowroomFactoryIntegration = ({
       {/* PRINTABLE DELIVERY RECEIPT MODAL */}
       {showReceiptModal && selectedOrderForReceipt && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-[32px] max-w-2xl w-full p-8 shadow-2xl space-y-6 border border-slate-200">
+          <div className="bg-white rounded-[32px] max-w-2xl w-full p-6 shadow-2xl space-y-6 border border-slate-200">
             {/* Modal Actions Bar */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 print:hidden">
               <Badge className="bg-indigo-100 text-indigo-800 font-black text-xs px-3 py-1">
@@ -4575,7 +4575,7 @@ const ShowroomFactoryIntegration = ({
             </div>
 
             {/* Document Content (Exact Printable Delivery Receipt) */}
-            <div className="space-y-6 text-slate-900 border-2 border-slate-900 p-6 rounded-2xl bg-white">
+            <div className="space-y-6 text-slate-900 border-2 border-slate-900 p-6 rounded-[14px] bg-white">
               {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b-2 border-slate-900">
                 <div>

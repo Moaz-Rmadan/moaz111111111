@@ -747,7 +747,7 @@ export function FinancialReports({
   ], [maintenanceOrders]);
 
   return (
-    <div className="space-y-10 pb-24 print:p-0 animate-in fade-in duration-700" dir="rtl">
+    <div className="space-y-10 pb-24 print:p-0 animate-in fade-in duration-200" dir="rtl">
       
       {/* Page Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 print:hidden">
@@ -772,7 +772,7 @@ export function FinancialReports({
       </div>
 
       {/* Navigation Tabs Grid */}
-      <div className="flex flex-wrap gap-1.5 p-1.5 bg-slate-100/90 rounded-2xl w-full print:hidden shadow-md">
+      <div className="flex flex-wrap gap-1.5 p-1.5 bg-slate-100/90 rounded-[14px] w-full print:hidden shadow-md">
         {[
           { id: 'dashboard', label: 'لوحة القيادة الموحدة', icon: <Box size={16} /> },
           { id: 'journal', label: 'دفتر اليومية العامة', icon: <BookOpen size={16} /> },
@@ -800,11 +800,11 @@ export function FinancialReports({
 
       {/* ==================== 1. DASHBOARD TAB ==================== */}
       {activeReportTab === 'dashboard' && (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 animate-in fade-in duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
-            <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-110" />
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-200 group-hover:scale-110" />
               <div className="relative z-10">
                 <div className="w-11 h-11 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg mb-4">
                   <Package size={20} />
@@ -816,8 +816,8 @@ export function FinancialReports({
               </div>
             </div>
 
-            <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50/50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-110" />
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50/50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-200 group-hover:scale-110" />
               <div className="relative z-10">
                 <div className="w-11 h-11 rounded-xl bg-rose-500 flex items-center justify-center text-white shadow-lg mb-4">
                   <Users size={20} />
@@ -829,8 +829,8 @@ export function FinancialReports({
               </div>
             </div>
 
-            <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50/50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-110" />
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50/50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-200 group-hover:scale-110" />
               <div className="relative z-10">
                 <div className="w-11 h-11 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg mb-4">
                   <CircleDollarSign size={20} />
@@ -842,8 +842,8 @@ export function FinancialReports({
               </div>
             </div>
 
-            <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-lg relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-violet-50/50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-110" />
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-lg relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-violet-50/50 rounded-bl-full -mr-12 -mt-12 transition-transform duration-200 group-hover:scale-110" />
               <div className="relative z-10">
                 <div className="w-11 h-11 rounded-xl bg-violet-500 flex items-center justify-center text-white shadow-lg mb-4">
                   <Calculator size={20} />
@@ -858,7 +858,7 @@ export function FinancialReports({
           </div>
 
           {/* Graphical Analysis */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden p-0">
               <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
@@ -916,7 +916,7 @@ export function FinancialReports({
           </div>
 
           {/* Production & Maintenance stats in Dashboard */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <Card className="lg:col-span-1 border-none shadow-xl rounded-3xl bg-white overflow-hidden p-0">
               <div className="p-6 border-b border-slate-50 bg-slate-50/30">
@@ -975,9 +975,9 @@ export function FinancialReports({
 
       {/* ==================== GENERAL JOURNAL (دفتر اليومية العامة) ==================== */}
       {activeReportTab === 'journal' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
-            <CardHeader className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardHeader className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
@@ -1001,10 +1001,10 @@ export function FinancialReports({
                 <Download size={14} className="ml-1.5" /> تصدير اليومية العامة (Excel)
               </Button>
             </CardHeader>
-            <CardContent className="p-8 space-y-6">
+            <CardContent className="p-6 space-y-6">
               
               {/* Filters Box */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 bg-slate-50 rounded-[14px] border border-slate-100">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">من تاريخ</label>
                   <input 
@@ -1040,7 +1040,7 @@ export function FinancialReports({
 
               {/* Journal Metrics */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-5 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 flex items-center justify-between">
+                <div className="p-5 bg-indigo-50/50 rounded-[14px] border border-indigo-100/50 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-indigo-500 font-bold mb-1">إجمالي الحركات المدينة (Debit)</p>
                     <p className="text-xl font-black text-indigo-700">
@@ -1049,7 +1049,7 @@ export function FinancialReports({
                   </div>
                   <TrendingUp size={24} className="text-indigo-400" />
                 </div>
-                <div className="p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 flex items-center justify-between">
+                <div className="p-5 bg-emerald-50/50 rounded-[14px] border border-emerald-100/50 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-emerald-500 font-bold mb-1">إجمالي الحركات الدائنة (Credit)</p>
                     <p className="text-xl font-black text-emerald-700">
@@ -1058,7 +1058,7 @@ export function FinancialReports({
                   </div>
                   <TrendingDown size={24} className="text-emerald-400" />
                 </div>
-                <div className="p-5 bg-slate-900 text-white rounded-2xl flex items-center justify-between">
+                <div className="p-5 bg-slate-900 text-white rounded-[14px] flex items-center justify-between">
                   <div>
                     <p className="text-[10px] text-slate-400 font-bold mb-1">حالة ميزان القيود المفتوحة</p>
                     {filteredJournalRows.reduce((sum, r) => sum + r.debit, 0) === filteredJournalRows.reduce((sum, r) => sum + r.credit, 0) ? (
@@ -1078,7 +1078,7 @@ export function FinancialReports({
               </div>
 
               {/* Journal Book Table */}
-              <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+              <div className="border border-slate-100 rounded-[14px] overflow-hidden shadow-sm">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50/80">
@@ -1160,9 +1160,9 @@ export function FinancialReports({
 
       {/* ==================== 2. GENERAL LEDGER TAB ==================== */}
       {activeReportTab === 'ledger' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
-            <CardHeader className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardHeader className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-xl font-black text-slate-900">دفتر الأستاذ المحاسبي المساعد</CardTitle>
                 <CardDescription className="text-xs font-bold text-slate-500">متابعة دقيقة وتراكمية لحركات الحسابات المالية وصافي المراكز الحالية</CardDescription>
@@ -1181,10 +1181,10 @@ export function FinancialReports({
                 <Download size={14} className="ml-1.5" /> تصدير دفتر الأستاذ
               </Button>
             </CardHeader>
-            <CardContent className="p-8 space-y-6">
+            <CardContent className="p-6 space-y-6">
               
               {/* Filters Box */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-[14px] border border-slate-100">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600">اختر حساب الأستاذ الفرعي</label>
                   <select 
@@ -1232,7 +1232,7 @@ export function FinancialReports({
               </div>
 
               {/* Table of Movements */}
-              <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+              <div className="border border-slate-100 rounded-[14px] overflow-hidden shadow-sm">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50/50">
@@ -1281,7 +1281,7 @@ export function FinancialReports({
       )}
 
       {activeReportTab === 'inventory_analytics' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <InventoryReports 
             items={items} 
             warehouses={warehouses} 
@@ -1294,9 +1294,9 @@ export function FinancialReports({
 
       {/* ==================== 3. INCOME STATEMENT TAB ==================== */}
       {activeReportTab === 'income_statement' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
-            <CardHeader className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardHeader className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-xl font-black text-slate-900">قائمة الدخل التفصيلية (الأرباح والخسائر)</CardTitle>
                 <CardDescription className="text-xs font-bold text-slate-500">مراجعة صافي الإيرادات وهياكل التكلفة المباشرة والتشغيلية دورياً</CardDescription>
@@ -1331,10 +1331,10 @@ export function FinancialReports({
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-8">
+            <CardContent className="p-6">
               
               {statementPeriod === 'custom' && (
-                <div className="flex flex-wrap items-center gap-4 mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in fade-in">
+                <div className="flex flex-wrap items-center gap-4 mb-6 p-4 bg-slate-50 rounded-[14px] border border-slate-100 animate-in fade-in">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black text-slate-600">من تاريخ:</span>
                     <input type="date" value={pnlDateFrom} onChange={(e) => setPnlDateFrom(e.target.value)} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800" />
@@ -1353,7 +1353,7 @@ export function FinancialReports({
                   <span className="text-lg font-black text-emerald-600">{(pnlData.revenues).toLocaleString()} ج.م</span>
                 </div>
 
-                <div className="space-y-2 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                <div className="space-y-2 bg-slate-50/50 p-5 rounded-[14px] border border-slate-100">
                   <h4 className="text-xs font-black text-slate-500 mb-3">يخصم: تكلفة النشاط المباشرة (COGS)</h4>
                   <div className="flex justify-between text-xs py-1.5 border-b border-dashed border-slate-100 text-slate-600">
                     <span>الخامات المستهلكة بالمنشأة</span>
@@ -1382,7 +1382,7 @@ export function FinancialReports({
                   <span className="text-lg font-black text-indigo-700">{(pnlData.grossProfit).toLocaleString()} ج.م</span>
                 </div>
 
-                <div className="space-y-2 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                <div className="space-y-2 bg-slate-50/50 p-5 rounded-[14px] border border-slate-100">
                   <h4 className="text-xs font-black text-slate-500 mb-3">يخصم: المصاريف التشغيلية والإدارية (OPEX)</h4>
                   <div className="flex justify-between text-xs py-1.5 border-b border-dashed border-slate-100 text-slate-600">
                     <span>المرتبات والأجور العامة والمنح</span>
@@ -1410,7 +1410,7 @@ export function FinancialReports({
                   </div>
                 </div>
 
-                <div className={`p-5 rounded-2xl flex justify-between items-center text-white border shadow-md ${pnlData.netProfit >= 0 ? 'bg-emerald-500 border-emerald-600 shadow-emerald-500/10' : 'bg-rose-500 border-rose-600 shadow-rose-500/10'}`}>
+                <div className={`p-5 rounded-[14px] flex justify-between items-center text-white border shadow-md ${pnlData.netProfit >= 0 ? 'bg-emerald-500 border-emerald-600 shadow-emerald-500/10' : 'bg-rose-500 border-rose-600 shadow-rose-500/10'}`}>
                   <span className="text-sm font-black">صافي الأرباح / الخسائر المعتمدة</span>
                   <span className="text-xl font-black">{(pnlData.netProfit).toLocaleString()} ج.م</span>
                 </div>
@@ -1424,9 +1424,9 @@ export function FinancialReports({
 
       {/* ==================== 4. BALANCE SHEET TAB ==================== */}
       {activeReportTab === 'balance_sheet' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
-            <CardHeader className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardHeader className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-xl font-black text-slate-900">قائمة المركز المالي والمركز المحاسبي</CardTitle>
                 <CardDescription className="text-xs font-bold text-slate-500">بيان الأصول الجارية للشركة وحقوق الملكية والالتزامات المتبادلة</CardDescription>
@@ -1447,8 +1447,8 @@ export function FinancialReports({
                 <Download size={14} className="ml-1.5" /> تصدير الميزانية
               </Button>
             </CardHeader>
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Assets */}
                 <div className="space-y-4">
@@ -1456,7 +1456,7 @@ export function FinancialReports({
                     <span className="text-sm font-black">الأصول (Assets)</span>
                     <span className="text-lg font-black">{(balanceSheetData.totalAssets).toLocaleString()} ج.م</span>
                   </div>
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
+                  <div className="bg-slate-50 p-6 rounded-[14px] border border-slate-100 space-y-4">
                     <h4 className="text-xs font-black text-slate-800 border-b border-slate-200 pb-2">الأصول المتداولة</h4>
                     <div className="flex justify-between text-xs font-bold text-slate-600">
                       <span>النقدية وما يعادلها (الخزائن)</span>
@@ -1481,7 +1481,7 @@ export function FinancialReports({
                   </div>
                   
                   {/* Liabilities */}
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-2">
+                  <div className="bg-slate-50 p-6 rounded-[14px] border border-slate-100 space-y-2">
                     <h4 className="text-xs font-black text-slate-800 border-b border-slate-200 pb-2">الالتزامات المتداولة</h4>
                     <div className="flex justify-between text-xs font-bold text-slate-600">
                       <span>ذمم وأرصدة الموردين الدائنة</span>
@@ -1490,7 +1490,7 @@ export function FinancialReports({
                   </div>
 
                   {/* Equity */}
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-2">
+                  <div className="bg-slate-50 p-6 rounded-[14px] border border-slate-100 space-y-2">
                     <h4 className="text-xs font-black text-slate-800 border-b border-slate-200 pb-2">حقوق الملكية</h4>
                     <div className="flex justify-between text-xs font-bold text-slate-600">
                       <span>الأرباح المحتجزة / المبقاة دورياً</span>
@@ -1508,7 +1508,7 @@ export function FinancialReports({
               </div>
 
               {/* Equilibrium Indicator */}
-              <div className="mt-8 bg-emerald-50 border border-emerald-100 p-5 rounded-2xl flex items-center gap-3 text-emerald-800 text-xs md:text-sm">
+              <div className="mt-8 bg-emerald-50 border border-emerald-100 p-5 rounded-[14px] flex items-center gap-3 text-emerald-800 text-xs md:text-sm">
                 <CheckCircle2 className="text-emerald-600 shrink-0" size={20} />
                 <div className="font-bold">
                   الميزانية مطابقة ومتزنة تماماً: <span className="underline">الأصول</span> = <span className="underline">الالتزامات وحقوق الملكية</span>. تم إجراء الفحوص المحاسبية بدقة تامة.
@@ -1522,9 +1522,9 @@ export function FinancialReports({
 
       {/* ==================== 5. TRIAL BALANCE TAB (NEW!) ==================== */}
       {activeReportTab === 'trial_balance' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
-            <CardHeader className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardHeader className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-xl font-black text-slate-900">ميزان المراجعة المحاسبي العام</CardTitle>
                 <CardDescription className="text-xs font-bold text-slate-500">استعراض مجاميع الحركات وأرصدة الأستاذ العام الموازنة طبقاً للقواعد المحاسبية</CardDescription>
@@ -1533,14 +1533,14 @@ export function FinancialReports({
                 <Download size={14} className="ml-1.5" /> تصدير ميزان المراجعة
               </Button>
             </CardHeader>
-            <CardContent className="p-8 space-y-6">
+            <CardContent className="p-6 space-y-6">
               
               <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3 text-amber-900 text-xs font-bold">
                 <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={16} />
                 <p>ميزان المراجعة الذكي يقوم بسحب أرصدة الخزينة، المخزون، الموردين، إيرادات المبيعات، الرواتب والإنفاق الكلي لحظياً وتوزيعها آلياً لضمان سلامة الدورة المحاسبية.</p>
               </div>
 
-              <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+              <div className="border border-slate-100 rounded-[14px] overflow-hidden shadow-sm">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50">
@@ -1580,12 +1580,12 @@ export function FinancialReports({
 
               {/* Matching check box */}
               {trialBalanceData.totalDebit === trialBalanceData.totalCredit ? (
-                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-800 text-xs md:text-sm font-bold">
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-[14px] flex items-center gap-3 text-emerald-800 text-xs md:text-sm font-bold">
                   <CheckCircle2 className="text-emerald-600" size={18} />
                   <span>تطابق مالي تام! الجانب المدين يساوي تماماً الجانب الدائن مما يؤكد صحة قيود النظام الحركية.</span>
                 </div>
               ) : (
-                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-800 text-xs md:text-sm font-bold">
+                <div className="p-4 bg-rose-50 border border-rose-100 rounded-[14px] flex items-center gap-3 text-rose-800 text-xs md:text-sm font-bold">
                   <AlertTriangle className="text-rose-600 animate-pulse" size={18} />
                   <span>تنبيه: يوجد فارق مالي بسيط ناجم عن حركات قيد التسوية المؤقتة. تم معالجة الفارق آلياً لضمان الموازنة الجارية.</span>
                 </div>
@@ -1598,24 +1598,24 @@ export function FinancialReports({
 
       {/* ==================== 6. PRODUCTION COSTS TAB (NEW!) ==================== */}
       {activeReportTab === 'production_costs' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-md">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">إجمالي أوامر الإنتاج الجارية والمنتهية</p>
               <h3 className="text-2xl font-black text-slate-800">{productionJobs.length} <span className="text-xs text-slate-400 font-bold">أمر تصنيع</span></h3>
             </div>
-            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-md">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">إجمالي تكاليف التشغيل الحقيقية</p>
               <h3 className="text-2xl font-black text-slate-800">{totalProductionCost.toLocaleString()} <span className="text-xs text-slate-400 font-bold">ج.م</span></h3>
             </div>
-            <div className="p-5 bg-slate-900 text-white rounded-2xl shadow-md">
+            <div className="p-5 bg-slate-900 text-white rounded-[14px] shadow-md">
               <p className="text-[10px] text-indigo-300 font-black uppercase tracking-wider mb-1">إجمالي خسائر الهالك في التصنيع</p>
               <h3 className="text-2xl font-black text-rose-400">{totalWasteValue.toLocaleString()} <span className="text-xs text-indigo-200 font-bold">ج.م</span></h3>
             </div>
           </div>
 
           <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
-            <CardHeader className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardHeader className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-xl font-black text-slate-900">سجل تكاليف الإنتاج والربحية لأوامر التشغيل</CardTitle>
                 <CardDescription className="text-xs font-bold text-slate-500">تحليل حقيقي لتكاليف الخامات، أجور العمالة المباشرة، وهوامش الربح لكل أمر إنتاجي</CardDescription>
@@ -1681,23 +1681,23 @@ export function FinancialReports({
 
       {/* ==================== 7. SALES ANALYTICS TAB (NEW!) ==================== */}
       {activeReportTab === 'sales_analytics' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-md">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">إجمالي إيراد فواتير المبيعات</p>
               <h3 className="text-2xl font-black text-slate-800">{totalSalesAmount.toLocaleString()} <span className="text-xs text-slate-400 font-bold">ج.م</span></h3>
             </div>
-            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-md">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">إجمالي صافي أرباح المبيعات</p>
               <h3 className="text-2xl font-black text-emerald-600">{totalSalesProfit.toLocaleString()} <span className="text-xs text-slate-400 font-bold">ج.م</span></h3>
             </div>
-            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-md">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">عمولات مبيعات المعارض</p>
               <h3 className="text-2xl font-black text-amber-600">
                 {salesOrders.reduce((sum, so) => sum + (so.totalCommission || 0), 0).toLocaleString()} <span className="text-xs text-slate-400 font-bold">ج.م</span>
               </h3>
             </div>
-            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-md">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">مصاريف نقل وتركيب لوجستية</p>
               <h3 className="text-2xl font-black text-slate-800">
                 {salesOrders.reduce((sum, so) => sum + (so.totalLogisticsCost || 0), 0).toLocaleString()} <span className="text-xs text-slate-400 font-bold">ج.م</span>
@@ -1757,7 +1757,7 @@ export function FinancialReports({
           </div>
 
           <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden">
-            <CardHeader className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardHeader className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-base font-black text-slate-900">سجل مبيعات المعارض التفصيلي والربحية الصافية</CardTitle>
                 <CardDescription className="text-xs font-bold text-slate-500">متابعة الفواتير وعمولات مندوبي المعارض ومصاريف الخدمات اللوجستية</CardDescription>
@@ -1820,9 +1820,9 @@ export function FinancialReports({
 
       {/* ==================== 8. WAREHOUSE INVENTORY TAB ==================== */}
       {activeReportTab === 'warehouse' && (
-        <div className="animate-in fade-in duration-500">
+        <div className="animate-in fade-in duration-200">
           <Card className="border-none shadow-xl rounded-3xl bg-white overflow-hidden p-0">
-            <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
+            <div className="p-6 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
               <div>
                 <h3 className="text-xl font-black text-slate-900">تقرير جرد المستودعات التفصيلي</h3>
                 <p className="text-slate-400 text-xs font-bold mt-1">عرض الأرصدة المتوفرة، والحدود الآمنة للمواد الخام بالمصنع</p>
@@ -1887,21 +1887,21 @@ export function FinancialReports({
 
       {/* ==================== 9. PURCHASES ANALYSIS TAB ==================== */}
       {activeReportTab === 'purchases' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-md">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">الإنفاق الكلي الـ 6 أشهر الأخيرة</p>
               <h3 className="text-2xl font-black text-slate-800">
                 {monthlyTrends.reduce((acc, t) => acc + t.purchases, 0).toLocaleString()} <span className="text-xs text-slate-400 font-bold">ج.م</span>
               </h3>
             </div>
-            <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <div className="p-6 bg-white rounded-[14px] border border-slate-100 shadow-md">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">متوسط حجم عملية الشراء</p>
               <h3 className="text-2xl font-black text-slate-800">
                 {(purchases.length > 0 ? (purchases.reduce((acc, p) => acc + p.total, 0) / purchases.length) : 0).toLocaleString()} <span className="text-xs text-slate-400 font-bold">ج.م</span>
               </h3>
             </div>
-            <div className="p-6 bg-slate-950 text-white rounded-2xl shadow-md">
+            <div className="p-6 bg-slate-950 text-white rounded-[14px] shadow-md">
               <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-1">عدد حركات الوارد المسجلة</p>
               <h3 className="text-3xl font-black text-indigo-400">{purchases.length} <span className="text-xs text-white/50 font-normal">عملية ناجحة</span></h3>
             </div>
@@ -1928,19 +1928,19 @@ export function FinancialReports({
 
       {/* ==================== 10. SUPPLIERS BALANCES TAB ==================== */}
       {activeReportTab === 'suppliers' && (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-200">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="p-5 bg-slate-900 text-white rounded-2xl shadow-md">
+            <div className="p-5 bg-slate-900 text-white rounded-[14px] shadow-md">
               <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-1">إجمالي مديونيات السوق الجارية</p>
               <h3 className="text-2xl font-black text-red-400">{totalSupplierDebt.toLocaleString()} <span className="text-xs text-slate-500 font-bold">ج.م</span></h3>
             </div>
-            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-md">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">إجمالي الدفعات المسددة للموردين</p>
               <h3 className="text-2xl font-black text-emerald-600">
                 {suppliers.reduce((sum, s) => sum + s.totalPayments, 0).toLocaleString()} <span className="text-xs text-slate-400 font-bold">ج.م</span>
               </h3>
             </div>
-            <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-md flex items-center justify-between">
+            <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-md flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">معدل سداد الفواتير الكلي</p>
                 <h3 className="text-2xl font-black text-slate-800">

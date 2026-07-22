@@ -165,7 +165,7 @@ export function MaterialCalculatorView() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto font-sans" dir="rtl">
+    <div className="p-6 max-w-7xl mx-auto font-sans" dir="rtl">
       <div className="flex justify-between items-end mb-8">
         <div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter mb-4">
@@ -194,7 +194,7 @@ export function MaterialCalculatorView() {
         </div>
       </div>
 
-      <div className="flex gap-2 mb-8 bg-slate-100 p-1 rounded-2xl overflow-x-auto">
+      <div className="flex gap-2 mb-8 bg-slate-100 p-1 rounded-[14px] overflow-x-auto">
         {[
           { id: "wood", label: "أخشاب" },
           { id: "marble", label: "رخام" },
@@ -215,7 +215,7 @@ export function MaterialCalculatorView() {
         ))}
       </div>
 
-      <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+      <div className="bg-white p-6 rounded-[14px] shadow-sm border border-slate-100">
         {activeSubTab === "wood" && (
           <WoodCalculator onAdd={handleAddWood} products={products} />
         )}
@@ -241,11 +241,11 @@ export function MaterialCalculatorView() {
             <div className="space-y-4">
                 <h2 className="text-2xl font-black text-slate-800 mb-6">الحسبات المحفوظة</h2>
                 {savedProjects.length === 0 ? (
-                    <div className="text-center p-8 text-slate-500 font-bold bg-slate-50 rounded-2xl border border-slate-100">لا توجد حسبات محفوظة</div>
+                    <div className="text-center p-6 text-slate-500 font-bold bg-slate-50 rounded-[14px] border border-slate-100">لا توجد حسبات محفوظة</div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {savedProjects.map(sp => (
-                            <div key={sp.id} className="p-6 bg-slate-50 border border-slate-200 rounded-2xl hover:border-indigo-300 transition-all group">
+                            <div key={sp.id} className="p-6 bg-slate-50 border border-slate-200 rounded-[14px] hover:border-indigo-300 transition-all group">
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
                                         <h3 className="text-xl font-black text-slate-800">{sp.projectName}</h3>
