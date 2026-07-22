@@ -1,0 +1,17 @@
+{
+  "name": "النجار ديزاين - المنظومة المتكاملة",
+  "short_name": "النجار ديزاين",
+  "description": "نظام ERP متكامل لإدارة المصانع",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/src/assets/images/app_icon_smart_factory_1784750351769.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

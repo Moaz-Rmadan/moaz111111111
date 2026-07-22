@@ -1162,28 +1162,28 @@ const MOList = ({ orders = [] }: any) => {
             variant={statusFilter === 'all' ? 'default' : 'ghost'}
             className={`rounded-xl font-black text-xs h-10 px-4 ${statusFilter === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-600'}`}
           >
-            الكل ({counts.total})
+            الكل (<NumberDisplay value={counts.total} />)
           </Button>
           <Button 
             onClick={() => setStatusFilter('in_progress')}
             variant={statusFilter === 'in_progress' ? 'default' : 'ghost'}
             className={`rounded-xl font-black text-xs h-10 px-4 ${statusFilter === 'in_progress' ? 'bg-amber-500 text-white' : 'text-slate-600'}`}
           >
-            قيد التصنيع ⏳ ({counts.inProgress})
+            قيد التصنيع ⏳ (<NumberDisplay value={counts.inProgress} />)
           </Button>
           <Button 
             onClick={() => setStatusFilter('completed')}
             variant={statusFilter === 'completed' ? 'default' : 'ghost'}
             className={`rounded-xl font-black text-xs h-10 px-4 ${statusFilter === 'completed' ? 'bg-emerald-600 text-white' : 'text-slate-600'}`}
           >
-            تمت واكتملت ✅ ({counts.completed})
+            تمت واكتملت ✅ (<NumberDisplay value={counts.completed} />)
           </Button>
           <Button 
             onClick={() => setStatusFilter('planned')}
             variant={statusFilter === 'planned' ? 'default' : 'ghost'}
             className={`rounded-xl font-black text-xs h-10 px-4 ${statusFilter === 'planned' ? 'bg-slate-700 text-white' : 'text-slate-600'}`}
           >
-            مخططة 📋 ({counts.planned})
+            مخططة 📋 (<NumberDisplay value={counts.planned} />)
           </Button>
         </div>
       </div>
@@ -1327,25 +1327,25 @@ const WOTerminal = ({ workOrders = [], employees = [] }: any) => {
             onClick={() => setFilter('active')}
             className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'active' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
           >
-            جاري العمل ⚡ ({workOrders.filter((w: any) => w.status === 'active').length})
+            جاري العمل ⚡ (<NumberDisplay value={workOrders.filter((w: any) => w.status === 'active').length} />)
           </Button>
           <Button
             onClick={() => setFilter('pending')}
             className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'pending' ? 'bg-amber-500 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
           >
-            بانتظار البدء ⏳ ({workOrders.filter((w: any) => w.status === 'pending').length})
+            بانتظار البدء ⏳ (<NumberDisplay value={workOrders.filter((w: any) => w.status === 'pending').length} />)
           </Button>
           <Button
             onClick={() => setFilter('completed')}
             className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'completed' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
           >
-            المكتملة ✅ ({workOrders.filter((w: any) => w.status === 'completed').length})
+            المكتملة ✅ (<NumberDisplay value={workOrders.filter((w: any) => w.status === 'completed').length} />)
           </Button>
           <Button
             onClick={() => setFilter('all')}
             className={`rounded-xl font-black text-xs h-9 px-4 ${filter === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'bg-transparent text-slate-600 hover:text-slate-900'}`}
           >
-            الكل ({workOrders.length})
+            الكل (<NumberDisplay value={workOrders.length} />)
           </Button>
         </div>
       </div>
