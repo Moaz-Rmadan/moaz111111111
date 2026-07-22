@@ -297,16 +297,245 @@ export interface MachineMaintenance {
   safeTransactionId?: string;
 }
 
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  currency: string;
+  initialBalance: number;
+  balance: number;
+  status: 'نشط' | 'مغلق';
+  createdAt?: any;
+}
+
+export interface BankTransaction {
+  id: string;
+  accountId: string;
+  date: string;
+  type: 'إيداع' | 'سحب' | 'تحويل' | 'عمولة' | 'شيك';
+  amount: number;
+  description: string;
+  relatedId?: string; // ID of check or transfer or safe transaction
+  referenceNumber?: string;
+  createdBy: string;
+  createdAt?: any;
+}
+
+export interface BankCheck {
+  id: string;
+  type: 'وارد' | 'صادر';
+  checkNumber: string;
+  bankName: string;
+  amount: number;
+  dueDate: string;
+  issueDate: string;
+  beneficiary: string; // From (for Incoming) or To (for Outgoing)
+  status: 'قيد الانتظار' | 'تم التحصيل' | 'مرفوض' | 'ملغى';
+  accountId?: string; // Bank account associated
+  notes?: string;
+  createdBy: string;
+  createdAt?: any;
+}
+
+// --- Manufacturing & Production ---
+
+export interface ProductionStage {
+  id: string;
+  name: string;
+  code: string;
+  order: number;
+  departmentId?: string;
+  supervisorId?: string;
+  standardTimeMinutes: number;
+  isMandatory: boolean;
+  allowParallel: boolean;
+  nextStageId?: string;
+  failReturnStageId?: string; // Where to go if quality fails
+  type: 'manual' | 'machine' | 'quality' | 'packing';
+}
+
+export interface ProductionRoute {
+  id: string;
+  name: string;
+  description?: string;
+  stages: ProductionStage[];
+  targetProductId?: string;
+  createdAt: any;
+}
+
+export interface ManufacturingOrder {
+  id: string;
+  moNumber: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  routeId: string;
+  startDate: string;
+  dueDate: string;
+  status: 'draft' | 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  currentStageId?: string;
+  priority: 'normal' | 'high' | 'urgent';
+  notes?: string;
+  createdBy: string;
+  createdAt: any;
+}
+
+export interface WorkOrder {
+  id: string;
+  woNumber: string;
+  moId: string;
+  moNumber: string;
+  stageId: string;
+  stageName: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  operatorId?: string;
+  operatorName?: string;
+  startTime?: any;
+  endTime?: any;
+  actualDurationMinutes?: number;
+  status: 'pending' | 'active' | 'paused' | 'completed' | 'failed';
+  progress: number; // 0-100
+  notes?: string;
+  images?: string[];
+  attachments?: string[];
+  qualityStatus?: 'pending' | 'pass' | 'fail' | 'rework' | 'scrap';
+  delayReason?: string;
+  createdAt: any;
+}
+
+export interface QualityInspection {
+  id: string;
+  woId: string;
+  moId: string;
+  inspectorId: string;
+  date: any;
+  result: 'pass' | 'fail' | 'rework' | 'scrap';
+  defects?: string[];
+  comments?: string;
+  attachments?: string[];
+}
+
+export interface PackingRecord {
+  id: string;
+  moId: string;
+  woId: string;
+  itemCount: number;
+  cartonCount: number;
+  totalWeight: number;
+  dimensions: { length: number; width: number; height: number };
+  qrCode?: string;
+  barcode?: string;
+  packedBy: string;
+  packedAt: any;
+  notes?: string;
+}
+
+export interface ProductionLog {
+  id: string;
+  moId: string;
+  woId?: string;
+  type: 'status_change' | 'quality_result' | 'operator_change' | 'delay';
+  description: string;
+  timestamp: any;
+  userId: string;
+}
+
+export interface ProductionMachine {
+  id: string;
+  name: string;
+  code: string;
+  status: 'available' | 'maintenance' | 'busy' | 'offline';
+  capacityPerDay: number;
+  lastMaintenanceDate?: string;
+}
+
+export interface ProductionTeam {
+  id: string;
+  name: string;
+  supervisorId: string;
+  memberIds: string[];
+}
+
+export interface ProductionRouteStage extends ProductionStage {
+  routeId: string;
+}
+
+export interface WorkOrderEmployee {
+  woId: string;
+  employeeId: string;
+  employeeName: string;
+  startTime: any;
+  endTime?: any;
+}
+
+export interface ProductionTracking {
+  id: string;
+  moId: string;
+  currentStageId: string;
+  currentResponsibleId: string; // Team or Employee
+  entryTime: any;
+  estimatedExitTime: any;
+  delayStatus: 'on_track' | 'delayed';
+  delayReason?: string;
+}
+
+export interface ProductionTransferOrder {
+  id: string;
+  toNumber: string;
+  fromWarehouse: string;
+  toWarehouse: string;
+  moId?: string;
+  items: { productId: string; productName: string; quantity: number }[];
+  status: 'pending' | 'shipped' | 'received';
+  createdAt: any;
+}
+
+export interface DeliveryOrder {
+  id: string;
+  doNumber: string;
+  customerId: string;
+  customerName: string;
+  moId?: string;
+  items: { productId: string; productName: string; quantity: number }[];
+  status: 'pending' | 'delivered';
+  createdAt: any;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  managerId?: string;
+  parentId?: string; // For sub-departments
+  description?: string;
+  createdAt?: any;
+}
+
+export interface JobPosition {
+  id: string;
+  title: string;
+  departmentId?: string;
+  description?: string;
+  requirements?: string;
+  baseSalaryRange?: { min: number; max: number };
+}
+
 export interface Employee {
   id: string;
   name: string;
   position: string;
+  jobId?: string;
   department?: string;
+  departmentId?: string;
+  managerId?: string; // For org structure
   dailyRate: number;
   hourlyRate?: number;
   payMethod: 'daily' | 'production';
   pieceRate?: number;
   phone?: string;
+  email?: string;
   hireDate: string;
   status: 'نشط' | 'موقوف' | 'مستقيل';
   shiftStart?: string;
@@ -315,6 +544,9 @@ export interface Employee {
   commissionRate?: number; // % commission if applicable
   allowances?: number; // Badalat
   productionGroup?: 'A' | 'B' | '';
+  address?: string;
+  nationalId?: string;
+  documents?: { name: string; url: string; date: string }[];
 }
 
 export interface Attendance {

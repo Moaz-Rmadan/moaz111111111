@@ -25,7 +25,7 @@ import {
   ReceiptText, ClipboardCheck, ClipboardList, PlusCircle, FileCheck, CreditCard, Scale, Wallet, Coins, ArrowRight,
   ChevronUp, Target, Database, Briefcase, Home, Code, Save, Upload, ArrowLeft,
   ArrowUpToLine, ArrowDownToLine, Eye, EyeOff, Box, Clock, List, Zap, Warehouse as WarehouseIcon, X, Image as ImageIcon,
-  Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History, CheckSquare, FolderTree
+  Trash2, ShieldCheck, AlertTriangle, LogOut, UserCircle, History, CheckSquare, FolderTree, Landmark
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { 
@@ -36,8 +36,15 @@ import type {
   BladeSharpening, PlateSharpening, MaintenanceOrder, MachineMaintenance, UserProfile, Safe, Employee, CompanySettings,
   SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense,
   ByproductSale, Showroom, TransferOrder, ShowroomInventory, Customer, CustomerPayment, FurnitureWorkOrder, WarehouseTransfer,
-  Vehicle, VehicleExpense
+  Vehicle, VehicleExpense, Department, JobPosition, BankAccount, BankTransaction, BankCheck,
+  ManufacturingOrder, ProductionRoute, WorkOrder, QualityInspection, PackingRecord, ProductionTracking, 
+  ProductionLog, ProductionMachine, ProductionTeam
 } from './types';
+
+import { HRManager } from './components/HRManager';
+import { BanksManager } from './components/BanksManager';
+import { ProductionManager } from './components/ProductionManager';
+import { FleetManager } from './components/FleetManager';
 
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -1429,6 +1436,23 @@ function MainApp({
   const [vehicleExpenses, setVehicleExpenses] = useState<VehicleExpense[]>([]);
   const [safes, setSafes] = useState<Safe[]>([]);
   const [safeAudits, setSafeAudits] = useState<SafeAudit[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
+  const [checks, setChecks] = useState<BankCheck[]>([]);
+
+  // New Production Management State
+  const [manufacturingOrders, setManufacturingOrders] = useState<ManufacturingOrder[]>([]);
+  const [productionRoutes, setProductionRoutes] = useState<ProductionRoute[]>([]);
+  const [productionWOs, setProductionWOs] = useState<WorkOrder[]>([]);
+  const [qualityInspections, setQualityInspections] = useState<QualityInspection[]>([]);
+  const [packingRecords, setPackingRecords] = useState<PackingRecord[]>([]);
+  const [productionTracking, setProductionTracking] = useState<ProductionTracking[]>([]);
+  const [productionLogs, setProductionLogs] = useState<ProductionLog[]>([]);
+  const [productionMachines, setProductionMachines] = useState<ProductionMachine[]>([]);
+  const [productionTeams, setProductionTeams] = useState<ProductionTeam[]>([]);
+
   const [hrMenuOpen, setHrMenuOpen] = useState(false);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
 
@@ -1827,6 +1851,22 @@ function MainApp({
     let unsubSafeTransactions = () => {};
     let unsubVehicles = () => {};
     let unsubVehicleExpenses = () => {};
+    let unsubDepartments = () => {};
+    let unsubJobPositions = () => {};
+    let unsubBankAccounts = () => {};
+    let unsubBankTransactions = () => {};
+    let unsubChecks = () => {};
+
+    // Production Declarations
+    let unsubMOs = () => {};
+    let unsubProductionRoutes = () => {};
+    let unsubProductionWOs = () => {};
+    let unsubQualityInspections = () => {};
+    let unsubPackingRecords = () => {};
+    let unsubProductionTracking = () => {};
+    let unsubProductionLogs = () => {};
+    let unsubProductionMachines = () => {};
+    let unsubProductionTeams = () => {};
 
     // 1. unsubWarehouses
     if (profile.isAdmin || profile.permissions.inventory || profile.permissions.reports) {
@@ -2224,6 +2264,90 @@ function MainApp({
       );
     }
 
+    // 31. unsubDepartments
+    if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
+      unsubDepartments = onSnapshot(
+        collection(db, 'departments'),
+        (snap) => {
+          setDepartments(snap.docs.map(d => ({ id: d.id, ...d.data() } as Department)));
+        },
+        (error) => console.error('Permission error in collection departments:', error)
+      );
+    }
+
+    // 32. unsubJobPositions
+    if (profile.isAdmin || profile.permissions.hr || profile.permissions.reports) {
+      unsubJobPositions = onSnapshot(
+        collection(db, 'jobPositions'),
+        (snap) => {
+          setJobPositions(snap.docs.map(d => ({ id: d.id, ...d.data() } as JobPosition)));
+        },
+        (error) => console.error('Permission error in collection jobPositions:', error)
+      );
+    }
+
+    // 33. unsubBankAccounts
+    if (profile.isAdmin || profile.permissions.financials || profile.permissions.reports) {
+      unsubBankAccounts = onSnapshot(
+        collection(db, 'bankAccounts'),
+        (snap) => {
+          setBankAccounts(snap.docs.map(d => ({ id: d.id, ...d.data() } as BankAccount)));
+        },
+        (error) => console.error('Permission error in collection bankAccounts:', error)
+      );
+    }
+
+    // 34. unsubBankTransactions
+    if (profile.isAdmin || profile.permissions.financials || profile.permissions.reports) {
+      unsubBankTransactions = onSnapshot(
+        collection(db, 'bankTransactions'),
+        (snap) => {
+          setBankTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as BankTransaction)));
+        },
+        (error) => console.error('Permission error in collection bankTransactions:', error)
+      );
+    }
+
+    // 35. unsubChecks
+    if (profile.isAdmin || profile.permissions.financials || profile.permissions.reports) {
+      unsubChecks = onSnapshot(
+        collection(db, 'checks'),
+        (snap) => {
+          setChecks(snap.docs.map(d => ({ id: d.id, ...d.data() } as BankCheck)));
+        },
+        (error) => console.error('Permission error in collection checks:', error)
+      );
+    }
+
+    // 36. Production Listeners
+    unsubMOs = onSnapshot(collection(db, 'manufacturingOrders'), (snap) => {
+      setManufacturingOrders(snap.docs.map(d => ({ id: d.id, ...d.data() } as ManufacturingOrder)));
+    });
+    unsubProductionRoutes = onSnapshot(collection(db, 'productionRoutes'), (snap) => {
+      setProductionRoutes(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionRoute)));
+    });
+    unsubProductionWOs = onSnapshot(collection(db, 'productionWorkOrders'), (snap) => {
+      setProductionWOs(snap.docs.map(d => ({ id: d.id, ...d.data() } as WorkOrder)));
+    });
+    unsubQualityInspections = onSnapshot(collection(db, 'qualityInspections'), (snap) => {
+      setQualityInspections(snap.docs.map(d => ({ id: d.id, ...d.data() } as QualityInspection)));
+    });
+    unsubPackingRecords = onSnapshot(collection(db, 'packingRecords'), (snap) => {
+      setPackingRecords(snap.docs.map(d => ({ id: d.id, ...d.data() } as PackingRecord)));
+    });
+    unsubProductionTracking = onSnapshot(collection(db, 'productionTracking'), (snap) => {
+      setProductionTracking(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionTracking)));
+    });
+    unsubProductionLogs = onSnapshot(collection(db, 'productionLogs'), (snap) => {
+      setProductionLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionLog)));
+    });
+    unsubProductionMachines = onSnapshot(collection(db, 'productionMachines'), (snap) => {
+      setProductionMachines(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionMachine)));
+    });
+    unsubProductionTeams = onSnapshot(collection(db, 'productionTeams'), (snap) => {
+      setProductionTeams(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProductionTeam)));
+    });
+
     return () => {
       unsubWarehouses();
       unsubUnits();
@@ -2264,6 +2388,20 @@ function MainApp({
       unsubSafeTransactions();
       unsubVehicles();
       unsubVehicleExpenses();
+      unsubDepartments();
+      unsubJobPositions();
+      unsubBankAccounts();
+      unsubBankTransactions();
+      unsubChecks();
+      unsubMOs();
+      unsubProductionRoutes();
+      unsubProductionWOs();
+      unsubQualityInspections();
+      unsubPackingRecords();
+      unsubProductionTracking();
+      unsubProductionLogs();
+      unsubProductionMachines();
+      unsubProductionTeams();
     };
   }, [user, profile]);
 
@@ -2506,13 +2644,13 @@ function MainApp({
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setProductionMenuOpen(!productionMenuOpen)}
                   className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
-                    ['production', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator'].includes(activeTab) 
+                    ['productionManager', 'productionReports', 'production', 'productRecipes', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator'].includes(activeTab) 
                     ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' 
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Layers size={20} className={['production', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator'].includes(activeTab) ? 'text-primary' : ''} />
+                    <Layers size={20} className={['productionManager', 'productionReports', 'production', 'productRecipes', 'productionCosts', 'loading', 'deliveryReceipts', 'materialCalculator'].includes(activeTab) ? 'text-primary' : ''} />
                     <span className="font-black text-sm">إدارة التصنيع</span>
                   </div>
                   <ChevronDown size={14} className={`transition-transform duration-300 ${productionMenuOpen ? 'rotate-180' : ''}`} />
@@ -2527,6 +2665,8 @@ function MainApp({
                       className="overflow-hidden bg-slate-100/50 rounded-2xl mt-1 mx-1"
                     >
                       <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
+                        <SubNavButton active={activeTab === 'productionManager'} onClick={() => handleNavClick('productionManager')} label="مخطط الإنتاج الذكي ⚙️" permission="production" profile={profile} />
+                        <SubNavButton active={activeTab === 'productionReports'} onClick={() => handleNavClick('productionReports')} label="تقارير التصنيع والإنتاج (14) 📊" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'production'} onClick={() => handleNavClick('production')} label="لوحة تحكم التصنيع" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'productRecipes'} onClick={() => handleNavClick('productRecipes')} label="قوائم المواد (BoM)" permission="production" profile={profile} />
                         <SubNavButton active={activeTab === 'materialCalculator'} onClick={() => handleNavClick('materialCalculator')} label="حاسبة الخامات والقياسات" permission="production" profile={profile} />
@@ -2565,6 +2705,9 @@ function MainApp({
                 <span>الموارد البشرية</span>
                 <div className="h-[1px] flex-1 bg-slate-100 mr-4" />
               </div>
+
+              <NavButton active={activeTab === 'hrModule'} onClick={() => handleNavClick('hrModule')} icon={<Users size={20} />} label="إدارة الموارد البشرية" permission="hr" profile={profile} />
+              <NavButton active={activeTab === 'banks'} onClick={() => handleNavClick('banks')} icon={<Landmark size={20} />} label="إدارة البنوك" permission="financials" profile={profile} />
 
               <div>
                 <motion.button 
@@ -2636,7 +2779,7 @@ function MainApp({
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <BarChart3 size={20} className={['reports', 'payrollMasterReport'].includes(activeTab) ? 'text-primary' : ''} />
+                  <BarChart3 size={20} className={['reports', 'productionReports', 'payrollMasterReport'].includes(activeTab) ? 'text-primary' : ''} />
                   <span className="font-black text-sm">مركز التقارير</span>
                 </div>
                 <ChevronDown size={14} className={`transition-transform duration-300 ${reportsMenuOpen ? 'rotate-180' : ''}`} />
@@ -2652,6 +2795,7 @@ function MainApp({
                   >
                     <div className="p-2 space-y-1 pr-4 border-r-2 border-primary/20 mr-4">
                       <SubNavButton active={activeTab === 'reports'} onClick={() => handleNavClick('reports')} label="التحليل العام" permission="reports" profile={profile} />
+                      <SubNavButton active={activeTab === 'productionReports'} onClick={() => handleNavClick('productionReports')} label="تقارير التصنيع والإنتاج (14) 📊" permission="reports" profile={profile} />
                       <SubNavButton active={activeTab === 'payrollMasterReport'} onClick={() => handleNavClick('payrollMasterReport')} label="كشف الأجور المجمع" permission="reports" profile={profile} />
                     </div>
                   </motion.div>
@@ -2750,6 +2894,35 @@ function MainApp({
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
               {activeTab === 'chat' && <ChatModule />}
+              {(activeTab === 'productionManager' || activeTab === 'productionReports') && (
+                <ProductionManager 
+                  manufacturingOrders={manufacturingOrders}
+                  productionRoutes={productionRoutes}
+                  workOrders={productionWOs}
+                  qualityInspections={qualityInspections}
+                  packingRecords={packingRecords}
+                  employees={employees}
+                  departments={departments}
+                  productionLogs={productionLogs}
+                  productionTracking={productionTracking}
+                  salesOrders={salesOrders}
+                  initialTab={activeTab === 'productionReports' ? 'reports' : 'dashboard'}
+                />
+              )}
+              {activeTab === 'hrModule' && (
+                <HRManager 
+                  employees={employees} 
+                  departments={departments} 
+                  jobs={jobPositions} 
+                />
+              )}
+              {activeTab === 'banks' && (
+                <BanksManager 
+                  accounts={bankAccounts}
+                  transactions={bankTransactions}
+                  checks={checks}
+                />
+              )}
               {activeTab === 'employees' && <EmployeesView employees={employees} />}
         {activeTab === 'attendance' && <AttendanceView attendance={attendance} employees={employees} />}
         {activeTab === 'hrTransactions' && <HRTransactionsView employees={employees} transactions={hrTransactions} />}
@@ -2955,12 +3128,11 @@ function MainApp({
           <MonthlyStipendsModule />
         )}
         {activeTab === 'vehicles' && (
-          <VehiclesView 
+          <FleetManager 
             vehicles={vehicles}
             expenses={vehicleExpenses}
             employees={employees}
             safes={safes}
-            suppliers={suppliers}
           />
         )}
         {activeTab === 'safe' && (
