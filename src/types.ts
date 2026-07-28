@@ -638,29 +638,6 @@ export interface Payroll {
   payMethod?: 'daily' | 'production' | 'monthly';
 }
 
-export interface ChatMessage {
-  id: string;
-  senderId: string;
-  senderName: string;
-  text: string;
-  timestamp: string;
-  roomId: string; // 'global' or 'direct_{id1}_{id2}'
-  attachments?: {
-    url: string;
-    type: 'image' | 'file';
-    name: string;
-  }[];
-}
-
-export interface ChatRoom {
-  id: string;
-  name: string;
-  type: 'global' | 'direct';
-  participants: string[]; // employee IDs
-  lastMessage?: string;
-  lastTimestamp?: string;
-}
-
 export interface SupplierPayment {
   id: string;
   supplierId: string;

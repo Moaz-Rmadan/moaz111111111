@@ -42,7 +42,6 @@ import type {
   ProductionLog, ProductionMachine, ProductionTeam
 } from './types';
 
-import { HRManager } from './components/HRManager';
 import { BanksManager } from './components/BanksManager';
 import { ProductionManager } from './components/ProductionManager';
 import { FleetManager } from './components/FleetManager';
@@ -76,19 +75,16 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { motion, AnimatePresence } from 'motion/react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { MaintenanceOrdersView } from "./components/MaintenanceOrdersView";
-import { AttendanceView } from './components/AttendanceView';
 import { FinancialReports } from './components/FinancialReports';
 import ChartOfAccountsView, { defaultChartOfAccounts, flattenAccounts } from './components/ChartOfAccountsView';
 import { UsersManager } from './components/UsersManager';
 import { ByproductSalesView } from './components/ByproductSalesView';
 import { SalesModule } from './components/SalesModule';
-import { DeductionsView } from './components/DeductionsView';
 import { NumberDisplay, formatNumber, formatCurrencyParts } from './lib/numberUtils';
 import { FactoryResetModal } from './components/FactoryResetModal';
 import { MonthlyStipendsModule } from './components/MonthlyStipendsModule';
 import { MaterialCalculatorView } from './components/MaterialCalculatorView';
 import WhatsAppAssistant from './components/WhatsAppAssistant';
-import { ChatModule } from './components/ChatModule';
 import { WarehouseTransfersView } from './components/WarehouseTransfersView';
 import { SearchableSelect } from './components/SearchableSelect';
 import { VehiclesView } from './components/VehiclesView';
@@ -2658,7 +2654,6 @@ function MainApp({
               </div>
             )}
             <NavButton active={activeTab === 'dashboard'} onClick={() => handleNavClick('dashboard')} icon={<LayoutDashboard size={18} />} label="لوحة التحكم الرئيسية" permission="dashboard" profile={profile} />
-            <NavButton active={activeTab === 'chat'} onClick={() => handleNavClick('chat')} icon={<MessageSquare size={18} />} label="المحادثة الجماعية" />
           </div>
 
           {/* Group 2: المبيعات */}
@@ -2769,20 +2764,30 @@ function MainApp({
             </div>
           )}
 
-          {/* Group 7: الموارد البشرية */}
+          {/* Group 8: إدارة العملاء */}
+          <div className="space-y-1">
+            {!sidebarCollapsed && (
+              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                <span>إدارة العملاء</span>
+              </div>
+            )}
+            <NavButton active={activeTab === 'customers'} onClick={() => handleNavClick('customers')} icon={<Contact size={18} />} label="العملاء" permission="sales" profile={profile} />
+            <NavButton active={activeTab === 'workOrders'} onClick={() => handleNavClick('workOrders')} icon={<FileCheck2 size={18} />} label="أوامر التشغيل" permission="production" profile={profile} />
+          </div>
+
+          {/* Group 7: الأجور والمرتبات */}
           {(profile?.isAdmin || profile?.permissions?.hr) && (
             <div className="space-y-1">
               {!sidebarCollapsed && (
                 <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                  <span>الموارد البشرية</span>
+                  <span>الأجور والمرتبات</span>
                 </div>
               )}
-              <NavButton active={activeTab === 'hrModule'} onClick={() => handleNavClick('hrModule')} icon={<Users size={18} />} label="إدارة الموارد البشرية" permission="hr" profile={profile} />
               <CollapsibleNavButton
                 active={['employees', 'attendance', 'loans', 'payroll', 'hrTransactions', 'hrProduction', 'archive'].includes(activeTab)}
                 isOpen={hrMenuOpen}
                 onClick={() => setHrMenuOpen(!hrMenuOpen)}
-                icon={<Receipt size={18} />}
+                icon={<DollarSign size={18} />}
                 label="الأجور والمرتبات"
               />
               <AnimatePresence>
@@ -2805,17 +2810,6 @@ function MainApp({
               </AnimatePresence>
             </div>
           )}
-
-          {/* Group 8: إدارة العملاء */}
-          <div className="space-y-1">
-            {!sidebarCollapsed && (
-              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                <span>إدارة العملاء</span>
-              </div>
-            )}
-            <NavButton active={activeTab === 'customers'} onClick={() => handleNavClick('customers')} icon={<Contact size={18} />} label="العملاء" permission="sales" profile={profile} />
-            <NavButton active={activeTab === 'workOrders'} onClick={() => handleNavClick('workOrders')} icon={<FileCheck2 size={18} />} label="أوامر التشغيل" permission="production" profile={profile} />
-          </div>
 
           {/* Group 9: التقارير */}
           {(profile?.isAdmin || profile?.permissions?.reports) && (
@@ -2951,7 +2945,6 @@ function MainApp({
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              {activeTab === 'chat' && <ChatModule />}
               {(activeTab === 'productionManager' || activeTab === 'productionReports') && (
                 <ProductionManager 
                   manufacturingOrders={manufacturingOrders}
@@ -2967,13 +2960,6 @@ function MainApp({
                   initialTab={activeTab === 'productionReports' ? 'reports' : 'dashboard'}
                 />
               )}
-              {activeTab === 'hrModule' && (
-                <HRManager 
-                  employees={employees} 
-                  departments={departments} 
-                  jobs={jobPositions} 
-                />
-              )}
               {activeTab === 'banks' && (
                 <BanksManager 
                   accounts={bankAccounts}
@@ -2981,10 +2967,6 @@ function MainApp({
                   checks={checks}
                 />
               )}
-              {activeTab === 'employees' && <EmployeesView employees={employees} />}
-        {activeTab === 'attendance' && <AttendanceView attendance={attendance} employees={employees} />}
-        {activeTab === 'hrTransactions' && <HRTransactionsView employees={employees} transactions={hrTransactions} />}
-        {activeTab === 'hrProduction' && <HRProductionView employees={employees} productionRecords={productionRecords} />}
         {activeTab === 'dashboard' && <Dashboard 
                 settings={settings}
                 setSettings={setSettings}
@@ -3111,8 +3093,15 @@ function MainApp({
         {activeTab === 'returns' && <Returns items={items} suppliers={suppliers} costCenters={costCenters} />}
         {activeTab === 'waste' && <WastedItemsView items={items} wasteRecords={wasteRecords} />}
         {activeTab === 'maintenanceOrders' && <MaintenanceOrdersView records={maintenanceOrders} safes={safes} costCenters={costCenters} profile={profile} />}
+        {activeTab === 'customers' && <CustomersManager customers={customers} customerPayments={customerPayments} safes={safes} salesOrders={salesOrders} profile={profile} />}
+        {activeTab === 'employees' && <EmployeesView employees={employees} />}
+        {activeTab === 'attendance' && <AttendanceView employees={employees} />}
+        {activeTab === 'hrProduction' && <HRProductionView employees={employees} productionRecords={productionRecords} />}
+        {activeTab === 'hrTransactions' && <HRTransactionsView employees={employees} transactions={hrTransactions} />}
+        {activeTab === 'loans' && <LoansView employees={employees} safes={safes} companySettings={settings} />}
         {activeTab === 'payroll' && (
           <PayrollView 
+            employees={employees} 
             attendance={attendance} 
             transactions={hrTransactions} 
             loans={loans} 
@@ -3120,10 +3109,18 @@ function MainApp({
             productionRecords={productionRecords} 
             safes={safes}
             companyInfo={settings}
-            employees={employees}
           />
         )}
-        {activeTab === 'customers' && <CustomersManager customers={customers} customerPayments={customerPayments} safes={safes} salesOrders={salesOrders} profile={profile} />}
+        {activeTab === 'archive' && <PayrollArchiveView employees={employees} payrolls={payrolls} transactions={hrTransactions} />}
+        {activeTab === 'payrollMasterReport' && (
+          <PayrollMasterReport 
+            payrolls={payrolls}
+            hrTransactions={hrTransactions}
+            attendance={attendance}
+            loans={loans}
+            productionRecords={productionRecords}
+          />
+        )}
         {activeTab === 'sales' && (
           <SalesModule 
             showrooms={showrooms}
@@ -3145,6 +3142,7 @@ function MainApp({
             supplierPayments={supplierPayments} 
             safes={safes}
             profile={profile}
+            setShowSupplierAdd={setShowSupplierAdd}
             setEditingSupplier={setEditingSupplier}
             setShowDeleteConfirm={setShowDeleteConfirmBase}
           />
@@ -3169,19 +3167,8 @@ function MainApp({
             loans={loans}
           />
         )}
-        {activeTab === 'payrollMasterReport' && (
-          <PayrollMasterReport 
-            payrolls={payrolls}
-            hrTransactions={hrTransactions}
-            attendance={attendance}
-            loans={loans}
-            productionRecords={productionRecords}
-          />
-        )}
         {activeTab === 'userManagement' && <UsersManager />}
         {activeTab === 'workOrders' && <WorkOrdersManager customers={customers} profile={profile} />}
-        {activeTab === 'loans' && <LoansView employees={employees} safes={safes} companySettings={settings} />}
-        {activeTab === 'archive' && <PayrollArchiveView employees={employees} payrolls={payrolls} transactions={hrTransactions} />}
         {activeTab === 'monthlyStipends' && (
           <MonthlyStipendsModule />
         )}
@@ -3535,8 +3522,8 @@ function MainApp({
 
       {/* Edit Supplier Dialog */}
       {editingSupplier && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <Card className="dribbble-card w-full max-w-sm">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
+          <Card className="dribbble-card w-full max-w-sm max-h-[90vh] overflow-auto">
             <CardHeader><CardTitle className="font-black">تعديل مورد</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -9796,6 +9783,54 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
     setFormData({ ...formData, selectedItems: newItems });
   };
 
+  const handleDeletePurchase = async (purchase: Purchase) => {
+    if (!window.confirm('هل أنت متأكد من حذف فاتورة الشراء هذه؟ سيتم إلغاء تأثيرها على رصيد المخزن والمورد والخزنة.')) return;
+    try {
+      const batch = writeBatch(db);
+      
+      // 1. Revert Item Stock in Warehouse
+      if (purchase.itemId) {
+        const item = items.find(i => i.id === purchase.itemId);
+        const itemRef = doc(db, 'items', purchase.itemId);
+        const newQty = Math.max(0, (item?.currentBalance || 0) - purchase.quantity);
+        batch.update(itemRef, {
+          inward: increment(-purchase.quantity),
+          currentBalance: increment(-purchase.quantity)
+        });
+      }
+
+      // 2. Revert Supplier Balances
+      if (purchase.supplierId) {
+        const supplierRef = doc(db, 'suppliers', purchase.supplierId);
+        const paid = purchase.paidAmount || 0;
+        const unpaid = purchase.total - paid;
+        batch.update(supplierRef, {
+          totalPurchases: increment(-purchase.total),
+          totalPayments: increment(-paid),
+          balance: increment(-unpaid)
+        });
+      }
+
+      // 3. Revert Safe Balance & Delete Transaction
+      if (purchase.paidAmount > 0 && purchase.safeId) {
+        const safeRef = doc(db, 'safes', purchase.safeId);
+        batch.update(safeRef, {
+          balance: increment(purchase.paidAmount)
+        });
+        if (purchase.safeTransactionId) {
+          batch.delete(doc(db, 'safeTransactions', purchase.safeTransactionId));
+        }
+      }
+
+      // 4. Delete Purchase Doc
+      batch.delete(doc(db, 'purchases', purchase.id));
+
+      await batch.commit();
+    } catch (err) {
+      console.error('Error deleting purchase:', err);
+    }
+  };
+
   const handleAdd = async () => {
     if (!formData.supplierId || formData.selectedItems.some(i => !i.itemId || i.quantity <= 0)) return;
     if (formData.paidAmount > 0 && !formData.safeId) {
@@ -9808,6 +9843,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
     try {
       const batch = writeBatch(db);
       const supplier = suppliers.find(s => s.id === formData.supplierId);
+      const invoiceDate = formData.date || format(new Date(), 'yyyy-MM-dd');
       
       let safeTransactionId = '';
       if (formData.paidAmount > 0 && formData.safeId) {
@@ -9818,12 +9854,13 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           safeId: formData.safeId,
           type: 'مشتريات',
           amount: Number(formData.paidAmount),
-          description: `دفعة مشتريات للمورد: ${supplier?.name}`,
+          description: `دفعة مشتريات للمورد: ${supplier?.name || 'غير محدد'}`,
           category: 'خامات/مشتريات',
-          createdBy: profile?.name || 'مستخدم'
+          createdBy: profile?.name || 'مستخدم',
+          date: invoiceDate
         });
         
-        // Update safe balance
+        // Update safe balance in Treasury
         batch.update(doc(db, 'safes', formData.safeId), {
           balance: increment(-Number(formData.paidAmount))
         });
@@ -9844,13 +9881,13 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           paidAmount: formData.paidAmount > 0 ? (formData.paidAmount * (itemTotal / invoiceTotal)) : 0, 
           paymentStatus: formData.paymentStatus,
           notes: formData.notes,
-          date: formData.date || format(new Date(), 'yyyy-MM-dd'),
+          date: invoiceDate,
           unit: item?.unit || '',
           safeId: formData.safeId || null,
           safeTransactionId: safeTransactionId || null
         });
         
-        // Update Item Stock
+        // Update Item Stock in Inventory (المخزن)
         const itemRef = doc(db, 'items', selectedItem.itemId);
         const currentTotalValue = (item?.totalValue || (item ? item.currentBalance * item.price : 0));
         const newTotalValue = currentTotalValue + itemTotal;
@@ -9865,7 +9902,7 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         });
       }
       
-      // Update Supplier Balance
+      // Update Supplier Balance in Suppliers (الموردين)
       const supplierRef = doc(db, 'suppliers', formData.supplierId);
       const balanceChange = invoiceTotal - formData.paidAmount;
       batch.update(supplierRef, {
@@ -9882,7 +9919,8 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         paidAmount: 0,
         paymentStatus: 'نقدي',
         safeId: '',
-        notes: ''
+        notes: '',
+        date: format(new Date(), 'yyyy-MM-dd')
       });
     } catch (err) {
       console.error(err);
@@ -9984,16 +10022,18 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
               <TableHead className="text-right font-black text-slate-900">المدفوع</TableHead>
               <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
               <TableHead className="text-right font-black text-slate-900">ملاحظات</TableHead>
+              <TableHead className="text-center font-black text-slate-900 print:hidden">إجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredPurchases.slice().reverse().map(p => (
               <TableRow key={p.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-black text-slate-900">{suppliers.find(s => s.id === p.supplierId)?.name}</TableCell>
-                <TableCell className="font-bold text-slate-700">{items.find(i => i.id === p.itemId)?.name}</TableCell>
+                <TableCell className="font-mono text-xs font-bold text-slate-600">{p.date || '-'}</TableCell>
+                <TableCell className="font-black text-slate-900">{suppliers.find(s => s.id === p.supplierId)?.name || 'غير محدد'}</TableCell>
+                <TableCell className="font-bold text-slate-700">{items.find(i => i.id === p.itemId)?.name || 'غير محدد'}</TableCell>
                 <TableCell className="font-bold text-slate-600">{p.quantity}</TableCell>
-                <TableCell className="text-slate-500 font-medium">{p.unit}</TableCell>
-                <TableCell className="font-bold text-slate-600">{p.unitPrice?.toLocaleString() || (p.total / p.quantity).toLocaleString()} ج.م</TableCell>
+                <TableCell className="text-slate-500 font-medium">{p.unit || '-'}</TableCell>
+                <TableCell className="font-bold text-slate-600">{p.unitPrice?.toLocaleString() || (p.quantity > 0 ? (p.total / p.quantity).toLocaleString() : 0)} ج.م</TableCell>
                 <TableCell className="font-black text-primary">{p.total.toLocaleString()} ج.م</TableCell>
                 <TableCell className="font-bold text-green-600">{p.paidAmount.toLocaleString()} ج.م</TableCell>
                 <TableCell>
@@ -10007,12 +10047,23 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
                     {p.paymentStatus}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-slate-400 text-xs font-medium max-w-[150px] truncate">{p.notes}</TableCell>
+                <TableCell className="text-slate-400 text-xs font-medium max-w-[150px] truncate">{p.notes || '-'}</TableCell>
+                <TableCell className="text-center print:hidden">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeletePurchase(p)}
+                    className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    title="حذف فاتورة الشراء"
+                  >
+                    <Trash2 size={15} />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {filteredPurchases.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-20 text-slate-400 font-bold">لا توجد نتائج بحث مطابقة</TableCell>
+                <TableCell colSpan={11} className="text-center py-20 text-slate-400 font-bold">لا توجد نتائج بحث مطابقة</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -10026,19 +10077,31 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           <Card className="dribbble-card w-full max-w-lg max-h-[90vh] overflow-auto">
             <CardHeader>
               <CardTitle className="font-black">إضافة فاتورة شراء</CardTitle>
-              <CardDescription className="font-medium">أدخل تفاصيل الفاتورة لتحديث المخزون وحسابات الموردين</CardDescription>
+              <CardDescription className="font-medium">أدخل تفاصيل الفاتورة لتحديث المخزون وحسابات الموردين والخزنة تلقائياً</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">المورد</label>
-                <select 
-                  className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white"
-                  value={formData.supplierId}
-                  onChange={e => setFormData({...formData, supplierId: e.target.value})}
-                >
-                  <option value="">اختر مورد...</option>
-                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">المورد</label>
+                  <select 
+                    className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white"
+                    value={formData.supplierId}
+                    onChange={e => setFormData({...formData, supplierId: e.target.value})}
+                  >
+                    <option value="">اختر مورد...</option>
+                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">تاريخ الفاتورة</label>
+                  <Input 
+                    type="date"
+                    className="h-11 rounded-xl border-slate-200"
+                    value={formData.date}
+                    onChange={e => setFormData({...formData, date: e.target.value})}
+                  />
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -10638,6 +10701,7 @@ function Suppliers({
   supplierPayments,
   safes,
   profile,
+  setShowSupplierAdd,
   setEditingSupplier,
   setShowDeleteConfirm
 }: { 
@@ -10647,6 +10711,7 @@ function Suppliers({
   supplierPayments: SupplierPayment[],
   safes: Safe[],
   profile: any,
+  setShowSupplierAdd: (v: boolean) => void,
   setEditingSupplier: (s: Supplier) => void,
   setShowDeleteConfirm: (info: { collection: string, id: string }) => void
 }) {
@@ -10659,7 +10724,8 @@ function Suppliers({
     paymentMethod: 'نقدي' as const,
     referenceNumber: '',
     safeId: '',
-    notes: ''
+    notes: '',
+    date: format(new Date(), 'yyyy-MM-dd')
   });
 
   const handleAddPayment = async () => {
@@ -10674,11 +10740,12 @@ function Suppliers({
 
     try {
       const batch = writeBatch(db);
+      const payDate = paymentData.date || format(new Date(), 'yyyy-MM-dd');
       
       const paymentRef = doc(collection(db, 'supplierPayments'));
       batch.set(paymentRef, {
         supplierId: paymentSupplierId,
-        date: paymentData.date,
+        date: payDate,
         amount: paymentData.amount,
         paymentMethod: paymentData.paymentMethod,
         referenceNumber: paymentData.referenceNumber,
@@ -10690,14 +10757,14 @@ function Suppliers({
         const txRef = doc(collection(db, 'safeTransactions'));
         batch.set(txRef, {
           safeId: paymentData.safeId,
-          date: paymentData.date,
+          date: payDate,
           type: 'مصروفات',
           amount: paymentData.amount,
           description: `سداد دفعة للمورد: ${supplier.name} ${paymentData.notes ? `- ${paymentData.notes}` : ''}`,
           category: 'سداد موردين',
           relatedId: paymentRef.id,
           createdBy: profile?.name || 'مستخدم'
-            });
+        });
 
         batch.update(doc(db, 'safes', paymentData.safeId), {
           balance: increment(-paymentData.amount)
@@ -10718,9 +10785,11 @@ function Suppliers({
         paymentMethod: 'نقدي',
         referenceNumber: '',
         safeId: '',
-        notes: ''
+        notes: '',
+        date: format(new Date(), 'yyyy-MM-dd')
       });
     } catch (err) {
+      console.error(err);
     }
   };
 
@@ -10733,80 +10802,196 @@ function Suppliers({
   const totalBalance = suppliers.reduce((acc, s) => acc + (s.balance || 0), 0);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
-        <div className="space-y-3">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
+      {/* Header & Controls */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 print:hidden">
+        <div className="space-y-2">
           <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest px-3 py-1 bg-primary/10 rounded-full w-fit">
             <Truck size={14} />
             إدارة التوريد
           </div>
-          <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900">الموردون وشركاء العمل</h2>
-          <p className="text-slate-500 font-bold text-lg max-w-lg mt-2">متابعة حسابات الموردين، حجم المشتريات، وجدولة المستحقات المالية</p>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900">الموردون وشركاء العمل</h2>
+          <p className="text-slate-500 font-bold text-xs sm:text-sm md:text-base max-w-lg">متابعة حسابات الموردين، حجم المشتريات، وجدولة المستحقات المالية</p>
         </div>
-        <div className="relative w-full md:w-96 group">
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
-            <Search size={18} />
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-72 md:w-80 group">
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
+              <Search size={16} />
+            </div>
+            <Input 
+              placeholder="بحث بالاسم أو الهاتف..." 
+              className="pr-12 h-12 rounded-xl border-slate-200 bg-white shadow-sm font-bold text-slate-700 text-sm"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
           </div>
-          <Input 
-            placeholder="بحث بالاسم أو رقم الهاتف..." 
-            className="pr-14 h-14 rounded-[14px] border-slate-100 bg-white shadow-xl shadow-slate-200/40 font-bold text-slate-700"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+
+          <Button 
+            onClick={() => setShowSupplierAdd(true)}
+            className="btn-primary h-12 px-5 rounded-xl font-black text-xs sm:text-sm shrink-0 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all"
+          >
+            <Plus size={18} />
+            إضافة مورد جديد
+          </Button>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="relative p-5 sm:p-6 bg-white rounded-[14px] sm:rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-200">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
+        <div className="relative p-4 sm:p-6 bg-white rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-0.5 transition-all duration-200">
           <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
-          <div className="flex items-center gap-3 sm:gap-5 relative z-10">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[14px] bg-primary/10 flex items-center justify-center text-primary shadow-inner shrink-0">
-              <ShoppingBag className="w-6 h-6 sm:w-7 sm:h-7" />
+          <div className="flex items-center gap-3 sm:gap-4 relative z-10">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner shrink-0">
+              <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] mb-1">إجمالي المشتريات</p>
+              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">إجمالي المشتريات</p>
               <div className="flex items-baseline gap-1 flex-wrap">
-                <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tighter break-all">{totalPurchases.toLocaleString()}</p>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase shrink-0">ج.م</span>
+                <p className="text-base sm:text-2xl font-black text-slate-900 tracking-tighter break-all">{totalPurchases.toLocaleString()}</p>
+                <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">ج.م</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="relative p-5 sm:p-6 bg-white rounded-[14px] sm:rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-1 transition-all duration-200">
+        <div className="relative p-4 sm:p-6 bg-white rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group hover:-translate-y-0.5 transition-all duration-200">
           <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-emerald-50 rounded-full blur-2xl group-hover:bg-emerald-100 transition-colors" />
-          <div className="flex items-center gap-3 sm:gap-5 relative z-10">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[14px] bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner shrink-0">
-              <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
+          <div className="flex items-center gap-3 sm:gap-4 relative z-10">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner shrink-0">
+              <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider sm:tracking-[0.2em] mb-1">إجمالي المدفوعات</p>
+              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">إجمالي المدفوعات</p>
               <div className="flex items-baseline gap-1 flex-wrap">
-                <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-emerald-600 tracking-tighter break-all">{totalPayments.toLocaleString()}</p>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase shrink-0">ج.م</span>
+                <p className="text-base sm:text-2xl font-black text-emerald-600 tracking-tighter break-all">{totalPayments.toLocaleString()}</p>
+                <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">ج.م</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="relative p-5 sm:p-6 bg-white rounded-[14px] sm:rounded-[14px] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group border-r-4 border-r-orange-500 hover:-translate-y-1 transition-all duration-200">
+        <div className="relative p-4 sm:p-6 bg-white rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden group border-r-4 border-r-orange-500 hover:-translate-y-0.5 transition-all duration-200">
           <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-orange-50 rounded-full blur-2xl group-hover:bg-orange-100 transition-colors" />
-          <div className="flex items-center gap-3 sm:gap-5 relative z-10">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[14px] bg-orange-100 flex items-center justify-center text-orange-600 shadow-inner shrink-0">
-              <Scale className="w-6 h-6 sm:w-7 sm:h-7" />
+          <div className="flex items-center gap-3 sm:gap-4 relative z-10">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-orange-100 flex items-center justify-center text-orange-600 shadow-inner shrink-0">
+              <Scale className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-black text-orange-600 uppercase tracking-wider sm:tracking-[0.2em] mb-1">صافي المديونية للموردين</p>
+              <p className="text-[10px] sm:text-[11px] font-black text-orange-600 uppercase tracking-wider mb-0.5">صافي المديونية للموردين</p>
               <div className="flex items-baseline gap-1 flex-wrap">
-                <p className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-black text-orange-600 tracking-tighter break-all">{totalBalance.toLocaleString()}</p>
-                <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase shrink-0">ج.م</span>
+                <p className="text-base sm:text-2xl font-black text-orange-600 tracking-tighter break-all">{totalBalance.toLocaleString()}</p>
+                <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">ج.م</span>
               </div>
             </div>
           </div>
         </div>
       </div>
       
-      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[14px]">
+      {/* MOBILE CARD VIEW (For Mobile Screens: md:hidden) */}
+      <div className="grid grid-cols-1 gap-3.5 md:hidden">
+        {filtered.map(s => (
+          <div key={s.id} className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-3.5">
+            {/* Header: Name + Avatar + Badge */}
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary font-black flex items-center justify-center text-base shrink-0">
+                  {s.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-base leading-snug">{s.name}</h3>
+                  <p className="text-[11px] font-bold text-slate-400">مورد معتمد</p>
+                </div>
+              </div>
+              <div>
+                {s.balance > 0 ? (
+                  <Badge className="bg-orange-50 text-orange-700 border border-orange-200 font-black text-[10px] px-2.5 py-1 rounded-lg">
+                    مطلوب السداد
+                  </Badge>
+                ) : (
+                  <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 font-black text-[10px] px-2.5 py-1 rounded-lg">
+                    خالص تماماً
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Financial Metrics Grid */}
+            <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 mb-0.5">إجمالي المشتريات</p>
+                <p className="text-xs font-black font-mono text-slate-800">{s.totalPurchases.toLocaleString()}</p>
+              </div>
+              <div className="border-r border-l border-slate-200/60 px-1">
+                <p className="text-[10px] font-bold text-slate-400 mb-0.5">المسدد نقداً</p>
+                <p className="text-xs font-black font-mono text-emerald-600">{s.totalPayments.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 mb-0.5">الرصيد المستحق</p>
+                <p className="text-xs font-black font-mono text-orange-600">{s.balance.toLocaleString()}</p>
+              </div>
+            </div>
+
+            {/* Mobile Touch-Friendly Action Buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setPaymentSupplierId(s.id);
+                  setShowPaymentModal(true);
+                }} 
+                className="h-10 rounded-xl border-emerald-200 bg-emerald-50/50 text-emerald-700 font-black text-xs hover:bg-emerald-100 flex items-center justify-center gap-1.5 active:scale-95"
+              >
+                <DollarSign size={15} />
+                سداد دفعة
+              </Button>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setSelectedSupplier(s)} 
+                className="h-10 rounded-xl border-purple-200 bg-purple-50/50 text-purple-700 font-black text-xs hover:bg-purple-100 flex items-center justify-center gap-1.5 active:scale-95"
+              >
+                <FileText size={15} />
+                كشف حساب
+              </Button>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setEditingSupplier(s)} 
+                className="h-10 rounded-xl border-slate-200 text-slate-700 font-black text-xs hover:bg-slate-100 flex items-center justify-center gap-1.5 active:scale-95"
+              >
+                <Edit2 size={14} />
+                تعديل
+              </Button>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowDeleteConfirm({ collection: 'suppliers', id: s.id })} 
+                className="h-10 rounded-xl border-red-200 bg-red-50/30 text-red-600 font-black text-xs hover:bg-red-100 flex items-center justify-center gap-1.5 active:scale-95"
+              >
+                <Trash2 size={14} />
+                حذف
+              </Button>
+            </div>
+          </div>
+        ))}
+
+        {filtered.length === 0 && (
+          <div className="p-8 text-center bg-white rounded-2xl border border-slate-100 space-y-3">
+            <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mx-auto">
+              <Search size={28} />
+            </div>
+            <p className="text-slate-500 font-black text-sm">لا يوجد موردون يطابقون بحثك</p>
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP TABLE VIEW (For Tablet/Desktop: hidden md:block) */}
+      <Card className="hidden md:block dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[14px]">
         <div className="overflow-x-auto custom-scrollbar">
           <Table>
             <TableHeader className="bg-slate-50/50 h-20">
@@ -10850,7 +11035,7 @@ function Suppliers({
                     )}
                   </TableCell>
                   <TableCell className="px-8">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
+                    <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
                       <Button variant="outline" size="sm" onClick={() => {
                         setPaymentSupplierId(s.id);
                         setShowPaymentModal(true);
@@ -10891,114 +11076,183 @@ function Suppliers({
 
       {/* Supplier Account Statement Dialog */}
       {selectedSupplier && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <Card className="dribbble-card w-full max-w-5xl max-h-[92vh] overflow-hidden flex flex-col border-none shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[14px]">
-            <CardHeader className="p-6 pb-6 shrink-0 relative overflow-hidden bg-white">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-50 animate-in fade-in duration-200">
+          <Card className="dribbble-card w-full max-w-5xl max-h-[95vh] sm:max-h-[92vh] overflow-hidden flex flex-col border-none shadow-2xl rounded-2xl">
+            <CardHeader className="p-4 sm:p-6 pb-4 shrink-0 relative overflow-hidden bg-white">
               <div className="absolute right-0 top-0 w-48 h-48 bg-primary/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 bg-primary rounded-2.5xl flex items-center justify-center text-white shadow-2xl shadow-primary/30">
-                    <FileText size={32} />
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 sm:gap-5">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary rounded-xl sm:rounded-2.5xl flex items-center justify-center text-white shadow-lg shadow-primary/30 shrink-0">
+                    <FileText size={24} className="sm:hidden" />
+                    <FileText size={32} className="hidden sm:block" />
                   </div>
                   <div>
-                    <CardTitle className="font-black text-3xl tracking-tight text-slate-900">كشف حساب: {selectedSupplier.name}</CardTitle>
-                    <CardDescription className="font-bold text-slate-500 text-lg">عرض تفصيلي لكافة التوريدات والمدفوعات والمستحقات المتبقية</CardDescription>
+                    <CardTitle className="font-black text-xl sm:text-3xl tracking-tight text-slate-900">كشف حساب: {selectedSupplier.name}</CardTitle>
+                    <CardDescription className="font-bold text-slate-500 text-xs sm:text-base mt-0.5">تفاصيل التوريدات والمدفوعات والمستحقات المتبقية</CardDescription>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 print:hidden">
-                  <Button variant="outline" onClick={() => safePrint()} className="h-12 px-6 rounded-[14px] border-slate-200 font-black text-slate-600 hover:bg-slate-50 shadow-sm transition-all hover:-translate-y-1">
-                    <Printer size={18} className="ml-2" />
-                    طباعة الكشف
+                <div className="flex items-center gap-2 self-end sm:self-center print:hidden">
+                  <Button variant="outline" onClick={() => safePrint()} className="h-10 sm:h-12 px-4 sm:px-6 rounded-xl border-slate-200 font-black text-xs sm:text-sm text-slate-600 hover:bg-slate-50 shadow-sm">
+                    <Printer size={16} className="ml-1.5" />
+                    طباعة
                   </Button>
-                  <Button variant="ghost" className="h-12 w-12 rounded-[14px] text-slate-400 hover:bg-red-50 hover:text-red-500" onClick={() => setSelectedSupplier(null)}>
-                     <X size={24} />
+                  <Button variant="ghost" className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl text-slate-400 hover:bg-red-50 hover:text-red-500" onClick={() => setSelectedSupplier(null)}>
+                     <X size={20} />
                   </Button>
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="p-0 overflow-hidden flex-1 flex flex-col">
-              <div className="px-10 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 bg-slate-50/50 border-y border-slate-100 print:bg-white relative">
-                <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">رصيد أول المدة</p>
+              {/* Financial KPI Summary Cards */}
+              <div className="px-4 sm:px-10 py-4 sm:py-6 grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-6 bg-slate-50/50 border-y border-slate-100 print:bg-white relative">
+                <div className="p-3 sm:p-5 bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">رصيد أول المدة</p>
                   <div className="flex items-baseline gap-1">
-                    <p className="text-xl font-black text-slate-900 tracking-tighter">{(selectedSupplier.openingBalance || 0).toLocaleString()}</p>
+                    <p className="text-base sm:text-xl font-black text-slate-900 tracking-tighter font-mono">{(selectedSupplier.openingBalance || 0).toLocaleString()}</p>
                     <span className="text-[10px] font-bold text-slate-300">ج.م</span>
                   </div>
                 </div>
-                <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">إجمالي المشتريات</p>
+
+                <div className="p-3 sm:p-5 bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">إجمالي المشتريات</p>
                   <div className="flex items-baseline gap-1">
-                    <p className="text-xl font-black text-slate-900 tracking-tighter">{selectedSupplier.totalPurchases.toLocaleString()}</p>
+                    <p className="text-base sm:text-xl font-black text-slate-900 tracking-tighter font-mono">{selectedSupplier.totalPurchases.toLocaleString()}</p>
                     <span className="text-[10px] font-bold text-slate-300">ج.م</span>
                   </div>
                 </div>
-                <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all border-emerald-100">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">إجمالي المسدد</p>
+
+                <div className="p-3 sm:p-5 bg-white rounded-xl sm:rounded-2xl border border-emerald-100 shadow-sm">
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-0.5">إجمالي المسدد</p>
                   <div className="flex items-baseline gap-1">
-                    <p className="text-xl font-black text-emerald-600 tracking-tighter">{selectedSupplier.totalPayments.toLocaleString()}</p>
-                    <span className="text-[10px] font-bold text-emerald-200">ج.م</span>
+                    <p className="text-base sm:text-xl font-black text-emerald-600 tracking-tighter font-mono">{selectedSupplier.totalPayments.toLocaleString()}</p>
+                    <span className="text-[10px] font-bold text-emerald-300">ج.م</span>
                   </div>
                 </div>
-                <div className="p-5 bg-white rounded-[14px] border border-slate-100 shadow-sm group hover:scale-[1.02] transition-all border-orange-100">
-                  <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">الرصيد المتبقي</p>
+
+                <div className="p-3 sm:p-5 bg-white rounded-xl sm:rounded-2xl border border-orange-100 shadow-sm">
+                  <p className="text-[10px] font-black text-orange-600 uppercase tracking-wider mb-0.5">الرصيد المتبقي</p>
                   <div className="flex items-baseline gap-1">
-                    <p className="text-xl font-black text-orange-600 tracking-tighter">{selectedSupplier.balance.toLocaleString()}</p>
-                    <span className="text-[10px] font-bold text-orange-200">ج.م</span>
+                    <p className="text-base sm:text-xl font-black text-orange-600 tracking-tighter font-mono">{selectedSupplier.balance.toLocaleString()}</p>
+                    <span className="text-[10px] font-bold text-orange-300">ج.م</span>
                   </div>
                 </div>
               </div>
               
-              <div className="overflow-auto flex-1 custom-scrollbar px-10 pt-6">
-                <div className="rounded-[14px] border border-slate-100 overflow-hidden mb-10 shadow-sm">
-                  <Table>
-                    <TableHeader className="bg-slate-50/50 h-16">
-                      <TableRow className="hover:bg-transparent border-slate-100">
-                        <TableHead className="text-right font-black text-slate-900 px-6 text-[11px] uppercase tracking-widest">التاريخ</TableHead>
-                        <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">نوع العملية</TableHead>
-                        <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">البيان / تفصيل الحركة</TableHead>
-                        <TableHead className="text-center font-black text-slate-900 text-[11px] uppercase tracking-widest">الكمية</TableHead>
-                        <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">وحدة / سعر</TableHead>
-                        <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">مدين (+)</TableHead>
-                        <TableHead className="text-right font-black text-slate-900 px-6 text-[11px] uppercase tracking-widest">دائن (-)</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {[
-                      ].sort((a, b) => b._date - a._date).map((item: any) => (
-                        <TableRow key={item.id} className="h-20 border-slate-50 group hover:bg-slate-50 transition-all">
-                          <TableCell>
-                            {item._type === 'purchase' ? (
-                              <Badge className="bg-blue-50 text-blue-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg italic">فاتورة مشتريات</Badge>
-                            ) : (
-                              <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg italic">دفعة {item.paymentMethod}</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-extrabold text-slate-800 text-sm tracking-tight">
-                            {item._type === 'purchase' ? items.find(i => i.id === item.itemId)?.name : item.notes || `دفعة ${item.paymentMethod} ${item.referenceNumber ? `(${item.referenceNumber})` : ''}`}
-                          </TableCell>
-                          <TableCell className="text-center font-black text-slate-400 text-xs">{item._type === 'purchase' ? `${item.quantity} ${item.unit}` : '-'}</TableCell>
-                          <TableCell className="font-bold text-slate-400 text-xs">{item._type === 'purchase' ? (item.unitPrice || (item.total / item.quantity)).toLocaleString() : '-'}</TableCell>
-                          <TableCell className="font-black text-slate-900 font-mono italic">{item._type === 'purchase' ? item.total.toLocaleString() : '-'}</TableCell>
-                          <TableCell className="px-6 font-black text-emerald-600 font-mono italic">
-                            {item._type === 'purchase' ? (item.paidAmount > 0 ? item.paidAmount.toLocaleString() : '-') : item.amount.toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {supplierPurchases.length === 0 && supplierPaymentsList.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-20">
-                            <div className="flex flex-col items-center justify-center gap-3">
-                               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
-                                 <FileText size={32} />
-                               </div>
-                               <p className="text-slate-400 font-black text-sm tracking-tight italic">لا توجد معاملات مسجلة في كشف الحساب حالياً</p>
+              {/* Transactions List / Table Container */}
+              <div className="overflow-auto flex-1 custom-scrollbar p-3 sm:px-10 sm:pt-6">
+                {(() => {
+                  const combinedTransactions = [
+                    ...supplierPurchases.map(p => ({
+                      ...p,
+                      _type: 'purchase',
+                      _dateStr: p.date,
+                      _date: new Date(p.date || 0).getTime()
+                    })),
+                    ...supplierPaymentsList.map(p => ({
+                      ...p,
+                      _type: 'payment',
+                      _dateStr: p.date,
+                      _date: new Date(p.date || 0).getTime()
+                    }))
+                  ].sort((a, b) => b._date - a._date);
+
+                  if (combinedTransactions.length === 0) {
+                    return (
+                      <div className="text-center py-16 text-slate-400 space-y-3">
+                        <FileText size={36} className="mx-auto text-slate-200" />
+                        <p className="font-bold text-sm">لا توجد معاملات مسجلة في كشف الحساب حالياً</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      {/* Mobile Statement List View (md:hidden) */}
+                      <div className="space-y-2.5 md:hidden">
+                        {combinedTransactions.map((item: any) => (
+                          <div key={item.id} className="p-3.5 bg-white rounded-xl border border-slate-200/80 shadow-sm space-y-2">
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                              <span className="font-mono text-[11px]">{item._dateStr}</span>
+                              {item._type === 'purchase' ? (
+                                <Badge className="bg-blue-50 text-blue-700 border border-blue-200 font-black text-[10px] px-2 py-0.5 rounded">
+                                  فاتورة مشتريات
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 font-black text-[10px] px-2 py-0.5 rounded">
+                                  دفعة {item.paymentMethod}
+                                </Badge>
+                              )}
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+
+                            <p className="font-black text-slate-900 text-sm">
+                              {item._type === 'purchase' ? (items.find(i => i.id === item.itemId)?.name || 'مشتريات خامات') : (item.notes || `دفعة سداد ${item.paymentMethod}`)}
+                            </p>
+
+                            <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                              {item._type === 'purchase' ? (
+                                <div className="text-slate-500">
+                                  <span>الكمية: </span>
+                                  <span className="font-black font-mono text-slate-800">{item.quantity} {item.unit}</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-[11px]">{item.referenceNumber ? `مرجع: ${item.referenceNumber}` : 'سداد نقدي'}</span>
+                              )}
+
+                              <div className="font-black font-mono text-sm">
+                                {item._type === 'purchase' ? (
+                                  <span className="text-slate-900">{item.total?.toLocaleString()} ج.م</span>
+                                ) : (
+                                  <span className="text-emerald-600">-{item.amount?.toLocaleString()} ج.م</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Desktop Statement Table View (hidden md:block) */}
+                      <div className="hidden md:block rounded-2xl border border-slate-100 overflow-hidden mb-10 shadow-sm">
+                        <Table>
+                          <TableHeader className="bg-slate-50/50 h-16">
+                            <TableRow className="hover:bg-transparent border-slate-100">
+                              <TableHead className="text-right font-black text-slate-900 px-6 text-[11px] uppercase tracking-widest">التاريخ</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">نوع العملية</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">البيان / تفصيل الحركة</TableHead>
+                              <TableHead className="text-center font-black text-slate-900 text-[11px] uppercase tracking-widest">الكمية</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">وحدة / سعر</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 text-[11px] uppercase tracking-widest">مدين (+)</TableHead>
+                              <TableHead className="text-right font-black text-slate-900 px-6 text-[11px] uppercase tracking-widest">دائن (-)</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {combinedTransactions.map((item: any) => (
+                              <TableRow key={item.id} className="h-20 border-slate-50 group hover:bg-slate-50 transition-all">
+                                <TableCell className="font-mono text-xs text-slate-500 font-bold">{item._dateStr}</TableCell>
+                                <TableCell>
+                                  {item._type === 'purchase' ? (
+                                    <Badge className="bg-blue-50 text-blue-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg italic">فاتورة مشتريات</Badge>
+                                  ) : (
+                                    <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg italic">دفعة {item.paymentMethod}</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="font-extrabold text-slate-800 text-sm tracking-tight">
+                                  {item._type === 'purchase' ? (items.find(i => i.id === item.itemId)?.name || 'صنف مشتريات') : item.notes || `دفعة ${item.paymentMethod} ${item.referenceNumber ? `(${item.referenceNumber})` : ''}`}
+                                </TableCell>
+                                <TableCell className="text-center font-black text-slate-400 text-xs">{item._type === 'purchase' ? `${item.quantity} ${item.unit}` : '-'}</TableCell>
+                                <TableCell className="font-bold text-slate-400 text-xs">{item._type === 'purchase' ? (item.unitPrice || (item.total / item.quantity)).toLocaleString() : '-'}</TableCell>
+                                <TableCell className="font-black text-slate-900 font-mono italic">{item._type === 'purchase' ? item.total.toLocaleString() : '-'}</TableCell>
+                                <TableCell className="px-6 font-black text-emerald-600 font-mono italic">
+                                  {item._type === 'purchase' ? (item.paidAmount > 0 ? item.paidAmount.toLocaleString() : '-') : item.amount.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </CardContent>
           </Card>
@@ -13360,6 +13614,684 @@ const tafqeet = (num: number): string => {
 
   return `فقط ${result} جنيهاً مصرياً لا غير`;
 };
+
+
+
+const AttendanceView = React.memo(function AttendanceView({ employees }: { employees: Employee[] }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedDept, setSelectedDept] = useState<string>('الكل');
+  const [formData, setFormData] = useState({
+    employeeId: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    checkIn: '08:00',
+    checkOut: '18:00',
+    status: 'حضور' as const
+  });
+
+  const departments = ['الكل', ...new Set(employees.filter(e => e.department).map(e => e.department!))];
+
+  // Pagination Engine for History
+  const [attendanceHistory, setAttendanceHistory] = useState<Attendance[]>([]);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Today's attendance specific state
+  const [todayAttendance, setTodayAttendance] = useState<Attendance[]>([]);
+
+  // Fetch today's attendance accurately without pagination
+  const fetchTodayAttendance = async () => {
+    try {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const q = query(collection(db, 'attendance'), where('date', '==', todayStr));
+      const snap = await getDocs(q);
+      setTodayAttendance(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance)));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchAttendanceHistory = async (isInitial = false) => {
+    if (loading) return;
+    if (!isInitial && !hasMore) return;
+    setLoading(true);
+
+    try {
+      let q = query(
+        collection(db, 'attendance'), 
+        orderBy('date', 'desc'),
+        limit(50)
+      );
+
+      if (!isInitial && lastVisible) {
+        q = query(q, startAfter(lastVisible));
+      }
+
+      const snap = await getDocs(q);
+      const newDocs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Attendance));
+      
+      if (snap.docs.length < 50) setHasMore(false);
+      setLastVisible(snap.docs[snap.docs.length - 1]);
+      
+      if (isInitial) {
+        setAttendanceHistory(newDocs);
+      } else {
+        setAttendanceHistory(prev => [...prev, ...newDocs]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTodayAttendance();
+    fetchAttendanceHistory(true);
+  }, []);
+
+  const employeeStatus = employees.map(emp => {
+    const att = todayAttendance.find(a => a.employeeId === emp.id);
+    return { ...emp, attendance: att };
+  });
+
+  const missingAttendance = employeeStatus.filter(e => !e.attendance);
+  const presentCount = employeeStatus.filter(e => e.attendance?.status === 'حضور' || e.attendance?.status === 'تأخير').length;
+  const absentCount = employeeStatus.filter(e => e.attendance?.status === 'غياب').length;
+
+  const quickMarkAllPresent = async () => {
+    const batch = writeBatch(db);
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    missingAttendance.forEach(emp => {
+      const newRef = doc(collection(db, 'attendance'));
+      batch.set(newRef, {
+        employeeId: emp.id,
+        date: todayStr,
+        checkIn: '08:00',
+        checkOut: '18:00',
+        status: 'حضور'
+      });
+    });
+    await batch.commit();
+    // Refresh today's attendance
+    fetchTodayAttendance();
+  };
+
+  const handleAdd = async () => {
+    if (!formData.employeeId || !formData.date) return;
+    try {
+      let finalStatus = formData.status;
+      if (formData.status === 'حضور' || formData.status === 'تأخير') {
+        const [hours, minutes] = formData.checkIn.split(':').map(Number);
+        const checkInTime = hours * 60 + minutes;
+        const officialTime = 8 * 60; // 08:00
+        const gracePeriod = 15;
+        
+        if (checkInTime > officialTime + gracePeriod) {
+          finalStatus = 'تأخير';
+        } else {
+          finalStatus = 'حضور';
+        }
+      }
+
+      await addDoc(collection(db, 'attendance'), {
+        ...formData,
+        status: finalStatus
+      });
+      
+      setShowAdd(false);
+      setFormData({
+        employeeId: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        checkIn: '08:00',
+        checkOut: '18:00',
+        status: 'حضور'
+      });
+      
+      fetchTodayAttendance();
+      fetchAttendanceHistory(true);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editingAttendance) return;
+    try {
+      let finalStatus = editingAttendance.status;
+      if (editingAttendance.status === 'حضور' || editingAttendance.status === 'تأخير') {
+        const [hours, minutes] = editingAttendance.checkIn.split(':').map(Number);
+        const checkInTime = hours * 60 + minutes;
+        const officialTime = 8 * 60;
+        const gracePeriod = 15;
+        finalStatus = checkInTime > officialTime + gracePeriod ? 'تأخير' : 'حضور';
+      }
+      const { id, ...data } = editingAttendance;
+      await updateDoc(doc(db, 'attendance', id), { ...data, status: finalStatus });
+      setEditingAttendance(null);
+      
+      // Update local history directly to avoid full refetch
+      setAttendanceHistory(prev => prev.map(a => a.id === id ? { ...editingAttendance, status: finalStatus } as Attendance : a));
+      fetchTodayAttendance();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    try {
+      await deleteDoc(doc(db, 'attendance', deletingId));
+      setDeletingId(null);
+      setAttendanceHistory(prev => prev.filter(a => a.id !== deletingId));
+      fetchTodayAttendance();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const filteredHistory = selectedDept === 'الكل'
+    ? attendanceHistory
+    : attendanceHistory.filter(att => {
+        const emp = employees.find(e => e.id === att.employeeId);
+        return emp?.department === selectedDept;
+      });
+
+  const filteredEmployeeStatus = selectedDept === 'الكل' ? employeeStatus : employeeStatus.filter(e => e.department === selectedDept);
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">الحضور والانصراف</h2>
+          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">المواعيد الرسمية: 08:00 ص - 06:00 م (فترة سماح 15 دقيقة)</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select 
+            className="h-10 md:h-12 rounded-2xl border border-slate-200 px-4 bg-white font-bold text-sm"
+            value={selectedDept}
+            onChange={(e) => setSelectedDept(e.target.value)}
+          >
+            {departments.map(dept => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
+          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-4 md:px-6 font-black rounded-2xl shadow-lg shadow-primary/20">
+            <Plus size={20} className="ml-2" />
+            <span className="hidden md:inline">تسجيل حركه</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Overview Cards for Today */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="dribbble-card bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none shadow-xl shadow-blue-500/20">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <p className="text-blue-100 font-bold text-sm tracking-wide">غياب اليوم</p>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-4xl font-black">{absentCount}</h3>
+                  <span className="text-blue-100 text-sm">موظف</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Clock className="text-white" size={24} />
+              </div>
+            </div>
+            {missingAttendance.length > 0 && (
+              <Button 
+                onClick={quickMarkAllPresent}
+                variant="ghost" 
+                className="w-full mt-6 bg-white/10 hover:bg-white/20 border-white/20 text-white font-bold h-10"
+              >
+                تسجيل حضور للكل ({missingAttendance.length})
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40">
+           <CardContent className="p-6">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
+                <p className="text-slate-500 font-bold text-sm tracking-wide">حضور اليوم</p>
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-4xl font-black text-slate-900">{presentCount}</h3>
+                  <span className="text-slate-400 text-sm">موظف</span>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center">
+                <CheckCircle2 className="text-green-500" size={24} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1 space-y-4">
+          <h3 className="font-black text-xl text-slate-900 mb-4 flex items-center gap-2">
+            <Calendar size={20} className="text-primary" />
+            قائمة الموظفين
+          </h3>
+          <div className="bg-white rounded-3xl p-4 shadow-xl shadow-slate-200/40 border border-slate-100 divide-y divide-slate-50">
+            {filteredEmployeeStatus.map(emp => (
+              <div key={emp.id} className="py-4 first:pt-2 last:pb-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-sm">
+                    {emp.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-black text-sm text-slate-900">{emp.name}</p>
+                    <p className="text-xs font-bold text-slate-400 mt-0.5">{emp.position}</p>
+                  </div>
+                </div>
+                {emp.attendance ? (
+                  <Badge className={`border-none font-bold ${
+                    emp.attendance.status === 'حضور' ? 'bg-green-50 text-green-700' :
+                    emp.attendance.status === 'تأخير' ? 'bg-orange-50 text-orange-700' :
+                    'bg-red-50 text-red-700'
+                  }`}>
+                    {emp.attendance.status}
+                  </Badge>
+                ) : (
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-8 text-primary font-bold bg-primary/5 hover:bg-primary/10"
+                    onClick={() => {
+                      setFormData({
+                        ...formData,
+                        employeeId: emp.id
+                      });
+                      setShowAdd(true);
+                    }}
+                  >
+                    تسجيل
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 space-y-4">
+          <h3 className="font-black text-xl text-slate-900 mb-4 flex items-center gap-2">
+            <Clock size={20} className="text-primary" />
+            سجل الحركات (السابق)
+          </h3>
+          <Card className="dribbble-card overflow-hidden border-none shadow-xl shadow-slate-200/40">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-50/80 backdrop-blur-sm">
+                  <TableRow className="border-b-0">
+                    <TableHead className="text-right font-black text-slate-900 py-4">التاريخ</TableHead>
+                    <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
+                    <TableHead className="text-right font-black text-slate-900">حضور</TableHead>
+                    <TableHead className="text-right font-black text-slate-900">انصراف</TableHead>
+                    <TableHead className="text-right font-black text-slate-900">الحالة</TableHead>
+                    <TableHead className="text-left font-black text-slate-900">تفاصيل</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredHistory.map((record) => {
+                    const emp = employees.find(e => e.id === record.employeeId);
+                    return (
+                      <TableRow key={record.id} className="group hover:bg-slate-50 border-b border-slate-50/50">
+                         <TableCell className="font-bold text-slate-600">{record.date}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                              <Users size={14} className="text-slate-400" />
+                            </div>
+                            <div>
+                              <p className="font-black text-sm text-slate-900">{emp?.name}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-slate-500">{record.checkIn || '-'}</TableCell>
+                        <TableCell className="font-bold text-slate-500">{record.checkOut || '-'}</TableCell>
+                        <TableCell>
+                          <Badge className={`border-none font-bold ${
+                            record.status === 'حضور' ? 'bg-green-50 text-green-700' :
+                            record.status === 'تأخير' ? 'bg-orange-50 text-orange-700' :
+                            record.status === 'إجازة' ? 'bg-blue-50 text-blue-700' :
+                            'bg-red-50 text-red-700'
+                          }`}>
+                            {record.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="sm" onClick={() => setEditingAttendance(record)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 rounded-lg">
+                              <Edit2 size={14} />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => setDeletingId(record.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 rounded-lg">
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filteredHistory.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-bold">لا يوجد حركات مسجلة</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            {hasMore && (
+              <div className="p-4 flex justify-center bg-slate-50 border-t border-slate-100">
+                 <Button 
+                    className="btn-secondary px-8 font-black rounded-xl h-10 text-sm"
+                    onClick={() => fetchAttendanceHistory()}
+                    disabled={loading}
+                  >
+                    {loading ? 'جاري التحميل...' : 'عرض المزيد...'}
+                  </Button>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+
+       {showAdd && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="dribbble-card w-full max-w-lg overflow-hidden border-none">
+            <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-6">
+              <CardTitle className="font-black text-2xl flex items-center gap-2">
+                <Plus size={24} className="text-primary" />
+                تسجيل حركة
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">الموظف</label>
+                <select 
+                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
+                  value={formData.employeeId} 
+                  onChange={e => setFormData({...formData, employeeId: e.target.value})}
+                >
+                  <option value="">-- اختر --</option>
+                  {employees.filter(e => e.status === 'نشط').map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">التاريخ</label>
+                  <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">الحالة</label>
+                  <select 
+                    className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
+                    value={formData.status} 
+                    onChange={e => setFormData({...formData, status: e.target.value as any})}
+                  >
+                    <option value="حضور">حضور</option>
+                    <option value="غياب">غياب</option>
+                    <option value="إجازة">إجازة</option>
+                  </select>
+                </div>
+              </div>
+              {formData.status !== 'غياب' && formData.status !== 'إجازة' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">وقت الحضور</label>
+                    <Input type="time" value={formData.checkIn} onChange={e => setFormData({...formData, checkIn: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">وقت الانصراف</label>
+                    <Input type="time" value={formData.checkOut} onChange={e => setFormData({...formData, checkOut: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex justify-end gap-3 p-6 bg-slate-50/50 border-t border-slate-100">
+              <Button variant="ghost" onClick={() => setShowAdd(false)} className="rounded-xl font-bold">إلغاء</Button>
+              <Button onClick={handleAdd} className="btn-primary rounded-xl px-8 font-black">تسجيل</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
+      {editingAttendance && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="dribbble-card w-full max-w-lg overflow-hidden border-none">
+            <CardHeader className="bg-slate-50/80 border-b border-slate-100 pb-6">
+              <CardTitle className="font-black text-2xl flex items-center gap-2">
+                <Edit2 size={24} className="text-blue-500" />
+                تعديل السجل
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">التاريخ</label>
+                  <Input type="date" value={editingAttendance.date} onChange={e => setEditingAttendance({...editingAttendance, date: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" disabled />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">الحالة</label>
+                  <select 
+                    className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold"
+                    value={editingAttendance.status} 
+                    onChange={e => setEditingAttendance({...editingAttendance, status: e.target.value as any})}
+                  >
+                    <option value="حضور">حضور</option>
+                    <option value="تأخير">تأخير</option>
+                    <option value="غياب">غياب</option>
+                    <option value="إجازة">إجازة</option>
+                  </select>
+                </div>
+              </div>
+              {editingAttendance.status !== 'غياب' && editingAttendance.status !== 'إجازة' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">وقت الحضور</label>
+                    <Input type="time" value={editingAttendance.checkIn} onChange={e => setEditingAttendance({...editingAttendance, checkIn: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">وقت الانصراف</label>
+                    <Input type="time" value={editingAttendance.checkOut} onChange={e => setEditingAttendance({...editingAttendance, checkOut: e.target.value})} className="h-12 rounded-xl bg-slate-50 font-bold" />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex justify-end gap-3 p-6 bg-slate-50/50 border-t border-slate-100">
+              <Button variant="ghost" onClick={() => setEditingAttendance(null)} className="rounded-xl font-bold">إلغاء</Button>
+              <Button onClick={handleUpdate} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-8 font-black">حفظ التغييرات</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
+      {deletingId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <Card className="dribbble-card w-full max-w-sm overflow-hidden border-none">
+            <CardHeader className="bg-red-50/50 border-b border-red-100/50 pb-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <CardTitle className="font-black text-2xl text-red-700">حذف السجل</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 text-center">
+              <p className="font-bold text-slate-600">هل أنت متأكد من حذف هذا السجل المؤرشف؟ لا يمكن التراجع.</p>
+            </CardContent>
+            <CardFooter className="flex justify-center gap-3 p-6 pt-0">
+              <Button variant="ghost" className="rounded-xl font-bold px-6" onClick={() => setDeletingId(null)}>إلغاء</Button>
+              <Button onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white rounded-xl px-8 font-black">نعم، احذف</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+});
+
+
+interface DeductionsViewProps {
+  attendance: Attendance[];
+  transactions: FinancialTransaction[];
+  loans: Loan[];
+  companyInfo?: any;
+  employees: Employee[];
+}
+
+const DeductionsView = React.memo(function DeductionsView({
+  attendance,
+  transactions,
+  loans,
+  companyInfo,
+  employees
+}: DeductionsViewProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDept, setSelectedDept] = useState('الكل');
+
+  const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
+
+  // Filter transactions that are deductions
+  const deductionTransactions = transactions.filter(t => 
+    t.employeeId && 
+    ((t.type as string) === 'خصم' || (t.type as string) === 'خصومات' || t.type === 'جزاء' || (t.type as string) === 'تأخير')
+  );
+
+  // Total calculations
+  const totalPenalties = deductionTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+  const activeLoans = loans.filter(l => l.status === 'نشط');
+  const totalOutstandingLoans = activeLoans.reduce((sum, l) => sum + (l.remainingAmount || 0), 0);
+
+  const filteredEmployees = employees.filter(emp => {
+    const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDept = selectedDept === 'الكل' || emp.department === selectedDept;
+    return matchesSearch && matchesDept;
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+        <div>
+          <h3 className="font-black text-xl text-slate-900">إدارة الخصومات والجزاءات والسلف</h3>
+          <p className="text-slate-400 text-xs mt-0.5">متابعة كافة الاستقطاعات والخصومات المالية الصادرة بحق العمال</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Input 
+            placeholder="بحث عن موظف..." 
+            value={searchTerm} 
+            onChange={e => setSearchTerm(e.target.value)} 
+            className="w-64 h-11 bg-white border-slate-200 rounded-xl"
+          />
+          <select 
+            className="h-11 rounded-xl border border-slate-200 px-4 bg-white font-bold text-sm focus:ring-2 focus:ring-blue-500"
+            value={selectedDept}
+            onChange={(e) => setSelectedDept(e.target.value)}
+          >
+            {departments.map(dept => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
+          <Button onClick={() => window.print()} variant="outline" className="h-11 rounded-xl font-bold border-slate-200">
+            <Printer size={16} className="ml-2" />
+            طباعة
+          </Button>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:hidden">
+        <Card className="dribbble-card border-none bg-rose-50/50">
+          <CardContent className="p-6 flex justify-between items-center">
+            <div className="space-y-1">
+              <p className="text-rose-600 font-bold text-sm">إجمالي الخصومات والجزاءات</p>
+              <h4 className="text-3xl font-black font-mono text-rose-700">{totalPenalties.toLocaleString('en-US')} ج.م</h4>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
+              <ArrowDownLeft size={24} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="dribbble-card border-none bg-amber-50/50">
+          <CardContent className="p-6 flex justify-between items-center">
+            <div className="space-y-1">
+              <p className="text-amber-600 font-bold text-sm">إجمالي السلف القائمة</p>
+              <h4 className="text-3xl font-black font-mono text-amber-700">{totalOutstandingLoans.toLocaleString('en-US')} ج.م</h4>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
+              <Clock size={24} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="dribbble-card border-none overflow-hidden shadow-xl shadow-slate-200/30">
+        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+          <h4 className="font-black text-lg text-slate-800">تفاصيل استقطاعات الموظفين</h4>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-slate-50/20">
+              <TableRow>
+                <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
+                <TableHead className="text-right font-black text-slate-900">القسم</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الخصومات والجزاءات المسجلة</TableHead>
+                <TableHead className="text-right font-black text-slate-900">إجمالي السلف المفعلة</TableHead>
+                <TableHead className="text-right font-black text-slate-900">ما تم سداده من السلف</TableHead>
+                <TableHead className="text-right font-black text-slate-900">المتبقي من السلف</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEmployees.map(emp => {
+                const empDeductions = deductionTransactions
+                  .filter(t => t.employeeId === emp.id)
+                  .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+                const empLoans = loans.filter(l => l.employeeId === emp.id);
+                const totalLoanAmount = empLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
+                const remainingLoanAmount = empLoans.filter(l => l.status === 'نشط').reduce((sum, l) => sum + (l.remainingAmount || 0), 0);
+                const repaidLoanAmount = totalLoanAmount - remainingLoanAmount;
+
+                return (
+                  <TableRow key={emp.id} className="hover:bg-slate-50/50 transition-colors">
+                    <TableCell className="font-black text-slate-950">{emp.name}</TableCell>
+                    <TableCell className="font-bold text-slate-500 text-xs">{emp.department || 'غير محدد'}</TableCell>
+                    <TableCell className="font-mono font-bold text-rose-600">
+                      {empDeductions > 0 ? `${empDeductions.toLocaleString('en-US')} ج.م` : '0'}
+                    </TableCell>
+                    <TableCell className="font-mono font-bold text-amber-600">
+                      {totalLoanAmount > 0 ? `${totalLoanAmount.toLocaleString('en-US')} ج.م` : '0'}
+                    </TableCell>
+                    <TableCell className="font-mono font-bold text-green-600">
+                      {repaidLoanAmount > 0 ? `${repaidLoanAmount.toLocaleString('en-US')} ج.م` : '0'}
+                    </TableCell>
+                    <TableCell className="font-mono font-black text-slate-900">
+                      {remainingLoanAmount > 0 ? `${remainingLoanAmount.toLocaleString('en-US')} ج.م` : '0'}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {filteredEmployees.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-slate-400 font-bold">
+                    لا توجد سجلات مطابقة للبحث
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </div>
+  );
+});
+
 
 const LoansView = React.memo(function LoansView({ employees, safes, companySettings }: { employees: Employee[], safes: Safe[], companySettings?: CompanySettings }) {
   const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
@@ -18889,13 +19821,67 @@ function Settings({
                     />
                   </div>
 
-                  {/* Suppliers Grid / Table */}
-                  <div className="rounded-[14px] border border-slate-100 overflow-hidden bg-white">
+                  {/* Mobile Cards for Settings Suppliers Tab */}
+                  <div className="grid grid-cols-1 gap-3 md:hidden">
+                    {filteredSuppliers.map(supplier => {
+                      const opening = supplier.openingBalance || 0;
+                      const purchases = supplier.totalPurchases || 0;
+                      const payments = supplier.totalPayments || 0;
+                      const calculatedBalance = opening + purchases - payments;
+
+                      return (
+                        <div key={supplier.id} className="p-4 bg-slate-50/70 rounded-xl border border-slate-100 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-black text-slate-900 text-base">{supplier.name}</h4>
+                            <Badge 
+                              variant="secondary"
+                              className={`rounded-lg font-bold text-[10px] ${calculatedBalance > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}
+                            >
+                              {calculatedBalance > 0 ? 'مستحق له' : 'مسدد بالكامل'}
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-lg border border-slate-100 font-mono">
+                            <div>
+                              <p className="text-[10px] text-slate-400 font-sans font-bold">الرصيد الافتتاحي:</p>
+                              <p className="font-black text-slate-700">{opening.toLocaleString()} ج.م</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-slate-400 font-sans font-bold">إجمالي المشتريات:</p>
+                              <p className="font-black text-blue-600">{purchases.toLocaleString()} ج.م</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-slate-400 font-sans font-bold">إجمالي المدفوعات:</p>
+                              <p className="font-black text-emerald-600">{payments.toLocaleString()} ج.م</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-slate-400 font-sans font-bold">الرصيد المستحق:</p>
+                              <p className="font-black text-orange-600">{calculatedBalance.toLocaleString()} ج.م</p>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-2 pt-1 border-t border-slate-200/50">
+                            <Button variant="outline" size="sm" onClick={() => setEditingSupplier(supplier)} className="h-9 px-3 rounded-lg text-xs font-bold text-slate-700 border-slate-200">
+                              <Edit2 size={13} className="ml-1" />
+                              تعديل
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm({ collection: 'suppliers', id: supplier.id })} className="h-9 px-3 rounded-lg text-xs font-bold text-red-600 border-red-200 bg-red-50/30">
+                              <Trash2 size={13} className="ml-1" />
+                              حذف
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop Table */}
+                  <div className="hidden md:block rounded-[14px] border border-slate-100 overflow-hidden bg-white">
                     <Table>
                       <TableHeader className="bg-slate-50/70">
                         <TableRow>
                           <TableHead className="font-black text-slate-700 text-right">المورد</TableHead>
-                          <TableHead className="font-black text-slate-700 text-center">الرصيد الافتتاحي (ر.س)</TableHead>
+                          <TableHead className="font-black text-slate-700 text-center">الرصيد الافتتاحي (ج.م)</TableHead>
                           <TableHead className="font-black text-slate-700 text-center">إجمالي المشتريات</TableHead>
                           <TableHead className="font-black text-slate-700 text-center">إجمالي المدفوعات</TableHead>
                           <TableHead className="font-black text-slate-700 text-center">الرصيد المستحق (الديون)</TableHead>
@@ -18908,16 +19894,15 @@ function Settings({
                           const opening = supplier.openingBalance || 0;
                           const purchases = supplier.totalPurchases || 0;
                           const payments = supplier.totalPayments || 0;
-                          // حساب الرصيد الحالي للمورد (الرصيد الافتتاحي + المشتريات الآجلة - المدفوعات)
                           const calculatedBalance = opening + purchases - payments;
                           
                           return (
                             <TableRow key={supplier.id} className="hover:bg-slate-50/40 transition-colors">
                               <TableCell className="font-bold text-slate-900">{supplier.name}</TableCell>
-                              <TableCell className="font-black text-center text-slate-600">{opening.toLocaleString()} ر.س</TableCell>
-                              <TableCell className="font-black text-center text-blue-600">{purchases.toLocaleString()} ر.س</TableCell>
-                              <TableCell className="font-black text-center text-emerald-600">{payments.toLocaleString()} ر.س</TableCell>
-                              <TableCell className="font-black text-center text-slate-900">{calculatedBalance.toLocaleString()} ر.س</TableCell>
+                              <TableCell className="font-black text-center text-slate-600">{opening.toLocaleString()} ج.م</TableCell>
+                              <TableCell className="font-black text-center text-blue-600">{purchases.toLocaleString()} ج.م</TableCell>
+                              <TableCell className="font-black text-center text-emerald-600">{payments.toLocaleString()} ج.م</TableCell>
+                              <TableCell className="font-black text-center text-slate-900">{calculatedBalance.toLocaleString()} ج.م</TableCell>
                               <TableCell className="font-bold text-center">
                                 <Badge 
                                   variant="secondary"
