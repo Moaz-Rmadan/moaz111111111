@@ -157,6 +157,8 @@ export interface Purchase {
   notes: string;
   safeId?: string; // الخزنة التي تم الدفع منها
   safeTransactionId?: string; // رقم الحركة المالية المرتبطة
+  invoiceNo?: string; // رقم الفاتورة الإضافي
+  receiptImage?: string; // رابط أو كود الصورة المرفقة للفاتورة
 }
 
 export interface Issuance {

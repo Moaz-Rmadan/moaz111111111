@@ -1,5 +1,3 @@
-import { WorkOrdersManager } from "./components/WorkOrdersManager";
-import { CustomersManager } from "./components/CustomersManager";
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -8,7 +6,7 @@ import { CustomersManager } from "./components/CustomersManager";
 
 
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useAuth } from './AuthContext';
 import { handleFirestoreError } from './lib/firestore-utils';
 import { signInWithPopup, signOut } from 'firebase/auth';
@@ -42,10 +40,10 @@ import type {
   ProductionLog, ProductionMachine, ProductionTeam
 } from './types';
 
-import { BanksManager } from './components/BanksManager';
-import { ProductionManager } from './components/ProductionManager';
-import { FleetManager } from './components/FleetManager';
-import { TreasuryModule } from './components/TreasuryModule';
+const BanksManager = lazy(() => import('./components/BanksManager').then(m => ({ default: m.BanksManager })));
+const ProductionManager = lazy(() => import('./components/ProductionManager').then(m => ({ default: m.ProductionManager })));
+const FleetManager = lazy(() => import('./components/FleetManager').then(m => ({ default: m.FleetManager })));
+const TreasuryModule = lazy(() => import('./components/TreasuryModule').then(m => ({ default: m.TreasuryModule })));
 
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -68,29 +66,44 @@ import {
   TableRow 
 } from '@/components/ui/table';
 
-import { ProductionCostsView } from './components/ProductionCostsView';
-import { ProductRecipesView } from './components/ProductRecipesView';
-import { OdooManufacturingSuite } from './components/OdooManufacturingSuite';
+const WorkOrdersManager = lazy(() => import("./components/WorkOrdersManager").then(m => ({ default: m.WorkOrdersManager })));
+const CustomersManager = lazy(() => import("./components/CustomersManager").then(m => ({ default: m.CustomersManager })));
+const ProductionCostsView = lazy(() => import('./components/ProductionCostsView').then(m => ({ default: m.ProductionCostsView })));
+const ProductRecipesView = lazy(() => import('./components/ProductRecipesView').then(m => ({ default: m.ProductRecipesView })));
+const OdooManufacturingSuite = lazy(() => import('./components/OdooManufacturingSuite').then(m => ({ default: m.OdooManufacturingSuite })));
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'motion/react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { MaintenanceOrdersView } from "./components/MaintenanceOrdersView";
-import { FinancialReports } from './components/FinancialReports';
-import ChartOfAccountsView, { defaultChartOfAccounts, flattenAccounts } from './components/ChartOfAccountsView';
-import { UsersManager } from './components/UsersManager';
-import { ByproductSalesView } from './components/ByproductSalesView';
-import { SalesModule } from './components/SalesModule';
+const MaintenanceOrdersView = lazy(() => import("./components/MaintenanceOrdersView").then(m => ({ default: m.MaintenanceOrdersView })));
+const FinancialReports = lazy(() => import('./components/FinancialReports').then(m => ({ default: m.FinancialReports })));
+import { defaultChartOfAccounts, flattenAccounts } from './components/ChartOfAccountsView';
+const ChartOfAccountsView = lazy(() => import('./components/ChartOfAccountsView'));
+const UsersManager = lazy(() => import('./components/UsersManager').then(m => ({ default: m.UsersManager })));
+const ByproductSalesView = lazy(() => import('./components/ByproductSalesView').then(m => ({ default: m.ByproductSalesView })));
+const SalesModule = lazy(() => import('./components/SalesModule').then(m => ({ default: m.SalesModule })));
 import { NumberDisplay, formatNumber, formatCurrencyParts } from './lib/numberUtils';
 import { FactoryResetModal } from './components/FactoryResetModal';
-import { MonthlyStipendsModule } from './components/MonthlyStipendsModule';
-import { MaterialCalculatorView } from './components/MaterialCalculatorView';
-import WhatsAppAssistant from './components/WhatsAppAssistant';
-import { WarehouseTransfersView } from './components/WarehouseTransfersView';
+const MonthlyStipendsModule = lazy(() => import('./components/MonthlyStipendsModule').then(m => ({ default: m.MonthlyStipendsModule })));
+const MaterialCalculatorView = lazy(() => import('./components/MaterialCalculatorView').then(m => ({ default: m.MaterialCalculatorView })));
+const WhatsAppAssistant = lazy(() => import('./components/WhatsAppAssistant'));
+const WarehouseTransfersView = lazy(() => import('./components/WarehouseTransfersView').then(m => ({ default: m.WarehouseTransfersView })));
 import { SearchableSelect } from './components/SearchableSelect';
-import { VehiclesView } from './components/VehiclesView';
+const VehiclesView = lazy(() => import('./components/VehiclesView').then(m => ({ default: m.VehiclesView })));
 import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
+
+const ComponentLoader = () => (
+  <div className="flex flex-col items-center justify-center p-12 min-h-[400px] w-full">
+    <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200/50 animate-bounce mb-4">
+      <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+    <h3 className="text-base font-black text-slate-800 tracking-tight">جاري تحميل الشاشة...</h3>
+  </div>
+);
 
 // --- Components ---
 
@@ -2945,7 +2958,8 @@ function MainApp({
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              {(activeTab === 'productionManager' || activeTab === 'productionReports') && (
+              <Suspense fallback={<ComponentLoader />}>
+                {(activeTab === 'productionManager' || activeTab === 'productionReports') && (
                 <ProductionManager 
                   manufacturingOrders={manufacturingOrders}
                   productionRoutes={productionRoutes}
@@ -3254,6 +3268,7 @@ function MainApp({
             setShowFactoryResetConfirm={setShowFactoryResetConfirm}
           />
         )}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -4170,7 +4185,7 @@ function UserManagement() {
 }
 
 
-function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements }: { items: Item[], suppliers: Supplier[], purchases: Purchase[], issuances: Issuance[], getItemMovements: (id: string) => any[] }) {
+const ItemCardView = React.memo(function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements }: { items: Item[], suppliers: Supplier[], purchases: Purchase[], issuances: Issuance[], getItemMovements: (id: string) => any[] }) {
   const [selectedId, setSelectedId] = useState<string>('');
   const selectedItem = items.find(i => i.id === selectedId);
   const movements = selectedId ? getItemMovements(selectedId) : [];
@@ -4384,7 +4399,7 @@ function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements
       )}
     </div>
   );
-}
+});
 
 // --- Views ---
 
@@ -4490,7 +4505,48 @@ function DashboardList({ title, icon, data, renderItem }: {
   );
 }
 
-function Dashboard({ 
+const Sparkline = React.memo(function Sparkline({ data, color = "#10b981" }: { data: number[], color?: string }) {
+  const width = 100;
+  const height = 30;
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const points = data.map((val, index) => {
+    const x = (index / (data.length - 1)) * width;
+    const y = height - ((val - min) / range) * (height - 6) - 3;
+    return `${x},${y}`;
+  }).join(" ");
+
+  return (
+    <svg width={width} height={height} className="overflow-visible opacity-75">
+      <defs>
+        <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.15} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path
+        d={`M 0,${height} L 0,${height - ((data[0] - min) / range) * (height - 6) - 3} ${data.map((val, index) => {
+          const x = (index / (data.length - 1)) * width;
+          const y = height - ((val - min) / range) * (height - 6) - 3;
+          return `L ${x},${y}`;
+        }).join(" ")} L ${width},${height} Z`}
+        fill={`url(#gradient-${color})`}
+      />
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
+});
+
+const Dashboard = React.memo(function Dashboard({ 
   items, 
   suppliers, 
   purchases, 
@@ -4539,33 +4595,33 @@ function Dashboard({
   const [activeTab, setActiveTab] = React.useState<'all' | 'financial' | 'operations' | 'hr'>('all');
 
   // --- Core Calculations ---
-  const totalInventoryValue = items.reduce((acc, item) => acc + (item.currentBalance * item.price), 0);
-  const lowStockItems = items.filter(item => item.currentBalance <= item.safetyLimit);
-  const totalSupplierDebt = suppliers.reduce((acc, s) => acc + s.balance, 0);
-  const activeEmployees = employees.filter(emp => emp.status === 'نشط');
+  const totalInventoryValue = React.useMemo(() => items.reduce((acc, item) => acc + (item.currentBalance * item.price), 0), [items]);
+  const lowStockItems = React.useMemo(() => items.filter(item => item.currentBalance <= item.safetyLimit), [items]);
+  const totalSupplierDebt = React.useMemo(() => suppliers.reduce((acc, s) => acc + s.balance, 0), [suppliers]);
+  const activeEmployees = React.useMemo(() => employees.filter(emp => emp.status === 'نشط'), [employees]);
   
   // Total Cash Liquidity in all safes/accounts
-  const totalSafesBalance = safes.reduce((acc, s) => acc + s.balance, 0);
+  const totalSafesBalance = React.useMemo(() => safes.reduce((acc, s) => acc + s.balance, 0), [safes]);
   
   // Total Active Loans currently outstanding from employees
-  const totalActiveLoansOwed = loans.filter(l => l.status === 'نشط').reduce((acc, l) => acc + (l.remainingAmount || 0), 0);
+  const totalActiveLoansOwed = React.useMemo(() => loans.filter(l => l.status === 'نشط').reduce((acc, l) => acc + (l.remainingAmount || 0), 0), [loans]);
 
   // Strategic Executive Metrics
-  const netFinancialPosition = totalSafesBalance - totalSupplierDebt;
-  const totalEmployeesCount = employees.length;
-  const activeJobsCount = productionJobs.filter(j => j.status !== 'ملغى' && j.status !== 'مكتمل').length;
+  const netFinancialPosition = React.useMemo(() => totalSafesBalance - totalSupplierDebt, [totalSafesBalance, totalSupplierDebt]);
+  const totalEmployeesCount = React.useMemo(() => employees.length, [employees]);
+  const activeJobsCount = React.useMemo(() => productionJobs.filter(j => j.status !== 'ملغى' && j.status !== 'مكتمل').length, [productionJobs]);
 
-  const totalWasteValue = wasteRecords.reduce((acc, w) => {
+  const totalWasteValue = React.useMemo(() => wasteRecords.reduce((acc, w) => {
     const item = items.find(i => i.id === w.itemId);
     return acc + (w.quantity * (item?.price || 0));
-  }, 0);
+  }, 0), [wasteRecords, items]);
 
-  const totalManufacturingCost = productionJobs.reduce((acc, job) => {
+  const totalManufacturingCost = React.useMemo(() => productionJobs.reduce((acc, job) => {
     const materialCost = issuances.filter(i => i.jobOrderNo === job.orderNo).reduce((sum, m) => sum + m.total, 0);
     const laborCost = jobLabors.filter(l => l.jobId === job.id).reduce((sum, l) => sum + l.total, 0);
     const otherCost = jobOtherCosts.filter(o => o.jobId === job.id).reduce((sum, o) => sum + o.amount, 0);
     return acc + materialCost + laborCost + otherCost;
-  }, 0);
+  }, 0), [productionJobs, issuances, jobLabors, jobOtherCosts]);
 
   // Workforce Attendance Ratio Today (or the last available date in database)
   const lastAttendanceDate = React.useMemo(() => {
@@ -4576,26 +4632,29 @@ function Dashboard({
     return new Date().toISOString().split('T')[0];
   }, [attendance]);
 
-  const todayAttendance = attendance.filter(a => a.date === lastAttendanceDate);
-  const totalChecked = todayAttendance.length;
-  const presentCount = todayAttendance.filter(a => a.status === 'حضور').length;
-  const lateCount = todayAttendance.filter(a => a.status === 'تأخير').length;
-  const absentCount = todayAttendance.filter(a => a.status === 'غياب').length;
-  const attendanceRate = totalChecked > 0 ? Math.round(((presentCount + lateCount) / totalChecked) * 100) : 100;
+  const todayAttendance = React.useMemo(() => attendance.filter(a => a.date === lastAttendanceDate), [attendance, lastAttendanceDate]);
+  const totalChecked = React.useMemo(() => todayAttendance.length, [todayAttendance]);
+  const presentCount = React.useMemo(() => todayAttendance.filter(a => a.status === 'حضور').length, [todayAttendance]);
+  const lateCount = React.useMemo(() => todayAttendance.filter(a => a.status === 'تأخير').length, [todayAttendance]);
+  const absentCount = React.useMemo(() => todayAttendance.filter(a => a.status === 'غياب').length, [todayAttendance]);
+  const attendanceRate = React.useMemo(() => totalChecked > 0 ? Math.round(((presentCount + lateCount) / totalChecked) * 100) : 100, [totalChecked, presentCount, lateCount]);
 
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
-  const recentAttendance = attendance.filter(a => a.date >= thirtyDaysAgoStr);
+  const thirtyDaysAgo = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d;
+  }, []);
+  const thirtyDaysAgoStr = React.useMemo(() => thirtyDaysAgo.toISOString().split('T')[0], [thirtyDaysAgo]);
+  const recentAttendance = React.useMemo(() => attendance.filter(a => a.date >= thirtyDaysAgoStr), [attendance, thirtyDaysAgoStr]);
 
   // Daily trend for the last 14 days
-  const last14Days = Array.from({ length: 14 }, (_, i) => {
+  const last14Days = React.useMemo(() => Array.from({ length: 14 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
     return format(d, 'yyyy-MM-dd');
-  }).reverse();
+  }).reverse(), []);
 
-  const chartData = last14Days.map(date => ({
+  const chartData = React.useMemo(() => last14Days.map(date => ({
     date,
     purchases: purchases.filter(p => p.date === date).reduce((sum, p) => sum + p.total, 0),
     issuances: issuances.filter(is => is.date === date).reduce((sum, is) => sum + is.total, 0),
@@ -4603,80 +4662,154 @@ function Dashboard({
       const item = items.find(i => i.id === w.itemId);
       return sum + (w.quantity * (item?.price || 0));
     }, 0)
-  }));
+  })), [last14Days, purchases, issuances, wasteRecords, items]);
 
   // --- Analytical Data Calculations ---
-  const months = Array.from({ length: 6 }, (_, i) => {
+  const months = React.useMemo(() => Array.from({ length: 6 }, (_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - i);
     return format(d, 'yyyy-MM');
-  }).reverse();
+  }).reverse(), []);
 
   // Correct calculation for monthly payroll costs matching the selected months
-  const salaryChartData = months.map(m => {
+  const salaryChartData = React.useMemo(() => months.map(m => {
     const monthPayrolls = payrolls.filter(p => p.startDate && p.startDate.startsWith(m));
     const total = monthPayrolls.reduce((sum, p) => sum + (p.netSalary || 0), 0);
     return {
       month: m,
       total: total || 0
     };
-  });
+  }), [months, payrolls]);
 
   // 2. Attendance Status Distribution (Last 30 days)
-  const attendancePieData = [
+  const attendancePieData = React.useMemo(() => [
     { name: 'حضور مباشر', value: recentAttendance.filter(a => a.status === 'حضور').length || 1, color: '#10b981' },
     { name: 'حضور متأخر', value: recentAttendance.filter(a => a.status === 'تأخير').length || 0, color: '#f59e0b' },
     { name: 'غياب كامل', value: recentAttendance.filter(a => a.status === 'غياب').length || 0, color: '#ef4444' }
-  ].filter(x => x.value > 0);
+  ].filter(x => x.value > 0), [recentAttendance]);
 
   // 3. Production Statistics (Last 14 days output)
-  const productionStatData = last14Days.map(date => {
+  const productionStatData = React.useMemo(() => last14Days.map(date => {
     const dayRecords = productionRecords.filter(r => r.date === date);
     return {
       date,
       output: dayRecords.reduce((sum, r) => sum + r.quantity, 0)
     };
-  });
+  }), [last14Days, productionRecords]);
 
   // 4. Safe Consumption (Last 6 months)
-  const safeOutgoingsData = months.map(m => ({
+  const safeOutgoingsData = React.useMemo(() => months.map(m => ({
     amount: safeTransactions.filter(t => t.date?.startsWith(m) && (t.type === 'سحب' || t.type === 'مصروفات' || t.type === 'رواتب' || t.type === 'مشتريات')).reduce((sum, t) => sum + t.amount, 0)
-  }));
+  })), [months, safeTransactions]);
+
+  // Back-calculated cash liquidity trend over last 14 days
+  const cashTrend = React.useMemo(() => {
+    let balance = totalSafesBalance;
+    const trend: number[] = [];
+    for (let i = 0; i < 14; i++) {
+      trend.unshift(balance);
+      const dayStr = last14Days[13 - i];
+      const dayTx = safeTransactions.filter(t => t.date === dayStr);
+      const diff = dayTx.reduce((sum, t) => {
+        if (t.type === 'سحب' || t.type === 'مصروفات' || t.type === 'رواتب' || t.type === 'مشتريات') {
+          return sum + t.amount;
+        } else {
+          return sum - t.amount;
+        }
+      }, 0);
+      balance += diff;
+    }
+    return trend;
+  }, [last14Days, safeTransactions, totalSafesBalance]);
+
+  // Daily inventory consumption (issuances total value) trend over last 14 days
+  const inventoryTrend = React.useMemo(() => {
+    return last14Days.map(date => {
+      return issuances.filter(is => is.date === date).reduce((sum, is) => sum + is.total, 0);
+    });
+  }, [last14Days, issuances]);
+
+  // Daily purchases (debt exposure changes) trend over last 14 days
+  const debtTrend = React.useMemo(() => {
+    return last14Days.map(date => {
+      return purchases.filter(p => p.date === date).reduce((sum, p) => sum + p.total, 0);
+    });
+  }, [last14Days, purchases]);
+
+  // Daily loans repayments or payouts trend over last 14 days
+  const loansTrend = React.useMemo(() => {
+    return last14Days.map(date => {
+      const dayTx = hrTransactions.filter(t => t.date === date && (t.type === 'خصم سلف' || t.type === 'سلفة مستردة' || t.type === 'سلفة'));
+      return dayTx.reduce((sum, t) => sum + t.amount, 0);
+    });
+  }, [last14Days, hrTransactions]);
+
+  // Daily production output trend
+  const manufacturingTrend = React.useMemo(() => {
+    return productionStatData.map(d => d.output);
+  }, [productionStatData]);
+
+  // Unified Enterprise Health Score out of 100
+  const enterpriseHealthScore = React.useMemo(() => {
+    const financialRatio = totalSupplierDebt > 0 ? (totalSafesBalance / totalSupplierDebt) : 2;
+    const financialScore = Math.min(30, Math.max(0, financialRatio >= 1 ? 30 : (financialRatio * 30)));
+
+    const totalItems = items.length || 1;
+    const lowStockRatio = lowStockItems.length / totalItems;
+    const inventoryScore = Math.max(0, 25 * (1 - lowStockRatio * 2));
+
+    const totalJobs = productionJobs.length || 1;
+    const completedJobs = productionJobs.filter(j => j.status === 'مكتمل').length;
+    const completedRatio = completedJobs / totalJobs;
+    const productionScore = 15 + (completedRatio * 10);
+
+    const attendanceScore = (attendanceRate / 100) * 20;
+
+    const totalScore = Math.round(financialScore + inventoryScore + productionScore + attendanceScore);
+    return Math.min(100, Math.max(30, totalScore));
+  }, [totalSafesBalance, totalSupplierDebt, items, lowStockItems, productionJobs, attendanceRate]);
+
+  // Tab State for the Futuristic Smart Advisory Panel
+  const [advisoryTab, setAdvisoryTab] = React.useState<'financial' | 'inventory' | 'operations' | 'hr'>('financial');
 
   // Greeting Message based on time of day
-  const hour = new Date().getHours();
-  const greetingText = hour < 12 ? 'صباح الخير والبركة' : 'مساء الخير والنجاح';
+  const hour = React.useMemo(() => new Date().getHours(), []);
+  const greetingText = React.useMemo(() => hour < 12 ? 'صباح الخير والبركة' : 'مساء الخير والنجاح', [hour]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-200 pb-20" dir="rtl">
-      {/* Clean, Refined Enterprise Header */}
-      <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-6 pb-6 border-b border-slate-200/60">
-        <div className="space-y-1">
-          <h1 className="text-2xl lg:text-[28px] font-black tracking-tight text-slate-900 leading-tight">
+      {/* Clean, Refined Enterprise Header with Unified Health Score */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-6 border-b border-slate-200/60 items-center">
+        <div className="lg:col-span-8 space-y-2">
+          <div className="flex items-center gap-2.5">
+            <span className="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+              <Cpu size={12} className="animate-spin-slow" />
+              الذكاء الإداري نشط
+            </span>
+            <span className="text-slate-400 text-xs font-mono">/</span>
+            <span className="text-slate-500 font-bold text-xs font-mono">{format(new Date(), 'EEEE، d MMMM yyyy', { locale: ar })}</span>
+          </div>
+          <h1 className="text-2xl lg:text-[32px] font-black tracking-tight text-slate-900 leading-tight">
             {greetingText}، {profile?.name || 'صاحب العمل'}
           </h1>
-          <p className="text-slate-500 font-bold text-sm">إليك نظرة عامة على أداء المنظومة اليوم.</p>
+          <p className="text-slate-500 font-semibold text-sm">إليك نظرة عامة شاملة ومحللة على الأداء التشغيلي والمالي للمنشأة اليوم.</p>
         </div>
 
-        <div className="flex flex-wrap gap-3 items-center self-start lg:self-auto">
-          {/* Refined Quick Summary Widgets */}
-          <div className="bg-white border border-slate-200/60 p-3 px-4 rounded-[14px] flex items-center gap-3 shadow-sm">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 size={16} strokeWidth={2.5} />
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">الحضور اليوم</span>
-              <span className="text-[15px] font-black text-slate-900 font-mono tracking-tight tabular-nums">{attendanceRate}%</span>
-            </div>
+        {/* Enterprise Health Score Widget */}
+        <div className="lg:col-span-4 bg-white/80 backdrop-blur-md border border-slate-200/60 p-4 rounded-[18px] shadow-sm hover:shadow-md transition-all flex items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-[10px] text-slate-400 block font-black uppercase tracking-wider">مؤشر صحة وملاءة المنشأة</span>
+            <span className="text-xs font-bold block text-slate-700">
+              {enterpriseHealthScore >= 90 ? '📊 أداء تشغيلي ممتاز' : enterpriseHealthScore >= 70 ? '📈 أداء مستقر ونمو متزن' : '⚠️ يتطلب مراقبة إدارية'}
+            </span>
+            <span className="text-[10px] text-slate-400 block">مركب لحظي من السيولة، المستودعات والالتزامات</span>
           </div>
-
-          <div className="bg-white border border-slate-200/60 p-3 px-4 rounded-[14px] flex items-center gap-3 shadow-sm">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-              <Clock size={16} strokeWidth={2.5} />
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">آخر تحديث</span>
-              <span className="text-[13px] font-black text-slate-900 font-mono tracking-tight tabular-nums">{lastAttendanceDate}</span>
+          <div className="relative flex items-center justify-center">
+            {/* Simple circular progressive representation or high fidelity badge */}
+            <div className="w-16 h-16 rounded-full border-4 border-slate-100 flex items-center justify-center font-mono font-black text-xl text-slate-900 relative" style={{ background: `conic-gradient(#6366f1 ${enterpriseHealthScore * 3.6}deg, #f1f5f9 0deg)` }}>
+              <div className="absolute inset-1 rounded-full bg-white flex items-center justify-center text-base font-black">
+                {enterpriseHealthScore}%
+              </div>
             </div>
           </div>
         </div>
@@ -4689,7 +4822,7 @@ function Dashboard({
             onClick={() => setActiveTab('all')}
             className={`whitespace-nowrap px-4 py-2.5 rounded-xl text-xs font-black transition-all duration-200 ${activeTab === 'all' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
           >
-            الرؤية الشاملة
+            الرؤية الشاملة للمنشأة
           </button>
           <button 
             onClick={() => setActiveTab('financial')}
@@ -4711,23 +4844,35 @@ function Dashboard({
           </button>
         </div>
 
-        <div className="text-slate-400 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-white px-4 py-2.5 rounded-xl border border-slate-200/60 shadow-sm w-full md:w-auto">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>مزامنة حية</span>
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="bg-white border border-slate-200/60 p-2.5 px-3.5 rounded-xl flex items-center gap-2.5 shadow-sm">
+            <div className="w-6 h-6 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <CheckCircle2 size={13} strokeWidth={2.5} />
+            </div>
+            <div className="text-right">
+              <span className="text-[9px] text-slate-400 block font-bold uppercase">حضور اليوم</span>
+              <span className="text-xs font-black text-slate-950 font-mono tracking-tight tabular-nums">{attendanceRate}%</span>
+            </div>
+          </div>
+
+          <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-white px-4 py-2.5 rounded-xl border border-slate-200/60 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>مزامنة حية للبيانات</span>
+          </div>
         </div>
       </div>
 
       {/* Strategic Focus: Net Financial Position Dashboard Widget (Visible when all/financial selected) */}
       {(activeTab === 'all' || activeTab === 'financial') && (
-        <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-6 rounded-[14px] border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-          <div className="md:col-span-2 space-y-2 text-right">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-slate-50 p-6 rounded-[18px] border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+          <div className="lg:col-span-2 space-y-2 text-right">
             <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">المركز المالي الموحد للمنشأة</span>
             <h4 className="text-lg font-black text-slate-800">صافي السيولة النقدية المتوفرة حالياً</h4>
-            <p className="text-slate-500 text-[11px] font-bold leading-relaxed font-sans max-w-xl">
-              يمثل هذا المؤشر النقدية الفعلية المتاحة بجميع الخزائن والبنك مخصوماً منها إجمالي مستحقات الموردين القائمة والمطالب دفعها. يعطيك هذا الرقم رؤية حقيقية حول الملاءة الحالية والقدرة على دفع الالتزامات والأجور وتجنب الأزمات النقدية.
+            <p className="text-slate-500 text-[11px] font-semibold leading-relaxed font-sans max-w-xl">
+              يمثل هذا المؤشر النقدية الفعلية المتاحة بجميع الخزائن والبنك مخصوماً منها إجمالي مستحقات الموردين القائمة والمطالب دفعها. يعطيك هذا الرقم رؤية حقيقية حول الملاءة الحالية والقدرة على دفع الالتزامات والأجور وتجنب الأزمات النقدية المفاجئة.
             </p>
           </div>
-          <div className="flex flex-col justify-center items-end bg-white p-5 rounded-[14px] shadow-sm border border-slate-100 text-right space-y-2">
+          <div className="flex flex-col justify-center items-end bg-white p-5 rounded-[18px] shadow-sm border border-slate-100 text-right space-y-2">
             <span className="text-[10px] font-black text-slate-400 block">صافي السيولة النقدية المغطاة</span>
             <h3 className="text-xl lg:text-2xl font-black leading-none">
               <NumberDisplay 
@@ -4738,27 +4883,30 @@ function Dashboard({
                 colored 
               />
             </h3>
-            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${netFinancialPosition >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+            <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${netFinancialPosition >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
               {netFinancialPosition >= 0 ? '✓ ملاءة مالية ممتازة' : '⚠️ عجز سيولة مقابل المستحقات'}
             </span>
           </div>
         </div>
       )}
 
-      {/* High-Impact Executive Bento Grid (5 Premium Cards with outstanding typography) */}
+      {/* High-Impact Executive Bento Grid (5 Premium Cards with outstanding typography and dynamic Sparklines) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Card 1: Total Safe/Account Liquidity */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-300 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[190px] sm:min-h-[210px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
-              <Wallet className="w-5 h-5 sm:w-6 sm:h-6" />
+          <div className="flex items-start justify-between">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
+              <Wallet className="w-5 h-5" />
             </div>
-            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-emerald-50 text-emerald-700 text-[9px] sm:text-[10px] font-black tracking-wide">متوفرة حيّاً</span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-black tracking-wide">متوفرة حيّاً</span>
+              <Sparkline data={cashTrend} color="#10b981" />
+            </div>
           </div>
-          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+          <div className="mt-4 space-y-1 text-right">
             <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">السيولة النقدية (بالخزائن والبنك)</p>
-            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalSafesBalance} 
                 system={settings.numberSystem} 
@@ -4770,21 +4918,24 @@ function Dashboard({
         </Card>
 
         {/* Card 2: Inventory Asset Valuation */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-300 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[190px] sm:min-h-[210px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
-              <Package className="w-5 h-5 sm:w-6 sm:h-6" />
+          <div className="flex items-start justify-between">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
+              <Package className="w-5 h-5" />
             </div>
-            {lowStockItems.length > 0 ? (
-              <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-rose-50 text-rose-600 text-[9px] sm:text-[10px] font-black tracking-wide animate-pulse">نقص {lowStockItems.length} أصناف</span>
-            ) : (
-              <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-blue-50 text-blue-700 text-[9px] sm:text-[10px] font-black tracking-wide">آمن ومكتمل</span>
-            )}
+            <div className="flex flex-col items-end gap-1">
+              {lowStockItems.length > 0 ? (
+                <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[9px] font-black tracking-wide animate-pulse">نقص {lowStockItems.length} أصناف</span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[9px] font-black tracking-wide">آمن ومكتمل</span>
+              )}
+              <Sparkline data={inventoryTrend} color="#3b82f6" />
+            </div>
           </div>
-          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+          <div className="mt-4 space-y-1 text-right">
             <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">قيمة بضاعة المخزون</p>
-            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalInventoryValue} 
                 system={settings.numberSystem} 
@@ -4796,17 +4947,20 @@ function Dashboard({
         </Card>
 
         {/* Card 3: Supplier Debts */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-300 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[190px] sm:min-h-[210px] ${activeTab !== 'all' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-orange-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
-              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
+          <div className="flex items-start justify-between">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-600 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
+              <Users className="w-5 h-5" />
             </div>
-            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-orange-50 text-orange-700 text-[9px] sm:text-[10px] font-black tracking-wide">مستحقة للدفع</span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 text-[9px] font-black tracking-wide">مستحقة للدفع</span>
+              <Sparkline data={debtTrend} color="#f97316" />
+            </div>
           </div>
-          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+          <div className="mt-4 space-y-1 text-right">
             <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">مستحقات الموردين القائمة</p>
-            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalSupplierDebt} 
                 system={settings.numberSystem} 
@@ -4819,17 +4973,20 @@ function Dashboard({
         </Card>
 
         {/* Card 4: Outstanding Loans & Advances */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'hr' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-300 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[190px] sm:min-h-[210px] ${activeTab !== 'all' && activeTab !== 'hr' && activeTab !== 'financial' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
-              <Coins className="w-5 h-5 sm:w-6 sm:h-6" />
+          <div className="flex items-start justify-between">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
+              <Coins className="w-5 h-5" />
             </div>
-            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-purple-50 text-purple-700 text-[9px] sm:text-[10px] font-black tracking-wide">سلفيات العاملين</span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 text-[9px] font-black tracking-wide">سلفيات العاملين</span>
+              <Sparkline data={loansTrend} color="#a855f7" />
+            </div>
           </div>
-          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+          <div className="mt-4 space-y-1 text-right">
             <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">قيمة سلف العاملين النشطة</p>
-            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalActiveLoansOwed} 
                 system={settings.numberSystem} 
@@ -4841,17 +4998,20 @@ function Dashboard({
         </Card>
 
         {/* Card 5: Current Manufacturing Cost */}
-        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-200 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[170px] sm:min-h-[190px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
+        <Card className={`dribbble-card border-none overflow-hidden group relative bg-white shadow-xl shadow-slate-200/40 transition-all duration-300 p-5 sm:p-6 lg:p-6 flex flex-col justify-between min-h-[190px] sm:min-h-[210px] ${activeTab !== 'all' && activeTab !== 'operations' ? 'opacity-40 scale-[0.98] saturate-50' : 'ring-2 ring-indigo-500/10 shadow-indigo-100/30'}`}>
           <div className="absolute -top-12 -right-12 w-32 h-32 bg-red-500/10 rounded-full blur-[40px] group-hover:scale-150 transition-transform duration-200 pointer-events-none" />
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[14px] bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-600 transition-all duration-200 group-hover:scale-110 group-hover:rotate-6">
-              <Wrench className="w-5 h-5 sm:w-6 sm:h-6" />
+          <div className="flex items-start justify-between">
+            <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-600 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6">
+              <Wrench className="w-5 h-5" />
             </div>
-            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-red-50 text-red-700 text-[9px] sm:text-[10px] font-black tracking-wide">منهكة التشغيل</span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[9px] font-black tracking-wide">تكلفة الإنتاج</span>
+              <Sparkline data={manufacturingTrend} color="#ef4444" />
+            </div>
           </div>
-          <div className="mt-4 sm:mt-6 space-y-1 sm:space-y-1.5 text-right">
+          <div className="mt-4 space-y-1 text-right">
             <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest">إجمالي تكاليف التصنيع</p>
-            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
+            <h3 className="text-lg xs:text-xl sm:text-2xl lg:text-3xl font-extrabold leading-none flex items-baseline gap-1 flex-wrap justify-end">
               <NumberDisplay 
                 value={totalManufacturingCost} 
                 system={settings.numberSystem} 
@@ -4862,6 +5022,270 @@ function Dashboard({
           </div>
         </Card>
       </div>
+
+      {/* Futuristic Smart Advisory Panel (مستشار الإدارة الذكي) */}
+      <Card className="border-none shadow-xl shadow-slate-200/40 bg-white overflow-hidden text-right animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="bg-gradient-to-l from-indigo-50/50 via-white to-white p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase font-black text-indigo-600 tracking-wider flex items-center gap-1.5 justify-end md:justify-start">
+              <Cpu size={14} className="animate-pulse" />
+              مساعد القرار التنفيذي اللحظي
+            </span>
+            <CardTitle className="text-xl font-black text-slate-900 block text-right">مستشار الإدارة والذكاء المالي الذكي</CardTitle>
+            <CardDescription className="font-bold text-slate-400 block text-right mt-1">
+              تحليل تلقائي متقدم للسيولة والتشغيل والمستودعات بالاعتماد على المدخلات التشغيلية الحية
+            </CardDescription>
+          </div>
+          <div className="flex overflow-x-auto gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/40 w-full md:w-auto">
+            <button
+              onClick={() => setAdvisoryTab('financial')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-black transition-all ${advisoryTab === 'financial' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              السيولة والنقدية
+            </button>
+            <button
+              onClick={() => setAdvisoryTab('inventory')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-black transition-all ${advisoryTab === 'inventory' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              المستودعات والمواد
+            </button>
+            <button
+              onClick={() => setAdvisoryTab('operations')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-black transition-all ${advisoryTab === 'operations' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              معدلات التشغيل
+            </button>
+            <button
+              onClick={() => setAdvisoryTab('hr')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-black transition-all ${advisoryTab === 'hr' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              الانضباط البشري
+            </button>
+          </div>
+        </div>
+
+        <CardContent className="p-6">
+          {advisoryTab === 'financial' && (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="md:col-span-8 space-y-4">
+                <div className="space-y-1">
+                  <h5 className="font-black text-slate-800 text-sm">ملاءة الالتزامات ونسبة تغطية السيولة</h5>
+                  <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+                    تمتلك المنشأة حالياً نقدية متوفرة في الخزائن والبنك بقيمة <span className="font-mono text-slate-800 font-extrabold">{totalSafesBalance.toLocaleString()} ج.م</span>، في حين يبلغ إجمالي التزامات الموردين القائمة <span className="font-mono text-slate-800 font-extrabold">{totalSupplierDebt.toLocaleString()} ج.م</span>.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold text-slate-500">
+                    <span>نسبة تغطية السيولة لديون الموردين</span>
+                    <span className="font-mono text-indigo-600">
+                      {totalSupplierDebt > 0 ? ((totalSafesBalance / totalSupplierDebt) * 100).toFixed(0) : '100+'}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ${totalSafesBalance >= totalSupplierDebt ? 'bg-emerald-500' : totalSafesBalance >= totalSupplierDebt * 0.5 ? 'bg-orange-500' : 'bg-red-500'}`} 
+                      style={{ width: `${Math.min(100, totalSupplierDebt > 0 ? (totalSafesBalance / totalSupplierDebt) * 100 : 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/80 flex items-start gap-2.5">
+                  <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${netFinancialPosition >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
+                    {netFinancialPosition >= 0 
+                      ? '💡 إرشاد مالي: مركزك المالي صحي وممتاز بالكامل. يتيح لك الرصيد النقدي المتوفر تغطية جميع مستحقات الموردين الحالية بمرونة كاملة، مع إمكانية التفاوض الفعال للحصول على خصومات الشراء النقدي والتعجيل للدفع لتعزيز ثقة الشركاء.' 
+                      : '💡 إرشاد مالي عاجل: تعاني المنشأة من عجز سيولة لحظي بقيمة ' + Math.abs(netFinancialPosition).toLocaleString() + ' ج.م لتغطية كامل مستحقات الموردين. يُوصى فورياً بجدولة دفعات الموردين وتنشيط تحصيل المبيعات الآجلة، وتأجيل أي مصروفات رأسمالية غير ضرورية.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="md:col-span-4 border-r border-slate-100 pr-0 md:pr-6 space-y-3">
+                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-right">
+                  <span className="text-[10px] text-slate-400 block font-black uppercase">معدل تغطية الرواتب الأخير</span>
+                  <span className="text-base font-extrabold text-slate-800 font-mono block mt-0.5">
+                    {(totalSafesBalance / Math.max(1, salaryChartData[salaryChartData.length-1]?.total || 1)).toFixed(1)} ضعف
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">تغطي النقدية أجور الشهر الأخير بمرونة كاملة</span>
+                </div>
+                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-right">
+                  <span className="text-[10px] text-slate-400 block font-black uppercase">متوسط استهلاك الخزائن الشهري</span>
+                  <span className="text-base font-extrabold text-slate-800 font-mono block mt-0.5">
+                    {(safeOutgoingsData.reduce((s, d) => s + d.amount, 0) / Math.max(1, safeOutgoingsData.length)).toLocaleString()} ج.م
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">معدل التدفق الخارج للأشهر الستة الأخيرة</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {advisoryTab === 'inventory' && (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="md:col-span-8 space-y-4">
+                <div className="space-y-1">
+                  <h5 className="font-black text-slate-800 text-sm">سلامة المستودعات وأرصدة الأمان للتشغيل</h5>
+                  <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+                    تمتلك المنشأة حالياً أصنافاً في المخازن بقيمة إجمالية تبلغ <span className="font-mono text-slate-800 font-extrabold">{totalInventoryValue.toLocaleString()} ج.م</span>. هناك <span className="font-mono text-rose-600 font-extrabold">{lowStockItems.length} صنف</span> قد تخطت حدود الأمان المحددة وتتطلب التوريد فوراً.
+                  </p>
+                </div>
+
+                {lowStockItems.length > 0 ? (
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-black text-rose-500 block">⚠️ الأصناف الأكثر حرجاً وتتطلب الطلب العاجل:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {lowStockItems.slice(0, 3).map((item, i) => (
+                        <span key={i} className="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-100 text-rose-700 text-xs font-black">
+                          {item.name} (المتبقي: {item.currentBalance} {item.unit})
+                        </span>
+                      ))}
+                      {lowStockItems.length > 3 && (
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 text-xs font-black">
+                          +{lowStockItems.length - 3} أصناف أخرى
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100/50 flex items-center gap-2">
+                    <span className="text-emerald-500">✓</span>
+                    <span className="text-xs font-bold text-emerald-800">جميع أرصدة المستودعات تقع ضمن النطاق الآمن وتتجاوز حدود الأمان للتشغيل.</span>
+                  </div>
+                )}
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/80 flex items-start gap-2.5">
+                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-blue-500" />
+                  <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
+                    💡 توصية المخزون: تأكد من ربط طلبات الشراء العاجلة للأصناف الحرجة بقائمة الموردين المعتمدين لتفادي أي تباطؤ أو توقف فجائي في صالات التصنيع والورش.
+                  </p>
+                </div>
+              </div>
+
+              <div className="md:col-span-4 border-r border-slate-100 pr-0 md:pr-6 space-y-3">
+                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-right">
+                  <span className="text-[10px] text-slate-400 block font-black uppercase">عدد الأصناف المسجلة</span>
+                  <span className="text-base font-extrabold text-slate-800 font-mono block mt-0.5">
+                    {items.length} صنف
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">إجمالي الأكواد والمنتجات المسجلة بالمخازن</span>
+                </div>
+                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-right">
+                  <span className="text-[10px] text-slate-400 block font-black uppercase">متوسط استهلاك المواد اليومي</span>
+                  <span className="text-base font-extrabold text-slate-800 font-mono block mt-0.5">
+                    {(inventoryTrend.reduce((s, d) => s + d, 0) / Math.max(1, inventoryTrend.length)).toLocaleString()} ج.م
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">قيمة المنصرف اليومي الفعلي آخر 14 يوماً</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {advisoryTab === 'operations' && (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="md:col-span-8 space-y-4">
+                <div className="space-y-1">
+                  <h5 className="font-black text-slate-800 text-sm">أوامر التصنيع الجارية ومعدلات كفاءة الهدر</h5>
+                  <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+                    يوجد في خطوط الإنتاج والورش حالياً <span className="font-mono text-slate-800 font-extrabold">{activeJobsCount} أمر إنتاج جاري العمل عليه</span>. يبلغ معدل تكاليف التصنيع المتراكمة <span className="font-mono text-slate-800 font-extrabold">{totalManufacturingCost.toLocaleString()} ج.م</span>.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold text-slate-500">
+                    <span>نسبة الهالك والتالف الإجمالية من تكلفة الإنتاج</span>
+                    <span className={`font-mono font-black ${totalWasteValue / Math.max(1, totalManufacturingCost) > 0.05 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {((totalWasteValue / Math.max(1, totalManufacturingCost)) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ${totalWasteValue / Math.max(1, totalManufacturingCost) > 0.05 ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                      style={{ width: `${Math.min(100, (totalWasteValue / Math.max(1, totalManufacturingCost)) * 500)}%` }} // Scaled for UI visibility
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/80 flex items-start gap-2.5">
+                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-orange-500" />
+                  <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
+                    {totalWasteValue / Math.max(1, totalManufacturingCost) > 0.05
+                      ? '⚠️ تنبيه كفاءة الإنتاج: يتجاوز معدل الهالك والتالف الإجمالي حد الأمان المستهدف (5%). يُنصح بالتحقيق في كفاءة الماكينات ومطابقة المواد بالورش، وتفعيل الرقابة الثنائية على استلام المصنع وتفتيش الجودة.'
+                      : '✓ أداء التشغيل ممتاز ومستهدف: تقع مستويات هدر المواد والقطع التالفة بالكامل داخل النطاق الآمن المعياري (أقل من 5%)، مما يعكس كفاءة تشغيلية ممتازة للعمال والماكينات.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="md:col-span-4 border-r border-slate-100 pr-0 md:pr-6 space-y-3">
+                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-right">
+                  <span className="text-[10px] text-slate-400 block font-black uppercase">قيمة الهالك الكلي</span>
+                  <span className="text-base font-extrabold text-slate-800 font-mono block mt-0.5">
+                    {totalWasteValue.toLocaleString()} ج.م
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">إجمالي الهدر والتالف من المواد الأولية</span>
+                </div>
+                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-right">
+                  <span className="text-[10px] text-slate-400 block font-black uppercase">متوسط المخرجات اليومي</span>
+                  <span className="text-base font-extrabold text-slate-800 font-mono block mt-0.5">
+                    {Math.round(productionStatData.reduce((s, d) => s + d.output, 0) / Math.max(1, productionStatData.length)).toLocaleString()} قطعة
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">متوسط القطع تامة الصنع يومياً للورش</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {advisoryTab === 'hr' && (
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="md:col-span-8 space-y-4">
+                <div className="space-y-1">
+                  <h5 className="font-black text-slate-800 text-sm">قوة العمل وانضباط التواجد بالمنشأة</h5>
+                  <p className="text-slate-500 text-xs font-semibold leading-relaxed">
+                    تبلغ نسبة انضباط الحضور اليومي للموظفين والعمال <span className="font-mono text-slate-800 font-extrabold">{attendanceRate}%</span> (النسبة المستهدفة: <span className="font-mono text-slate-500">90% فأكثر</span>). تم تسجيل حضور <span className="font-mono text-emerald-600 font-extrabold">{presentCount} موظف</span>، وتأخر <span className="font-mono text-orange-500 font-extrabold">{lateCount} موظف</span>، وغياب <span className="font-mono text-red-500 font-extrabold">{absentCount} موظف</span>.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold text-slate-500">
+                    <span>معدل الحضور والانضباط اليومي</span>
+                    <span className="font-mono text-indigo-600">{attendanceRate}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-300 ${attendanceRate >= 90 ? 'bg-emerald-500' : attendanceRate >= 75 ? 'bg-orange-500' : 'bg-red-500'}`} 
+                      style={{ width: `${attendanceRate}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/80 flex items-start gap-2.5">
+                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-purple-500" />
+                  <p className="text-[11px] text-slate-600 font-bold leading-relaxed">
+                    {attendanceRate >= 90 
+                      ? '💡 إرشاد الموارد البشرية: تلتزم قوة العمل بالكامل بمعدلات الحضور العالية والمستهدفة. يوصى بالحفاظ على هذا الدافع من خلال تفعيل برامج المكافآت أو حوافز الإنتاج الشهري للأقسام الأكثر التزاماً.' 
+                      : '💡 تنبيه الموارد البشرية: يسجل معدل الحضور انخفاضاً تحت الحد المطلوب. يُنصح بمراجعة إدارة العمال بالورش، وخصم التأخير والغرامات تلقائياً عبر نظام الحضور لضبط التواجد والحد من الغيابات المؤثرة على الطاقة الإنتاجية.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="md:col-span-4 border-r border-slate-100 pr-0 md:pr-6 space-y-3">
+                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-right">
+                  <span className="text-[10px] text-slate-400 block font-black uppercase">إجمالي ملفات الموظفين</span>
+                  <span className="text-base font-extrabold text-slate-800 font-mono block mt-0.5">
+                    {totalEmployeesCount} موظف
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">قوة العمل المسجلة بالكامل بالمنظومة</span>
+                </div>
+                <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-100 text-right">
+                  <span className="text-[10px] text-slate-400 block font-black uppercase">العمالة التشغيلية النشطة</span>
+                  <span className="text-base font-extrabold text-slate-800 font-mono block mt-0.5">
+                    {activeEmployees.length} عامل
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">العاملون المباشرون بالماكينات والورش حالياً</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Row 2: Deep Analytics & Core Flow Charts */}
       {(activeTab === 'all' || activeTab === 'operations') && (
@@ -5193,7 +5617,7 @@ function Dashboard({
       </div>
     </div>
   );
-}
+});
 
 function StatCard({ title, value, icon, color = "text-primary" }: { title: string, value: string | number, icon: React.ReactNode, color?: string }) {
   const bgColorMap: Record<string, string> = {
@@ -5233,7 +5657,7 @@ function StatCard({ title, value, icon, color = "text-primary" }: { title: strin
 
 
 
-function Inventory({
+const Inventory = React.memo(function Inventory({
   items,
   warehouses,
   purchases,
@@ -6102,7 +6526,7 @@ function Inventory({
       </AnimatePresence>
     </div>
   );
-}
+});
 
 function PrintJobCard({ job, companyInfo }: { job: ProductionJob, companyInfo: any }) {
   return (
@@ -9716,7 +10140,7 @@ const Finance = React.memo(function Finance({
   );
 });
 
-function Purchases({ items, suppliers, purchases, safes, profile }: { 
+const Purchases = React.memo(function Purchases({ items, suppliers, purchases, safes, profile }: { 
   items: Item[], 
   suppliers: Supplier[], 
   purchases: Purchase[],
@@ -9724,43 +10148,135 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
   profile: UserProfile | null
 }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [showPayDebt, setShowPayDebt] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [invoiceSearchTerm, setInvoiceSearchTerm] = useState('');
+  const [supplierFilter, setSupplierFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date_desc');
   const [error, setError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     supplierId: '',
+    invoiceNo: '',
     selectedItems: [{ itemId: '', quantity: 0, unitPrice: 0 }],
     paidAmount: 0,
     paymentStatus: 'نقدي' as const,
     safeId: '',
     notes: '',
-    date: format(new Date(), 'yyyy-MM-dd')
+    date: format(new Date(), 'yyyy-MM-dd'),
+    receiptImage: ''
+  });
+
+  const [debtFormData, setDebtFormData] = useState({
+    supplierId: '',
+    amount: 0,
+    safeId: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    notes: ''
   });
 
   const [dateFilterVal, setDateFilterVal] = useState({ start: '', end: '' });
+  const [dragActive, setDragActive] = useState(false);
+
+  // Auto-set payment status based on paidAmount vs total
+  const calculatedInvoiceTotal = formData.selectedItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+  
+  useEffect(() => {
+    if (calculatedInvoiceTotal > 0) {
+      if (formData.paidAmount === 0) {
+        setFormData(prev => ({ ...prev, paymentStatus: 'آجل' }));
+      } else if (formData.paidAmount >= calculatedInvoiceTotal) {
+        setFormData(prev => ({ ...prev, paymentStatus: 'نقدي' }));
+      } else {
+        setFormData(prev => ({ ...prev, paymentStatus: 'آجل' }));
+      }
+    }
+  }, [formData.paidAmount, calculatedInvoiceTotal]);
 
   const filteredPurchases = purchases.filter(p => {
     const supplier = suppliers.find(s => s.id === p.supplierId)?.name || '';
     const item = items.find(i => i.id === p.itemId)?.name || '';
+    const invoiceNo = p.invoiceNo || '';
+    
     const search = searchTerm.toLowerCase();
-    const matchesSearch = supplier.toLowerCase().includes(search) || item.toLowerCase().includes(search);
+    const matchesSearch = supplier.toLowerCase().includes(search) || 
+                          item.toLowerCase().includes(search) || 
+                          invoiceNo.toLowerCase().includes(search);
+                          
+    const matchesInvoiceSearch = !invoiceSearchTerm || invoiceNo.toLowerCase().includes(invoiceSearchTerm.toLowerCase());
+    const matchesSupplier = supplierFilter === 'all' || p.supplierId === supplierFilter;
+    const matchesStatus = statusFilter === 'all' || p.paymentStatus === statusFilter;
     const matchesDate = matchesStart(p.date, dateFilterVal.start) && matchesEnd(p.date, dateFilterVal.end);
-    return matchesSearch && matchesDate;
+    
+    return matchesSearch && matchesInvoiceSearch && matchesSupplier && matchesStatus && matchesDate;
+  }).sort((a, b) => {
+    if (sortBy === 'date_desc') return (b.date || '').localeCompare(a.date || '');
+    if (sortBy === 'date_asc') return (a.date || '').localeCompare(b.date || '');
+    if (sortBy === 'total_desc') return b.total - a.total;
+    if (sortBy === 'total_asc') return a.total - b.total;
+    return 0;
   });
+
+  const totalPurchasesSum = filteredPurchases.reduce((acc, p) => acc + p.total, 0);
+  const totalPaidSum = filteredPurchases.reduce((acc, p) => acc + p.paidAmount, 0);
+  const totalDebtSum = filteredPurchases.reduce((acc, p) => acc + (p.total - p.paidAmount), 0);
+
+  const supplierPurchaseVolume = useMemo(() => {
+    const volumes: { [key: string]: number } = {};
+    filteredPurchases.forEach(p => {
+      volumes[p.supplierId] = (volumes[p.supplierId] || 0) + p.total;
+    });
+    return Object.entries(volumes)
+      .map(([id, total]) => ({
+        id,
+        name: suppliers.find(s => s.id === id)?.name || 'غير معروف',
+        total
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 3);
+  }, [filteredPurchases, suppliers]);
+
+  const materialPurchaseVolume = useMemo(() => {
+    const volumes: { [key: string]: { qty: number, total: number, name: string, unit: string } } = {};
+    filteredPurchases.forEach(p => {
+      const item = items.find(i => i.id === p.itemId);
+      if (!volumes[p.itemId]) {
+        volumes[p.itemId] = {
+          qty: 0,
+          total: 0,
+          name: item?.name || 'غير معروف',
+          unit: item?.unit || ''
+        };
+      }
+      volumes[p.itemId].qty += p.quantity;
+      volumes[p.itemId].total += p.total;
+    });
+    return Object.values(volumes)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 3);
+  }, [filteredPurchases, items]);
 
   const handleExportExcel = () => {
     const data = filteredPurchases.map(p => ({
+      'التاريخ': p.date || '-',
+      'رقم الفاتورة': p.invoiceNo || '-',
       'المورد': suppliers.find(s => s.id === p.supplierId)?.name || 'غير معروف',
       'الصنف': items.find(i => i.id === p.itemId)?.name || 'غير معروف',
       'الكمية': p.quantity,
       'الوحدة': p.unit,
+      'سعر الوحدة': p.unitPrice,
       'الإجمالي': p.total,
       'المدفوع': p.paidAmount,
-      'الحالة': p.paymentStatus,
+      'المتبقي (مديونية)': p.total - p.paidAmount,
+      'طريقة الدفع': p.paymentStatus,
       'ملاحظات': p.notes || ''
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "المشتريات");
+    XLSX.writeFile(wb, `Purchases_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
   const handleAddItem = () => {
@@ -9783,23 +10299,60 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
     setFormData({ ...formData, selectedItems: newItems });
   };
 
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('يرجى اختيار ملف صورة فقط لضمان سهولة عرض المرفقات بالفاتورة.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, receiptImage: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleDeletePurchase = async (purchase: Purchase) => {
-    if (!window.confirm('هل أنت متأكد من حذف فاتورة الشراء هذه؟ سيتم إلغاء تأثيرها على رصيد المخزن والمورد والخزنة.')) return;
+    if (!window.confirm('هل أنت متأكد من حذف فاتورة الشراء هذه؟ سيتم إلغاء تأثيرها بالكامل على رصيد المخزن والمورد والخزنة.')) return;
     try {
       const batch = writeBatch(db);
       
-      // 1. Revert Item Stock in Warehouse
       if (purchase.itemId) {
         const item = items.find(i => i.id === purchase.itemId);
-        const itemRef = doc(db, 'items', purchase.itemId);
-        const newQty = Math.max(0, (item?.currentBalance || 0) - purchase.quantity);
-        batch.update(itemRef, {
-          inward: increment(-purchase.quantity),
-          currentBalance: increment(-purchase.quantity)
-        });
+        if (item) {
+          const itemRef = doc(db, 'items', purchase.itemId);
+          batch.update(itemRef, {
+            inward: increment(-purchase.quantity),
+            currentBalance: increment(-purchase.quantity),
+            totalValue: increment(-(purchase.quantity * purchase.unitPrice))
+          });
+        }
       }
 
-      // 2. Revert Supplier Balances
       if (purchase.supplierId) {
         const supplierRef = doc(db, 'suppliers', purchase.supplierId);
         const paid = purchase.paidAmount || 0;
@@ -9811,7 +10364,6 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         });
       }
 
-      // 3. Revert Safe Balance & Delete Transaction
       if (purchase.paidAmount > 0 && purchase.safeId) {
         const safeRef = doc(db, 'safes', purchase.safeId);
         batch.update(safeRef, {
@@ -9822,23 +10374,30 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         }
       }
 
-      // 4. Delete Purchase Doc
       batch.delete(doc(db, 'purchases', purchase.id));
 
       await batch.commit();
+      setSelectedPurchase(null);
     } catch (err) {
       console.error('Error deleting purchase:', err);
+      handleFirestoreError(err, 'delete', `purchases/${purchase.id}`);
     }
   };
 
   const handleAdd = async () => {
-    if (!formData.supplierId || formData.selectedItems.some(i => !i.itemId || i.quantity <= 0)) return;
-    if (formData.paidAmount > 0 && !formData.safeId) {
-      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ منها');
+    if (!formData.supplierId || formData.selectedItems.some(i => !i.itemId || i.quantity <= 0)) {
+      alert('يرجى اختيار المورد وتعبئة جميع بنود الأصناف بكميات صحيحة!');
       return;
     }
-    
     const invoiceTotal = formData.selectedItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    if (formData.paidAmount > invoiceTotal) {
+      alert('المبلغ المدفوع لا يمكن أن يتجاوز إجمالي الفاتورة!');
+      return;
+    }
+    if (formData.paidAmount > 0 && !formData.safeId) {
+      alert('يرجى اختيار الخزنة التي سيتم صرف المبلغ المدفوع منها');
+      return;
+    }
     
     try {
       const batch = writeBatch(db);
@@ -9854,13 +10413,12 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           safeId: formData.safeId,
           type: 'مشتريات',
           amount: Number(formData.paidAmount),
-          description: `دفعة مشتريات للمورد: ${supplier?.name || 'غير محدد'}`,
+          description: `شراء خامات ومشتريات (فاتورة رقم: ${formData.invoiceNo || 'بدون'}) للمورد: ${supplier?.name || 'غير محدد'}`,
           category: 'خامات/مشتريات',
           createdBy: profile?.name || 'مستخدم',
           date: invoiceDate
         });
         
-        // Update safe balance in Treasury
         batch.update(doc(db, 'safes', formData.safeId), {
           balance: increment(-Number(formData.paidAmount))
         });
@@ -9870,7 +10428,6 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         const item = items.find(i => i.id === selectedItem.itemId);
         const itemTotal = selectedItem.quantity * selectedItem.unitPrice;
         
-        // Purchase record
         const purchaseRef = doc(collection(db, 'purchases'));
         batch.set(purchaseRef, {
           supplierId: formData.supplierId,
@@ -9884,10 +10441,11 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
           date: invoiceDate,
           unit: item?.unit || '',
           safeId: formData.safeId || null,
-          safeTransactionId: safeTransactionId || null
+          safeTransactionId: safeTransactionId || null,
+          invoiceNo: formData.invoiceNo || '',
+          receiptImage: formData.receiptImage || ''
         });
         
-        // Update Item Stock in Inventory (المخزن)
         const itemRef = doc(db, 'items', selectedItem.itemId);
         const currentTotalValue = (item?.totalValue || (item ? item.currentBalance * item.price : 0));
         const newTotalValue = currentTotalValue + itemTotal;
@@ -9902,7 +10460,6 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
         });
       }
       
-      // Update Supplier Balance in Suppliers (الموردين)
       const supplierRef = doc(db, 'suppliers', formData.supplierId);
       const balanceChange = invoiceTotal - formData.paidAmount;
       batch.update(supplierRef, {
@@ -9915,17 +10472,89 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
       setShowAdd(false);
       setFormData({
         supplierId: '',
+        invoiceNo: '',
         selectedItems: [{ itemId: '', quantity: 0, unitPrice: 0 }],
         paidAmount: 0,
         paymentStatus: 'نقدي',
         safeId: '',
         notes: '',
-        date: format(new Date(), 'yyyy-MM-dd')
+        date: format(new Date(), 'yyyy-MM-dd'),
+        receiptImage: ''
       });
     } catch (err) {
       console.error(err);
+      handleFirestoreError(err, 'write', 'purchases');
     }
   };
+
+  const handlePayDebtSubmit = async () => {
+    if (!debtFormData.supplierId || debtFormData.amount <= 0 || !debtFormData.safeId) {
+      alert('يرجى تعبئة جميع الحقول وتحديد المورد والمبلغ والخزنة بشكل صحيح!');
+      return;
+    }
+    const supplier = suppliers.find(s => s.id === debtFormData.supplierId);
+    const safe = safes.find(s => s.id === debtFormData.safeId);
+    if (!supplier) return;
+    if (safe && safe.balance < debtFormData.amount) {
+      alert(`عذراً، الرصيد المتاح في الخزنة (${safe.balance.toLocaleString()} ج.م) لا يكفي لسداد هذا المبلغ!`);
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+      
+      const txRef = doc(collection(db, 'safeTransactions'));
+      batch.set(txRef, {
+        safeId: debtFormData.safeId,
+        type: 'صرف',
+        amount: Number(debtFormData.amount),
+        description: `سداد جزء من مستحقات المورد: ${supplier.name} ${debtFormData.notes ? '- ' + debtFormData.notes : ''}`,
+        category: 'خامات/مشتريات',
+        createdBy: profile?.name || 'مستخدم',
+        date: debtFormData.date
+      });
+
+      batch.update(doc(db, 'safes', debtFormData.safeId), {
+        balance: increment(-Number(debtFormData.amount))
+      });
+
+      batch.update(doc(db, 'suppliers', debtFormData.supplierId), {
+        totalPayments: increment(Number(debtFormData.amount)),
+        balance: increment(-Number(debtFormData.amount))
+      });
+
+      await batch.commit();
+      setShowPayDebt(false);
+      setDebtFormData({
+        supplierId: '',
+        amount: 0,
+        safeId: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        notes: ''
+      });
+      alert('تم تسجيل الدفعة للمورد وصرفها من الخزنة بنجاح!');
+    } catch (err) {
+      console.error(err);
+      handleFirestoreError(err, 'write', 'safeTransactions');
+    }
+  };
+
+  const groupedInvoicePurchases = useMemo(() => {
+    if (!selectedPurchase) return [];
+    return purchases.filter(p => {
+      if (selectedPurchase.invoiceNo && p.invoiceNo === selectedPurchase.invoiceNo && p.supplierId === selectedPurchase.supplierId) {
+        return true;
+      }
+      if (p.date === selectedPurchase.date && p.supplierId === selectedPurchase.supplierId && p.safeTransactionId === selectedPurchase.safeTransactionId) {
+        return true;
+      }
+      return p.id === selectedPurchase.id;
+    });
+  }, [selectedPurchase, purchases]);
+
+  const groupTotalInvoiceValue = groupedInvoicePurchases.reduce((s, p) => s + p.total, 0);
+  const groupTotalPaidAmount = groupedInvoicePurchases.reduce((s, p) => s + p.paidAmount, 0);
+  const groupRemainingDebt = groupTotalInvoiceValue - groupTotalPaidAmount;
 
   return (
     <div className="space-y-8">
@@ -10217,9 +10846,9 @@ function Purchases({ items, suppliers, purchases, safes, profile }: {
       )}
     </div>
   );
-}
+});
 
-function Issuances({ items, issuances, costCenters }: { items: Item[], issuances: Issuance[], costCenters: CostCenter[] }) {
+const Issuances = React.memo(function Issuances({ items, issuances, costCenters }: { items: Item[], issuances: Issuance[], costCenters: CostCenter[] }) {
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -10692,9 +11321,9 @@ function Issuances({ items, issuances, costCenters }: { items: Item[], issuances
       )}
     </div>
   );
-}
+});
 
-function Suppliers({
+const Suppliers = React.memo(function Suppliers({
   suppliers,
   purchases,
   items,
@@ -11349,9 +11978,9 @@ function Suppliers({
       )}
     </div>
   );
-}
+});
 
-function StockAuditView({ items, warehouses, audits }: { items: Item[], warehouses: Warehouse[], audits: StockAudit[] }) {
+const StockAuditView = React.memo(function StockAuditView({ items, warehouses, audits }: { items: Item[], warehouses: Warehouse[], audits: StockAudit[] }) {
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
   const [auditData, setAuditData] = useState<{[key: string]: number}>({});
   const [notes, setNotes] = useState('');
@@ -11757,9 +12386,9 @@ function StockAuditView({ items, warehouses, audits }: { items: Item[], warehous
       )}
     </div>
   );
-}
+});
 
-function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: Supplier[], costCenters: CostCenter[] }) {
+const Returns = React.memo(function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: Supplier[], costCenters: CostCenter[] }) {
   const [showAdd, setShowAdd] = useState(false);
   const [returnType, setReturnType] = useState<'cost_center' | 'supplier'>('cost_center');
   const [formData, setFormData] = useState({
@@ -11983,9 +12612,9 @@ function Returns({ items, suppliers, costCenters }: { items: Item[], suppliers: 
       )}
     </div>
   );
-}
+});
 
-function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords: Waste[] }) {
+const WastedItemsView = React.memo(function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords: Waste[] }) {
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [formData, setFormData] = useState({
@@ -12230,9 +12859,9 @@ function WastedItemsView({ items, wasteRecords }: { items: Item[], wasteRecords:
       )}
     </div>
   );
-}
+});
 
-function ReportsView(props: { 
+const ReportsView = React.memo(function ReportsView(props: { 
   items: Item[], 
   suppliers: Supplier[], 
   purchases: Purchase[], 
@@ -12252,9 +12881,9 @@ function ReportsView(props: {
   loans?: Loan[],
 }) {
   return <FinancialReports {...props} />;
-}
+});
 
-function OldReportsView({ 
+const OldReportsView = React.memo(function OldReportsView({ 
   items, 
   suppliers, 
   purchases, 
@@ -13114,10 +13743,7 @@ function OldReportsView({
       )}
     </div>
   );
-}
-
-
-
+});
 
 const EmployeesView = React.memo(function EmployeesView({ employees }: { employees: Employee[] }) {
   const safeEmployees = employees || [];
@@ -18839,7 +19465,7 @@ const PayrollArchiveView = React.memo(function PayrollArchiveView({ employees, p
   );
 });
 
-function Settings({
+const Settings = React.memo(function Settings({
   settings,
   setSettings,
   handleSaveSettings,
@@ -20144,7 +20770,7 @@ function Settings({
 
     </div>
   );
-}
+});
 
 
 export default AppContent;
