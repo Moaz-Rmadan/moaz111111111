@@ -46,6 +46,7 @@ import { HRManager } from './components/HRManager';
 import { BanksManager } from './components/BanksManager';
 import { ProductionManager } from './components/ProductionManager';
 import { FleetManager } from './components/FleetManager';
+import { TreasuryModule } from './components/TreasuryModule';
 
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -3194,17 +3195,7 @@ function MainApp({
           />
         )}
         {activeTab === 'safe' && (
-          <Finance 
-            safes={safes} 
-            safeAudits={safeAudits} 
-            profile={profile} 
-            purchases={purchases} 
-            items={items} 
-            suppliers={suppliers} 
-            costCenters={costCenters}
-            productionJobs={productionJobs} 
-            loadingManifests={loadingManifests} 
-          />
+          <TreasuryModule />
         )}
         {activeTab === 'settings' && (
           <Settings 

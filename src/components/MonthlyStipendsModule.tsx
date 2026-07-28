@@ -2116,44 +2116,44 @@ export const MonthlyStipendsModule: React.FC = () => {
         </div>
 
         {/* Dynamic mini KPIs inside header */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8 pt-6 border-t border-white/10">
-          <div className="bg-white/5 p-4 rounded-[14px] border border-white/5 flex items-center gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-8 pt-6 border-t border-white/10">
+          <div className="bg-white/5 p-3.5 sm:p-4 rounded-[14px] border border-white/5 flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
             <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center shrink-0 border border-red-500/10">
               <Users className="text-red-400" size={20} />
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold block">المستفيدين النشطين</span>
-              <span className="text-lg font-black font-mono">{totalActiveBeneficiaries} مستفيد</span>
+            <div className="min-w-0 overflow-hidden">
+              <span className="text-[10px] text-slate-400 font-bold block truncate">المستفيدين النشطين</span>
+              <span className="text-sm sm:text-lg font-black font-mono truncate block number-display">{totalActiveBeneficiaries} مستفيد</span>
             </div>
           </div>
 
-          <div className="bg-white/5 p-4 rounded-[14px] border border-white/5 flex items-center gap-4">
+          <div className="bg-white/5 p-3.5 sm:p-4 rounded-[14px] border border-white/5 flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
             <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center shrink-0 border border-emerald-500/10">
               <Coins className="text-emerald-400" size={20} />
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold block">إجمالي مخصص الشهريات</span>
-              <span className="text-lg font-black font-mono">{totalMonthlyAllocations.toLocaleString()} ج.م</span>
+            <div className="min-w-0 overflow-hidden">
+              <span className="text-[10px] text-slate-400 font-bold block truncate">إجمالي مخصص الشهريات</span>
+              <span className="text-sm sm:text-lg font-black font-mono truncate block number-display">{totalMonthlyAllocations.toLocaleString()} ج.م</span>
             </div>
           </div>
 
-          <div className="bg-white/5 p-4 rounded-[14px] border border-white/5 flex items-center gap-4">
+          <div className="bg-white/5 p-3.5 sm:p-4 rounded-[14px] border border-white/5 flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
             <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center shrink-0 border border-amber-500/10">
               <Wallet className="text-amber-400" size={20} />
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold block">الأظرف المغلقة</span>
-              <span className="text-lg font-black font-mono">{statsByMethod.envelope} ظرف ({statsByMethod.envelopeAmount.toLocaleString()} ج.م)</span>
+            <div className="min-w-0 overflow-hidden">
+              <span className="text-[10px] text-slate-400 font-bold block truncate">الأظرف المغلقة</span>
+              <span className="text-xs sm:text-base font-black font-mono truncate block number-display">{statsByMethod.envelope} ظرف ({statsByMethod.envelopeAmount.toLocaleString()} ج.م)</span>
             </div>
           </div>
 
-          <div className="bg-white/5 p-4 rounded-[14px] border border-white/5 flex items-center gap-4">
+          <div className="bg-white/5 p-3.5 sm:p-4 rounded-[14px] border border-white/5 flex items-center gap-3 sm:gap-4 min-w-0 overflow-hidden">
             <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0 border border-blue-500/10">
               <CreditCard className="text-blue-400" size={20} />
             </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold block">الحوالات الرقمية (محافظ/انستا)</span>
-              <span className="text-lg font-black font-mono">{statsByMethod.instapay + statsByMethod.vodafone} حوالة</span>
+            <div className="min-w-0 overflow-hidden">
+              <span className="text-[10px] text-slate-400 font-bold block truncate">الحوالات الرقمية (محافظ/انستا)</span>
+              <span className="text-sm sm:text-lg font-black font-mono truncate block number-display">{statsByMethod.instapay + statsByMethod.vodafone} حوالة</span>
             </div>
           </div>
         </div>
@@ -2406,8 +2406,8 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-amber-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-[14px] border border-amber-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
-                            <table className="w-full text-right border-collapse">
+                          <div className="bg-white rounded-[14px] border border-amber-200/50 shadow-inner overflow-x-auto max-h-[450px] overflow-y-auto">
+                            <table className="w-full text-right border-collapse min-w-[650px]">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
                                   <th className="py-3 px-4 w-[25%]">اسم المستفيد</th>
@@ -2543,8 +2543,8 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-slate-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-[14px] border border-slate-200/50 shadow-inner overflow-hidden max-h-[300px] overflow-y-auto">
-                            <table className="w-full text-right border-collapse">
+                          <div className="bg-white rounded-[14px] border border-slate-200/50 shadow-inner overflow-x-auto max-h-[300px] overflow-y-auto">
+                            <table className="w-full text-right border-collapse min-w-[650px]">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
                                   <th className="py-3 px-4 w-[25%]">اسم المستفيد</th>
@@ -2801,8 +2801,8 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-purple-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-[14px] border border-purple-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
-                            <table className="w-full text-right border-collapse">
+                          <div className="bg-white rounded-[14px] border border-purple-200/50 shadow-inner overflow-x-auto max-h-[450px] overflow-y-auto">
+                            <table className="w-full text-right border-collapse min-w-[650px]">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
                                   <th className="py-3 px-4 w-[25%]">اسم المستفيد</th>
@@ -2945,8 +2945,8 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-emerald-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-[14px] border border-emerald-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
-                            <table className="w-full text-right border-collapse">
+                          <div className="bg-white rounded-[14px] border border-emerald-200/50 shadow-inner overflow-x-auto max-h-[450px] overflow-y-auto">
+                            <table className="w-full text-right border-collapse min-w-[650px]">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
                                   <th className="py-3 px-4 w-[25%]">اسم المستفيد</th>
@@ -3067,8 +3067,8 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-blue-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-[14px] border border-blue-200/50 shadow-inner overflow-hidden max-h-[300px] overflow-y-auto">
-                            <table className="w-full text-right border-collapse">
+                          <div className="bg-white rounded-[14px] border border-blue-200/50 shadow-inner overflow-x-auto max-h-[300px] overflow-y-auto">
+                            <table className="w-full text-right border-collapse min-w-[650px]">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
                                   <th className="py-3 px-4 w-[25%]">اسم المستفيد</th>
@@ -3193,8 +3193,8 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-indigo-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-[14px] border border-indigo-200/50 shadow-inner overflow-hidden max-h-[450px] overflow-y-auto">
-                            <table className="w-full text-right border-collapse">
+                          <div className="bg-white rounded-[14px] border border-indigo-200/50 shadow-inner overflow-x-auto max-h-[450px] overflow-y-auto">
+                            <table className="w-full text-right border-collapse min-w-[650px]">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
                                   <th className="py-3 px-4 w-[25%]">اسم المستفيد</th>
@@ -3327,8 +3327,8 @@ export const MonthlyStipendsModule: React.FC = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden pt-4 border-t border-amber-200/40 space-y-4"
                         >
-                          <div className="bg-white rounded-[14px] border border-amber-200/50 shadow-inner overflow-hidden max-h-[300px] overflow-y-auto">
-                            <table className="w-full text-right border-collapse">
+                          <div className="bg-white rounded-[14px] border border-amber-200/50 shadow-inner overflow-x-auto max-h-[300px] overflow-y-auto">
+                            <table className="w-full text-right border-collapse min-w-[650px]">
                               <thead>
                                 <tr className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-500 uppercase">
                                   <th className="py-3 px-4 w-[25%]">اسم المستفيد</th>
@@ -3419,17 +3419,17 @@ export const MonthlyStipendsModule: React.FC = () => {
                 )}
 
                 {/* Advanced Multi-category interactive KPIs / Quick Filters */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-3 mt-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-2 sm:gap-2.5 mt-4">
                   <button
                     onClick={() => setCategoryFilter('الكل')}
-                    className={`p-3.5 rounded-[14px] text-right border transition-all flex flex-col justify-between h-20 ${
+                    className={`p-2.5 sm:p-3 rounded-[14px] text-right border transition-all flex flex-col justify-between h-20 min-w-0 ${
                       categoryFilter === 'الكل'
                         ? 'bg-slate-900 border-slate-900 text-white shadow-md'
                         : 'bg-white border-slate-100 hover:border-slate-300 text-slate-700 shadow-sm'
                     }`}
                   >
-                    <span className="text-[10px] font-bold opacity-80 block">كل المستفيدين</span>
-                    <span className="text-sm font-black font-mono block mt-1">
+                    <span className="text-[10px] font-bold opacity-80 block truncate">كل المستفيدين</span>
+                    <span className="text-xs sm:text-sm font-black font-mono block mt-1 truncate number-display">
                       {beneficiaries.length} فرد
                     </span>
                   </button>
@@ -3443,16 +3443,16 @@ export const MonthlyStipendsModule: React.FC = () => {
                       <button
                         key={cat}
                         onClick={() => setCategoryFilter(cat)}
-                        className={`p-3.5 rounded-[14px] text-right border transition-all flex flex-col justify-between h-20 ${
+                        className={`p-2.5 sm:p-3 rounded-[14px] text-right border transition-all flex flex-col justify-between h-20 min-w-0 ${
                           isActive
                             ? 'bg-blue-600 border-blue-600 text-white shadow-md'
                             : 'bg-white border-slate-100 hover:border-slate-300 text-slate-700 shadow-sm'
                         }`}
                       >
                         <span className="text-[10px] font-bold block truncate" title={cat}>{cat}</span>
-                        <div className="mt-1 flex items-baseline justify-between w-full">
-                          <span className="text-xs font-black font-mono">{count} فرد</span>
-                          <span className="text-[9px] font-bold opacity-80 font-mono">{(amount / 1000).toFixed(1)}k ج.م</span>
+                        <div className="mt-1 flex items-baseline justify-between w-full gap-1 min-w-0 overflow-hidden">
+                          <span className="text-[11px] sm:text-xs font-black font-mono shrink-0">{count} فرد</span>
+                          <span className="text-[9px] font-bold opacity-80 font-mono truncate number-display">{(amount / 1000).toFixed(1)}k ج.م</span>
                         </div>
                       </button>
                     );
@@ -3667,7 +3667,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                 {/* Beneficiaries Table */}
                 <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-right border-collapse">
+                    <table className="w-full text-right border-collapse min-w-[850px]">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-100 text-xs font-black text-slate-500 uppercase">
                           <th className="py-4 px-4 text-center w-12">
@@ -3717,10 +3717,10 @@ export const MonthlyStipendsModule: React.FC = () => {
                                 {b.notes && <div className="text-[10px] text-slate-400 font-medium mt-0.5">{b.notes}</div>}
                               </td>
                               <td className="py-4 px-6">
-                                <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-slate-600 font-bold">{b.category}</span>
+                                <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-slate-600 font-bold whitespace-nowrap">{b.category}</span>
                               </td>
                               <td className="py-4 px-6">
-                                <span className="font-mono text-slate-900 font-black text-sm">{(Number(b.monthlyAmount) || 0).toLocaleString()} ج.م</span>
+                                <span className="font-mono text-slate-900 font-black text-sm number-display inline-block">{(Number(b.monthlyAmount) || 0).toLocaleString()} ج.م</span>
                               </td>
                               <td className="py-4 px-6">
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black ${
@@ -3988,7 +3988,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                       </div>
 
                       <div className="overflow-x-auto">
-                        <table className="w-full text-right border-collapse">
+                        <table className="w-full text-right border-collapse min-w-[800px]">
                           <thead>
                             <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-black text-slate-400 uppercase">
                               <th className="py-3.5 px-6">المستفيد</th>
@@ -4015,7 +4015,7 @@ export const MonthlyStipendsModule: React.FC = () => {
                                       <div className="font-extrabold text-slate-900">{p.beneficiaryName}</div>
                                       <div className="text-[10px] text-slate-400 font-medium mt-0.5">{p.category} | {p.phone || 'بدون اتصال'}</div>
                                     </td>
-                                    <td className="py-4 px-6 font-mono text-slate-900 font-black">
+                                    <td className="py-4 px-6 font-mono text-slate-900 font-black number-display">
                                       {p.amount.toLocaleString()} ج.م
                                     </td>
                                     <td className="py-4 px-6">

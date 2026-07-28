@@ -124,11 +124,14 @@
   }
   body {
     font-family: 'Cairo', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background-color: #F8FAFC;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.03) 0, transparent 45%),
-      radial-gradient(at 100% 0%, rgba(37, 99, 235, 0.02) 0, transparent 35%);
-    @apply text-foreground antialiased min-h-screen selection:bg-primary/10;
+      radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.035) 0, transparent 45%),
+      radial-gradient(at 100% 0%, rgba(37, 99, 235, 0.025) 0, transparent 35%);
+    @apply text-foreground antialiased min-h-screen selection:bg-blue-600/15 selection:text-blue-900;
     background-attachment: fixed;
   }
   html {
@@ -157,24 +160,25 @@
     @apply rounded-[14px] border border-slate-200 bg-white hover:border-slate-300 hover:shadow-[0_2px_8px_rgba(0,0,0,0.01)] transition-all duration-200 outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/15 focus-visible:shadow-[0_4px_16px_rgba(79,70,229,0.05)] text-slate-800 text-sm pr-4 pl-4 py-2.5;
   }
 
-  /* Minimal utility rounded cards with subtle 3D hover interaction */
+  /* Glassmorphic & Premium Card Styles */
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-xl border border-white/80 shadow-[0_8px_32px_0_rgba(31,38,135,0.06)] hover:shadow-[0_12px_40px_0_rgba(37,99,235,0.12)] hover:border-blue-200/60 hover:-translate-y-0.5 transition-all duration-300 rounded-2xl relative overflow-hidden max-w-full;
+  }
+
+  .glass-panel {
+    @apply bg-white/85 backdrop-blur-xl border border-white/90 shadow-[0_10px_40px_rgba(15,23,42,0.04)] rounded-2xl overflow-hidden max-w-full;
+  }
+
   .dribbble-card {
-    @apply bg-white border border-slate-200/40 shadow-[0_4px_20px_rgba(0,0,0,0.012)] hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.055)] hover:-translate-y-0.5 transition-all duration-200 rounded-[14px] relative z-10;
-  }
-  .dribbble-card::after {
-    content: '';
-    @apply absolute inset-0 rounded-[14px] border border-transparent transition-all duration-200 pointer-events-none z-[1];
-  }
-  .dribbble-card:hover::after {
-    @apply border-primary/10;
+    @apply bg-white/90 backdrop-blur-md border border-slate-200/60 shadow-[0_4px_20px_rgba(15,23,42,0.03)] hover:shadow-[0_20px_40px_rgba(37,99,235,0.09)] hover:-translate-y-1 hover:border-blue-300/50 transition-all duration-300 rounded-2xl relative z-10 overflow-hidden max-w-full;
   }
 
   .premium-card {
-    @apply bg-white border border-slate-100/80 shadow-[0_2px_8px_rgba(0,0,0,0.01)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.03)] transition-all duration-200 rounded-[14px] overflow-hidden;
+    @apply bg-white/90 backdrop-blur-md border border-slate-200/60 shadow-[0_2px_12px_rgba(15,23,42,0.03)] hover:shadow-[0_16px_36px_rgba(37,99,235,0.08)] hover:border-blue-200/70 transition-all duration-300 rounded-2xl overflow-hidden max-w-full;
   }
-  
-  .glass-panel {
-    @apply bg-white/85 backdrop-blur-xl border border-white/60 shadow-[0_10px_40px_rgba(0,0,0,0.03)];
+
+  .glass-stat-card {
+    @apply bg-gradient-to-br from-white/90 via-white/80 to-blue-50/30 backdrop-blur-xl border border-white/90 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_16px_35px_rgba(37,99,235,0.1)] hover:border-blue-300/60 hover:-translate-y-0.5 transition-all duration-300 rounded-2xl p-4 sm:p-5 relative overflow-hidden max-w-full min-w-0;
   }
 
   /* Buttons designed for high-end look and custom responsive scaling */
@@ -195,7 +199,27 @@
   }
 
   .data-stat {
-    @apply text-3xl font-black tracking-tight text-slate-900;
+    @apply text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-slate-900 break-words tabular-nums max-w-full overflow-hidden;
+    overflow-wrap: anywhere;
+  }
+
+  /* Universal Number & Card Safeguards */
+  .number-display {
+    @apply break-words tabular-nums max-w-full overflow-hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .glass-card, .glass-panel, .dribbble-card, .premium-card, .glass-stat-card {
+    min-width: 0;
+  }
+
+  .glass-card h1, .glass-card h2, .glass-card h3, .glass-card h4, .glass-card p, .glass-card span,
+  .glass-stat-card h1, .glass-stat-card h2, .glass-stat-card h3, .glass-stat-card h4, .glass-stat-card p, .glass-stat-card span,
+  .premium-card h1, .premium-card h2, .premium-card h3, .premium-card h4, .premium-card p, .premium-card span,
+  .dribbble-card h1, .dribbble-card h2, .dribbble-card h3, .dribbble-card h4, .dribbble-card p, .dribbble-card span {
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .bento-grid {

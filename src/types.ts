@@ -786,17 +786,23 @@ export interface Safe {
   name: string;
   balance: number;
   type?: 'خزنة رئيسية' | 'عهدة موظف' | 'بنك';
+  minBalanceThreshold?: number; // Safety threshold for liquidity alerts (e.g. 20,000 EGP)
 }
 
 export interface SafeAudit {
   id: string;
   safeId: string;
+  safeName?: string;
   date: string;
   systemBalance: number;
   physicalBalance: number;
   difference: number;
   notes: string;
   createdBy: string;
+  denominations?: Record<string, number>;
+  status?: 'مطابق' | 'عجز' | 'زيادة';
+  adjustedTransactionId?: string;
+  createdAt?: any;
 }
 
 export interface SafeSettlement {
