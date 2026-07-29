@@ -76,8 +76,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useHotkeys } from 'react-hotkeys-hook';
 const MaintenanceOrdersView = lazy(() => import("./components/MaintenanceOrdersView").then(m => ({ default: m.MaintenanceOrdersView })));
 const FinancialReports = lazy(() => import('./components/FinancialReports').then(m => ({ default: m.FinancialReports })));
-import { defaultChartOfAccounts, flattenAccounts } from './components/ChartOfAccountsView';
-const ChartOfAccountsView = lazy(() => import('./components/ChartOfAccountsView'));
+import ChartOfAccountsView, { defaultChartOfAccounts, flattenAccounts } from './components/ChartOfAccountsView';
 const UsersManager = lazy(() => import('./components/UsersManager').then(m => ({ default: m.UsersManager })));
 const ByproductSalesView = lazy(() => import('./components/ByproductSalesView').then(m => ({ default: m.ByproductSalesView })));
 const SalesModule = lazy(() => import('./components/SalesModule').then(m => ({ default: m.SalesModule })));
@@ -381,7 +380,7 @@ export const safePrint = () => {
 };
 
 function AppContent() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   
   // Load initial settings from localStorage if available
   const [settings, setSettings] = useState<CompanySettings>(() => {
@@ -480,22 +479,22 @@ function AppContent() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || (user && !profile)) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4" dir="rtl">
         <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-200/50 animate-bounce mb-6">
           <svg className="w-8 h-8 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
         </div>
-        <h2 className="text-xl font-black text-slate-800 tracking-tight">جاري تحميل النظام...</h2>
+        <h2 className="text-xl font-black text-slate-800 tracking-tight">جاري تحميل المنظومة...</h2>
         <p className="text-sm font-bold text-slate-400 mt-2">يرجى الانتظار لحظات قليلة</p>
       </div>
     );
   }
 
-  return user ? (
+  return (user && profile) ? (
     <MainApp 
       settings={settings} 
       setSettings={setSettings} 
@@ -2488,7 +2487,7 @@ function MainApp({
       balance: item.openingBalance,
       notes: 'الرصيد الافتتاحي عند التأسيس'
     });
-    if (profile.isAdmin || profile.permissions.sales || profile.permissions.reports) {
+    if (profile?.isAdmin || profile?.permissions?.sales || profile?.permissions?.reports) {
     }
 
     purchases.filter(p => p.itemId === itemId).forEach(p => {
@@ -10186,11 +10185,11 @@ const Purchases = React.memo(function Purchases({ items, suppliers, purchases, s
   useEffect(() => {
     if (calculatedInvoiceTotal > 0) {
       if (formData.paidAmount === 0) {
-        setFormData(prev => ({ ...prev, paymentStatus: 'آجل' }));
+        setFormData(prev => prev.paymentStatus !== 'آجل' ? { ...prev, paymentStatus: 'آجل' } : prev);
       } else if (formData.paidAmount >= calculatedInvoiceTotal) {
-        setFormData(prev => ({ ...prev, paymentStatus: 'نقدي' }));
+        setFormData(prev => prev.paymentStatus !== 'نقدي' ? { ...prev, paymentStatus: 'نقدي' } : prev);
       } else {
-        setFormData(prev => ({ ...prev, paymentStatus: 'آجل' }));
+        setFormData(prev => prev.paymentStatus !== 'آجل' ? { ...prev, paymentStatus: 'آجل' } : prev);
       }
     }
   }, [formData.paidAmount, calculatedInvoiceTotal]);

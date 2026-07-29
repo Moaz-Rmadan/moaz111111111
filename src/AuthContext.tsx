@@ -116,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const safetyTimer = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     const savedUid = safeStorage.getItem('custom_uid');
     const savedPassword = safeStorage.getItem('custom_password');
