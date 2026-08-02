@@ -2685,7 +2685,8 @@ function MainApp({
                 <span>المشتريات</span>
               </div>
             )}
-            <NavButton active={activeTab === 'suppliers'} onClick={() => handleNavClick('suppliers')} icon={<Truck size={18} />} label="الموردين والمشتريات" permission="suppliers" profile={profile} />
+            <NavButton active={activeTab === 'suppliers'} onClick={() => handleNavClick('suppliers')} icon={<Truck size={18} />} label="الموردين والمستحقات" permission="suppliers" profile={profile} />
+            <NavButton active={activeTab === 'purchases'} onClick={() => handleNavClick('purchases')} icon={<ShoppingCart size={18} />} label="فواتير ومشتريات الخامات" permission="purchases" profile={profile} />
           </div>
 
           {/* Group 4: المخازن */}
@@ -3158,6 +3159,15 @@ function MainApp({
             setShowSupplierAdd={setShowSupplierAdd}
             setEditingSupplier={setEditingSupplier}
             setShowDeleteConfirm={setShowDeleteConfirmBase}
+          />
+        )}
+        {activeTab === 'purchases' && (
+          <Purchases 
+            items={items} 
+            suppliers={suppliers} 
+            purchases={purchases} 
+            safes={safes}
+            profile={profile}
           />
         )}
         {activeTab === 'reports' && (
