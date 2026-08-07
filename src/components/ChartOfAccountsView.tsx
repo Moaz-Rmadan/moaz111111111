@@ -52,8 +52,9 @@ export const defaultChartOfAccounts: AccountNode[] = [
         name: 'الأصول المتداولة',
         type: 'asset',
         children: [
-          { id: '121', code: '1201', name: 'النقدية بالخزينة', type: 'asset', balance: 0 },
-          { id: '122', code: '1202', name: 'النقدية بالبنوك', type: 'asset', balance: 0 }
+          { id: '121', code: '1201', name: 'النقدية بالخزينة الرئيسية والفرعية', type: 'asset', balance: 0 },
+          { id: '122', code: '1202', name: 'النقدية بالبنوك الحسابات الجارية', type: 'asset', balance: 0 },
+          { id: '123', code: '1203', name: 'عهد مالية وتنفيذية (حساب كريم النجار والعهد المباشرة)', type: 'asset', balance: 0 }
         ]
       },
       {

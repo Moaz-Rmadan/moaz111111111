@@ -49,7 +49,10 @@ import {
   Building,
   Check,
   ChevronDown,
-  Loader2
+  Loader2,
+  RotateCcw,
+  PackageCheck,
+  AlertTriangle
 } from 'lucide-react';
 
 const Card = ({ children, className }: any) => <div className={`bg-white rounded-[14px] border border-slate-100 shadow-sm shadow-slate-200/30 hover:shadow-lg hover:shadow-slate-200/40 transition-all duration-200 overflow-hidden relative ${className || ''}`}>{children}</div>;
@@ -101,7 +104,17 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
   const [safes, setSafes] = useState<Safe[]>([]);
 
   // Navigation State
-  const [activeSubTab, setActiveSubTab] = useState<'orders' | 'production_line' | 'customer_accounts' | 'whatsapp_hub' | 'monthly_folders' | 'shipping_hub' | 'analytics_hub'>('orders');
+  const [activeSubTab, setActiveSubTab] = useState<'orders' | 'production_line' | 'customer_accounts' | 'whatsapp_hub' | 'monthly_folders' | 'shipping_hub' | 'analytics_hub' | 'delivered_archive'>('orders');
+
+  // Delivered Orders & Returns / Shortages States
+  const [deliveryLogs, setDeliveryLogs] = useState<any[]>([]);
+  const [deliverySearchTerm, setDeliverySearchTerm] = useState('');
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('الكل');
+  const [deliveredLogDateFrom, setDeliveredLogDateFrom] = useState('');
+  const [deliveredLogDateTo, setDeliveredLogDateTo] = useState('');
+  const [showEditDeliveryModal, setShowEditDeliveryModal] = useState(false);
+  const [editingDeliveryLog, setEditingDeliveryLog] = useState<any | null>(null);
+  const [selectedDeliveryLogForPrint, setSelectedDeliveryLogForPrint] = useState<any | null>(null);
 
   // Helper States for Active Production Board
   const [pipelineSearch, setPipelineSearch] = useState('');
@@ -252,6 +265,9 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
     const unsubRecipes = onSnapshot(collection(db, 'recipes'), (snap) => {
       setRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
+    const unsubDeliveryLogs = onSnapshot(collection(db, 'deliveryLogs'), (snap) => {
+      setDeliveryLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
 
     return () => {
       unsubOrders();
@@ -262,6 +278,7 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
       unsubManifests();
       unsubReceipts();
       unsubRecipes();
+      unsubDeliveryLogs();
     };
   }, []);
 
@@ -483,6 +500,147 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
     return list;
   }, [workOrders]);
 
+  // States for filtering in Manifest Modal (Multi-Client & Multi-Order Support)
+  const [manifestSearchTerm, setManifestSearchTerm] = useState('');
+  const [manifestClientFilter, setManifestClientFilter] = useState('الكل');
+  const [manifestStatusFilter, setManifestStatusFilter] = useState('الكل');
+
+  // Unique clients list for manifest wizard filter
+  const manifestAvailableClients = useMemo(() => {
+    return Array.from(new Set(productionRooms.map(r => r.customerName).filter(Boolean)));
+  }, [productionRooms]);
+
+  // Grouped rooms for multi-client & multi-order tree structure in manifest modal
+  const groupedManifestRooms = useMemo(() => {
+    const filtered = productionRooms.filter(room => {
+      const matchSearch = !manifestSearchTerm || 
+        (room.customerName || '').toLowerCase().includes(manifestSearchTerm.toLowerCase()) ||
+        (room.orderNumber || '').toLowerCase().includes(manifestSearchTerm.toLowerCase()) ||
+        (room.roomCode || '').toLowerCase().includes(manifestSearchTerm.toLowerCase());
+      
+      const matchClient = manifestClientFilter === 'الكل' || room.customerName === manifestClientFilter;
+      const matchStatus = manifestStatusFilter === 'الكل' || room.status === manifestStatusFilter;
+
+      return matchSearch && matchClient && matchStatus;
+    });
+
+    const groups: {
+      [customerName: string]: {
+        [orderId: string]: {
+          orderNumber: string;
+          deliveryDate: string;
+          salesPerson: string;
+          rooms: typeof productionRooms;
+        }
+      }
+    } = {};
+
+    filtered.forEach(room => {
+      if (!groups[room.customerName]) {
+        groups[room.customerName] = {};
+      }
+      if (!groups[room.customerName][room.orderId]) {
+        groups[room.customerName][room.orderId] = {
+          orderNumber: room.orderNumber,
+          deliveryDate: room.deliveryDate,
+          salesPerson: room.salesPerson,
+          rooms: []
+        };
+      }
+      groups[room.customerName][room.orderId].rooms.push(room);
+    });
+
+    return groups;
+  }, [productionRooms, manifestSearchTerm, manifestClientFilter, manifestStatusFilter]);
+
+  // Summary of selected items in the loading manifest
+  const manifestSelectionSummary = useMemo(() => {
+    const items: { key: string; orderId: string; customerName: string; orderNumber: string; roomCode: string }[] = [];
+    manifestForm.selectedRoomKeys.forEach(key => {
+      const parts = key.split('-');
+      const orderId = parts[0];
+      const roomIndex = Number(parts[1]);
+      const orderObj = workOrders.find(o => o.id === orderId);
+      if (orderObj) {
+        let roomName = orderObj.roomCode;
+        if (orderObj.rooms && orderObj.rooms[roomIndex]) {
+          roomName = orderObj.rooms[roomIndex].roomCode;
+        }
+        items.push({
+          key,
+          orderId,
+          customerName: orderObj.customerName,
+          orderNumber: orderObj.orderNumber,
+          roomCode: roomName
+        });
+      }
+    });
+
+    const clients = Array.from(new Set(items.map(i => i.customerName).filter(Boolean)));
+    const orders = Array.from(new Set(items.map(i => i.orderNumber).filter(Boolean)));
+
+    return {
+      totalCount: items.length,
+      clientCount: clients.length,
+      orderCount: orders.length,
+      clients,
+      orders,
+      items
+    };
+  }, [manifestForm.selectedRoomKeys, workOrders]);
+
+  // Toggle selection for all rooms belonging to a customer
+  const handleToggleCustomerManifestRooms = (custName: string) => {
+    const custRooms = productionRooms.filter(r => r.customerName === custName);
+    const custKeys = custRooms.map(r => `${r.orderId}-${r.roomIndex}`);
+    const allSelected = custKeys.length > 0 && custKeys.every(k => manifestForm.selectedRoomKeys.includes(k));
+
+    setManifestForm(prev => {
+      if (allSelected) {
+        return { ...prev, selectedRoomKeys: prev.selectedRoomKeys.filter(k => !custKeys.includes(k)) };
+      } else {
+        return { ...prev, selectedRoomKeys: Array.from(new Set([...prev.selectedRoomKeys, ...custKeys])) };
+      }
+    });
+  };
+
+  // Toggle selection for all rooms in a specific order
+  const handleToggleOrderManifestRooms = (orderId: string) => {
+    const orderRooms = productionRooms.filter(r => r.orderId === orderId);
+    const orderKeys = orderRooms.map(r => `${r.orderId}-${r.roomIndex}`);
+    const allSelected = orderKeys.length > 0 && orderKeys.every(k => manifestForm.selectedRoomKeys.includes(k));
+
+    setManifestForm(prev => {
+      if (allSelected) {
+        return { ...prev, selectedRoomKeys: prev.selectedRoomKeys.filter(k => !orderKeys.includes(k)) };
+      } else {
+        return { ...prev, selectedRoomKeys: Array.from(new Set([...prev.selectedRoomKeys, ...orderKeys])) };
+      }
+    });
+  };
+
+  // Select all ready rooms across all clients
+  const handleSelectAllReadyRooms = () => {
+    const readyKeys = productionRooms
+      .filter(r => r.status === 'جاهز للتسليم' || r.status === 'في المخزن تام التشطيب' || r.status === 'سلم للعميل')
+      .map(r => `${r.orderId}-${r.roomIndex}`);
+    
+    setManifestForm(prev => ({
+      ...prev,
+      selectedRoomKeys: Array.from(new Set([...prev.selectedRoomKeys, ...readyKeys]))
+    }));
+  };
+
+  // Auto generate notes / route description
+  const handleAutoGenerateRouteNotes = () => {
+    if (manifestSelectionSummary.clients.length === 0) {
+      alert('قم بتحديد غرف أو بنود لإنشاء وصف خط السير تلقائياً.');
+      return;
+    }
+    const routeStr = `حملة مجمعة لعدد ${manifestSelectionSummary.clientCount} عميل (${manifestSelectionSummary.clients.join(' - ')}) | الأوامر: ${manifestSelectionSummary.orders.join('، ')}`;
+    setManifestForm(prev => ({ ...prev, notes: routeStr }));
+  };
+
   // Update specific room's stage/status inside an order
   const updateRoomStage = async (orderId: string, roomIndex: number, newStage: string) => {
     try {
@@ -530,9 +688,122 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
           status: overallStatus
         });
       }
+
+      // Auto register to delivery logs if status becomes delivered / ready
+      if (newStage === 'سلم للعميل' || newStage === 'جاهز للتسليم' || newStage === 'مستلم بنواقص' || newStage === 'مرتجع') {
+        const currentRoomCode = updatedRooms[roomIndex]?.roomCode || order.roomCode || 'غرفة عامة';
+        const logStatus = newStage === 'مستلم بنواقص' ? 'مستلم بنواقص' : newStage === 'مرتجع' ? 'مرتجع جزئي' : 'مستلم بالكامل';
+        await autoRegisterDeliveryLog(orderId, currentRoomCode, '', '', logStatus);
+      }
     } catch (error) {
       console.error('Error updating room stage:', error);
       alert('حدث خطأ أثناء تحديث مرحلة الإنتاج.');
+    }
+  };
+
+  // Helper function to auto-register or update a delivery log
+  const autoRegisterDeliveryLog = async (
+    orderId: string,
+    roomCode: string,
+    driverName = '',
+    carNumber = '',
+    initialStatus: any = 'مستلم بالكامل',
+    notes = ''
+  ) => {
+    try {
+      const orderObj = workOrders.find(o => o.id === orderId);
+      if (!orderObj) return;
+
+      const existingLog = deliveryLogs.find(l => l.orderId === orderId && l.roomCode === roomCode);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const customerObj = customers.find(c => c.id === orderObj.customerId);
+
+      if (!existingLog) {
+        const newLog = {
+          orderId,
+          orderNumber: orderObj.orderNumber || '',
+          customerId: orderObj.customerId || '',
+          customerName: orderObj.customerName || '',
+          customerPhone: customerObj?.phone || '',
+          roomCode: roomCode || orderObj.roomCode || 'غرفة عامة',
+          deliveryDate: todayStr,
+          driverName: driverName || 'سائق المعرض/المستودع',
+          carNumber: carNumber || '-',
+          deliveryStatus: initialStatus,
+          shortagesDescription: '',
+          returnsDescription: '',
+          resolutionAction: '',
+          itemsList: (orderObj.rooms && orderObj.rooms.length > 0)
+            ? orderObj.rooms.map(r => ({
+                name: r.roomCode,
+                specs: `${r.generalSpecs || ''} ${r.dimensionsAndStructure || ''}`,
+                qtyDelivered: 1,
+                qtyMissing: 0,
+                qtyReturned: 0
+              }))
+            : [{ name: roomCode || orderObj.roomCode, specs: orderObj.generalSpecs || '', qtyDelivered: 1, qtyMissing: 0, qtyReturned: 0 }],
+          notes: notes || 'تم تسجيل التسليم تلقائياً من نظام التشغيل والإنتاج.',
+          createdAt: new Date().toISOString()
+        };
+        await addDoc(collection(db, 'deliveryLogs'), newLog);
+      }
+    } catch (err) {
+      console.error('Error auto registering delivery log:', err);
+    }
+  };
+
+  // Save or edit a delivery log (with shortages and returns)
+  const handleSaveDeliveryLog = async (logData: any) => {
+    try {
+      if (logData.id) {
+        const { id, ...dataToSave } = logData;
+        dataToSave.updatedAt = new Date().toISOString();
+        await updateDoc(doc(db, 'deliveryLogs', id), dataToSave);
+
+        if (logData.syncOriginalOrder && logData.orderId) {
+          const orderObj = workOrders.find(o => o.id === logData.orderId);
+          if (orderObj) {
+            let updatedRooms = orderObj.rooms ? [...orderObj.rooms] : [];
+            if (updatedRooms.length > 0) {
+              const idx = updatedRooms.findIndex(r => r.roomCode === logData.roomCode);
+              if (idx >= 0) {
+                let newStage = 'سلم للعميل';
+                if (logData.deliveryStatus === 'مستلم بنواقص' || logData.deliveryStatus === 'قيد استكمال النواقص') {
+                  newStage = 'مستلم بنواقص';
+                } else if (logData.deliveryStatus === 'مرتجع جزئي' || logData.deliveryStatus === 'مرتجع بالكامل' || logData.deliveryStatus === 'قيد معالجة المرتجع') {
+                  newStage = 'مرتجع';
+                }
+                updatedRooms[idx].status = newStage;
+                await updateDoc(doc(db, 'workOrders', logData.orderId), { rooms: updatedRooms });
+              }
+            }
+          }
+        }
+
+        alert('🎉 تم حفظ تعديل بيانات التسليم والنواقص والمرتجعات بنجاح!');
+      } else {
+        logData.createdAt = new Date().toISOString();
+        await addDoc(collection(db, 'deliveryLogs'), logData);
+        alert('🎉 تم إضافة سجل التسليم والمرتجع بنجاح!');
+      }
+      setShowEditDeliveryModal(false);
+      setEditingDeliveryLog(null);
+    } catch (err) {
+      console.error('Error saving delivery log:', err);
+      alert('حدث خطأ أثناء حفظ بيانات التسليم والمرتجعات.');
+    }
+  };
+
+  // Delete delivery log
+  const handleDeleteDeliveryLog = async (id: string) => {
+    if (confirm('هل أنت متأكد من حذف هذا السجل من الأرشيف؟')) {
+      try {
+        await deleteDoc(doc(db, 'deliveryLogs', id));
+        alert('تم حذف السجل بنجاح.');
+      } catch (err) {
+        console.error('Error deleting delivery log:', err);
+        alert('حدث خطأ أثناء الحذف.');
+      }
     }
   };
 
@@ -601,41 +872,23 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
   };
 
   // Convert to Loading Manifest (حمولة سيارة)
-  const convertToLoadingManifest = async (order: FurnitureWorkOrder) => {
-    try {
-      const productsList = order.rooms && order.rooms.length > 0
-        ? order.rooms.map(r => ({ 
-            name: r.roomCode, 
-            components: r.dimensionsAndStructure || '', 
-            notes: r.upholsterySpecs || '', 
-            salesPerson: order.salesPerson || '', 
-            additions: '' 
-          }))
-        : [{ 
-            name: order.roomCode, 
-            components: order.dimensionsAndStructure || '', 
-            notes: order.upholsterySpecs || '', 
-            salesPerson: order.salesPerson || '', 
-            additions: '' 
-          }];
-
-      await addDoc(collection(db, 'loadingManifests'), {
-        driverName: '',
-        carNumber: '',
-        destinationType: 'عميل',
-        clientName: order.customerName,
-        orderNumbers: order.orderNumber,
-        loaderName: '',
-        notes: `تم تحويله تلقائياً من أمر التشغيل رقم ${order.orderNumber}`,
-        products: productsList,
-        date: new Date().toISOString().split('T')[0],
-        createdAt: new Date().toISOString()
+  const convertToLoadingManifest = (order: FurnitureWorkOrder) => {
+    const roomKeys: string[] = [];
+    if (order.rooms && order.rooms.length > 0) {
+      order.rooms.forEach((r, idx) => {
+        roomKeys.push(`${order.id}-${idx}`);
       });
-      alert(`🎉 تم بنجاح إنشاء حمولة السيارة للعميل ${order.customerName}! يمكنك تعبئة تفاصيل السيارة والسائق من قسم حمولة السيارات.`);
-    } catch (error) {
-      console.error(error);
-      alert('حدث خطأ أثناء تحويل أمر الشغل لحمولة سيارة.');
+    } else {
+      roomKeys.push(`${order.id}-0`);
     }
+
+    setManifestForm(prev => ({
+      ...prev,
+      selectedRoomKeys: Array.from(new Set([...prev.selectedRoomKeys, ...roomKeys]))
+    }));
+
+    setActiveSubTab('shipping_hub');
+    setShowManifestAddModal(true);
   };
 
   // Customer ledger metrics calculation
@@ -1428,12 +1681,18 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
         }
       });
 
+      const distinctClients = Array.from(new Set(selectedItems.map(i => i.customerName).filter(Boolean)));
+      const distinctOrders = Array.from(new Set(selectedItems.map(i => i.orderNumber).filter(Boolean)));
+
       const newManifest = {
         driverName: manifestForm.driverName,
         carNumber: manifestForm.carNumber,
         loaderName: manifestForm.loaderName || 'مسؤول التحميل بالمستودع',
         date: manifestForm.date,
-        notes: manifestForm.notes || 'بيان حمولة سيارة شحن بضائع',
+        notes: manifestForm.notes || `شحنة حمولة مجمعة لـ ${distinctClients.length} عملاء`,
+        distinctClients,
+        distinctOrders,
+        totalItems: selectedItems.length,
         items: selectedItems,
         createdAt: new Date().toISOString()
       };
@@ -1635,6 +1894,16 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
             }`}
           >
             🚚 الشحن والتحميل المجمع
+          </button>
+          <button
+            onClick={() => setActiveSubTab('delivered_archive')}
+            className={`px-3 py-2 rounded-xl text-xs font-black transition-all ${
+              activeSubTab === 'delivered_archive' 
+                ? 'bg-amber-600 text-white shadow-md shadow-amber-100' 
+                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+            }`}
+          >
+            📦 سجل التسليمات والنواقص والمرتجعات ({deliveryLogs.length})
           </button>
           <button
             onClick={() => setActiveSubTab('analytics_hub')}
@@ -3141,8 +3410,8 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                   <thead>
                     <tr className="bg-slate-50 font-black text-slate-600 border-b border-slate-100">
                       <th className="p-3">تاريخ الحمولة</th>
-                      <th className="p-3">اسم السائق</th>
-                      <th className="p-3">رقم السيارة</th>
+                      <th className="p-3">اسم السائق والسيارة</th>
+                      <th className="p-3">العملاء والأوردرات بالحملة</th>
                       <th className="p-3">مسؤول التحميل</th>
                       <th className="p-3">ملاحظات خط السير</th>
                       <th className="p-3">عدد البنود المشحونة</th>
@@ -3150,51 +3419,70 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
                     </tr>
                   </thead>
                   <tbody>
-                    {loadingManifests.map(manifest => (
-                      <tr key={manifest.id} className="border-b border-slate-50 hover:bg-slate-50/50 font-bold text-slate-700">
-                        <td className="p-3 font-mono">{manifest.date}</td>
-                        <td className="p-3 font-black text-slate-800">{manifest.driverName}</td>
-                        <td className="p-3 font-mono">{manifest.carNumber}</td>
-                        <td className="p-3">{manifest.loaderName || '-'}</td>
-                        <td className="p-3 text-slate-500">{manifest.notes || '-'}</td>
-                        <td className="p-3">
-                          <span className="bg-sky-50 text-sky-700 px-2.5 py-0.5 rounded-full text-[10px] font-black border border-sky-100">
-                            {manifest.items?.length || 0} غرف وبنود
-                          </span>
-                        </td>
-                        <td className="p-3 text-center flex gap-1.5 justify-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-[10px] font-black border-sky-200 text-sky-700 hover:bg-sky-50"
-                            onClick={() => {
-                              setSelectedManifestForPrint(manifest);
-                              setTimeout(() => {
-                                window.print();
-                              }, 300);
-                            }}
-                          >
-                            <Printer size={12} className="ml-1" />
-                            طباعة 🖨️
-                          </Button>
-                          <button
-                            onClick={async () => {
-                              if (confirm('هل ترغب في حذف مستند الحمولة المؤرشف؟ (لن يؤثر على حالة الأوردرات)')) {
-                                try {
-                                  await deleteDoc(doc(db, 'loadingManifests', manifest.id));
-                                  alert('تم الحذف بنجاح!');
-                                } catch (err) {
-                                  console.error(err);
+                    {loadingManifests.map(manifest => {
+                      const clientList = manifest.distinctClients || Array.from(new Set(manifest.items?.map((i: any) => i.customerName).filter(Boolean))) || (manifest.clientName ? [manifest.clientName] : []);
+                      const orderList = manifest.distinctOrders || Array.from(new Set(manifest.items?.map((i: any) => i.orderNumber).filter(Boolean))) || (manifest.orderNumbers ? [manifest.orderNumbers] : []);
+
+                      return (
+                        <tr key={manifest.id} className="border-b border-slate-50 hover:bg-slate-50/50 font-bold text-slate-700">
+                          <td className="p-3 font-mono">{manifest.date}</td>
+                          <td className="p-3 font-black text-slate-800">
+                            <div>{manifest.driverName}</div>
+                            <span className="text-[10px] text-slate-400 font-mono block">🚗 {manifest.carNumber}</span>
+                          </td>
+                          <td className="p-3">
+                            <div className="space-y-1">
+                              <span className="bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-md font-black text-[10px] inline-block">
+                                👥 {clientList.length > 0 ? clientList.join('، ') : 'عملاء متعددين'}
+                              </span>
+                              {orderList.length > 0 && (
+                                <span className="bg-slate-100 text-slate-700 font-mono px-2 py-0.5 rounded-md text-[10px] block w-max">
+                                  📄 الأوامر: {orderList.join('، ')}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3">{manifest.loaderName || '-'}</td>
+                          <td className="p-3 text-slate-500 max-w-[200px] truncate">{manifest.notes || '-'}</td>
+                          <td className="p-3">
+                            <span className="bg-sky-50 text-sky-700 px-2.5 py-0.5 rounded-full text-[10px] font-black border border-sky-100">
+                              {manifest.items?.length || 0} غرف وبنود
+                            </span>
+                          </td>
+                          <td className="p-3 text-center flex gap-1.5 justify-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-[10px] font-black border-sky-200 text-sky-700 hover:bg-sky-50"
+                              onClick={() => {
+                                setSelectedManifestForPrint(manifest);
+                                setTimeout(() => {
+                                  window.print();
+                                }, 300);
+                              }}
+                            >
+                              <Printer size={12} className="ml-1" />
+                              طباعة 🖨️
+                            </Button>
+                            <button
+                              onClick={async () => {
+                                if (confirm('هل ترغب في حذف مستند الحمولة المؤرشف؟ (لن يؤثر على حالة الأوردرات)')) {
+                                  try {
+                                    await deleteDoc(doc(db, 'loadingManifests', manifest.id));
+                                    alert('تم الحذف بنجاح!');
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
                                 }
-                              }
-                            }}
-                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                              }}
+                              className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
@@ -3450,122 +3738,862 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
       )}
 
       {/* ========================================== */}
-      {/* 4. Shipping Manifest Selection Modal */}
+      {/* SubTab: Delivered Orders, Shortages & Returns Archive Log */}
+      {/* ========================================== */}
+      {activeSubTab === 'delivered_archive' && (
+        <div className="space-y-6 animate-in fade-in-50 duration-200" dir="rtl">
+          {/* Header & Overview */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-br from-slate-900 via-amber-950 to-slate-900 text-white p-6 rounded-[18px] border border-amber-500/20 shadow-xl">
+            <div>
+              <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black px-3 py-1 rounded-full border border-amber-500/30 uppercase tracking-widest">
+                إدارة التسليمات الميدانية والمرتجعات والنواقص ✨
+              </span>
+              <h2 className="text-2xl font-black text-white mt-2 flex items-center gap-2">
+                <Truck className="text-amber-400" size={26} /> سجل ومحاضر التسليمات والنواقص والمرتجعات
+              </h2>
+              <p className="text-slate-300 text-xs font-bold mt-1">
+                تتبع أوردرات التشغيل المسلمة تلقائياً، والبحث فيها، وتعديل المرتجعات والنواقص وإعادة التوجيه للورش للتقفيل والصيانة.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  setEditingDeliveryLog({
+                    orderNumber: '',
+                    customerName: '',
+                    customerPhone: '',
+                    roomCode: '',
+                    deliveryDate: new Date().toISOString().split('T')[0],
+                    driverName: '',
+                    carNumber: '',
+                    deliveryStatus: 'مستلم بالكامل',
+                    shortagesDescription: '',
+                    returnsDescription: '',
+                    resolutionAction: '',
+                    notes: '',
+                    syncOriginalOrder: true
+                  });
+                  setShowEditDeliveryModal(true);
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-lg shadow-amber-500/20 font-black"
+              >
+                <Plus size={16} className="ml-1.5" /> تسجيل تسليم / مرتجع يدوي
+              </Button>
+            </div>
+          </div>
+
+          {/* Top KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-[16px] border border-slate-100 shadow-sm relative overflow-hidden">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">إجمالي شحنات التسليم</span>
+              <span className="text-2xl font-black text-slate-900 block mt-1 font-mono">{deliveryLogs.length}</span>
+              <p className="text-[10px] text-slate-500 font-bold mt-1">مسجلة بالأرشيف التلقائي</p>
+              <Truck size={40} className="absolute -bottom-2 -left-2 text-slate-100" />
+            </div>
+
+            <div className="bg-emerald-50/50 p-5 rounded-[16px] border border-emerald-100 shadow-sm relative overflow-hidden">
+              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider block">مستلم بالكامل ✅</span>
+              <span className="text-2xl font-black text-emerald-700 block mt-1 font-mono">
+                {deliveryLogs.filter(l => l.deliveryStatus === 'مستلم بالكامل').length}
+              </span>
+              <p className="text-[10px] text-emerald-600 font-bold mt-1">بدون أي ملاحظات أو نواقص</p>
+              <CheckCircle2 size={40} className="absolute -bottom-2 -left-2 text-emerald-100" />
+            </div>
+
+            <div className="bg-amber-50/50 p-5 rounded-[16px] border border-amber-100 shadow-sm relative overflow-hidden">
+              <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider block">تسليمات بها نواقص ⚠️</span>
+              <span className="text-2xl font-black text-amber-700 block mt-1 font-mono">
+                {deliveryLogs.filter(l => l.deliveryStatus === 'مستلم بنواقص' || l.deliveryStatus === 'قيد استكمال النواقص').length}
+              </span>
+              <p className="text-[10px] text-amber-600 font-bold mt-1">قيد الاستكمال والتوريد</p>
+              <AlertCircle size={40} className="absolute -bottom-2 -left-2 text-amber-100" />
+            </div>
+
+            <div className="bg-rose-50/50 p-5 rounded-[16px] border border-rose-100 shadow-sm relative overflow-hidden">
+              <span className="text-[10px] font-black text-rose-600 uppercase tracking-wider block">مرتجعات (جزئي/كامل) 🔄</span>
+              <span className="text-2xl font-black text-rose-700 block mt-1 font-mono">
+                {deliveryLogs.filter(l => l.deliveryStatus === 'مرتجع جزئي' || l.deliveryStatus === 'مرتجع بالكامل' || l.deliveryStatus === 'قيد معالجة المرتجع').length}
+              </span>
+              <p className="text-[10px] text-rose-600 font-bold mt-1">قيد الصيانة والتصنيع</p>
+              <RotateCcw size={40} className="absolute -bottom-2 -left-2 text-rose-100" />
+            </div>
+          </div>
+
+          {/* Search & Filtering Control Panel */}
+          <Card className="border-none shadow-sm">
+            <CardHeader className="bg-slate-50/50 py-3 px-6">
+              <CardTitle className="text-xs font-black text-slate-700 flex items-center gap-2">
+                <Search size={15} className="text-amber-500" /> البحث المتقدم والفرز في سجل التسليمات والنواقص
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase">البحث الشامل:</label>
+                  <div className="relative">
+                    <Search size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="رقم الأوردر، العميل، الغرفة، السائق، سبب المرتجع..."
+                      value={deliverySearchTerm}
+                      onChange={(e) => setDeliverySearchTerm(e.target.value)}
+                      className="w-full pr-10 pl-3 h-10 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase">تصفية حسب الحالة:</label>
+                  <select
+                    value={deliveryStatusFilter}
+                    onChange={(e) => setDeliveryStatusFilter(e.target.value)}
+                    className="w-full px-3 h-10 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  >
+                    <option value="الكل">جميع الحالات</option>
+                    <option value="مستلم بالكامل">مستلم بالكامل ✅</option>
+                    <option value="مستلم بنواقص">مستلم بنواقص ⚠️</option>
+                    <option value="قيد استكمال النواقص">قيد استكمال النواقص ⏳</option>
+                    <option value="مرتجع جزئي">مرتجع جزئي 🔄</option>
+                    <option value="مرتجع بالكامل">مرتجع بالكامل ❌</option>
+                    <option value="قيد معالجة المرتجع">قيد معالجة المرتجع 🛠️</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase">من تاريخ التسليم:</label>
+                  <input
+                    type="date"
+                    value={deliveredLogDateFrom}
+                    onChange={(e) => setDeliveredLogDateFrom(e.target.value)}
+                    className="w-full px-3 h-10 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase">إلى تاريخ التسليم:</label>
+                  <input
+                    type="date"
+                    value={deliveredLogDateTo}
+                    onChange={(e) => setDeliveredLogDateTo(e.target.value)}
+                    className="w-full px-3 h-10 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 bg-white"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivered Orders Table / Grid */}
+          <Card className="border-none shadow-sm">
+            <CardHeader className="bg-slate-50/50 py-3 px-6 flex justify-between items-center">
+              <CardTitle className="text-xs font-black text-slate-700">
+                سجل شحنات التسليمات التفصيلي ({
+                  deliveryLogs.filter(log => {
+                    const matchSearch = 
+                      !deliverySearchTerm || 
+                      (log.orderNumber || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                      (log.customerName || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                      (log.roomCode || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                      (log.driverName || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                      (log.shortagesDescription || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                      (log.returnsDescription || '').toLowerCase().includes(deliverySearchTerm.toLowerCase());
+                    const matchStatus = deliveryStatusFilter === 'الكل' || log.deliveryStatus === deliveryStatusFilter;
+                    const matchDateFrom = !deliveredLogDateFrom || (log.deliveryDate >= deliveredLogDateFrom);
+                    const matchDateTo = !deliveredLogDateTo || (log.deliveryDate <= deliveredLogDateTo);
+                    return matchSearch && matchStatus && matchDateFrom && matchDateTo;
+                  }).length
+                })
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+              {deliveryLogs.length === 0 ? (
+                <div className="text-center py-12 px-4 space-y-3">
+                  <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-500">
+                    <Truck size={32} />
+                  </div>
+                  <h3 className="text-base font-black text-slate-800">لا توجد تسليمات مسجلة بعد</h3>
+                  <p className="text-xs text-slate-500 font-bold max-w-md mx-auto">
+                    بمجرد تحويل أوردر في خيار الإنتاج أو إضافة بيان حمولة إلى "سلم للعميل" سيتم تسجيله تلقائياً هنا في الأرشيف للبحث والتعديل وإدارة النواقص والمرتجعات.
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-right text-xs">
+                  <thead className="bg-slate-100/70 text-slate-600 font-black border-b border-slate-200">
+                    <tr>
+                      <th className="p-3.5">رقم الأمر والعميل</th>
+                      <th className="p-3.5">اسم البند / الغرفة</th>
+                      <th className="p-3.5">تاريخ التسليم والسائق</th>
+                      <th className="p-3.5">حالة التسليم</th>
+                      <th className="p-3.5">تفاصيل النواقص والمرتجعات</th>
+                      <th className="p-3.5 text-center">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-bold text-slate-700">
+                    {deliveryLogs
+                      .filter(log => {
+                        const matchSearch = 
+                          !deliverySearchTerm || 
+                          (log.orderNumber || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                          (log.customerName || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                          (log.roomCode || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                          (log.driverName || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                          (log.shortagesDescription || '').toLowerCase().includes(deliverySearchTerm.toLowerCase()) ||
+                          (log.returnsDescription || '').toLowerCase().includes(deliverySearchTerm.toLowerCase());
+                        const matchStatus = deliveryStatusFilter === 'الكل' || log.deliveryStatus === deliveryStatusFilter;
+                        const matchDateFrom = !deliveredLogDateFrom || (log.deliveryDate >= deliveredLogDateFrom);
+                        const matchDateTo = !deliveredLogDateTo || (log.deliveryDate <= deliveredLogDateTo);
+                        return matchSearch && matchStatus && matchDateFrom && matchDateTo;
+                      })
+                      .sort((a,b) => (b.deliveryDate || '').localeCompare(a.deliveryDate || ''))
+                      .map(log => {
+                        return (
+                          <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="p-3.5">
+                              <span className="font-black text-indigo-900 block font-mono text-sm">#{log.orderNumber || 'غير محدد'}</span>
+                              <span className="text-slate-800 font-black block mt-0.5">{log.customerName || 'عميل عام'}</span>
+                              {log.customerPhone && <span className="text-[10px] text-slate-400 font-mono block">{log.customerPhone}</span>}
+                            </td>
+                            <td className="p-3.5">
+                              <span className="font-black text-slate-800 bg-slate-100 px-2 py-1 rounded-lg inline-block">{log.roomCode}</span>
+                            </td>
+                            <td className="p-3.5">
+                              <span className="text-slate-800 font-black block">{log.deliveryDate || '-'}</span>
+                              <span className="text-[11px] text-slate-500 font-bold block mt-0.5">🚚 {log.driverName || 'سائق غير مسجل'} ({log.carNumber || '-'})</span>
+                            </td>
+                            <td className="p-3.5">
+                              {log.deliveryStatus === 'مستلم بالكامل' && (
+                                <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-black px-2.5 py-1 rounded-lg">
+                                  <CheckCircle2 size={13} /> مستلم بالكامل ✅
+                                </span>
+                              )}
+                              {(log.deliveryStatus === 'مستلم بنواقص' || log.deliveryStatus === 'قيد استكمال النواقص') && (
+                                <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-black px-2.5 py-1 rounded-lg">
+                                  <AlertCircle size={13} /> {log.deliveryStatus} ⚠️
+                                </span>
+                              )}
+                              {(log.deliveryStatus === 'مرتجع جزئي' || log.deliveryStatus === 'مرتجع بالكامل' || log.deliveryStatus === 'قيد معالجة المرتجع') && (
+                                <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-black px-2.5 py-1 rounded-lg">
+                                  <RotateCcw size={13} /> {log.deliveryStatus} 🔄
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3.5 max-w-[280px]">
+                              {log.shortagesDescription && (
+                                <div className="text-[11px] text-amber-900 bg-amber-50/80 p-1.5 rounded-lg border border-amber-200 mb-1">
+                                  <span className="font-black block">⚠️ النواقص:</span>
+                                  <p className="truncate">{log.shortagesDescription}</p>
+                                </div>
+                              )}
+                              {log.returnsDescription && (
+                                <div className="text-[11px] text-rose-900 bg-rose-50/80 p-1.5 rounded-lg border border-rose-200">
+                                  <span className="font-black block">🔄 المرتجعات:</span>
+                                  <p className="truncate">{log.returnsDescription}</p>
+                                </div>
+                              )}
+                              {!log.shortagesDescription && !log.returnsDescription && (
+                                <span className="text-[11px] text-slate-400 font-bold">لا توجد ملاحظات أو نواقص</span>
+                              )}
+                            </td>
+                            <td className="p-3.5 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingDeliveryLog({ ...log, syncOriginalOrder: true });
+                                    setShowEditDeliveryModal(true);
+                                  }}
+                                  className="h-8 px-2.5 text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                                  title="تعديل النواقص والمرتجعات"
+                                >
+                                  <Edit2 size={13} className="ml-1" /> تعديل / نواقص
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedDeliveryLogForPrint(log);
+                                    setTimeout(() => window.print(), 300);
+                                  }}
+                                  className="h-8 px-2 text-xs border-slate-200 text-slate-700 hover:bg-slate-50"
+                                  title="طباعة محضر الاستلام"
+                                >
+                                  <Printer size={13} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteDeliveryLog(log.id)}
+                                  className="h-8 px-2 text-rose-600 hover:bg-rose-50"
+                                  title="حذف السجل"
+                                >
+                                  <Trash2 size={13} />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Modal: Edit Delivery / Register Returns & Shortages */}
+          {showEditDeliveryModal && editingDeliveryLog && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+              <div className="bg-white rounded-[20px] max-w-2xl w-full p-6 space-y-5 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center border-b pb-3">
+                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <Truck className="text-amber-500" size={22} />
+                    {editingDeliveryLog.id ? 'تعديل أوردر التسليم وتسجيل النواقص والمرتجعات' : 'إضافة سجل تسليم/مرتجع جديد'}
+                  </h3>
+                  <button 
+                    onClick={() => { setShowEditDeliveryModal(false); setEditingDeliveryLog(null); }} 
+                    className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold">
+                  <div className="space-y-1">
+                    <label className="text-slate-600">رقم أمر الشغيل (الأوردر):</label>
+                    <input
+                      type="text"
+                      value={editingDeliveryLog.orderNumber || ''}
+                      onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, orderNumber: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold"
+                      placeholder="مثال: ORD-104"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-600">اسم العميل:</label>
+                    <input
+                      type="text"
+                      value={editingDeliveryLog.customerName || ''}
+                      onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, customerName: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold"
+                      placeholder="اسم العميل الكامل"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-600">اسم البند / الغرفة:</label>
+                    <input
+                      type="text"
+                      value={editingDeliveryLog.roomCode || ''}
+                      onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, roomCode: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold"
+                      placeholder="مثال: غرفة نوم رئيسية / سفرة"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-600">تاريخ التسليم الفعلي:</label>
+                    <input
+                      type="date"
+                      value={editingDeliveryLog.deliveryDate || new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, deliveryDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-600">اسم السائق / مسؤول النقل:</label>
+                    <input
+                      type="text"
+                      value={editingDeliveryLog.driverName || ''}
+                      onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, driverName: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold"
+                      placeholder="اسم السائق"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-600">رقم السيارة / نوع اللوحة:</label>
+                    <input
+                      type="text"
+                      value={editingDeliveryLog.carNumber || ''}
+                      onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, carNumber: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl font-bold"
+                      placeholder="رقم وتفاصيل السيارة"
+                    />
+                  </div>
+                </div>
+
+                {/* Delivery Status Dropdown */}
+                <div className="space-y-1 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                  <label className="text-xs font-black text-slate-800 block">حالة التسليم الميداني:</label>
+                  <select
+                    value={editingDeliveryLog.deliveryStatus || 'مستلم بالكامل'}
+                    onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, deliveryStatus: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl font-black text-slate-800 bg-white"
+                  >
+                    <option value="مستلم بالكامل">مستلم بالكامل ✅ (تسليم سليم)</option>
+                    <option value="مستلم بنواقص">مستلم بنواقص ⚠️ (تم التسليم مع وجود قطع ناقصة)</option>
+                    <option value="قيد استكمال النواقص">قيد استكمال النواقص ⏳ (الورشة تجهز النواقص)</option>
+                    <option value="مرتجع جزئي">مرتجع جزئي 🔄 (رجوع جزء من الطلب)</option>
+                    <option value="مرتجع بالكامل">مرتجع بالكامل ❌ (رفض الاستلام ورجوع الشحنة)</option>
+                    <option value="قيد معالجة المرتجع">قيد معالجة المرتجع 🛠️ (صيانة أو تعديل المرتجع)</option>
+                  </select>
+                </div>
+
+                {/* Shortages Section */}
+                <div className="space-y-2 bg-amber-50/70 p-4 rounded-xl border border-amber-200 text-xs">
+                  <span className="font-black text-amber-900 flex items-center gap-1.5">
+                    <AlertCircle size={15} /> تفاصيل النواقص في الأوردر (إن وجدت):
+                  </span>
+                  <textarea
+                    value={editingDeliveryLog.shortagesDescription || ''}
+                    onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, shortagesDescription: e.target.value }))}
+                    placeholder="اكتب أياً من الأجزاء أو القطع أو الاكسسوارات الناقصة في الأوردر..."
+                    className="w-full p-2.5 border border-amber-300 rounded-xl font-bold text-slate-800 bg-white h-20 outline-none"
+                  />
+                </div>
+
+                {/* Returns Section */}
+                <div className="space-y-2 bg-rose-50/70 p-4 rounded-xl border border-rose-200 text-xs">
+                  <span className="font-black text-rose-900 flex items-center gap-1.5">
+                    <RotateCcw size={15} /> تفاصيل المرتجعات وأسباب الإرجاع:
+                  </span>
+                  <textarea
+                    value={editingDeliveryLog.returnsDescription || ''}
+                    onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, returnsDescription: e.target.value }))}
+                    placeholder="اذكر أسباب رجوع القطع (مثال: عيب دهان، تلف في النقل، عدم مطابقة للمقاس المطلوبة...)"
+                    className="w-full p-2.5 border border-rose-300 rounded-xl font-bold text-slate-800 bg-white h-20 outline-none"
+                  />
+                </div>
+
+                {/* Resolution Action */}
+                <div className="space-y-1 text-xs font-bold">
+                  <label className="text-slate-700">الإجراء المتخذ لمعالجة المرتجع / استكمال النواقص:</label>
+                  <input
+                    type="text"
+                    value={editingDeliveryLog.resolutionAction || ''}
+                    onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, resolutionAction: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl"
+                    placeholder="مثال: تم إرسال القطع لورشة النجارة لإعادة التصنيع وتوريدها خلال 3 أيام"
+                  />
+                </div>
+
+                {/* Sync option */}
+                <div className="flex items-center gap-2 pt-2 border-t text-xs font-bold text-slate-700">
+                  <input
+                    type="checkbox"
+                    id="syncOrder"
+                    checked={editingDeliveryLog.syncOriginalOrder ?? true}
+                    onChange={(e) => setEditingDeliveryLog((prev: any) => ({ ...prev, syncOriginalOrder: e.target.checked }))}
+                    className="w-4 h-4 accent-amber-600 rounded"
+                  />
+                  <label htmlFor="syncOrder" className="cursor-pointer">
+                    تحديث حالة الأوردر الأصلي في جدول التشغيل وخط الإنتاج تلقائياً
+                  </label>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => { setShowEditDeliveryModal(false); setEditingDeliveryLog(null); }}
+                  >
+                    إلغاء
+                  </Button>
+                  <Button
+                    onClick={() => handleSaveDeliveryLog(editingDeliveryLog)}
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-black px-6"
+                  >
+                    حفظ التعديل والنواقص
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Printable Delivery & Return Slip */}
+          {selectedDeliveryLogForPrint && (
+            <div className="hidden print:block p-8 bg-white text-black font-sans dir-rtl" dir="rtl">
+              <div className="border-2 border-black p-6 space-y-6">
+                {/* Header */}
+                <div className="flex justify-between items-center border-b-2 border-black pb-4">
+                  <div>
+                    <h1 className="text-2xl font-black">محضر تسليم واستلام موبيليا ونواقص ومرتجعات ✨</h1>
+                    <p className="text-sm font-bold mt-1">سند معتمد للتسليمات والمعاينة الميدانية</p>
+                  </div>
+                  <div className="text-left font-mono font-bold text-sm">
+                    <div>رقم المحضر: REC-LOG-{selectedDeliveryLogForPrint.id?.slice(0, 6)}</div>
+                    <div>تاريخ التسليم: {selectedDeliveryLogForPrint.deliveryDate}</div>
+                  </div>
+                </div>
+
+                {/* Order & Customer details */}
+                <div className="grid grid-cols-2 gap-4 text-sm font-bold border p-4 bg-slate-50">
+                  <div><strong>رقم الأوردر:</strong> #{selectedDeliveryLogForPrint.orderNumber}</div>
+                  <div><strong>اسم العميل:</strong> {selectedDeliveryLogForPrint.customerName}</div>
+                  <div><strong>هاتف العميل:</strong> {selectedDeliveryLogForPrint.customerPhone || '-'}</div>
+                  <div><strong>اسم البند / الغرفة:</strong> {selectedDeliveryLogForPrint.roomCode}</div>
+                  <div><strong>اسم السائق:</strong> {selectedDeliveryLogForPrint.driverName || 'غير مسجل'}</div>
+                  <div><strong>رقم السيارة:</strong> {selectedDeliveryLogForPrint.carNumber || '-'}</div>
+                  <div className="col-span-2"><strong>حالة التسليم:</strong> {selectedDeliveryLogForPrint.deliveryStatus}</div>
+                </div>
+
+                {/* Shortages Box */}
+                {selectedDeliveryLogForPrint.shortagesDescription && (
+                  <div className="border-2 border-dashed border-black p-4 bg-amber-50/50">
+                    <h3 className="font-black text-base underline mb-1">⚠️ بيان النواقص المسجلة بالتعهد:</h3>
+                    <p className="text-sm font-bold whitespace-pre-line">{selectedDeliveryLogForPrint.shortagesDescription}</p>
+                  </div>
+                )}
+
+                {/* Returns Box */}
+                {selectedDeliveryLogForPrint.returnsDescription && (
+                  <div className="border-2 border-dashed border-black p-4 bg-rose-50/50">
+                    <h3 className="font-black text-base underline mb-1">🔄 بيان المرتجعات وأسباب الإرجاع:</h3>
+                    <p className="text-sm font-bold whitespace-pre-line">{selectedDeliveryLogForPrint.returnsDescription}</p>
+                  </div>
+                )}
+
+                {/* Signatures */}
+                <div className="grid grid-cols-2 gap-8 pt-12 text-center text-sm font-black border-t-2 border-black">
+                  <div>
+                    <p className="mb-12">توقيع السائق والمسؤول بالاستلام:</p>
+                    <p className="border-t border-black pt-1 w-48 mx-auto">...........................................</p>
+                  </div>
+                  <div>
+                    <p className="mb-12">توقيع العميل بالمعاينة والموافقة:</p>
+                    <p className="border-t border-black pt-1 w-48 mx-auto">...........................................</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================== */}
+      {/* 4. Multi-Client & Multi-Order Shipping Manifest Modal */}
       {/* ========================================== */}
       {showManifestAddModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" dir="rtl">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto border-none shadow-2xl">
-            <CardHeader className="border-b border-slate-100 pb-4 sticky top-0 bg-white z-10 flex flex-row items-center justify-between">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200" dir="rtl">
+          <Card className="w-full max-w-4xl max-h-[92vh] flex flex-col border-none shadow-2xl rounded-2xl bg-white overflow-hidden">
+            {/* Modal Header */}
+            <CardHeader className="border-b border-slate-100 pb-3 sticky top-0 bg-white z-10 flex flex-row items-center justify-between shrink-0 px-6 py-4">
               <div>
-                <CardTitle className="text-sm font-black text-slate-800">تجهيز وتخطيط حمولة سيارة جديدة 🚚</CardTitle>
-                <CardDescription className="text-xs text-slate-500 font-bold mt-0.5">اختر البنود التامة من المخزن واكتب تفاصيل السائق لإصدار بيان الحمولة المعتمد.</CardDescription>
+                <CardTitle className="text-base font-black text-slate-800 flex items-center gap-2">
+                  <span>تجهيز حمولة سيارة شحن مجمعة 🚚</span>
+                  <span className="bg-indigo-50 text-indigo-700 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-indigo-100">
+                    عدة عملاء وأوردرات
+                  </span>
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-500 font-bold mt-1">
+                  اختر البنود والغرف التامة من المخزن لأي عدد من العملاء والأوردرات، وسجل بيانات السائق لطباعة بيان الحمولة المعتمد.
+                </CardDescription>
               </div>
-              <Button variant="ghost" onClick={() => setShowManifestAddModal(false)} className="text-slate-500 font-black text-xs">
+              <Button variant="ghost" onClick={() => setShowManifestAddModal(false)} className="text-slate-400 hover:text-slate-700 font-black text-xs">
                 إغلاق ×
               </Button>
             </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              {/* Form inputs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500">اسم سائق السيارة المندوب:</label>
+
+            <CardContent className="p-6 space-y-5 overflow-y-auto flex-1">
+              {/* Transport & Driver Info Form */}
+              <div className="bg-slate-50/80 border border-slate-100 p-4 rounded-2xl space-y-3">
+                <h4 className="text-xs font-black text-slate-800 flex items-center gap-1.5 border-b border-slate-200/60 pb-2">
+                  <span>📝 بيانات السائق والسيارة والشحن:</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500">اسم سائق السيارة المندوب:</label>
+                    <input
+                      type="text"
+                      required
+                      value={manifestForm.driverName}
+                      onChange={(e) => setManifestForm(prev => ({ ...prev, driverName: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-sky-500 outline-none"
+                      placeholder="اسم السائق كاملاً"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500">رقم لوحة السيارة ونوعها:</label>
+                    <input
+                      type="text"
+                      required
+                      value={manifestForm.carNumber}
+                      onChange={(e) => setManifestForm(prev => ({ ...prev, carNumber: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-sky-500 outline-none"
+                      placeholder="مثال: د ن ر 8569 / جامبو"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500">مسؤول التحميل بالمستودع:</label>
+                    <input
+                      type="text"
+                      value={manifestForm.loaderName}
+                      onChange={(e) => setManifestForm(prev => ({ ...prev, loaderName: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-sky-500 outline-none"
+                      placeholder="أمين المستودع"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500">تاريخ الشحن الفعلي:</label>
+                    <input
+                      type="date"
+                      value={manifestForm.date}
+                      onChange={(e) => setManifestForm(prev => ({ ...prev, date: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-sky-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 pt-1">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-black text-slate-500">خط السير والوجهة والملاحظات:</label>
+                    <button
+                      type="button"
+                      onClick={handleAutoGenerateRouteNotes}
+                      className="text-[10px] font-black text-sky-600 hover:text-sky-800 flex items-center gap-1"
+                    >
+                      ✨ توليد تلقائي لخط السير بناءً على البنود المحددة
+                    </button>
+                  </div>
                   <input
                     type="text"
-                    required
-                    value={manifestForm.driverName}
-                    onChange={(e) => setManifestForm(prev => ({ ...prev, driverName: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
-                    placeholder="اكتب اسم السائق كاملاً"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500">رقم لوحة السيارة ونوعها:</label>
-                  <input
-                    type="text"
-                    required
-                    value={manifestForm.carNumber}
-                    onChange={(e) => setManifestForm(prev => ({ ...prev, carNumber: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
-                    placeholder="مثال: د ن ر 8569 / ربع نقل"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500">اسم أمين المخزن / مسؤول التحميل:</label>
-                  <input
-                    type="text"
-                    value={manifestForm.loaderName}
-                    onChange={(e) => setManifestForm(prev => ({ ...prev, loaderName: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
-                    placeholder="أمين مستودع غرف الأثاث"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500">تاريخ الشحن الفعلي:</label>
-                  <input
-                    type="date"
-                    value={manifestForm.date}
-                    onChange={(e) => setManifestForm(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
+                    value={manifestForm.notes}
+                    onChange={(e) => setManifestForm(prev => ({ ...prev, notes: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:ring-2 focus:ring-sky-500 outline-none"
+                    placeholder="مثال: خط سير شحنة محافظة المنيا والمعرض الرئيسي"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-500">ملاحظات ووجهة الشحن (المعرض/محافظة العميل):</label>
-                <input
-                  type="text"
-                  value={manifestForm.notes}
-                  onChange={(e) => setManifestForm(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold"
-                  placeholder="مثال: شحنة محافظة المنيا - معرض الشرفاء الرئيسي"
-                />
-              </div>
+              {/* Selection Control Panel (Search, Filters & Bulk Actions) */}
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-2 justify-between items-stretch sm:items-center">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={manifestSearchTerm}
+                      onChange={(e) => setManifestSearchTerm(e.target.value)}
+                      placeholder="🔍 ابحث باسم العميل، رقم الأوردر، أو الغرفة..."
+                      className="w-full pl-3 pr-8 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white"
+                    />
+                  </div>
 
-              {/* Select items list */}
-              <div className="space-y-2 border border-slate-100 p-4 rounded-xl bg-slate-50">
-                <h4 className="text-xs font-black text-slate-700">📋 حدد البنود الجاهزة للتحميل (منتجات تامة في المخزن):</h4>
-                
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                  {productionRooms.length === 0 ? (
-                    <p className="text-[11px] text-slate-400 font-bold text-center py-4">لا توجد غرف أو بنود نشطة مسجلة حالياً بالخطوط.</p>
-                  ) : (
-                    productionRooms.map(room => {
-                      const key = `${room.orderId}-${room.roomIndex}`;
-                      const isSelected = manifestForm.selectedRoomKeys.includes(key);
-                      return (
-                        <div
-                          key={key}
-                          onClick={() => toggleRoomLoadingSelection(key)}
-                          className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between text-xs font-bold ${
-                            isSelected 
-                              ? 'bg-sky-50 border-sky-300 text-sky-950 shadow-sm' 
-                              : 'bg-white border-slate-100 hover:bg-slate-50 text-slate-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              readOnly
-                              className="accent-sky-600 w-4 h-4"
-                            />
-                            <div>
-                              <span className="font-black block">{room.customerName} - {room.roomCode}</span>
-                              <span className="text-[10px] text-slate-400 block font-bold font-mono">أمر شغل رقم: #{room.orderNumber} | الحالة بالورشة: {room.status}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
+                  <div className="flex gap-2 items-center flex-wrap">
+                    <select
+                      value={manifestClientFilter}
+                      onChange={(e) => setManifestClientFilter(e.target.value)}
+                      className="px-2.5 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white"
+                    >
+                      <option value="الكل">جميع العملاء ({manifestAvailableClients.length})</option>
+                      {manifestAvailableClients.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={manifestStatusFilter}
+                      onChange={(e) => setManifestStatusFilter(e.target.value)}
+                      className="px-2.5 py-2 border border-slate-200 rounded-xl text-xs font-bold bg-white"
+                    >
+                      <option value="الكل">جميع حالات التشطيب</option>
+                      <option value="جاهز للتسليم">جاهز للتسليم</option>
+                      <option value="في المخزن تام التشطيب">في المخزن تام التشطيب</option>
+                      <option value="كابينة الدهان والدق">كابينة الدهان</option>
+                    </select>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSelectAllReadyRooms}
+                      className="text-[10px] font-black border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-8"
+                    >
+                      ✅ تحديد الجاهز للتسليم
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setManifestForm(prev => ({ ...prev, selectedRoomKeys: [] }))}
+                      className="text-[10px] font-black text-rose-600 hover:bg-rose-50 h-8"
+                    >
+                      إلغاء التحديد
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Selection Live Counter Summary Banner */}
+                <div className="bg-gradient-to-r from-sky-50 via-indigo-50/40 to-slate-50 border border-sky-100 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-1.5 font-black text-sky-900">
+                      <Truck size={16} className="text-sky-600" />
+                      <span>محمل بالحملة:</span>
+                      <span className="bg-white border border-sky-200 px-2.5 py-0.5 rounded-full font-mono text-sm text-sky-700">
+                        {manifestSelectionSummary.totalCount} بند/غرفة
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 font-bold text-slate-700">
+                      <span>👥 العملاء:</span>
+                      <span className="font-black text-slate-900 bg-white/80 px-2 py-0.5 rounded-lg border border-slate-200">
+                        {manifestSelectionSummary.clientCount} عميل
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 font-bold text-slate-700">
+                      <span>📄 أوردرات التشغيل:</span>
+                      <span className="font-black text-slate-900 bg-white/80 px-2 py-0.5 rounded-lg border border-slate-200">
+                        {manifestSelectionSummary.orderCount} أمر
+                      </span>
+                    </div>
+                  </div>
+
+                  {manifestSelectionSummary.clients.length > 0 && (
+                    <div className="flex items-center gap-1 overflow-x-auto max-w-full py-1">
+                      {manifestSelectionSummary.clients.map(clientName => (
+                        <span key={clientName} className="bg-amber-100/80 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-md border border-amber-200 flex items-center gap-1 shrink-0">
+                          {clientName}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* Submit / Cancel */}
-              <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
-                <Button variant="ghost" onClick={() => setShowManifestAddModal(false)}>إلغاء</Button>
-                <Button onClick={saveLoadingManifest} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                  💾 حفظ بيان الحمولة وبدء الطباعة الفورية
+              {/* Grouped Tree View (Customer -> Orders -> Rooms) */}
+              <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+                {Object.keys(groupedManifestRooms).length === 0 ? (
+                  <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <p className="text-slate-400 font-bold text-xs">لا توجد بنود مطابقة لفلاتر البحث المحددة.</p>
+                  </div>
+                ) : (
+                  Object.entries(groupedManifestRooms).map(([custName, ordersMap]) => {
+                    const custRoomsList = productionRooms.filter(r => r.customerName === custName);
+                    const custKeys = custRoomsList.map(r => `${r.orderId}-${r.roomIndex}`);
+                    const isAllCustSelected = custKeys.length > 0 && custKeys.every(k => manifestForm.selectedRoomKeys.includes(k));
+                    const isSomeCustSelected = custKeys.some(k => manifestForm.selectedRoomKeys.includes(k));
+
+                    return (
+                      <div key={custName} className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+                        {/* Customer Header Bar */}
+                        <div className="bg-slate-100/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="p-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-black">👤 العميل</span>
+                            <h4 className="font-black text-slate-900 text-xs">{custName}</h4>
+                            <span className="text-[10px] text-slate-500 font-bold">
+                              ({custRoomsList.length} غرف مسجلة)
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCustomerManifestRooms(custName)}
+                            className={`text-[10px] font-black px-3 py-1 rounded-xl transition-all border ${
+                              isAllCustSelected
+                                ? 'bg-sky-600 text-white border-sky-600'
+                                : isSomeCustSelected
+                                ? 'bg-sky-100 text-sky-800 border-sky-300'
+                                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {isAllCustSelected ? 'إلغاء تحديد العميل بالكامل ✓' : 'تحديد كل أوردرات العميل ➕'}
+                          </button>
+                        </div>
+
+                        {/* Orders List inside this customer */}
+                        <div className="p-3 space-y-3 bg-slate-50/30">
+                          {Object.entries(ordersMap).map(([orderId, orderData]) => {
+                            const orderKeys = orderData.rooms.map(r => `${r.orderId}-${r.roomIndex}`);
+                            const isAllOrderSelected = orderKeys.length > 0 && orderKeys.every(k => manifestForm.selectedRoomKeys.includes(k));
+
+                            return (
+                              <div key={orderId} className="border border-slate-100 rounded-xl bg-white p-3 space-y-2">
+                                {/* Order Subheader */}
+                                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                      أمر رقم #{orderData.orderNumber}
+                                    </span>
+                                    {orderData.deliveryDate && (
+                                      <span className="text-[10px] text-slate-400 font-bold">
+                                        تاريخ التسليم: {orderData.deliveryDate}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleOrderManifestRooms(orderId)}
+                                    className={`text-[9px] font-black px-2.5 py-0.5 rounded-lg border transition-all ${
+                                      isAllOrderSelected
+                                        ? 'bg-indigo-600 text-white border-indigo-600'
+                                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                                    }`}
+                                  >
+                                    {isAllOrderSelected ? 'تحديد الكل بـالأمر ✓' : 'تحديد كل غرف الأوردر ➕'}
+                                  </button>
+                                </div>
+
+                                {/* Rooms list in this order */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                  {orderData.rooms.map(room => {
+                                    const roomKey = `${room.orderId}-${room.roomIndex}`;
+                                    const isSelected = manifestForm.selectedRoomKeys.includes(roomKey);
+
+                                    return (
+                                      <div
+                                        key={roomKey}
+                                        onClick={() => toggleRoomLoadingSelection(roomKey)}
+                                        className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-2 text-xs font-bold ${
+                                          isSelected
+                                            ? 'bg-sky-50 border-sky-300 text-sky-950 shadow-sm'
+                                            : 'bg-white border-slate-200 hover:border-slate-300 text-slate-700'
+                                        }`}
+                                      >
+                                        <div className="flex items-start gap-2.5">
+                                          <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            readOnly
+                                            className="accent-sky-600 w-4 h-4 mt-0.5"
+                                          />
+                                          <div>
+                                            <span className="font-black text-slate-800 block text-xs">{room.roomCode}</span>
+                                            <span className="text-[10px] text-slate-500 font-bold block line-clamp-1 mt-0.5">
+                                              {room.generalSpecs || room.dimensionsAndStructure || 'بدون تفاصيل'}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 border ${
+                                          room.status === 'جاهز للتسليم' || room.status === 'في المخزن تام التشطيب'
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                                        }`}>
+                                          {room.status}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Submit / Cancel Footer */}
+              <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+                <Button variant="ghost" onClick={() => setShowManifestAddModal(false)} className="text-slate-500 font-bold text-xs">
+                  إلغاء
+                </Button>
+
+                <Button onClick={saveLoadingManifest} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-6 shadow-emerald-50">
+                  💾 حفظ بيان الحمولة المجمعة وبدء الطباعة 🖨️
                 </Button>
               </div>
             </CardContent>
@@ -4274,6 +5302,13 @@ export function WorkOrdersManager({ customers, profile }: WorkOrdersManagerProps
               <span className="text-slate-500 block">خط السير / الوجهة:</span>
               <span className="text-slate-900 text-sm">{selectedManifestForPrint.notes || '-'}</span>
             </div>
+          </div>
+
+          {/* Multi-Client Manifest Summary Box */}
+          <div className="flex justify-between items-center text-xs font-black border border-black p-2.5 rounded-lg mb-4 bg-slate-100">
+            <div>👥 إجمالي العملاء للحملة: <span className="font-mono font-black text-sm">{selectedManifestForPrint.distinctClients?.length || Array.from(new Set(selectedManifestForPrint.items?.map((i: any) => i.customerName).filter(Boolean))).length}</span> عميل</div>
+            <div>📄 إجمالي الأوامر للحملة: <span className="font-mono font-black text-sm">{selectedManifestForPrint.distinctOrders?.length || Array.from(new Set(selectedManifestForPrint.items?.map((i: any) => i.orderNumber).filter(Boolean))).length}</span> أمر شغل</div>
+            <div>📦 إجمالي الغرف والقطع: <span className="font-mono font-black text-sm">{selectedManifestForPrint.items?.length || 0}</span> بند</div>
           </div>
 
           <h3 className="text-sm font-black text-slate-800 mb-3 border-r-4 border-indigo-500 pr-2">📦 تفاصيل الأثاث والبنود المحملة بالسيارة:</h3>

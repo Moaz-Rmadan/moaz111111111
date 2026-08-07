@@ -18,7 +18,7 @@ import type {
   ProductionJob, JobLabor, JobOtherCost, Waste,
   MaintenanceOrder, Safe, 
   SafeTransaction, SupplierPayment, Payroll, FinancialTransaction, Loan,
-  SalesOrder
+  SalesOrder, TreasuryCustody, CustodySettlementExpense
 } from '../types';
 
 import { InventoryReports } from './InventoryReports';
@@ -45,6 +45,8 @@ interface FinancialReportsProps {
   payrolls?: Payroll[];
   hrTransactions?: FinancialTransaction[];
   loans?: Loan[];
+  custodies?: TreasuryCustody[];
+  settlementExpenses?: CustodySettlementExpense[];
 }
 
 export function FinancialReports({
@@ -65,6 +67,8 @@ export function FinancialReports({
   payrolls = [],
   hrTransactions = [],
   loans = [],
+  custodies = [],
+  settlementExpenses = [],
 }: FinancialReportsProps) {
   // Tabs management
   const [activeReportTab, setActiveReportTab] = useState<
@@ -72,7 +76,7 @@ export function FinancialReports({
   >('dashboard');
 
   // General Ledger States
-  const [ledgerAccount, setLedgerAccount] = useState<'safes' | 'sales' | 'purchases' | 'suppliers' | 'expenses'>('safes');
+  const [ledgerAccount, setLedgerAccount] = useState<'safes' | 'sales' | 'purchases' | 'suppliers' | 'expenses' | 'karim' | 'custodies'>('safes');
   const [ledgerDateFrom, setLedgerDateFrom] = useState('');
   const [ledgerDateTo, setLedgerDateTo] = useState('');
   const [ledgerSearch, setLedgerSearch] = useState('');
@@ -248,6 +252,65 @@ export function FinancialReports({
         reference: 'مصروفات خزينة'
       }));
       rows = [...payRows, ...maintRows, ...generalRows];
+    } else if (ledgerAccount === 'karim') {
+      const karimCustodiesList = custodies.filter(c => 
+        (c.custodianName && c.custodianName.includes('كريم')) || 
+        c.custodianRole === 'إدارة/كريم'
+      );
+      const karimCustodyIds = new Set(karimCustodiesList.map(c => c.id));
+
+      const custodyRows = karimCustodiesList.map(c => ({
+        date: c.date,
+        description: `صرف عهدة مالية تنفيذي إلى كريم النجار (${c.purpose || 'شراء خامات وتغليف'})`,
+        debit: c.amount,
+        credit: 0,
+        reference: 'صرف عهدة'
+      }));
+
+      const settlementRows = settlementExpenses
+        .filter(e => karimCustodyIds.has(e.custodyId))
+        .map(e => ({
+          date: e.date,
+          description: `تصفية عهدة فواتير - ${e.description || e.category} ${e.invoiceNo ? `(فاتورة #${e.invoiceNo})` : ''}`,
+          debit: 0,
+          credit: e.amount,
+          reference: 'تسوية فواتير'
+        }));
+
+      const safeKarimRows = safeTransactions
+        .filter(t => t.description && t.description.includes('كريم') && (t.category === 'مرتجع مصروفات / عهدة' || t.description.includes('استرداد')))
+        .map(t => ({
+          date: t.date,
+          description: t.description,
+          debit: 0,
+          credit: t.amount,
+          reference: 'استرداد متبقي'
+        }));
+
+      rows = [...custodyRows, ...settlementRows, ...safeKarimRows];
+    } else if (ledgerAccount === 'custodies') {
+      const custodiesMap = new Map(custodies.map(c => [c.id, c]));
+
+      const custodyRows = custodies.map(c => ({
+        date: c.date,
+        description: `صرف عهدة إلى (${c.custodianName}) - ${c.purpose}`,
+        debit: c.amount,
+        credit: 0,
+        reference: 'صرف عهدة'
+      }));
+
+      const settlementRows = settlementExpenses.map(e => {
+        const parentCustody = custodiesMap.get(e.custodyId);
+        return {
+          date: e.date,
+          description: `تسوية عهدة [${parentCustody?.custodianName || 'عامة'}]: ${e.description || e.category}`,
+          debit: 0,
+          credit: e.amount,
+          reference: 'تسوية فواتير'
+        };
+      });
+
+      rows = [...custodyRows, ...settlementRows];
     }
 
     // Filter rows by criteria
@@ -259,7 +322,7 @@ export function FinancialReports({
         r.reference.toLowerCase().includes(ledgerSearch.toLowerCase());
       return matchesFrom && matchesTo && matchesSearch;
     }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  }, [ledgerAccount, safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, maintenanceOrders, ledgerDateFrom, ledgerDateTo, ledgerSearch]);
+  }, [ledgerAccount, safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, maintenanceOrders, custodies, settlementExpenses, ledgerDateFrom, ledgerDateTo, ledgerSearch]);
 
   const runningLedgerBalances = useMemo(() => {
     let balance = 0;
@@ -461,6 +524,67 @@ export function FinancialReports({
       }
     });
 
+    // 7. Custody Issuances (صرف العهد التنفيذية - كريم النجار والعهد العامة)
+    custodies.forEach(c => {
+      const docNo = c.id ? c.id.substring(0, 6).toUpperCase() : 'CUST';
+      const isKarim = (c.custodianName && c.custodianName.includes('كريم')) || c.custodianRole === 'إدارة/كريم';
+      const accountName = isKarim ? 'عهدة كريم النجار (أصول متداولة)' : `حساب عهدة: ${c.custodianName}`;
+      const desc = `صرف عهدة نقدية إلى ${c.custodianName} [${c.purpose || 'شراء وتجهيز'}]`;
+
+      rows.push({
+        date: c.date,
+        docNo: docNo,
+        description: desc,
+        debit: c.amount,
+        credit: 0,
+        reference: 'صرف عهدة',
+        account: accountName,
+        createdBy: 'أمين الخزنة'
+      });
+      rows.push({
+        date: c.date,
+        docNo: docNo,
+        description: desc,
+        debit: 0,
+        credit: c.amount,
+        reference: 'صرف عهدة',
+        account: 'حساب الخزينة/الصندوق',
+        createdBy: 'أمين الخزنة'
+      });
+    });
+
+    // 8. Custody Settlements (تسويات العهد والمشتريات)
+    const custodiesMap = new Map(custodies.map(c => [c.id, c]));
+    settlementExpenses.forEach(e => {
+      const parentCustody = custodiesMap.get(e.custodyId);
+      const custodianName = parentCustody?.custodianName || 'عهدة مالية';
+      const isKarim = custodianName.includes('كريم') || parentCustody?.custodianRole === 'إدارة/كريم';
+      const accountName = isKarim ? 'عهدة كريم النجار (أصول متداولة)' : `حساب عهدة: ${custodianName}`;
+      const docNo = e.id ? e.id.substring(0, 6).toUpperCase() : 'SETTLE';
+      const desc = `تسوية فواتير عهدة [${custodianName}]: ${e.description || e.category} ${e.invoiceNo ? `(فاتورة #${e.invoiceNo})` : ''}`;
+
+      rows.push({
+        date: e.date,
+        docNo: docNo,
+        description: desc,
+        debit: e.amount,
+        credit: 0,
+        reference: 'تسوية فواتير',
+        account: e.category ? `مصروفات - ${e.category}` : 'مصروفات شراء خامات وتشغيل',
+        createdBy: 'المحاسب'
+      });
+      rows.push({
+        date: e.date,
+        docNo: docNo,
+        description: desc,
+        debit: 0,
+        credit: e.amount,
+        reference: 'تسوية فواتير',
+        account: accountName,
+        createdBy: 'المحاسب'
+      });
+    });
+
     return rows.sort((a, b) => {
       const dateCompare = (a.date || '').localeCompare(b.date || '');
       if (dateCompare !== 0) return dateCompare;
@@ -468,7 +592,7 @@ export function FinancialReports({
       if (docCompare !== 0) return docCompare;
       return b.debit - a.debit; 
     });
-  }, [safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, loans, items]);
+  }, [safeTransactions, salesOrders, purchases, suppliers, supplierPayments, payrolls, loans, custodies, settlementExpenses, items]);
 
   const filteredJournalRows = useMemo(() => {
     return journalRows.filter(r => {
@@ -586,6 +710,14 @@ export function FinancialReports({
     const loanBalance = loans.filter(l => l.status === 'نشط').reduce((sum, l) => sum + l.remainingAmount, 0);
     const suppliersBalance = suppliers.reduce((sum, s) => sum + s.balance, 0);
 
+    const karimActiveCustodyBalance = custodies
+      .filter(c => ((c.custodianName && c.custodianName.includes('كريم')) || c.custodianRole === 'إدارة/كريم') && c.status !== 'مصفاة بالكامل')
+      .reduce((sum, c) => sum + (c.remainingAmount ?? (c.amount - (c.spentAmount || 0))), 0);
+
+    const otherCustodiesBalance = custodies
+      .filter(c => !((c.custodianName && c.custodianName.includes('كريم')) || c.custodianRole === 'إدارة/كريم') && c.status !== 'مصفاة بالكامل')
+      .reduce((sum, c) => sum + (c.remainingAmount ?? (c.amount - (c.spentAmount || 0))), 0);
+
     const salesTotal = salesOrders.reduce((sum, so) => sum + so.totalAmount, 0);
     const purchasesTotal = purchases.reduce((sum, p) => sum + p.total, 0);
     const payrollExpenses = payrolls.reduce((sum, p) => sum + p.netSalary, 0) + jobLabors.reduce((sum, jl) => sum + jl.total, 0);
@@ -597,9 +729,10 @@ export function FinancialReports({
       safeTransactions.filter(t => t.type === 'مصروفات').reduce((sum, t) => sum + t.amount, 0);
 
     const accounts = [
-      { code: '101', name: 'النقدية وما يعادلها (الصناديق والعهود)', debit: cashBalance > 0 ? cashBalance : 0, credit: cashBalance < 0 ? -cashBalance : 0 },
+      { code: '101', name: 'النقدية وما يعادلها (الصناديق والبنوك)', debit: cashBalance > 0 ? cashBalance : 0, credit: cashBalance < 0 ? -cashBalance : 0 },
       { code: '102', name: 'رصيد ومخزون المواد الخام بأسعار التكلفة', debit: invBalance > 0 ? invBalance : 0, credit: invBalance < 0 ? -invBalance : 0 },
       { code: '103', name: 'ذمم وسلف الموظفين المدينة والنشطة', debit: loanBalance, credit: 0 },
+      { code: '104', name: 'حساب كريم النجار والعهد المالية والتشغيلية القائمة', debit: karimActiveCustodyBalance + otherCustodiesBalance, credit: 0 },
       { code: '201', name: 'أرصدة حسابات الموردين والدائنين', debit: 0, credit: suppliersBalance > 0 ? suppliersBalance : 0 },
       { code: '401', name: 'إيرادات المبيعات والنشاط العام للمعارض', debit: 0, credit: salesTotal },
       { code: '501', name: 'إجمالي المشتريات والمدفوعات اللوجستية للوارد', debit: purchasesTotal, credit: 0 },
@@ -625,7 +758,7 @@ export function FinancialReports({
       totalDebit: finalSumDebit,
       totalCredit: finalSumCredit
     };
-  }, [safeTransactions, purchases, issuances, wasteRecords, items, loans, suppliers, salesOrders, payrolls, jobLabors, maintenanceOrders, jobOtherCosts]);
+  }, [safeTransactions, purchases, issuances, wasteRecords, items, loans, suppliers, salesOrders, payrolls, jobLabors, maintenanceOrders, jobOtherCosts, custodies]);
 
   // ==================== SALES ANALYTICS MEMO ====================
   const salesAnalysisData = useMemo(() => {
@@ -1192,7 +1325,9 @@ export function FinancialReports({
                     onChange={(e) => setLedgerAccount(e.target.value as any)}
                     className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 font-bold text-xs text-slate-800 focus:outline-none"
                   >
-                    <option value="safes">حساب الصندوق والبنوك والعهد</option>
+                    <option value="safes">حساب الصندوق والبنوك والخزائن الرئيسية</option>
+                    <option value="karim">⭐ حساب كريم النجار (العهد والمسؤوليات التنفيذية)</option>
+                    <option value="custodies">حساب كافة العهد المالية للشركة</option>
                     <option value="sales">حساب المبيعات وإيرادات النشاط</option>
                     <option value="purchases">حساب المشتريات والخامات</option>
                     <option value="suppliers">حساب الموردين والدائنين</option>

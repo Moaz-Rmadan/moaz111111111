@@ -1001,3 +1001,32 @@ export interface VehicleExpense {
   createdBy: string;
 }
 
+export interface TreasuryCustody {
+  id: string;
+  custodianName: string; // e.g. سائق، مسؤول مشتريات، كريم المدير
+  custodianRole: 'سائق' | 'مشتريات' | 'إدارة/كريم' | 'عامل' | 'أخرى';
+  employeeId?: string;
+  safeId: string; // الخزنة التي صُرِفت منها العهدة
+  amount: number;
+  spentAmount: number;
+  remainingAmount: number;
+  date: string;
+  purpose: string; // السبب أو الغرض من العهدة
+  status: 'نشطة' | 'مصفاة جزئياً' | 'مصفاة بالكامل';
+  notes?: string;
+  createdAt?: any;
+}
+
+export interface CustodySettlementExpense {
+  id: string;
+  custodyId: string;
+  date: string;
+  category: string;
+  amount: number;
+  description: string;
+  invoiceNo?: string;
+  supplierName?: string;
+  notes?: string;
+  createdAt?: any;
+}
+

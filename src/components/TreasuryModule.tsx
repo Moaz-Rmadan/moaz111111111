@@ -730,17 +730,72 @@ export function TreasuryModule() {
         });
       }
 
-      // 3. Mark custody document as fully settled
+      // 3. Mark custody document as settled (full vs partial)
+      const previousSpent = custody.spentAmount || 0;
+      const newSpentTotal = previousSpent + totalSpent;
+      const netRemaining = Math.max(0, custody.amount - newSpentTotal);
+      const isFullSettlement = netRemaining <= 0 || returnedAmount > 0;
+
       await updateDoc(doc(db, 'treasuryCustodies', custody.id), {
-        spentAmount: totalSpent,
-        remainingAmount: 0,
-        status: 'مصفاة بالكامل'
+        spentAmount: newSpentTotal,
+        remainingAmount: isFullSettlement ? 0 : netRemaining,
+        status: isFullSettlement ? 'مصفاة بالكامل' : 'مصفاة جزئياً'
       });
 
       setShowSettleCustodyModal(null);
       setSettlementItems([{ category: 'شراء خامات', description: '', amount: 0 }]);
     } catch (err) {
       console.error('Error settling custody:', err);
+    }
+  };
+
+  const handleRunKarimAccountTest = async () => {
+    try {
+      const defaultSafeId = safes[0]?.id || 'main_safe';
+      const testDate = new Date().toISOString().split('T')[0];
+
+      // 1. Create Test Custody of 10,000 EGP for Karim
+      const custodyRef = await addDoc(collection(db, 'treasuryCustodies'), {
+        custodianName: 'كريم النجار',
+        custodianRole: 'إدارة/كريم',
+        employeeId: 'EMP-KARIM',
+        safeId: defaultSafeId,
+        amount: 10000,
+        spentAmount: 4000,
+        remainingAmount: 6000,
+        purpose: 'تجربة واختبار شراء خامات وتغليف للمصنع (اختبار تجريبي)',
+        date: testDate,
+        status: 'مصفاة جزئياً',
+        createdAt: serverTimestamp()
+      });
+
+      // 2. Add Test Settlement Expense of 4,000 EGP
+      await addDoc(collection(db, 'custodySettlements'), {
+        custodyId: custodyRef.id,
+        date: testDate,
+        category: 'شراء خامات',
+        amount: 4000,
+        description: 'فاتورة تجريبية - شراء خشبيات وتغليف ورشة المشتريات',
+        invoiceNo: 'TEST-INV-101',
+        createdAt: serverTimestamp()
+      });
+
+      // 3. Record Safe Transaction
+      await addDoc(collection(db, 'safeTransactions'), {
+        safeId: defaultSafeId,
+        type: 'مصروفات',
+        category: 'عهد وتصفية',
+        amount: 10000,
+        description: 'صرف عهدة نقدية تنفيذي إلى كريم النجار (اختبار تجريبي)',
+        date: testDate,
+        createdBy: 'أمين الخزنة',
+        createdAt: serverTimestamp()
+      });
+
+      alert('✅ تم تنفيذ الاختبار التجريبي بنجاح! تم إنشاء عهدة تجريبية بقيمة 10,000 ج.م وتصفية جزئية بقيمة 4,000 ج.م. يمكنك الآن رؤية النتائج المباشرة في كشف حساب كريم والمحاسبة.');
+    } catch (err) {
+      console.error('Error running test for Karim account:', err);
+      alert('حدث خطأ أثناء إجراء الاختبار التجريبي: ' + (err as Error).message);
     }
   };
 
@@ -2006,6 +2061,15 @@ export function TreasuryModule() {
 
               {/* Action Buttons Bar for Karim */}
               <div className="flex items-center gap-2.5 flex-wrap shrink-0 w-full md:w-auto justify-end print:hidden">
+                <button
+                  onClick={handleRunKarimAccountTest}
+                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center gap-1.5 transition-all active:scale-95"
+                  title="إنشاء عهدة وتصفية تجريبية بضغطة زر لاختبار الربط والنتائج الحسابية"
+                >
+                  <Zap size={16} className="fill-current" />
+                  اختبار الحساب تلقائياً (توليد حركة)
+                </button>
+
                 <button
                   onClick={() => {
                     setCustodyForm({

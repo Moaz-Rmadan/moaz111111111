@@ -36,6 +36,7 @@ import type {
   SafeTransaction, SupplierPayment, ProductRecipe, SafeAudit, RecipeItem, SafeSettlement, SettledExpense,
   ByproductSale, Showroom, TransferOrder, ShowroomInventory, Customer, CustomerPayment, FurnitureWorkOrder, WarehouseTransfer,
   Vehicle, VehicleExpense, Department, JobPosition, BankAccount, BankTransaction, BankCheck,
+  TreasuryCustody, CustodySettlementExpense,
   ManufacturingOrder, ProductionRoute, WorkOrder, QualityInspection, PackingRecord, ProductionTracking, 
   ProductionLog, ProductionMachine, ProductionTeam
 } from './types';
@@ -1477,6 +1478,8 @@ function MainApp({
   const [vehicleExpenses, setVehicleExpenses] = useState<VehicleExpense[]>([]);
   const [safes, setSafes] = useState<Safe[]>([]);
   const [safeAudits, setSafeAudits] = useState<SafeAudit[]>([]);
+  const [custodies, setCustodies] = useState<TreasuryCustody[]>([]);
+  const [settlementExpenses, setSettlementExpenses] = useState<CustodySettlementExpense[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -2299,13 +2302,29 @@ function MainApp({
     }
 
     // 33. unsubSafeTransactions
-    if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports) {
+    if (profile.isAdmin || profile.permissions.finance || profile.permissions.reports || profile.permissions.treasury) {
       unsubSafeTransactions = onSnapshot(
         collection(db, 'safeTransactions'),
         (snap) => {
           setSafeTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() } as SafeTransaction)));
         },
         (error) => console.error('Permission error in collection safeTransactions:', error)
+      );
+
+      onSnapshot(
+        query(collection(db, 'treasuryCustodies'), orderBy('date', 'desc')),
+        (snap) => {
+          setCustodies(snap.docs.map(d => ({ id: d.id, ...d.data() } as TreasuryCustody)));
+        },
+        (error) => console.error('Permission error in collection treasuryCustodies:', error)
+      );
+
+      onSnapshot(
+        collection(db, 'custodySettlements'),
+        (snap) => {
+          setSettlementExpenses(snap.docs.map(d => ({ id: d.id, ...d.data() } as CustodySettlementExpense)));
+        },
+        (error) => console.error('Permission error in collection custodySettlements:', error)
       );
     }
 
@@ -3188,6 +3207,8 @@ function MainApp({
             payrolls={payrolls}
             hrTransactions={hrTransactions}
             loans={loans}
+            custodies={custodies}
+            settlementExpenses={settlementExpenses}
           />
         )}
         {activeTab === 'userManagement' && <UsersManager />}
@@ -12888,6 +12909,8 @@ const ReportsView = React.memo(function ReportsView(props: {
   payrolls?: Payroll[],
   hrTransactions?: FinancialTransaction[],
   loans?: Loan[],
+  custodies?: TreasuryCustody[],
+  settlementExpenses?: CustodySettlementExpense[],
 }) {
   return <FinancialReports {...props} />;
 });
