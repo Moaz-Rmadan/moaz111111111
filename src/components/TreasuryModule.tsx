@@ -167,6 +167,13 @@ export function TreasuryModule() {
   const [overrideBlockedCustody, setOverrideBlockedCustody] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
 
+  // Driver / Employee Loan Settlement States
+  const [settlementAction, setSettlementAction] = useState<'return_safe' | 'driver_loan'>('driver_loan');
+  const [selectedDriverId, setSelectedDriverId] = useState<string>('');
+  const [driverLoanAmount, setDriverLoanAmount] = useState<number>(0);
+  const [driverDeductionMode, setDriverDeductionMode] = useState<'auto_percentage' | 'auto_installment'>('auto_percentage');
+  const [driverLoanNotes, setDriverLoanNotes] = useState<string>('');
+
   const [settlementItems, setSettlementItems] = useState<{
     category: string;
     description: string;
@@ -175,6 +182,32 @@ export function TreasuryModule() {
   }[]>([
     { category: 'شراء خامات', description: '', amount: 0 }
   ]);
+
+  useEffect(() => {
+    if (showSettleCustodyModal) {
+      const custody = showSettleCustodyModal;
+      let matchedEmp = employees.find(e => e.id === custody.employeeId);
+      if (!matchedEmp && custody.custodianName) {
+        matchedEmp = employees.find(e => e.name.trim().toLowerCase() === custody.custodianName.trim().toLowerCase() || e.name.includes(custody.custodianName));
+      }
+      if (matchedEmp) {
+        setSelectedDriverId(matchedEmp.id);
+      } else if (employees.length > 0) {
+        setSelectedDriverId(employees[0].id);
+      }
+
+      if (custody.custodianRole === 'سائق') {
+        setSettlementAction('driver_loan');
+      } else {
+        setSettlementAction('return_safe');
+      }
+
+      const totalSpent = settlementItems.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
+      const diff = Math.max(0, custody.amount - totalSpent);
+      setDriverLoanAmount(diff);
+      setDriverLoanNotes(`عجز/متبقي عهدة سائق (${custody.custodianName}) - غرض العهدة: ${custody.purpose}`);
+    }
+  }, [showSettleCustodyModal]);
 
   const [safeForm, setSafeForm] = useState({
     name: '',
@@ -657,22 +690,24 @@ export function TreasuryModule() {
     if (!showSettleCustodyModal) return;
 
     const totalSpent = settlementItems.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
-    if (totalSpent <= 0) {
-      alert('يرجى إضافة بند مصروف واحد على الأقل بمبلغ صحيح للتصفية.');
+    const custody = showSettleCustodyModal;
+    const originalAmount = custody.amount;
+    const diff = originalAmount - totalSpent;
+
+    if (totalSpent <= 0 && (settlementAction !== 'driver_loan' || driverLoanAmount <= 0)) {
+      alert('يرجى إضافة بند مصروف واحد على الأقل بمبلغ صحيح للتصفية أو تحديد مبلغ السلفة للخصم من الراتب.');
       return;
     }
 
     try {
-      const custody = showSettleCustodyModal;
-      const originalAmount = custody.amount;
-      const returnedAmount = originalAmount - totalSpent;
+      const settlementDate = new Date().toISOString().split('T')[0];
 
-      // 1. Save detailed settlement expenses
+      // 1. Save detailed settlement expenses (actual receipts/invoices)
       for (const item of settlementItems) {
         if (item.amount > 0) {
           await addDoc(collection(db, 'custodySettlements'), {
             custodyId: custody.id,
-            date: new Date().toISOString().split('T')[0],
+            date: settlementDate,
             category: item.category,
             amount: Number(item.amount),
             description: item.description || `تسوية عهدة (${custody.custodianName})`,
@@ -687,40 +722,92 @@ export function TreasuryModule() {
             category: item.category,
             amount: Number(item.amount),
             description: `تسوية عهدة [${custody.custodianName}]: ${item.description || item.category}`,
-            date: new Date().toISOString().split('T')[0],
+            date: settlementDate,
             createdBy: 'المحاسب',
             createdAt: serverTimestamp()
           });
         }
       }
 
-      // 2. If there is leftover cash returned back to Treasury
-      if (returnedAmount > 0) {
-        await addDoc(collection(db, 'safeTransactions'), {
-          safeId: custody.safeId,
-          type: 'إيداع',
-          category: 'مرتجع مصروفات / عهدة',
-          amount: Number(returnedAmount),
-          description: `استرداد المتبقي من عهدة (${custody.custodianName})`,
-          date: new Date().toISOString().split('T')[0],
-          createdBy: 'المحاسب',
-          createdAt: serverTimestamp()
-        });
+      // 2. Handle leftover / diff amount (Driver Loan vs Return Cash to Safe)
+      let actualDriverLoanAdded = 0;
+      let actualReturnedCash = 0;
 
-        // Add back leftover money to the Safe
-        await updateDoc(doc(db, 'safes', custody.safeId), {
-          balance: increment(returnedAmount)
-        });
-      } else if (returnedAmount < 0) {
+      if (diff > 0) {
+        if (settlementAction === 'driver_loan' && selectedDriverId) {
+          const loanAmt = Math.min(diff, driverLoanAmount > 0 ? driverLoanAmount : diff);
+          actualDriverLoanAdded = loanAmt;
+          actualReturnedCash = Math.max(0, diff - loanAmt);
+
+          const matchedEmp = employees.find(e => e.id === selectedDriverId);
+          const empName = matchedEmp?.name || custody.custodianName;
+
+          // A. Create official loan record in 'loans' collection for automatic payroll deduction
+          await addDoc(collection(db, 'loans'), {
+            employeeId: selectedDriverId,
+            date: settlementDate,
+            amount: loanAmt,
+            remainingAmount: loanAmt,
+            installments: driverDeductionMode === 'auto_installment' ? 2 : 1,
+            paidAlready: 0,
+            notes: driverLoanNotes || `سلفة عجز/متبقي عهدة سائق (${custody.custodianName})`,
+            status: 'نشط',
+            deductionMode: driverDeductionMode,
+            createdAt: serverTimestamp()
+          });
+
+          // B. Create HR Transaction in 'hrTransactions' for immediate HR visibility
+          await addDoc(collection(db, 'hrTransactions'), {
+            employeeId: selectedDriverId,
+            date: settlementDate,
+            type: 'خصم سلف',
+            amount: loanAmt,
+            description: `سلفة عجز/متبقي تسوية عهدة سائق (${custody.custodianName})`,
+            createdAt: serverTimestamp()
+          });
+
+          // C. Record in custodySettlements for custody accounting balance
+          await addDoc(collection(db, 'custodySettlements'), {
+            custodyId: custody.id,
+            date: settlementDate,
+            category: 'سلف وخصومات عهد سائقين',
+            amount: loanAmt,
+            description: `تحويل متبقي العهدة (${loanAmt.toLocaleString()} ج.م) لسلفة خصم راتب على السائق (${empName})`,
+            invoiceNo: 'DRIVER-LOAN',
+            createdAt: serverTimestamp()
+          });
+        } else {
+          actualReturnedCash = diff;
+        }
+
+        // Return leftover cash to Treasury Safe if any
+        if (actualReturnedCash > 0) {
+          await addDoc(collection(db, 'safeTransactions'), {
+            safeId: custody.safeId,
+            type: 'إيداع',
+            category: 'مرتجع مصروفات / عهدة',
+            amount: Number(actualReturnedCash),
+            description: `استرداد المتبقي من عهدة (${custody.custodianName})`,
+            date: settlementDate,
+            createdBy: 'المحاسب',
+            createdAt: serverTimestamp()
+          });
+
+          // Add back leftover money to the Safe
+          await updateDoc(doc(db, 'safes', custody.safeId), {
+            balance: increment(actualReturnedCash)
+          });
+        }
+      } else if (diff < 0) {
         // Custodian spent more than advance, treasury reimburses difference
-        const reimbursement = Math.abs(returnedAmount);
+        const reimbursement = Math.abs(diff);
         await addDoc(collection(db, 'safeTransactions'), {
           safeId: custody.safeId,
           type: 'مصروفات',
           category: 'صرف فارق عهدة',
           amount: Number(reimbursement),
           description: `صرف فارق تسوية عهدة إلى (${custody.custodianName})`,
-          date: new Date().toISOString().split('T')[0],
+          date: settlementDate,
           createdBy: 'المحاسب',
           createdAt: serverTimestamp()
         });
@@ -732,9 +819,9 @@ export function TreasuryModule() {
 
       // 3. Mark custody document as settled (full vs partial)
       const previousSpent = custody.spentAmount || 0;
-      const newSpentTotal = previousSpent + totalSpent;
-      const netRemaining = Math.max(0, custody.amount - newSpentTotal);
-      const isFullSettlement = netRemaining <= 0 || returnedAmount > 0;
+      const newSpentTotal = previousSpent + totalSpent + actualDriverLoanAdded;
+      const netRemaining = Math.max(0, custody.amount - newSpentTotal - actualReturnedCash);
+      const isFullSettlement = netRemaining <= 0 || actualReturnedCash > 0 || actualDriverLoanAdded > 0;
 
       await updateDoc(doc(db, 'treasuryCustodies', custody.id), {
         spentAmount: newSpentTotal,
@@ -744,8 +831,10 @@ export function TreasuryModule() {
 
       setShowSettleCustodyModal(null);
       setSettlementItems([{ category: 'شراء خامات', description: '', amount: 0 }]);
+      alert('تم اعتماد وتصفية العهدة بنجاح! ' + (actualDriverLoanAdded > 0 ? `وتسجيل سلفة بمبلغ ${actualDriverLoanAdded.toLocaleString()} ج.م للخصم من راتب السائق تلقائياً.` : ''));
     } catch (err) {
       console.error('Error settling custody:', err);
+      alert('حدث خطأ أثناء تصفية العهدة: ' + (err as Error).message);
     }
   };
 
@@ -2656,22 +2745,155 @@ export function TreasuryModule() {
                 </div>
               ))}
 
-              {/* Settlement Summary */}
+              {/* Settlement Summary & Driver Loan Options */}
               {(() => {
                 const totalSpent = settlementItems.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
                 const diff = showSettleCustodyModal.amount - totalSpent;
 
                 return (
-                  <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-2 mt-4 font-bold">
-                    <div className="flex justify-between text-xs text-slate-400">
-                      <span>إجمالي المنصرف بالفواتير:</span>
-                      <span className="font-mono text-white text-sm">{totalSpent.toLocaleString()} ج.م</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-black pt-2 border-t border-slate-800">
-                      <span>النتيجة النهائية:</span>
-                      <span className={`font-mono text-base ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {diff >= 0 ? `استرداد متبقي للخزنة: +${diff.toLocaleString()} ج.م` : `صرف فارق للمسؤول: -${Math.abs(diff).toLocaleString()} ج.م`}
-                      </span>
+                  <div className="space-y-3 mt-4">
+                    {/* Diff Treatment Box */}
+                    {diff > 0 && (
+                      <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 space-y-3">
+                        <div className="flex items-center justify-between text-amber-950">
+                          <div className="flex items-center gap-2 font-black text-sm">
+                            <Truck size={18} className="text-amber-700" />
+                            <span>المبلغ المتبقي من العهدة مع المسلم:</span>
+                            <span className="font-mono font-black text-base text-amber-800 bg-amber-200/80 px-2.5 py-0.5 rounded-lg">
+                              {diff.toLocaleString()} ج.م
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setSettlementAction('driver_loan')}
+                            className={`p-3 rounded-xl border text-right font-black text-xs transition-all flex items-start gap-2.5 ${
+                              settlementAction === 'driver_loan'
+                                ? 'bg-purple-900 text-white border-purple-900 shadow-md'
+                                : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100/50'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg shrink-0 ${settlementAction === 'driver_loan' ? 'bg-purple-800 text-amber-300' : 'bg-purple-100 text-purple-700'}`}>
+                              <DollarSign size={16} />
+                            </div>
+                            <div>
+                              <span className="block font-black text-sm mb-0.5">تسجيل المتبقي سلفة / خصم راتب</span>
+                              <span className={`block text-[11px] font-bold ${settlementAction === 'driver_loan' ? 'text-purple-200' : 'text-slate-500'}`}>
+                                أخذها السائق وصرفها لحسابه الخاص، وتخصم تلقائياً من راتبه القادم
+                              </span>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSettlementAction('return_safe')}
+                            className={`p-3 rounded-xl border text-right font-black text-xs transition-all flex items-start gap-2.5 ${
+                              settlementAction === 'return_safe'
+                                ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                                : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100/50'
+                            }`}
+                          >
+                            <div className={`p-1.5 rounded-lg shrink-0 ${settlementAction === 'return_safe' ? 'bg-slate-800 text-emerald-400' : 'bg-emerald-100 text-emerald-700'}`}>
+                              <ArrowDownLeft size={16} />
+                            </div>
+                            <div>
+                              <span className="block font-black text-sm mb-0.5">توريد المتبقي كاش للخزنة</span>
+                              <span className={`block text-[11px] font-bold ${settlementAction === 'return_safe' ? 'text-slate-300' : 'text-slate-500'}`}>
+                                قام السائق بإرجاع المتبقي كاش لخزنة الشركة وتم إيداعه فوراً
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+
+                        {settlementAction === 'driver_loan' && (
+                          <div className="p-4 rounded-xl bg-white border border-purple-200 space-y-3 animate-in fade-in duration-200 text-slate-900 mt-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-1">تحديد السائق / الموظف</label>
+                                <select
+                                  value={selectedDriverId}
+                                  onChange={e => setSelectedDriverId(e.target.value)}
+                                  className="w-full h-10 rounded-lg border border-slate-300 px-3 font-bold text-xs bg-slate-50 outline-none"
+                                >
+                                  <option value="">-- اختر الموظف / السائق --</option>
+                                  {employees.map(emp => (
+                                    <option key={emp.id} value={emp.id}>
+                                      {emp.name} ({emp.position || 'موظف'})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-1">المبلغ المحول لسلفة خصم راتب (ج.م)</label>
+                                <input
+                                  type="number"
+                                  value={driverLoanAmount || ''}
+                                  onChange={e => setDriverLoanAmount(Number(e.target.value))}
+                                  className="w-full h-10 rounded-lg border border-slate-300 px-3 font-bold text-sm font-mono bg-slate-50 outline-none text-purple-900"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-1">طريقة خصم السلفة من المرتب</label>
+                                <select
+                                  value={driverDeductionMode}
+                                  onChange={e => setDriverDeductionMode(e.target.value as any)}
+                                  className="w-full h-10 rounded-lg border border-slate-300 px-3 font-bold text-xs bg-slate-50 outline-none"
+                                >
+                                  <option value="auto_percentage">خصم كامل المبلغ من أول كشف رواتب قادم (100%)</option>
+                                  <option value="auto_installment">تقسيط السلفة على أقساط شهرية</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-1">ملاحظات ورقم العهدة</label>
+                                <input
+                                  type="text"
+                                  value={driverLoanNotes}
+                                  onChange={e => setDriverLoanNotes(e.target.value)}
+                                  placeholder="سبب السلفة ورقم العهدة..."
+                                  className="w-full h-10 rounded-lg border border-slate-300 px-3 font-bold text-xs bg-slate-50 outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 rounded-lg bg-purple-50 border border-purple-200 flex items-center gap-2 text-xs font-bold text-purple-900">
+                              <CheckCircle2 size={16} className="text-purple-700 shrink-0" />
+                              <span>
+                                سيتم تسوية العهدة بالكامل وإنشاء سلفة رسمية بمبلغ <span className="font-mono font-black text-purple-800">{driverLoanAmount.toLocaleString()} ج.م</span> في سجلات السائق للخصم من مرتبه تلقائياً.
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-2 font-bold">
+                      <div className="flex justify-between text-xs text-slate-400">
+                        <span>إجمالي المصروفات بالفواتير:</span>
+                        <span className="font-mono text-white text-sm">{totalSpent.toLocaleString()} ج.م</span>
+                      </div>
+                      {diff > 0 && settlementAction === 'driver_loan' && (
+                        <div className="flex justify-between text-xs text-amber-300">
+                          <span>محول لسلفة/خصم راتب السائق:</span>
+                          <span className="font-mono text-amber-300 text-sm">{driverLoanAmount.toLocaleString()} ج.م</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm font-black pt-2 border-t border-slate-800">
+                        <span>النتيجة النهائية للتصفية:</span>
+                        <span className={`font-mono text-base ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {diff >= 0
+                            ? (settlementAction === 'driver_loan'
+                                ? `مصفاة بالكامل (فواتير: ${totalSpent.toLocaleString()} + سلفة سائق: ${driverLoanAmount.toLocaleString()})`
+                                : `استرداد متبقي للخزنة: +${diff.toLocaleString()} ج.م`)
+                            : `صرف فارق للمسؤول: -${Math.abs(diff).toLocaleString()} ج.م`}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
