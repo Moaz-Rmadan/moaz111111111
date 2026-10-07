@@ -1,5 +1,5 @@
 import { BaseRepository } from '../../shared/BaseRepository';
-import { Account, JournalEntry, JournalLine, FiscalPeriod, CostCenter } from '../../../types';
+import { Account, JournalEntry, JournalLine, FiscalPeriod, CostCenter, AccountingDocument } from '../../../types';
 
 export class AccountRepository extends BaseRepository<Account> {
   constructor() { super('accounts'); }

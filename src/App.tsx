@@ -89,6 +89,8 @@ import { SearchableSelect } from './components/SearchableSelect';
 import { VehiclesView } from './components/VehiclesView';
 import { TestingPage } from './modules/testing/TestingPage';
 import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
+import { PrintHeader, PrintSignatures } from './components/PrintHeader';
+import { tafqeetArabic } from './lib/tafqeet';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
 
@@ -611,7 +613,8 @@ const calculateLivePayroll = (
   transactions: FinancialTransaction[], 
   loans: Loan[], 
   productionRecords: ProductionRecord[],
-  companySettings?: CompanySettings
+  companySettings?: CompanySettings,
+  employeeList?: Employee[]
 ) => {
   if (p.status !== 'مسودة') return p;
   
@@ -623,7 +626,8 @@ const calculateLivePayroll = (
     return p;
   }
   
-  const emp = employees.find(e => e.id === p.employeeId);
+  const safeEmployees = employeeList && employeeList.length > 0 ? employeeList : employees;
+  const emp = safeEmployees.find(e => e.id === p.employeeId);
   if (!emp) return p;
 
   let currentSettings: CompanySettings | null = companySettings || null;
@@ -1185,13 +1189,21 @@ function PayrollMasterReport({
         ))}
       </div>
 
-      <div className="hidden print:block text-center mb-12 border-b-2 border-slate-100 pb-8">
-        <h1 className="text-4xl font-black text-slate-900">كشف الأجور والمرتبات لكافة العاملين - {companyInfo.name}</h1>
-        <p className="text-slate-500 font-bold mt-2">عن الفترة من {dateRange.start} إلى {dateRange.end}</p>
-        <div className="mt-6 w-32 h-1.5 bg-primary mx-auto rounded-full" />
-      </div>
+      <PrintHeader
+        title="كشف الأجور ومستحقات العاملين الشامل"
+        subtitle="تقرير تحليلي معتمد لكافة بنود الأجور والحوافز والاستقطاعات"
+        periodText={`من ${dateRange.start} إلى ${dateRange.end} | القسم: ${selectedDept}`}
+        companyInfo={companySettings || companyInfo}
+        kpis={[
+          { label: 'إجمالي صافي الأجور', value: `${totalNetSalary.toLocaleString()} ج.م`, highlight: true },
+          { label: 'إجمالي الأساسي والإنتاج', value: `${(totalBaseSalary + totalProduction).toLocaleString()} ج.م` },
+          { label: 'إجمالي الحوافز والإضافي', value: `+${(totalBonuses + totalOvertime).toLocaleString()} ج.م` },
+          { label: 'إجمالي الاستقطاعات والسلف', value: `-${(totalDeductions + totalExpenses + totalLoansRecovered).toLocaleString()} ج.م` },
+          { label: 'عدد العاملين المدرجين', value: `${tableData.length} موظف` },
+        ]}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 print:hidden">
         <Card className="dribbble-card bg-primary text-white border-none shadow-2xl shadow-primary/20">
           <CardContent className="pt-8">
             <div className="flex flex-col gap-2">
@@ -1253,7 +1265,7 @@ function PayrollMasterReport({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 print:hidden">
         {/* Trend Chart */}
         <Card className="dribbble-card lg:col-span-2 border-none shadow-2xl shadow-slate-200/50 overflow-hidden group">
           <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-row items-center justify-between">
@@ -1517,9 +1529,41 @@ function PayrollMasterReport({
                 </TableRow>
               )}
             </TableBody>
+            <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+              <tr>
+                <td colSpan={2} className="text-right py-3 px-4 font-black text-slate-900">
+                  الإجمالي العام للأجور ({tableData.length} موظف):
+                </td>
+                <td className="text-right font-black font-mono text-slate-900">
+                  {tableData.reduce((acc, p) => acc + (p.baseSalary || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-purple-900">
+                  {tableData.reduce((acc, p) => acc + (p.totalProduction || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-emerald-800">
+                  {tableData.reduce((acc, p) => acc + (p.totalBonuses || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-blue-800">
+                  {tableData.reduce((acc, p) => acc + (p.totalOvertime || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-rose-800">
+                  -{tableData.reduce((acc, p) => acc + (p.totalDeductions || 0) + (p.totalLoans || 0) + (p.totalExpenses || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-slate-950 text-base">
+                  {tableData.reduce((acc, p) => acc + (p.netSalary || 0), 0).toLocaleString()} ج.م
+                </td>
+              </tr>
+            </tfoot>
           </Table>
         </CardContent>
       </Card>
+
+      <PrintSignatures
+        tafqeetText={tafqeetArabic(tableData.reduce((acc, p) => acc + (p.netSalary || 0), 0), 'جنيه مصري')}
+        preparedByTitle="مسؤول الرواتب وشؤون العاملين"
+        auditedByTitle="المراجعة والتدقيق المالي"
+        approvedByTitle="اعتماد الإدارة والمدير العام"
+      />
     </div>
   );
 }
@@ -3276,6 +3320,8 @@ function MainApp({
             loans={loans}
             custodies={custodies}
             settlementExpenses={settlementExpenses}
+            companySettings={companySettings}
+            companyInfo={companyInfo}
           />
         )}
         {activeTab === 'userManagement' && <UsersManager />}
@@ -4487,7 +4533,21 @@ const ItemCardView = React.memo(function ItemCardView({ items, suppliers, purcha
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-900 rounded-full" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          {/* Item Card Print Header */}
+          <PrintHeader
+            title="كارت حركة الصنف (أستاذ المخزون العام)"
+            subtitle={`${selectedItem.name} | الكود: ${selectedItem.code || '-'} | الوحدة: ${selectedItem.unit} | التصنيف: ${selectedItem.category || '-'}`}
+            companyInfo={companySettings || companyInfo}
+            kpis={[
+              { label: 'رصيد أول المدة', value: `${(selectedItem.openingBalance || 0).toLocaleString()} ${selectedItem.unit}` },
+              { label: 'إجمالي الوارد (+)', value: `+${((selectedItem.inward || 0) + (selectedItem.returned || 0)).toLocaleString()}` },
+              { label: 'إجمالي المنصرف (-)', value: `-${(selectedItem.outward || 0).toLocaleString()}` },
+              { label: 'الرصيد الفعلي الحالي', value: `${(selectedItem.currentBalance || 0).toLocaleString()} ${selectedItem.unit}`, highlight: true },
+              { label: 'القيمة الإجمالية للمخزون', value: `${((selectedItem.currentBalance || 0) * (selectedItem.price || 0)).toLocaleString()} ج.م`, highlight: true },
+            ]}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 print:hidden">
             {[
               { label: 'رصيد أول المدة', value: selectedItem.openingBalance || 0, color: 'text-slate-400', icon: <History size={24} />, bg: "bg-slate-50" },
               { label: 'إجمالي التوريدات', value: (selectedItem.inward || 0) + (selectedItem.returned || 0), color: 'text-emerald-500', icon: <ArrowDownLeft size={24} />, bg: "bg-emerald-50/50" },
@@ -4523,8 +4583,8 @@ const ItemCardView = React.memo(function ItemCardView({ items, suppliers, purcha
             ))}
           </div>
 
-          <Card className="dribbble-card border-none overflow-hidden bg-white shadow-[0_10px_40px_rgba(0,0,0,0.03)] rounded-[14px]">
-            <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center relative overflow-hidden">
+          <Card className="dribbble-card border-none overflow-hidden bg-white shadow-[0_10px_40px_rgba(0,0,0,0.03)] rounded-[14px] print:shadow-none">
+            <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center relative overflow-hidden print:hidden">
                <div className="relative z-10">
                   <h4 className="font-black text-slate-900 uppercase tracking-[0.2em] text-[11px] flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-white shadow-lg">
@@ -4557,7 +4617,8 @@ const ItemCardView = React.memo(function ItemCardView({ items, suppliers, purcha
                 <TableBody>
                   {movements.slice().reverse().map((m, idx) => (
                     <TableRow key={idx} className="h-20 hover:bg-slate-50/50 transition-all group/row border-slate-50">
-                      <TableCell className="px-8 font-bold font-mono text-xs text-slate-500 group-hover/row:text-slate-900 transition-colors">
+                      <TableCell className="px-8 font-bold font-mono text-xs text-slate-700">
+                        {m.date || '-'}
                       </TableCell>
                       <TableCell>
                          <div className="flex items-center gap-3">
@@ -4628,9 +4689,39 @@ const ItemCardView = React.memo(function ItemCardView({ items, suppliers, purcha
                      <TableCell></TableCell>
                   </TableRow>
                 </TableBody>
+                <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+                  <tr>
+                    <td colSpan={2} className="px-6 py-3 text-right font-black text-slate-900">
+                      إجمالي حركة الصنف والرصيد الختامي:
+                    </td>
+                    <td className="text-center font-black font-mono text-emerald-800">
+                      +{movements.reduce((acc, m) => acc + (m.in || 0), 0).toLocaleString()}
+                    </td>
+                    <td className="text-center font-black font-mono text-red-800">
+                      -{movements.reduce((acc, m) => acc + (m.out || 0), 0).toLocaleString()}
+                    </td>
+                    <td className="text-center font-black font-mono text-slate-950 text-sm">
+                      {selectedItem.currentBalance.toLocaleString()} {selectedItem.unit}
+                    </td>
+                    <td className="text-center font-black font-mono text-slate-950 text-sm">
+                      {(selectedItem.currentBalance * (selectedItem.price || 0)).toLocaleString()} ج.م
+                    </td>
+                    <td className="text-right text-xs font-bold text-slate-600">
+                      مطابق لدفتر الأستاذ
+                    </td>
+                  </tr>
+                </tfoot>
               </Table>
             </div>
           </Card>
+
+          <PrintSignatures
+            tafqeetText={tafqeetArabic((selectedItem.currentBalance || 0) * (selectedItem.price || 0), 'جنيه مصري')}
+            preparedByTitle="أمين المستودع المختص"
+            auditedByTitle="مراقب حركة المخزون"
+            approvedByTitle="المدير المالي للمصنع"
+            notes={`تم جرد ومطابقة حركة الصنف (${selectedItem.name}) بدفاتر المخازن العامة، والرصيد الفعلي الحالي هو ${selectedItem.currentBalance.toLocaleString()} ${selectedItem.unit}.`}
+          />
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-32 bg-slate-50/50 rounded-[4rem] border-2 border-dashed border-slate-200 shadow-inner">
@@ -6082,8 +6173,21 @@ const Inventory = React.memo(function Inventory({
         </div>
       </div>
 
+      <PrintHeader
+        title="تقرير جرد ومراقبة المخزون العام"
+        subtitle="كشف تحليلي تفصيلي بالأرصدة الفعلية، حدود الأمان، وأسعار التقييم لكافة الأصناف"
+        periodText={`المستودع: ${selectedWarehouseId === 'all' ? 'كافة المستودعات' : warehouses.find(w => w.id === selectedWarehouseId)?.name || ''} | القسم: ${selectedCostCenter === 'all' ? 'جميع الأقسام' : selectedCostCenter}`}
+        companyInfo={companyInfo}
+        kpis={[
+          { label: 'إجمالي قيمة المخزون', value: `${filtered.reduce((sum, item) => sum + ((item.totalValue || (item.currentBalance * (item.price || 0)))), 0).toLocaleString()} ج.م`, highlight: true },
+          { label: 'إجمالي الأصناف', value: `${filtered.length} صنف` },
+          { label: 'أصناف بلغت حد الأمان', value: `${filtered.filter(i => i.currentBalance <= i.safetyLimit).length} صنف`, highlight: filtered.filter(i => i.currentBalance <= i.safetyLimit).length > 0 },
+          { label: 'أصناف نفدت بالكامل', value: `${filtered.filter(i => i.currentBalance === 0).length} صنف` },
+        ]}
+      />
+
       {/* PROFESSIONAL SUMMARY CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 print:hidden">
         {[
           { label: 'إجمالي قيمة المخزون', value: items.reduce((sum, item) => sum + (item.currentBalance * (item.price || 0)), 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 }), icon: DollarSign, color: 'text-emerald-500' },
           { label: 'إجمالي الأصناف', value: items.length.toString(), icon: Package, color: 'text-blue-500' },
@@ -6517,7 +6621,7 @@ const Inventory = React.memo(function Inventory({
                   </TableRow>
                 ))}
                 
-                <TableRow className="bg-slate-900 h-32 font-black border-none sticky bottom-0 z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.1)]">
+                <TableRow className="bg-slate-900 h-32 font-black border-none sticky bottom-0 z-20 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] print:hidden">
                   <TableCell colSpan={2} className="px-12">
                      <div className="flex flex-col">
                         <div className="flex items-center gap-2 mb-2">
@@ -6560,10 +6664,34 @@ const Inventory = React.memo(function Inventory({
                   <TableCell className="print:hidden"></TableCell>
                 </TableRow>
               </TableBody>
+              <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+                <tr>
+                  <td colSpan={2} className="text-right py-3 px-6 font-black text-slate-900">
+                    الإجمالي العام للمخزون ({filtered.length} صنف):
+                  </td>
+                  <td className="text-center font-black font-mono text-slate-900">
+                    {filtered.reduce((acc, i) => acc + i.currentBalance, 0).toLocaleString()}
+                  </td>
+                  <td className="text-center font-black font-mono text-orange-700">
+                    {filtered.reduce((acc, i) => acc + (i.wasted || 0), 0).toLocaleString()}
+                  </td>
+                  <td className="text-center text-xs text-slate-500">-</td>
+                  <td className="text-right px-6 font-black font-mono text-slate-950 text-base">
+                    {filtered.reduce((acc, i) => acc + (i.totalValue || (i.currentBalance * (i.price || 0))), 0).toLocaleString()} ج.م
+                  </td>
+                </tr>
+              </tfoot>
             </Table>
           </div>
         </Card>
       )}
+
+      <PrintSignatures
+        tafqeetText={tafqeetArabic(filtered.reduce((acc, i) => acc + (i.totalValue || (i.currentBalance * (i.price || 0))), 0), 'جنيه مصري')}
+        preparedByTitle="أمين المستودعات والمخازن"
+        auditedByTitle="مراقبة الجرد والمخزون"
+        approvedByTitle="اعتماد الإدارة والمدير المالي"
+      />
 
 
       {/* Delete Confirmation Modal */}
@@ -11114,11 +11242,20 @@ const Purchases = React.memo(function Purchases({ items, suppliers, purchases, s
         </div>
       </div>
 
+      <PrintHeader
+        title="تقرير فواتير المشتريات وتوريدات الخامات"
+        subtitle="سجل حركات الشراء المعتمدة ومستحقات الموردين"
+        periodText={dateFilterVal.start || dateFilterVal.end ? `من ${dateFilterVal.start || 'البداية'} إلى ${dateFilterVal.end || 'الآن'}` : undefined}
+        companyInfo={companySettings || companyInfo}
+        kpis={[
+          { label: 'إجمالي قيمة المشتريات', value: `${totalPurchasesSum.toLocaleString()} ج.م`, highlight: true },
+          { label: 'إجمالي المسدد نقداً/شيكات', value: `${totalPaidSum.toLocaleString()} ج.م` },
+          { label: 'إجمالي المتبقي (مديونية)', value: `${totalDebtSum.toLocaleString()} ج.م`, highlight: totalDebtSum > 0 },
+          { label: 'عدد الفواتير المدرجة', value: `${filteredPurchases.length} فاتورة` },
+        ]}
+      />
+
       <Card className="dribbble-card overflow-hidden border-none print:shadow-none">
-        <div className="hidden print:block text-center mb-8">
-          <h1 className="text-2xl font-black">تقرير المشتريات</h1>
-          <div className="mt-4 border-b-2 border-slate-900 w-full" />
-        </div>
         <div className="overflow-x-auto w-full">
           <Table>
           <TableHeader className="bg-slate-50/50">
@@ -11178,9 +11315,37 @@ const Purchases = React.memo(function Purchases({ items, suppliers, purchases, s
               </TableRow>
             )}
           </TableBody>
+          <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+            <tr>
+              <td colSpan={3} className="text-right py-3 px-4 font-black text-slate-900">
+                الإجمالي العام لجميع الفواتير ({filteredPurchases.length} فاتورة):
+              </td>
+              <td className="text-right font-black font-mono text-slate-900">
+                {filteredPurchases.reduce((acc, p) => acc + (p.quantity || 0), 0).toLocaleString()}
+              </td>
+              <td colSpan={2} className="text-center text-slate-400 font-bold">-</td>
+              <td className="text-right font-black font-mono text-slate-900">
+                {totalPurchasesSum.toLocaleString()} ج.م
+              </td>
+              <td className="text-right font-black font-mono text-emerald-800">
+                {totalPaidSum.toLocaleString()} ج.م
+              </td>
+              <td colSpan={3} className="text-right font-black font-mono text-amber-900">
+                المتبقي (مديونية): {totalDebtSum.toLocaleString()} ج.م
+              </td>
+            </tr>
+          </tfoot>
         </Table>
       </div>
     </Card>
+
+    <PrintSignatures
+      tafqeetText={tafqeetArabic(totalPurchasesSum, 'جنيه مصري')}
+      preparedByTitle="مسؤول المشتريات والمخازن"
+      auditedByTitle="المراجعة والتدقيق المالي"
+      approvedByTitle="اعتماد الإدارة العامة"
+      notes={totalDebtSum > 0 ? `توجد متبقيات مستحقة للموردين بقيمة ${totalDebtSum.toLocaleString()} ج.م واجبة السداد بحسب شروط التوريد.` : undefined}
+    />
 
     {/* Add Purchase Dialog */}
       {showAdd && (
@@ -11628,11 +11793,20 @@ const Issuances = React.memo(function Issuances({ items, issuances, costCenters 
         </div>
       </div>
 
-      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[14px] relative">
-        <div className="hidden print:block text-center mb-12 py-8 border-b-2 border-slate-900 border-dashed">
-          <h1 className="text-4xl font-black tracking-tight">تقرير أذونات صرف الخامات</h1>
-        </div>
+      <PrintHeader
+        title="تقرير أذونات صرف الخامات لمراحل الإنتاج"
+        subtitle="سجل حركات خروج المواد الأولية وربطها بأوامر الشغل ومراكز التكلفة"
+        periodText={dateFilterVal.start || dateFilterVal.end ? `من ${dateFilterVal.start || 'البداية'} إلى ${dateFilterVal.end || 'الآن'}` : undefined}
+        companyInfo={companySettings || companyInfo}
+        kpis={[
+          { label: 'إجمالي قيمة المنصرف', value: `${totalValue.toLocaleString()} ج.م`, highlight: true },
+          { label: 'إجمالي الكميات المنصرفة', value: `${filteredIssuances.reduce((acc, i) => acc + (i.quantity || 0), 0).toLocaleString()}` },
+          { label: 'عدد أذونات الصرف', value: `${filteredIssuances.length} إذن` },
+          { label: 'مركز التكلفة', value: costCenterFilter === 'all' ? 'جميع المراكز' : costCenterFilter },
+        ]}
+      />
 
+      <Card className="dribbble-card border-none overflow-hidden bg-white shadow-2xl shadow-slate-200/40 rounded-[14px] relative print:shadow-none">
         <div className="overflow-x-auto custom-scrollbar">
           <Table>
             <TableHeader className="bg-slate-50/50 h-20">
@@ -11679,9 +11853,30 @@ const Issuances = React.memo(function Issuances({ items, issuances, costCenters 
                 </TableRow>
               )}
             </TableBody>
+            <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+              <tr>
+                <td colSpan={4} className="text-right py-3 px-8 font-black text-slate-900">
+                  الإجمالي العام للمنصرف ({filteredIssuances.length} إذن صرف):
+                </td>
+                <td className="text-right font-black font-mono text-slate-900">
+                  {filteredIssuances.reduce((acc, i) => acc + (i.quantity || 0), 0).toLocaleString()}
+                </td>
+                <td className="text-center text-slate-400 font-bold">-</td>
+                <td className="px-8 text-right font-black font-mono text-slate-950 text-base">
+                  {totalValue.toLocaleString()} ج.م
+                </td>
+              </tr>
+            </tfoot>
           </Table>
         </div>
       </Card>
+
+      <PrintSignatures
+        tafqeetText={tafqeetArabic(totalValue, 'جنيه مصري')}
+        preparedByTitle="أمين المستودع (مسؤول الصرف)"
+        auditedByTitle="المستلم بمرحلة الإنتاج"
+        approvedByTitle="مدير الإنتاج والتصنيع"
+      />
 
       {showAdd && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto">
@@ -12229,8 +12424,20 @@ const Suppliers = React.memo(function Suppliers({
             </CardHeader>
 
             <CardContent className="p-0 overflow-hidden flex-1 flex flex-col">
+              <PrintHeader
+                title={`كشف حساب مورد: ${selectedSupplier.name}`}
+                subtitle={`كود المورد: ${selectedSupplier.id.slice(0, 8)} | هاتف: ${selectedSupplier.phone || '-'} | العنوان: ${selectedSupplier.address || '-'}`}
+                companyInfo={companyInfo}
+                kpis={[
+                  { label: 'رصيد أول المدة', value: `${(selectedSupplier.openingBalance || 0).toLocaleString()} ج.م` },
+                  { label: 'إجمالي المشتريات', value: `${selectedSupplier.totalPurchases.toLocaleString()} ج.م` },
+                  { label: 'إجمالي المسدد', value: `${selectedSupplier.totalPayments.toLocaleString()} ج.م` },
+                  { label: 'الرصيد المستحق الحالي', value: `${selectedSupplier.balance.toLocaleString()} ج.م`, highlight: selectedSupplier.balance > 0 },
+                ]}
+              />
+
               {/* Financial KPI Summary Cards */}
-              <div className="px-4 sm:px-10 py-4 sm:py-6 grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-6 bg-slate-50/50 border-y border-slate-100 print:bg-white relative">
+              <div className="px-4 sm:px-10 py-4 sm:py-6 grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-6 bg-slate-50/50 border-y border-slate-100 print:hidden relative">
                 <div className="p-3 sm:p-5 bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">رصيد أول المدة</p>
                   <div className="flex items-baseline gap-1">
@@ -12336,8 +12543,8 @@ const Suppliers = React.memo(function Suppliers({
                         ))}
                       </div>
 
-                      {/* Desktop Statement Table View (hidden md:block) */}
-                      <div className="hidden md:block rounded-2xl border border-slate-100 overflow-hidden mb-10 shadow-sm">
+                      {/* Desktop Statement Table View (hidden md:block print:block) */}
+                      <div className="hidden md:block print:block rounded-2xl border border-slate-100 overflow-hidden mb-10 shadow-sm print:shadow-none">
                         <Table>
                           <TableHeader className="bg-slate-50/50 h-16">
                             <TableRow className="hover:bg-transparent border-slate-100">
@@ -12373,8 +12580,29 @@ const Suppliers = React.memo(function Suppliers({
                               </TableRow>
                             ))}
                           </TableBody>
+                          <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+                            <tr>
+                              <td colSpan={5} className="text-right py-3 px-6 font-black text-slate-900">
+                                إجمالي الحركات والرصيد الختامي المستحق للمورد ({selectedSupplier.name}):
+                              </td>
+                              <td className="text-right font-black font-mono text-slate-900">
+                                {selectedSupplier.totalPurchases.toLocaleString()} ج.م
+                              </td>
+                              <td className="px-6 text-right font-black font-mono text-emerald-800">
+                                {selectedSupplier.totalPayments.toLocaleString()} ج.م
+                              </td>
+                            </tr>
+                          </tfoot>
                         </Table>
                       </div>
+
+                      <PrintSignatures
+                        tafqeetText={tafqeetArabic(selectedSupplier.balance, 'جنيه مصري')}
+                        preparedByTitle="إعداد ومراجعة الحسابات"
+                        auditedByTitle="مصادقة وتوقيع المورد"
+                        approvedByTitle="اعتماد الإدارة المالية"
+                        notes={`يقر الطرفان بصحة العمليات المسجلة أعلاه، وأن الرصيد المستحق للمورد حتى تاريخه هو ${selectedSupplier.balance.toLocaleString()} ج.م.`}
+                      />
                     </>
                   );
                 })()}
@@ -13377,6 +13605,8 @@ const ReportsView = React.memo(function ReportsView(props: {
   loans?: Loan[],
   custodies?: TreasuryCustody[],
   settlementExpenses?: CustodySettlementExpense[],
+  companySettings?: any,
+  companyInfo?: any,
 }) {
   return <FinancialReports {...props} />;
 });
@@ -13392,6 +13622,8 @@ const OldReportsView = React.memo(function OldReportsView({
   jobOtherCosts,
   wasteRecords,
   maintenanceOrders,
+  companySettings,
+  companyInfo,
 }: { 
   items: Item[], 
   suppliers: Supplier[], 
@@ -13403,6 +13635,8 @@ const OldReportsView = React.memo(function OldReportsView({
   jobOtherCosts: JobOtherCost[],
   wasteRecords: Waste[],
   maintenanceOrders: MaintenanceOrder[],
+  companySettings?: any,
+  companyInfo?: any,
 }) {
   const [activeReportTab, setActiveReportTab] = useState<'dashboard' | 'warehouse' | 'purchases' | 'suppliers'>('dashboard');
 
@@ -13559,11 +13793,22 @@ const OldReportsView = React.memo(function OldReportsView({
         </div>
       </div>
 
-      <div className="hidden print:block text-center border-b-2 border-slate-100 pb-12 mb-12">
-        <p className="text-slate-400 font-bold mt-3 tracking-widest uppercase text-xs">نظام إدارة الموارد والإمداد المتكامل</p>
-        <div className="mt-6 text-sm font-black text-slate-600 bg-slate-50 inline-block px-6 py-2 rounded-xl">
-        </div>
-      </div>
+      <PrintHeader
+        title={
+          activeReportTab === 'warehouse' ? 'تقرير جرد مستودعات الخامات والمستلزمات' :
+          activeReportTab === 'purchases' ? 'تقرير تحليلي لمشتريات وتوريدات المواد' :
+          activeReportTab === 'suppliers' ? 'كشف أرصدة ومديونيات الموردين' :
+          'التقرير التنفيذي المجمع لحركة المخزون والموردين'
+        }
+        subtitle="كشف تحليلي شامل بحركة التدفقات المخزنية والمديونيات"
+        companyInfo={companySettings || companyInfo}
+        kpis={[
+          { label: 'القيمة الإجمالية للمخزون', value: `${totalInventoryValue.toLocaleString()} ج.م`, highlight: true },
+          { label: 'إجمالي مديونيات الموردين', value: `${totalSupplierDebt.toLocaleString()} ج.م`, highlight: totalSupplierDebt > 0 },
+          { label: 'عدد الأصناف المتاحة', value: `${items.length} صنف` },
+          { label: 'عدد الموردين النشطين', value: `${suppliers.length} مورد` },
+        ]}
+      />
 
       {/* Modern Tabs */}
       <div className="flex overflow-x-auto pb-2 scrollbar-none gap-2 p-2 bg-slate-100/80 backdrop-blur-sm rounded-[14px] w-fit border border-slate-200/50 print:hidden sticky top-4 z-40 shadow-xl shadow-slate-200/20">
@@ -15412,12 +15657,24 @@ const DeductionsView = React.memo(function DeductionsView({
               <option key={dept} value={dept}>{dept}</option>
             ))}
           </select>
-          <Button onClick={() => window.print()} variant="outline" className="h-11 rounded-xl font-bold border-slate-200">
+          <Button onClick={() => safePrint()} variant="outline" className="h-11 rounded-xl font-bold border-slate-200">
             <Printer size={16} className="ml-2" />
             طباعة
           </Button>
         </div>
       </div>
+
+      <PrintHeader
+        title="تقرير استقطاعات وجزاءات وسلف العاملين"
+        subtitle="كشف تفصيلي بموقف الخصومات والجزاءات المسجلة وأرصدة السلف المستحقة"
+        periodText={`القسم: ${selectedDept}`}
+        companyInfo={companyInfo}
+        kpis={[
+          { label: 'إجمالي الخصومات والجزاءات', value: `${totalPenalties.toLocaleString()} ج.م`, highlight: true },
+          { label: 'إجمالي السلف القائمة', value: `${totalOutstandingLoans.toLocaleString()} ج.م`, highlight: totalOutstandingLoans > 0 },
+          { label: 'عدد الموظفين المشمولين', value: `${filteredEmployees.length} موظف` },
+        ]}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:hidden">
@@ -15500,9 +15757,35 @@ const DeductionsView = React.memo(function DeductionsView({
                 </TableRow>
               )}
             </TableBody>
+            <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+              <tr>
+                <td colSpan={2} className="text-right py-3 px-4 font-black text-slate-900">
+                  الإجمالي العام ({filteredEmployees.length} موظف):
+                </td>
+                <td className="text-right font-black font-mono text-rose-700">
+                  {totalPenalties.toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-amber-700">
+                  {filteredEmployees.reduce((sum, emp) => sum + loans.filter(l => l.employeeId === emp.id).reduce((s, l) => s + (l.amount || 0), 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-emerald-700">
+                  {filteredEmployees.reduce((sum, emp) => sum + loans.filter(l => l.employeeId === emp.id).reduce((s, l) => s + (l.amount - (l.remainingAmount || 0)), 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-slate-950 text-base">
+                  {totalOutstandingLoans.toLocaleString()} ج.م
+                </td>
+              </tr>
+            </tfoot>
           </Table>
         </div>
       </Card>
+
+      <PrintSignatures
+        tafqeetText={tafqeetArabic(totalPenalties + totalOutstandingLoans, 'جنيه مصري')}
+        preparedByTitle="مسؤول شؤون العاملين"
+        auditedByTitle="المراجعة والتدقيق المالي"
+        approvedByTitle="اعتماد الإدارة العامة"
+      />
     </div>
   );
 });
@@ -15842,7 +16125,7 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6 print:hidden">
         <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40">
            <CardContent className="p-6">
             <div className="flex justify-between items-start">
@@ -15992,51 +16275,30 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
           </Card>
 
           {/* Professional Aggregated Print Statement (Print Only) */}
-          <div className="hidden print:block text-right p-4 font-sans text-slate-900" dir="rtl">
-            <div className="border-b-2 border-slate-950 pb-6 mb-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h1 className="text-3xl font-black text-slate-950">{companySettings?.name || "مجموعة النجار للأثاث"}</h1>
-                  <p className="text-slate-600 font-bold mt-1 text-sm">{companySettings?.address || "دمياط - المنطقة الصناعية"}</p>
-                  <p className="text-slate-600 font-bold text-sm">هاتف: {companySettings?.phone || ""}</p>
-                </div>
-                {companySettings?.logoUrl && (
-                  <img src={companySettings.logoUrl} alt="Logo" className="h-16 w-auto object-contain" referrerPolicy="no-referrer" />
-                )}
-              </div>
-              <div className="mt-6 text-center">
-                <h2 className="text-2xl font-black text-slate-950 border-y border-dashed border-slate-400 py-2 inline-block px-12 bg-slate-50/50">
-                  كشف وأرصدة السلف المجمعة للموظفين
-                </h2>
-                <p className="text-slate-500 font-bold text-xs mt-2">تاريخ استخراج التقرير: {format(new Date(), 'yyyy-MM-dd HH:mm')}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="border border-slate-300 p-4 rounded-xl bg-slate-50/50 text-right">
-                <span className="text-xs font-bold text-slate-600 block mb-1">إجمالي السلف النشطة</span>
-                <span className="text-xl font-black text-slate-950">{totalActiveLoans.toLocaleString()} ج.م</span>
-              </div>
-              <div className="border border-slate-300 p-4 rounded-xl bg-slate-50/50 text-right">
-                <span className="text-xs font-bold text-slate-600 block mb-1">المتبقي للتحصيل</span>
-                <span className="text-xl font-black text-slate-950">{totalRemaining.toLocaleString()} ج.م</span>
-              </div>
-              <div className="border border-slate-300 p-4 rounded-xl bg-slate-50/50 text-right">
-                <span className="text-xs font-bold text-slate-600 block mb-1">عدد الموظفين المستفيدين</span>
-                <span className="text-xl font-black text-slate-950">{new Set(loans.map(l => l.employeeId)).size} موظف</span>
-              </div>
-            </div>
+          <div className="hidden print:block text-right p-2 font-sans text-slate-900" dir="rtl">
+            <PrintHeader
+              title="كشف وأرصدة السلف المجمعة للموظفين"
+              subtitle="تقرير شامل بأرصدة السلف الممنوحة والمسدد منها والمتبقي للتحصيل"
+              periodText={`القسم: ${selectedDept}`}
+              companyInfo={companySettings}
+              kpis={[
+                { label: 'إجمالي السلف النشطة', value: `${totalActiveLoans.toLocaleString()} ج.م`, highlight: true },
+                { label: 'المتبقي للتحصيل', value: `${totalRemaining.toLocaleString()} ج.م`, highlight: true },
+                { label: 'المسدد والمسترد', value: `${(totalActiveLoans - totalRemaining).toLocaleString()} ج.م` },
+                { label: 'عدد الموظفين المستفيدين', value: `${new Set(loans.map(l => l.employeeId)).size} موظف` },
+              ]}
+            />
 
             <table className="w-full border-collapse border border-slate-400 text-sm">
               <thead>
                 <tr className="bg-slate-100 border-b-2 border-slate-400">
-                  <th className="border border-slate-400 p-3 text-right font-black">التاريخ</th>
-                  <th className="border border-slate-400 p-3 text-right font-black">اسم الموظف</th>
-                  <th className="border border-slate-400 p-3 text-right font-black">القسم</th>
-                  <th className="border border-slate-400 p-3 text-right font-black">قيمة السلفة</th>
-                  <th className="border border-slate-400 p-3 text-right font-black">المسدد والمسترد</th>
-                  <th className="border border-slate-400 p-3 text-right font-black">الرصيد المتبقي</th>
-                  <th className="border border-slate-400 p-3 text-right font-black">الحالة</th>
+                  <th className="border border-slate-400 p-2.5 text-right font-black">التاريخ</th>
+                  <th className="border border-slate-400 p-2.5 text-right font-black">اسم الموظف</th>
+                  <th className="border border-slate-400 p-2.5 text-right font-black">القسم</th>
+                  <th className="border border-slate-400 p-2.5 text-right font-black">قيمة السلفة</th>
+                  <th className="border border-slate-400 p-2.5 text-right font-black">المسدد والمسترد</th>
+                  <th className="border border-slate-400 p-2.5 text-right font-black">الرصيد المتبقي</th>
+                  <th className="border border-slate-400 p-2.5 text-right font-black">الحالة</th>
                 </tr>
               </thead>
               <tbody>
@@ -16045,33 +16307,43 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                   const paid = loan.amount - loan.remainingAmount;
                   return (
                     <tr key={loan.id} className="border-b border-slate-300">
-                      <td className="border border-slate-300 p-3 font-bold text-slate-800">{loan.date}</td>
-                      <td className="border border-slate-300 p-3 font-black text-slate-955">{emp?.name || "غير معروف"}</td>
-                      <td className="border border-slate-300 p-3 font-bold text-slate-700">{emp?.department || "الإنتاج"}</td>
-                      <td className="border border-slate-300 p-3 font-black text-slate-900">{loan.amount.toLocaleString()} ج.م</td>
-                      <td className="border border-slate-300 p-3 font-bold text-emerald-800">{paid.toLocaleString()} ج.م</td>
-                      <td className="border border-slate-300 p-3 font-black text-red-800 bg-red-50/20">{loan.remainingAmount.toLocaleString()} ج.م</td>
-                      <td className="border border-slate-300 p-3 font-bold">{loan.status}</td>
+                      <td className="border border-slate-300 p-2.5 font-bold text-slate-800">{loan.date}</td>
+                      <td className="border border-slate-300 p-2.5 font-black text-slate-950">{emp?.name || "غير معروف"}</td>
+                      <td className="border border-slate-300 p-2.5 font-bold text-slate-700">{emp?.department || "الإنتاج"}</td>
+                      <td className="border border-slate-300 p-2.5 font-black text-slate-900">{loan.amount.toLocaleString()} ج.م</td>
+                      <td className="border border-slate-300 p-2.5 font-bold text-emerald-800">{paid.toLocaleString()} ج.م</td>
+                      <td className="border border-slate-300 p-2.5 font-black text-red-800 bg-red-50/20">{loan.remainingAmount.toLocaleString()} ج.م</td>
+                      <td className="border border-slate-300 p-2.5 font-bold">{loan.status}</td>
                     </tr>
                   );
                 })}
               </tbody>
+              <tfoot className="bg-slate-100 font-black border-t-2 border-slate-900">
+                <tr>
+                  <td colSpan={3} className="border border-slate-400 p-2.5 text-right font-black text-slate-900">
+                    الإجمالي العام للسلف ({filteredLoans.length} سلفة):
+                  </td>
+                  <td className="border border-slate-400 p-2.5 text-right font-black font-mono text-slate-950">
+                    {filteredLoans.reduce((acc, l) => acc + l.amount, 0).toLocaleString()} ج.م
+                  </td>
+                  <td className="border border-slate-400 p-2.5 text-right font-black font-mono text-emerald-800">
+                    {filteredLoans.reduce((acc, l) => acc + (l.amount - l.remainingAmount), 0).toLocaleString()} ج.م
+                  </td>
+                  <td className="border border-slate-400 p-2.5 text-right font-black font-mono text-red-900 text-base">
+                    {filteredLoans.reduce((acc, l) => acc + l.remainingAmount, 0).toLocaleString()} ج.م
+                  </td>
+                  <td className="border border-slate-400 p-2.5 text-center text-xs text-slate-600">-</td>
+                </tr>
+              </tfoot>
             </table>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 text-center text-xs font-bold">
-              <div>
-                <p className="mb-8">المحاسب المسؤول</p>
-                <div className="border-b border-slate-400 w-32 mx-auto"></div>
-              </div>
-              <div>
-                <p className="mb-8">المدير المالي</p>
-                <div className="border-b border-slate-400 w-32 mx-auto"></div>
-              </div>
-              <div>
-                <p className="mb-8">اعتماد الإدارة العامة</p>
-                <div className="border-b border-slate-400 w-32 mx-auto"></div>
-              </div>
-            </div>
+            <PrintSignatures
+              tafqeetText={tafqeetArabic(filteredLoans.reduce((acc, l) => acc + l.remainingAmount, 0), 'جنيه مصري')}
+              preparedByTitle="المحاسب المسؤول"
+              auditedByTitle="المراجعة والتدقيق المالي"
+              approvedByTitle="اعتماد الإدارة العامة"
+              notes={`إجمالي المتبقي للتحصيل من السلف المدرجة أعلاه هو ${filteredLoans.reduce((acc, l) => acc + l.remainingAmount, 0).toLocaleString()} ج.م يتم تحصيلها وفق جداول الأقساط المعتمدة.`}
+            />
           </div>
         </>
       )}
@@ -16218,26 +16490,18 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                 const selectedEmp = employees.find(e => e.id === selectedEmpIdForStatement);
                 return (
                   <div className="space-y-6">
-                    <div className="hidden print:block text-right pb-6 mb-8 border-b-2 border-slate-950">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h1 className="text-2xl font-black text-slate-950">{companySettings?.name || "مجموعة النجار للأثاث"}</h1>
-                          <p className="text-slate-600 font-bold mt-1 text-sm">{companySettings?.address || "دمياط - المنطقة الصناعية"}</p>
-                          <p className="text-slate-600 font-bold text-sm">هاتف: {companySettings?.phone || ""}</p>
-                        </div>
-                        {companySettings?.logoUrl && (
-                          <img src={companySettings.logoUrl} alt="Logo" className="h-14 w-auto object-contain" referrerPolicy="no-referrer" />
-                        )}
-                      </div>
-                      <div className="mt-6 text-center">
-                        <h2 className="text-xl font-black text-slate-950 border-y border-dashed border-slate-400 py-2 inline-block px-12 bg-slate-50/50">
-                          كشف حساب السلف والمدفوعات التفصيلي للموظف
-                        </h2>
-                        <p className="text-lg font-black text-slate-900 mt-3">{selectedEmp?.name} - {selectedEmp?.department || 'الإنتاج'}</p>
-                        <p className="text-slate-500 font-bold text-xs mt-1">تاريخ استخراج التقرير: {format(new Date(), 'yyyy-MM-dd HH:mm')}</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <PrintHeader
+                      title="كشف حساب السلف والمدفوعات التفصيلي للموظف"
+                      subtitle={`${selectedEmp?.name} | القسم: ${selectedEmp?.department || 'الإنتاج'} | كود: ${selectedEmp?.id?.slice(0, 6) || '-'}`}
+                      companyInfo={companySettings}
+                      kpis={[
+                        { label: 'إجمالي السلف المستلمة', value: `${totalEmpLoans.toLocaleString()} ج.م` },
+                        { label: 'إجمالي المسدد والمسترد', value: `${totalEmpPaid.toLocaleString()} ج.م` },
+                        { label: 'الرصيد المتبقي المستحق', value: `${totalEmpRemaining.toLocaleString()} ج.م`, highlight: totalEmpRemaining > 0 },
+                      ]}
+                    />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 print:hidden">
                       <Card className="border-none shadow-sm bg-red-50/50 border-red-100 p-5 text-right">
                         <div className="flex justify-between items-center">
                           <div className="space-y-1 text-right">
@@ -16325,12 +16589,36 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
                               </TableRow>
                             )}
                           </TableBody>
+                          <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+                            <tr>
+                              <td colSpan={3} className="text-right py-3 px-4 font-black text-slate-900">
+                                رصيد الحساب الختامي للموظف ({selectedEmp?.name}):
+                              </td>
+                              <td className="text-right font-black font-mono text-orange-900">
+                                {totalEmpLoans.toLocaleString()} ج.م
+                              </td>
+                              <td className="text-right font-black font-mono text-emerald-800">
+                                {totalEmpPaid.toLocaleString()} ج.م
+                              </td>
+                              <td className="text-right font-black font-mono text-slate-950 text-base">
+                                {totalEmpRemaining.toLocaleString()} ج.م
+                              </td>
+                            </tr>
+                          </tfoot>
                         </Table>
                       </div>
                     </Card>
 
+                    <PrintSignatures
+                      tafqeetText={tafqeetArabic(totalEmpRemaining, 'جنيه مصري')}
+                      preparedByTitle="المحاسب المسؤول"
+                      auditedByTitle="إقرار وتوقيع الموظف المقترض"
+                      approvedByTitle="اعتماد الإدارة المالية"
+                      notes={`يقر الموظف المذكور أعلاه بصحة البيانات والرصيد المتبقي عليه وقدره ${totalEmpRemaining.toLocaleString()} ج.م ويوافق على استمرار خصم الأقساط المقررة من راتبه.`}
+                    />
+
                     {/* Individual active/inactive sulafe details */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 print:hidden">
                       <h3 className="text-lg font-black text-slate-900 font-bold text-right block font-bold">تفاصيل السلف المستلمة والجدولة</h3>
                       <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                         {employeeLoans.map(loan => (
@@ -18033,43 +18321,129 @@ const PayrollView = React.memo(function PayrollView({
   const departments = ['الكل', ...new Set((employees || []).filter(e => e.department).map(e => e.department!))];
   const [showGenerate, setShowGenerate] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [genData, setGenData] = useState({
-    weekNumber: 1,
-    year: 2026,
-    startDate: '',
-    endDate: '',
+  const [genData, setGenData] = useState(() => {
+    const today = new Date();
+    const day = today.getDay(); // 0 = Sun, 1 = Mon, ... 6 = Sat
+    const diffToSat = day === 6 ? 0 : -(day + 1);
+    const sat = new Date(today);
+    sat.setDate(today.getDate() + diffToSat);
+    const fri = new Date(sat);
+    fri.setDate(sat.getDate() + 6);
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+    const startOfYear = new Date(sat.getFullYear(), 0, 1);
+    const pastDays = (sat.getTime() - startOfYear.getTime()) / 86400000;
+    const weekNum = Math.ceil((pastDays + startOfYear.getDay() + 1) / 7);
+    return {
+      weekNumber: weekNum || 1,
+      year: sat.getFullYear() || new Date().getFullYear(),
+      startDate: formatDate(sat),
+      endDate: formatDate(fri),
+    };
   });
   const [selectedPayrollIds, setSelectedPayrollIds] = useState<string[]>([]);
   const [selectedPayrollForSlip, setSelectedPayrollForSlip] = useState<Payroll | null>(null);
   const [showBulkPrintModal, setShowBulkPrintModal] = useState(false);
+  const [showMasterPrintModal, setShowMasterPrintModal] = useState(false);
 
   const handleGenerate = async () => {
     try {
       setIsImporting(true);
-      const response = await fetch('/api/payroll/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employees: employees || [],
-          attendance: attendance || [],
-          transactions: transactions || [],
-          loans: loans || [],
-          productionRecords: productionRecords || [],
-          genData
-        })
-      });
+      if (!genData.startDate || !genData.endDate) {
+        alert('يرجى تحديد تاريخ البداية والنهاية للأسبوع.');
+        setIsImporting(false);
+        return;
+      }
 
-      const { processedPayrolls } = await response.json();
-      if (!processedPayrolls) throw new Error("No payrolls generated");
+      let generatedList: any[] = [];
+      try {
+        const response = await fetch('/api/payroll/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            employees: employees || [],
+            attendance: attendance || [],
+            transactions: transactions || [],
+            loans: loans || [],
+            productionRecords: productionRecords || [],
+            genData
+          })
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData && Array.isArray(resData.processedPayrolls) && resData.processedPayrolls.length > 0) {
+            generatedList = resData.processedPayrolls;
+          }
+        }
+      } catch (apiErr) {
+        console.warn("API payroll generate fallback to local calculation:", apiErr);
+      }
+
+      // If backend API returned empty or had an issue, calculate accurately on client
+      if (!generatedList || generatedList.length === 0) {
+        const activeEmps = (employees || []).filter(e => e.status === 'نشط' || !e.status);
+        generatedList = activeEmps.map(emp => {
+          const virtualP: Payroll = {
+            id: `temp-${emp.id}`,
+            employeeId: emp.id,
+            weekNumber: genData.weekNumber,
+            year: genData.year,
+            startDate: genData.startDate,
+            endDate: genData.endDate,
+            dailyRate: emp.payMethod === 'daily' ? (emp.dailyRate || 0) : (emp.pieceRate || 0),
+            daysWorked: 0,
+            baseSalary: 0,
+            totalBonuses: 0,
+            totalOvertime: 0,
+            totalExpenses: 0,
+            totalProduction: 0,
+            totalDeductions: 0,
+            totalLoans: 0,
+            netSalary: 0,
+            status: 'مسودة',
+            payMethod: emp.payMethod || 'daily'
+          };
+          const calc = calculateLivePayroll(virtualP, attendance, transactions, loans, productionRecords, companySettings, employees);
+          const { id: _ignore, ...cleanP } = calc;
+          return {
+            ...cleanP,
+            employeeId: emp.id,
+            weekNumber: genData.weekNumber,
+            year: genData.year,
+            startDate: genData.startDate,
+            endDate: genData.endDate,
+            status: 'مسودة' as const,
+            payMethod: emp.payMethod || 'daily'
+          };
+        });
+      }
+
+      if (generatedList.length === 0) {
+        alert('لم يتم العثور على موظفين نشطين لإصدار رواتبهم.');
+        setIsImporting(false);
+        return;
+      }
+
+      // Find any existing draft payrolls for this week & year to prevent duplicate rows
+      const existingDrafts = (payrolls || []).filter(
+        p => p.status === 'مسودة' && p.weekNumber === genData.weekNumber && p.year === genData.year
+      );
+      const existingMap = new Map<string, string>();
+      existingDrafts.forEach(p => existingMap.set(p.employeeId, p.id));
 
       let batch = writeBatch(db);
       let opCount = 0;
 
-      for (const p of (processedPayrolls || [])) {
-        const newRef = doc(collection(db, 'payrolls'));
-        batch.set(newRef, p);
+      for (const p of generatedList) {
+        const existingDocId = existingMap.get(p.employeeId);
+        const ref = existingDocId ? doc(db, 'payrolls', existingDocId) : doc(collection(db, 'payrolls'));
+        batch.set(ref, {
+          ...p,
+          updatedAt: new Date().toISOString(),
+          createdAt: p.createdAt || new Date().toISOString()
+        }, { merge: true });
         opCount++;
-        if (opCount >= 450) {
+        if (opCount >= 400) {
           await batch.commit();
           batch = writeBatch(db);
           opCount = 0;
@@ -18079,7 +18453,13 @@ const PayrollView = React.memo(function PayrollView({
       setSelectedWeek(genData.weekNumber);
       setSelectedYear(genData.year);
       setShowGenerate(false);
-  } catch (err) { console.error(err); } };
+    } catch (err) {
+      console.error("Error generating payrolls:", err);
+      alert('حدث خطأ أثناء إصدار رواتب الأسبوع.');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const applyLoanDeductionsToBatch = (payroll: Payroll, batch: any) => {
     if (payroll.totalLoans <= 0) return;
@@ -18594,17 +18974,28 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
         
         <div className="md:col-span-2 flex items-center justify-end gap-3 flex-wrap">
           {processedPayrolls.length > 0 && (
-            <Button
-              onClick={() => setShowBulkPrintModal(true)}
-              className="h-14 px-7 rounded-[14px] font-black text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-200 flex items-center gap-2"
-            >
-              <Printer size={20} />
-              <span>
-                {selectedPayrollIds.length > 0
-                  ? `طباعة مفردات المحددين (${selectedPayrollIds.length})`
-                  : `طباعة مفردات المرتبات المجمعة (${processedPayrolls.length})`}
-              </span>
-            </Button>
+            <>
+              <Button
+                onClick={() => setShowMasterPrintModal(true)}
+                className="h-14 px-6 rounded-[14px] font-black text-base bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-300 flex items-center gap-2"
+                title="طباعة كشف مسير الرواتب المعتمد A4 بالعرض مع التوقيعات"
+              >
+                <Printer size={20} className="text-emerald-400" />
+                <span>طباعة كشف المسير العام المعتمد</span>
+              </Button>
+              <Button
+                onClick={() => setShowBulkPrintModal(true)}
+                className="h-14 px-6 rounded-[14px] font-black text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-200 flex items-center gap-2"
+                title="طباعة قسائم صرف رواتب الموظفين مع خطوط القص"
+              >
+                <FileText size={20} />
+                <span>
+                  {selectedPayrollIds.length > 0
+                    ? `طباعة قسائم المحددين (${selectedPayrollIds.length})`
+                    : `طباعة قسائم الرواتب المجمعة (${processedPayrolls.length})`}
+                </span>
+              </Button>
+            </>
           )}
 
           {selectedPayrollIds.length > 0 ? (
@@ -18634,6 +19025,19 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
           )}
         </div>
       </div>
+
+      <PrintHeader
+        title={`كشف مسير رواتب الأسبوع رقم (${selectedWeek}) لسنة ${selectedYear}`}
+        subtitle="كشف تحليلي معتمد بمفردات الأجور والإنتاج والإضافي والخصومات وصافي المستحقات"
+        periodText={`أسبوع ${selectedWeek} / ${selectedYear} | القسم: ${selectedDept}`}
+        companyInfo={companyInfo}
+        kpis={[
+          { label: 'إجمالي صافي الرواتب', value: `${filteredTotalWeekly.toLocaleString()} ج.م`, highlight: true },
+          { label: 'عدد العمال المسجلين', value: `${processedPayrolls.length} موظف` },
+          { label: 'إجمالي الإنتاج والإضافي', value: `+${processedPayrolls.reduce((s, p) => s + (p.totalProduction || 0) + (p.totalOvertime || 0) + (p.totalBonuses || 0), 0).toLocaleString()} ج.م` },
+          { label: 'إجمالي الاستقطاعات والسلف', value: `-${processedPayrolls.reduce((s, p) => s + (p.totalDeductions || 0) + (p.totalExpenses || 0) + (p.totalLoans || 0), 0).toLocaleString()} ج.م` },
+        ]}
+      />
 
       <Card className="dribbble-card border-none">
         <div className="overflow-x-auto">
@@ -18768,9 +19172,51 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
               </TableRow>
             ))}
           </TableBody>
+          <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+            <tr>
+              <td colSpan={3} className="text-right py-3 px-4 font-black text-slate-900">
+                الإجمالي العام ({processedPayrolls.length} موظف):
+              </td>
+              <td className="text-center font-black font-mono text-blue-800">
+                {processedPayrolls.reduce((s, p) => s + (p.daysWorked || 0), 0).toFixed(1)} يوم
+              </td>
+              <td className="text-right font-black font-mono text-slate-900">
+                {processedPayrolls.reduce((s, p) => s + (p.baseSalary || 0), 0).toLocaleString()} ج.م
+              </td>
+              <td className="text-right font-black font-mono text-purple-800">
+                {processedPayrolls.reduce((s, p) => s + (p.totalProduction || 0), 0).toLocaleString()} ج.م
+              </td>
+              <td className="text-right font-black font-mono text-blue-800">
+                {processedPayrolls.reduce((s, p) => s + (p.totalOvertime || 0), 0).toLocaleString()} ج.م
+              </td>
+              <td className="text-right font-black font-mono text-emerald-800">
+                {processedPayrolls.reduce((s, p) => s + (p.totalBonuses || 0), 0).toLocaleString()} ج.م
+              </td>
+              <td className="text-right font-black font-mono text-rose-800">
+                -{processedPayrolls.reduce((s, p) => s + (p.totalDeductions || 0), 0).toLocaleString()} ج.م
+              </td>
+              <td className="text-right font-black font-mono text-orange-800">
+                -{processedPayrolls.reduce((s, p) => s + (p.totalExpenses || 0), 0).toLocaleString()} ج.م
+              </td>
+              <td className="text-right font-black font-mono text-amber-800">
+                -{processedPayrolls.reduce((s, p) => s + (p.totalLoans || 0), 0).toLocaleString()} ج.م
+              </td>
+              <td className="text-right font-black font-mono text-slate-950 text-base">
+                {filteredTotalWeekly.toLocaleString()} ج.م
+              </td>
+              <td colSpan={2} className="text-center text-xs text-slate-400">-</td>
+            </tr>
+          </tfoot>
         </Table>
       </div>
     </Card>
+
+    <PrintSignatures
+      tafqeetText={tafqeetArabic(filteredTotalWeekly, 'جنيه مصري')}
+      preparedByTitle="مسؤول الرواتب وشؤون العاملين"
+      auditedByTitle="المراجعة والتدقيق المالي"
+      approvedByTitle="اعتماد المدير العام"
+    />
     </>
   ) : payrollSubTab === 'daily' ? (
     <>
@@ -18884,15 +19330,18 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
       </div>
 
       {/* Print-only elegant header */}
-      <div className="hidden print:block text-center mb-6 pb-6 border-b border-slate-200">
-        <h2 className="text-2xl font-black text-slate-900">
-          {dailyMode === 'range' 
-            ? `كشف مستحقات العاملين للفترة من ${dailyStartDate} إلى ${dailyEndDate}` 
-            : `كشف مستحقات العاملين ليوم ${selectedDailyDate}`
-          }
-        </h2>
-        <p className="text-xs font-bold text-slate-500 mt-1">القسم: {selectedDept === 'الكل' ? 'كل الأقسام' : selectedDept} | {companyInfo?.name || 'مصنع النجار للأثاث'}</p>
-      </div>
+      <PrintHeader
+        title={dailyMode === 'range' ? `كشف مستحقات العاملين للفترة من ${dailyStartDate} إلى ${dailyEndDate}` : `كشف مستحقات العاملين ليوم ${selectedDailyDate}`}
+        subtitle="حساب فوري للأجور اليومية وأجور الإنتاج والإضافي والخصومات"
+        periodText={dailyMode === 'range' ? `من ${dailyStartDate} إلى ${dailyEndDate} | القسم: ${selectedDept}` : `يوم ${selectedDailyDate} | القسم: ${selectedDept}`}
+        companyInfo={companyInfo}
+        kpis={[
+          { label: 'إجمالي صافي الأجور', value: `${filteredDailyTotal.toLocaleString()} ج.م`, highlight: true },
+          { label: 'عدد العمال المستحقين', value: `${filteredDailyPayroll.filter(d => d.daysWorked > 0 || d.totalProduction > 0).length} عامل` },
+          { label: 'إجمالي الحوافز والإضافي', value: `+${filteredDailyPayroll.reduce((sum, d) => sum + d.totalOvertime + d.totalBonuses, 0).toLocaleString()} ج.م` },
+          { label: 'إجمالي الاستقطاعات والمصاريف', value: `-${filteredDailyPayroll.reduce((sum, d) => sum + d.totalDeductions + d.totalExpenses + d.totalLoans, 0).toLocaleString()} ج.م` },
+        ]}
+      />
 
       <Card className="dribbble-card border-none overflow-hidden print:shadow-none print:border-none">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 print:hidden">
@@ -18991,9 +19440,42 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
                 </TableRow>
               )}
             </TableBody>
+            <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+              <tr>
+                <td colSpan={3} className="text-right py-3 px-4 font-black text-slate-900">
+                  الإجمالي العام لمستحقات {dailyMode === 'range' ? 'الفترة' : 'اليوم'}:
+                </td>
+                <td className="text-right font-black font-mono text-slate-900">
+                  {filteredDailyPayroll.reduce((sum, d) => sum + (d.baseSalary || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-purple-900">
+                  {filteredDailyPayroll.reduce((sum, d) => sum + (d.totalProduction || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-emerald-800">
+                  {filteredDailyPayroll.reduce((sum, d) => sum + (d.totalBonuses || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-blue-800">
+                  {filteredDailyPayroll.reduce((sum, d) => sum + (d.totalOvertime || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-rose-800">
+                  -{filteredDailyPayroll.reduce((sum, d) => sum + (d.totalDeductions || 0) + (d.totalExpenses || 0) + (d.totalLoans || 0), 0).toLocaleString()} ج.م
+                </td>
+                <td className="text-right font-black font-mono text-slate-950 text-base">
+                  {filteredDailyTotal.toLocaleString()} ج.م
+                </td>
+                <td className="text-center text-xs text-slate-400">-</td>
+              </tr>
+            </tfoot>
           </Table>
         </div>
       </Card>
+
+      <PrintSignatures
+        tafqeetText={tafqeetArabic(filteredDailyTotal, 'جنيه مصري')}
+        preparedByTitle="مسؤول الرواتب اليومية"
+        auditedByTitle="المراجعة والتدقيق المالي"
+        approvedByTitle="اعتماد الإدارة العامة"
+      />
     </>
   ) : (
     <DeductionsView
@@ -19748,7 +20230,10 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
                     <span className="text-[10px] font-black uppercase text-white/50 tracking-[0.2em] block">المبلغ المستحق الدفع</span>
                     <span className="text-sm font-semibold text-emerald-400">صافي الراتب بعد التصفية والخصم</span>
                   </div>
-                  <span className="text-3xl font-black text-white">{p.netSalary.toLocaleString()} ج.م</span>
+                  <div className="text-left">
+                    <span className="text-3xl font-black text-white">{p.netSalary.toLocaleString()} ج.م</span>
+                    <p className="text-xs text-emerald-300 font-bold mt-1 font-mono">{tafqeetArabic(p.netSalary, 'جنيه مصري')}</p>
+                  </div>
                 </div>
 
                 {/* Signatures */}
@@ -19779,6 +20264,279 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
                 </Button>
               </CardFooter>
             </Card>
+          </div>
+        );
+      })()}
+
+      {/* Official Master Payroll Sheet Print Modal */}
+      {showMasterPrintModal && (() => {
+        const listToPrint = selectedPayrollIds.length > 0
+          ? processedPayrolls.filter(p => selectedPayrollIds.includes(p.id))
+          : processedPayrolls;
+
+        const masterTotals = listToPrint.reduce((acc, p) => {
+          acc.daysWorked += (p.daysWorked || 0);
+          acc.baseSalary += (p.baseSalary || 0);
+          acc.totalProduction += (p.totalProduction || 0);
+          acc.totalOvertime += (p.totalOvertime || 0);
+          acc.totalBonuses += (p.totalBonuses || 0);
+          acc.grossEarnings += (p.baseSalary || 0) + (p.totalProduction || 0) + (p.totalOvertime || 0) + (p.totalBonuses || 0);
+          acc.totalDeductions += (p.totalDeductions || 0);
+          acc.totalExpenses += (p.totalExpenses || 0);
+          acc.totalLoans += (p.totalLoans || 0);
+          acc.totalDeductionsAll += (p.totalDeductions || 0) + (p.totalExpenses || 0) + (p.totalLoans || 0);
+          acc.netSalary += (p.netSalary || 0);
+          return acc;
+        }, {
+          daysWorked: 0,
+          baseSalary: 0,
+          totalProduction: 0,
+          totalOvertime: 0,
+          totalBonuses: 0,
+          grossEarnings: 0,
+          totalDeductions: 0,
+          totalExpenses: 0,
+          totalLoans: 0,
+          totalDeductionsAll: 0,
+          netSalary: 0,
+        });
+
+        const activeWeekStart = listToPrint[0]?.startDate || '';
+        const activeWeekEnd = listToPrint[0]?.endDate || '';
+
+        return (
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-2 md:p-6 z-50 overflow-y-auto" dir="rtl">
+            <style>{`
+              @media print {
+                @page {
+                  size: landscape;
+                  margin: 8mm 6mm;
+                }
+                body * {
+                  visibility: hidden;
+                }
+                #print-master-payroll-area, #print-master-payroll-area * {
+                  visibility: visible;
+                }
+                #print-master-payroll-area {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                  direction: rtl;
+                  background: white !important;
+                  color: black !important;
+                  padding: 4px !important;
+                }
+                .no-print {
+                  display: none !important;
+                }
+                table {
+                  width: 100% !important;
+                  border-collapse: collapse !important;
+                  font-size: 10px !important;
+                }
+                th, td {
+                  border: 1px solid #334155 !important;
+                  padding: 4px 6px !important;
+                }
+                th {
+                  background-color: #f1f5f9 !important;
+                  font-weight: bold !important;
+                }
+              }
+            `}</style>
+            <div className="bg-white w-full max-w-6xl max-h-[95vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+              {/* Modal Top Bar */}
+              <div className="p-5 bg-slate-900 text-white flex justify-between items-center no-print">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400">
+                    <Printer size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white">معاينة وطباعة كشف مسير الرواتب المعتمد</h3>
+                    <p className="text-xs font-bold text-slate-400">
+                      كشف رسمي إجمالي معتمد بتفاصيل الاستحقاقات والاستقطاعات وتواقيع الإدارة (جاهز للطباعة A4 بالعرض).
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button onClick={() => safePrint()} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black px-6 flex items-center gap-2 shadow-lg shadow-emerald-900/30">
+                    <Printer size={18} />
+                    طباعة الكشف الآن
+                  </Button>
+                  <Button variant="ghost" className="text-slate-400 hover:text-white rounded-xl" onClick={() => setShowMasterPrintModal(false)}>
+                    <X size={20} />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Scrollable Printable Document Area */}
+              <div className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1 bg-white" id="print-master-payroll-area">
+                {/* Header Section */}
+                <div className="border-b-2 border-slate-800 pb-4">
+                  <div className="flex justify-between items-start">
+                    <div className="text-right space-y-1">
+                      <h2 className="text-2xl font-black text-slate-900 tracking-tight">{companyInfo?.name || 'مجموعة شركات الجودة والتصنيع'}</h2>
+                      <p className="text-xs font-bold text-slate-600">{companyInfo?.address || 'الإدارة المالية - حسابات الموظفين والأجور'}</p>
+                      {companyInfo?.phone && <p className="text-[11px] font-bold text-slate-500">هاتف: {companyInfo.phone}</p>}
+                    </div>
+                    <div className="text-center px-4 py-2 border border-slate-300 rounded-xl bg-slate-50">
+                      <h1 className="text-lg font-black text-slate-900">كشف مسير رواتب العاملين</h1>
+                      <div className="flex items-center justify-center gap-3 text-xs font-bold text-slate-700 mt-1">
+                        <span>أسبوع رقم: <b className="font-mono text-sm text-blue-700">{selectedWeek}</b></span>
+                        <span>•</span>
+                        <span>سنة: <b className="font-mono text-sm text-blue-700">{selectedYear}</b></span>
+                      </div>
+                      {(activeWeekStart && activeWeekEnd) && (
+                        <p className="text-[11px] font-semibold text-slate-500 mt-0.5 font-mono">
+                          الفترة: {activeWeekStart} إلى {activeWeekEnd}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-left space-y-1 text-xs font-bold text-slate-600">
+                      <p>القسم: <span className="text-slate-900 font-black">{selectedDept}</span></p>
+                      <p>عدد الموظفين: <span className="font-mono text-slate-900 font-black">{listToPrint.length}</span></p>
+                      <p className="text-[11px] text-slate-400">تاريخ الطباعة: {new Date().toLocaleDateString('ar-EG')}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary KPI Badges (Header metrics) */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs no-print">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <span className="text-slate-500 font-bold block text-[11px]">إجمالي الأساسي والإنتاج:</span>
+                    <span className="text-base font-black font-mono text-slate-900">{(masterTotals.baseSalary + masterTotals.totalProduction).toLocaleString()} ج.م</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                    <span className="text-emerald-700 font-bold block text-[11px]">إجمالي الإضافي والبدلات:</span>
+                    <span className="text-base font-black font-mono text-emerald-800">+{(masterTotals.totalOvertime + masterTotals.totalBonuses).toLocaleString()} ج.م</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
+                    <span className="text-rose-700 font-bold block text-[11px]">إجمالي الخصومات والسلف:</span>
+                    <span className="text-base font-black font-mono text-rose-800">-{masterTotals.totalDeductionsAll.toLocaleString()} ج.م</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
+                    <span className="text-blue-700 font-bold block text-[11px]">صافي الرواتب المستحقة:</span>
+                    <span className="text-lg font-black font-mono text-blue-900">{masterTotals.netSalary.toLocaleString()} ج.م</span>
+                  </div>
+                </div>
+
+                {/* Main Accounting Table */}
+                <div className="overflow-x-auto border border-slate-400 rounded-lg">
+                  <table className="w-full text-right border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-900 border-b border-slate-400 font-black">
+                        <th className="p-2 border-l border-slate-400 text-center w-8">م</th>
+                        <th className="p-2 border-l border-slate-400 min-w-[140px]">اسم الموظف</th>
+                        <th className="p-2 border-l border-slate-400">الوظيفة / القسم</th>
+                        <th className="p-2 border-l border-slate-400 text-center">النظام</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono">أيام العمل</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono">أساسي</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono">إنتاج</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono">إضافي</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono">مكافآت</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono bg-emerald-50 text-emerald-900 font-bold">إجمالي المستحق</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono">جزاءات</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono">مصروفات</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono">سلف</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono bg-rose-50 text-rose-900 font-bold">إجمالي المستقطع</th>
+                        <th className="p-2 border-l border-slate-400 text-center font-mono bg-blue-50 text-blue-950 font-black text-sm">صافي الراتب</th>
+                        <th className="p-2 text-center min-w-[110px]">توقيع الاستلام</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-300">
+                      {listToPrint.map((p, idx) => {
+                        const emp = employees.find(e => e.id === p.employeeId);
+                        const empGross = (p.baseSalary || 0) + (p.totalProduction || 0) + (p.totalOvertime || 0) + (p.totalBonuses || 0);
+                        const empDeduct = (p.totalDeductions || 0) + (p.totalExpenses || 0) + (p.totalLoans || 0);
+
+                        return (
+                          <tr key={p.id || idx} className="hover:bg-slate-50/50">
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono font-bold text-slate-500">{idx + 1}</td>
+                            <td className="p-1.5 border-l border-slate-300 font-black text-slate-900">{emp?.name || 'غير معروف'}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-slate-700 text-[11px]">{emp?.department || 'عام'} - {emp?.position || 'عامل'}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center text-[10px] font-bold text-slate-600">{p.payMethod === 'production' ? 'إنتاج' : 'يومي'}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono font-bold">{ (p.daysWorked || 0).toFixed(1) }</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono">{(p.baseSalary || 0).toLocaleString()}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono text-purple-700">{(p.totalProduction || 0) > 0 ? (p.totalProduction || 0).toLocaleString() : '-'}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono text-blue-700">{(p.totalOvertime || 0) > 0 ? `+${(p.totalOvertime || 0).toLocaleString()}` : '-'}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono text-emerald-700">{(p.totalBonuses || 0) > 0 ? `+${(p.totalBonuses || 0).toLocaleString()}` : '-'}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono font-bold bg-emerald-50/60 text-emerald-900">{empGross.toLocaleString()}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono text-rose-700">{(p.totalDeductions || 0) > 0 ? `-${(p.totalDeductions || 0).toLocaleString()}` : '-'}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono text-orange-700">{(p.totalExpenses || 0) > 0 ? `-${(p.totalExpenses || 0).toLocaleString()}` : '-'}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono text-rose-700">{(p.totalLoans || 0) > 0 ? `-${(p.totalLoans || 0).toLocaleString()}` : '-'}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono font-bold bg-rose-50/60 text-rose-900">{empDeduct.toLocaleString()}</td>
+                            <td className="p-1.5 border-l border-slate-300 text-center font-mono font-black text-sm bg-blue-50 text-blue-900">{p.netSalary.toLocaleString()} ج.م</td>
+                            <td className="p-1.5 text-center text-slate-400 font-mono text-[10px]">....................</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-slate-200 text-slate-900 font-black border-t-2 border-slate-600">
+                        <td colSpan={4} className="p-2 border-l border-slate-400 text-center font-black">الإجماليات العامة للكشف ({listToPrint.length} موظف)</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black">{masterTotals.daysWorked.toFixed(1)}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black">{masterTotals.baseSalary.toLocaleString()}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black">{masterTotals.totalProduction.toLocaleString()}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black">+{masterTotals.totalOvertime.toLocaleString()}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black">+{masterTotals.totalBonuses.toLocaleString()}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black bg-emerald-100 text-emerald-950">{masterTotals.grossEarnings.toLocaleString()}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black">-{masterTotals.totalDeductions.toLocaleString()}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black">-{masterTotals.totalExpenses.toLocaleString()}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black">-{masterTotals.totalLoans.toLocaleString()}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black bg-rose-100 text-rose-950">-{masterTotals.totalDeductionsAll.toLocaleString()}</td>
+                        <td className="p-2 border-l border-slate-400 text-center font-mono font-black text-base bg-blue-100 text-blue-950">{masterTotals.netSalary.toLocaleString()} ج.م</td>
+                        <td className="p-2 text-center text-slate-500 font-bold text-[10px]">مكتمل</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                {/* Arabic Tafqeet Box */}
+                <div className="p-3.5 bg-slate-50 border border-slate-300 rounded-xl flex items-center justify-between text-xs font-bold text-slate-800">
+                  <div>
+                    <span className="text-slate-500 ml-2">المبلغ الإجمالي كتابةً:</span>
+                    <span className="font-black text-blue-900 text-sm">{tafqeetArabic(masterTotals.netSalary, 'جنيه مصري')}</span>
+                  </div>
+                  <div className="text-left font-mono text-[11px] text-slate-500">
+                    الصافي المنصرف: <b className="text-slate-900">{masterTotals.netSalary.toLocaleString()} جنيه مصري</b>
+                  </div>
+                </div>
+
+                {/* Official Signatures Grid */}
+                <div className="grid grid-cols-3 gap-6 pt-6 text-center text-xs font-bold text-slate-800 border-t border-slate-300">
+                  <div className="space-y-6">
+                    <p className="text-slate-600 font-black">إعداد وتجهيز مسؤول الرواتب</p>
+                    <p className="text-slate-400 text-[11px]">الاسم والتوقيع: ................................</p>
+                  </div>
+                  <div className="space-y-6 border-r border-l border-slate-200">
+                    <p className="text-slate-600 font-black">مراجعة وتدقيق الإدارة المالية</p>
+                    <p className="text-slate-400 text-[11px]">الاسم والتوقيع: ................................</p>
+                  </div>
+                  <div className="space-y-6">
+                    <p className="text-slate-600 font-black">اعتماد وصرف المدير العام</p>
+                    <p className="text-slate-400 text-[11px]">الاسم والتوقيع: ................................</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center no-print">
+                <span className="text-xs font-bold text-slate-500">
+                  كشف مسير معتمد لـ <b className="text-slate-900 font-black">{listToPrint.length}</b> موظف | صافي الكشف: <b className="text-emerald-700 font-black">{masterTotals.netSalary.toLocaleString()} ج.م</b>
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" className="font-bold rounded-xl" onClick={() => setShowMasterPrintModal(false)}>
+                    إغلاق
+                  </Button>
+                  <Button onClick={() => safePrint()} className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black px-6 flex items-center gap-2">
+                    <Printer size={18} />
+                    طباعة الكشف الآن
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         );
       })()}
@@ -19954,9 +20712,12 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
 
                       {/* Net Amount & Signatures */}
                       <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-900 text-white p-3.5 rounded-xl gap-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-slate-300">صافي المستحق القبض:</span>
-                          <span className="text-2xl font-black font-mono text-emerald-400">{p.netSalary.toLocaleString()} ج.م</span>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-slate-300">صافي المستحق القبض:</span>
+                            <span className="text-2xl font-black font-mono text-emerald-400">{p.netSalary.toLocaleString()} ج.م</span>
+                          </div>
+                          <span className="text-[11px] text-emerald-300 font-bold mt-0.5">{tafqeetArabic(p.netSalary, 'جنيه مصري')}</span>
                         </div>
                         <div className="flex items-center gap-6 text-[11px] font-bold text-slate-400 border-t sm:border-t-0 sm:border-r border-slate-700 pt-2 sm:pt-0 sm:pr-4">
                           <span>توقيع الموظف: ........................</span>

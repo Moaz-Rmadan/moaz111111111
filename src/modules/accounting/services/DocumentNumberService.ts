@@ -1,5 +1,5 @@
 import { doc, runTransaction, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import { db } from '../../../firebase';
 
 export type DocumentPrefix = 'PO' | 'PR' | 'ISS' | 'WO' | 'SO' | 'REC' | 'PAY' | 'JV';
 

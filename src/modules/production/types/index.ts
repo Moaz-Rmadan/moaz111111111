@@ -141,3 +141,18 @@ export interface ProductionRework {
   description: string;
   status: 'PENDING' | 'COMPLETED';
 }
+
+export interface ProductionJob {
+  id?: string;
+  jobCardNumber: string;
+  productId?: string;
+  productName: string;
+  quantityRequested: number;
+  quantityProduced?: number;
+  status: 'draft' | 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  startDate?: string;
+  endDate?: string;
+  notes?: string;
+  bomId?: string;
+  routingId?: string;
+}

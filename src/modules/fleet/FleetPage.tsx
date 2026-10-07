@@ -32,7 +32,7 @@ import {
   increment, writeBatch 
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
-import { NumberDisplay } from '../lib/numberUtils';
+import { NumberDisplay } from '../../lib/numberUtils';
 import { cn } from '@/lib/utils';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, 

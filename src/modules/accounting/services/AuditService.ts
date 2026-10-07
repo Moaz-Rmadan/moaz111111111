@@ -1,5 +1,5 @@
 import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import { db } from '../../../firebase';
 import { AuditLog } from '../../../types';
 
 export class AuditService {

@@ -703,7 +703,7 @@ export interface ProductionRecord {
 
 // ... (keep existing HR interfaces like Employee, Attendance)
 
-export type PayrollStatus = 'DRAFT' | 'CALCULATED' | 'APPROVED' | 'POSTED' | 'PAID';
+export type PayrollStatus = 'DRAFT' | 'CALCULATED' | 'APPROVED' | 'POSTED' | 'PAID' | 'مسودة' | 'معتمد' | 'مدفوع' | 'ملغي';
 
 export interface PayrollComponent {
   type: 'EARNING' | 'DEDUCTION';
@@ -716,23 +716,43 @@ export interface PayrollComponent {
 export interface Payroll {
   id: string;
   employeeId: string;
-  month: number;
+  month?: number;
   year: number;
   status: PayrollStatus;
   
-  // Re-calculable fields
+  // Weekly & Scheduling fields
+  weekNumber?: number;
+  startDate?: string;
+  endDate?: string;
+  paymentDate?: string;
+  employeeName?: string;
+  department?: string;
+  payMethod?: string;
+  dailyRate?: number;
+  daysWorked?: number;
+
+  // Re-calculable & Base fields
   baseSalary: number;
   
-  // Earnings & Deductions
-  earnings: PayrollComponent[];
-  deductions: PayrollComponent[];
+  // Components details
+  earnings?: PayrollComponent[];
+  deductions?: PayrollComponent[];
   
+  // Dynamic breakdown fields
+  totalProduction?: number;
+  totalBonuses?: number;
+  totalOvertime?: number;
+  totalCommission?: number;
+  totalTips?: number;
+  totalExpenses?: number;
+  totalLoans?: number;
+
   // Totals
-  grossEarnings: number;
+  grossEarnings?: number;
   totalDeductions: number;
   netSalary: number;
   
-  createdAt: string;
+  createdAt?: string;
   approvedBy?: string;
   postedAt?: string;
   paymentDetails?: {

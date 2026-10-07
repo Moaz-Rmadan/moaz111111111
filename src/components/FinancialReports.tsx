@@ -27,6 +27,8 @@ import { getJobLedgerCostBreakdown, syncAndPersistJobLedgerCosts } from '../lib/
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PrintHeader, PrintSignatures } from './PrintHeader';
+import { tafqeetArabic } from '../lib/tafqeet';
 
 interface FinancialReportsProps {
   items: Item[];
@@ -48,6 +50,8 @@ interface FinancialReportsProps {
   loans?: Loan[];
   custodies?: TreasuryCustody[];
   settlementExpenses?: CustodySettlementExpense[];
+  companySettings?: any;
+  companyInfo?: any;
 }
 
 export function FinancialReports({
@@ -70,6 +74,8 @@ export function FinancialReports({
   loans = [],
   custodies = [],
   settlementExpenses = [],
+  companySettings,
+  companyInfo,
 }: FinancialReportsProps) {
   // Tabs management
   const [activeReportTab, setActiveReportTab] = useState<
@@ -1009,18 +1015,33 @@ export function FinancialReports({
       </div>
 
       {/* Printable Company Header (Visible ONLY during Print) */}
-      <div className="hidden print:block text-center border-b-2 border-slate-900 pb-6 mb-8">
-        <div className="flex justify-between items-center">
-          <div className="text-right space-y-1">
-            <h1 className="text-2xl font-black text-slate-900">الشركة الوطنية للصناعات المتقدمة</h1>
-            <p className="text-xs text-slate-600 font-bold">الإدارة المالية والتخطيط التنفيذي</p>
-            <p className="text-[10px] text-slate-500 font-mono">تاريخ الاستخراج: {format(new Date(), 'yyyy/MM/dd HH:mm')}</p>
-          </div>
-          <div className="w-16 h-16 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-2xl border-2 border-slate-900">
-            ERP
-          </div>
-        </div>
-      </div>
+      <PrintHeader
+        title={
+          activeReportTab === 'income_statement' ? 'قائمة الدخل والأرباح والخسائر (Income Statement)' :
+          activeReportTab === 'balance_sheet' ? 'الميزانية العمومية والمركز المالي (Balance Sheet)' :
+          activeReportTab === 'trial_balance' ? 'ميزان المراجعة الذكي بالأرصدة والمجاميع (Trial Balance)' :
+          activeReportTab === 'journal' ? 'دفتر اليومية العامة والقيود المحاسبية' :
+          activeReportTab === 'ledger' ? 'دفتر الأستاذ العام وحسابات الأستاذ المساعد' :
+          activeReportTab === 'production_costs' ? 'تقرير تكاليف وأرباح أوامر الإنتاج والتصنيع' :
+          activeReportTab === 'sales_analytics' ? 'تقرير تحليل مبيعات المعارض وهوامش الأرباح' :
+          activeReportTab === 'payroll_analytics' ? 'تقرير تكلفة الأجور ورواتب العمال التحليلي' :
+          activeReportTab === 'fleet_maintenance_analytics' ? 'تقرير تكاليف صيانة الأسطول والماكينات' :
+          activeReportTab === 'inventory_analytics' ? 'تحليلات المخزون وتقييم الأرصدة المستودعية' :
+          activeReportTab === 'warehouse' ? 'تقرير جرد مستودعات المواد الخام والمستلزمات' :
+          activeReportTab === 'purchases' ? 'تقرير تحليل فواتير المشتريات ومستحقات الموردين' :
+          activeReportTab === 'suppliers' ? 'كشف أرصدة وحسابات الموردين' :
+          'التقرير المالي والتنفيذي الشامل (لوحة القيادة)'
+        }
+        subtitle="تقرير محاسبي تحليلي معتمد مستخرج آلياً من النظام المالي المتكامل"
+        periodText={`الفترة: ${statementPeriod === 'custom' ? `من ${pnlDateFrom} إلى ${pnlDateTo}` : statementPeriod === 'this_month' ? 'الشهر الحالي' : statementPeriod === 'last_month' ? 'الشهر الماضي' : statementPeriod === 'this_quarter' ? 'الربع الحالي' : statementPeriod === 'this_year' ? 'العام الحالي' : 'كافة الفترات المالية'}`}
+        companyInfo={companySettings || companyInfo}
+        kpis={[
+          { label: 'إجمالي المبيعات', value: `${(incomeStatementData?.revenue?.total || 0).toLocaleString()} ج.م` },
+          { label: 'صافي الربح المالي', value: `${(incomeStatementData?.netIncome || 0).toLocaleString()} ج.م`, highlight: true },
+          { label: 'إجمالي قيمة المخزون', value: `${items.reduce((s, i) => s + (i.currentBalance * (i.price || 0)), 0).toLocaleString()} ج.م` },
+          { label: 'مديونيات الموردين', value: `${suppliers.reduce((s, sup) => s + (sup.balance || 0), 0).toLocaleString()} ج.م` },
+        ]}
+      />
 
       {/* Navigation Tabs Grid */}
       <div className="flex flex-wrap gap-1.5 p-1.5 bg-slate-100/90 rounded-[14px] w-full print:hidden shadow-md">
@@ -2421,6 +2442,12 @@ export function FinancialReports({
         </div>
       )}
 
+      <PrintSignatures
+        tafqeetText={activeReportTab === 'income_statement' && incomeStatementData?.netIncome ? tafqeetArabic(incomeStatementData.netIncome, 'جنيه مصري') : undefined}
+        preparedByTitle="المحاسب المالي والتكاليف"
+        auditedByTitle="المراجعة الداخلية والتدقيق"
+        approvedByTitle="اعتماد الإدارة العامة والمدير المالي"
+      />
     </div>
   );
 }
