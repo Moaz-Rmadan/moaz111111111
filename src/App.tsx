@@ -6,7 +6,7 @@
 
 
 
-import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { useAuth } from './AuthContext';
 import { handleFirestoreError } from './lib/firestore-utils';
 import { signInWithPopup, signOut } from 'firebase/auth';
@@ -2735,7 +2735,54 @@ function MainApp({
   }, [user, profile]);
 
 
+  // Touch Gestures Support (Edge swipe to open/close menu, Haptic feedback)
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleGlobalTouchStart = (e: React.TouchEvent) => {
+    if (e.touches && e.touches[0]) {
+      touchStartXRef.current = e.touches[0].clientX;
+      touchStartYRef.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleGlobalTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const touchEndX = e.changedTouches[0]?.clientX ?? touchStartXRef.current;
+    const touchEndY = e.changedTouches[0]?.clientY ?? touchStartYRef.current;
+    const deltaX = touchEndX - touchStartXRef.current;
+    const deltaY = touchEndY - touchStartYRef.current;
+
+    // Horizontal swipe threshold: 60px and must be mainly horizontal
+    if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX > 0) {
+        // Swiped right -> In RTL layout, this closes the drawer
+        if (mobileMenuOpen) {
+          setMobileMenuOpen(false);
+          if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12);
+        }
+      } else {
+        // Swiped left -> If started near right screen edge (pulling drawer inwards), open it
+        const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 400;
+        if (!mobileMenuOpen && touchStartXRef.current > screenWidth * 0.75) {
+          setMobileMenuOpen(true);
+          if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(12);
+        }
+      }
+    }
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
   const handleNavClick = (tab: string) => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate(10);
+      } catch {
+        // ignore
+      }
+    }
     setActiveTab(tab);
     setMobileMenuOpen(false);
     try {
@@ -2889,7 +2936,12 @@ function MainApp({
   };
 
   return (
-    <div className="flex min-h-screen font-sans text-right print:block bg-slate-50" dir="rtl">
+    <div 
+      className="flex min-h-screen font-sans text-right print:block bg-slate-50 select-none touch-manipulation" 
+      dir="rtl"
+      onTouchStart={handleGlobalTouchStart}
+      onTouchEnd={handleGlobalTouchEnd}
+    >
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {mobileMenuOpen && (

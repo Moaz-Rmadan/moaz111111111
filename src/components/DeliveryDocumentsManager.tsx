@@ -6,16 +6,38 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Search, Plus, FileText, CheckCircle2, Truck, Calendar, User, UserCheck, Edit2, Trash2, AlertCircle } from 'lucide-react';
+import { Search, Plus, FileText, CheckCircle2, Truck, Calendar, User, UserCheck, Edit2, Trash2, AlertCircle, PenTool } from 'lucide-react';
 import { DeliveryDocument, DeliveryItem } from '../types';
 import { db } from '../firebase';
 import { collection, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { TouchSignaturePad } from './TouchSignaturePad';
+import { TouchStepper } from './TouchStepper';
 
 export const DeliveryDocumentsManager = () => {
   const [documents, setDocuments] = useState<DeliveryDocument[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewingDoc, setIsViewingDoc] = useState<DeliveryDocument | null>(null);
+  const [signatureModal, setSignatureModal] = useState<{
+    open: boolean;
+    signerRole: 'recipient' | 'driver';
+    signerName: string;
+  } | null>(null);
+
+  const handleSaveSignature = async (signatureDataUrl: string) => {
+    if (!signatureModal || !isViewingDoc) return;
+    try {
+      const fieldToUpdate = signatureModal.signerRole === 'recipient' ? 'recipientSignature' : 'driverSignature';
+      await updateDoc(doc(db, 'deliveryDocuments', isViewingDoc.id), {
+        [fieldToUpdate]: signatureDataUrl,
+        signature: signatureDataUrl
+      });
+      setIsViewingDoc(prev => prev ? { ...prev, [fieldToUpdate]: signatureDataUrl } : null);
+      setSignatureModal(null);
+    } catch (err) {
+      console.error('Error saving signature:', err);
+    }
+  };
 
   const [newDoc, setNewDoc] = useState<Partial<DeliveryDocument>>({
     date: new Date().toISOString().split('T')[0],
@@ -307,31 +329,33 @@ export const DeliveryDocumentsManager = () => {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                   <div className="space-y-1">
                     <Label className="text-xs font-bold text-indigo-900">المطلوب</Label>
-                    <Input 
-                      type="number"
-                      value={newItem.requestedQuantity || ''}
-                      onChange={e => setNewItem({...newItem, requestedQuantity: Number(e.target.value)})}
-                      className="h-9 rounded-lg font-bold bg-white"
+                    <TouchStepper
+                      value={newItem.requestedQuantity || 1}
+                      onChange={val => setNewItem({...newItem, requestedQuantity: val})}
+                      min={1}
+                      size="sm"
+                      className="w-full justify-between"
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs font-bold text-indigo-900">المُسلَّم</Label>
-                    <Input 
-                      type="number"
-                      value={newItem.deliveredQuantity || ''}
-                      onChange={e => setNewItem({...newItem, deliveredQuantity: Number(e.target.value)})}
-                      className="h-9 rounded-lg font-bold bg-emerald-50 border-emerald-200"
+                    <TouchStepper
+                      value={newItem.deliveredQuantity || 1}
+                      onChange={val => setNewItem({...newItem, deliveredQuantity: val})}
+                      min={0}
+                      size="sm"
+                      className="w-full justify-between"
                     />
                   </div>
-                  <div className="flex items-end">
+                  <div>
                     <Button 
                       onClick={handleAddItem}
-                      className="w-full h-9 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                      className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-sm active:scale-95 transition-all"
                     >
-                      إضافة
+                      إضافة للصنف
                     </Button>
                   </div>
                 </div>
@@ -464,14 +488,93 @@ export const DeliveryDocumentsManager = () => {
                 </Table>
               </div>
               
-              <div className="mt-8 flex justify-between items-end px-4 border-t border-slate-100 pt-6">
-                 <div className="text-center">
-                    <span className="block text-xs font-bold text-slate-400 mb-4">توقيع المستلم</span>
-                    <div className="w-40 border-b-2 border-dashed border-slate-300 mx-auto"></div>
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 px-2 border-t border-slate-100 pt-6">
+                 {/* Recipient Touch Signature */}
+                 <div className="border border-slate-200/80 rounded-2xl p-4 bg-slate-50/50 flex flex-col items-center text-center">
+                    <span className="block text-xs font-black text-slate-700 mb-2">توقيع المستلم: {isViewingDoc.recipientName || 'المستلم'}</span>
+                    {isViewingDoc.recipientSignature ? (
+                      <div className="flex flex-col items-center">
+                        <img 
+                          src={isViewingDoc.recipientSignature} 
+                          alt="توقيع المستلم" 
+                          className="h-20 max-w-[200px] object-contain bg-white rounded-xl border border-slate-200 shadow-xs p-1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSignatureModal({
+                            open: true,
+                            signerRole: 'recipient',
+                            signerName: isViewingDoc.recipientName || 'المستلم'
+                          })}
+                          className="text-[11px] font-bold text-blue-600 hover:underline mt-2 flex items-center gap-1"
+                        >
+                          <Edit2 size={12} />
+                          إعادة التوقيع باللمس
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-40 border-b-2 border-dashed border-slate-300 py-3 text-[11px] text-slate-400">
+                          لم يتم التوقيع بعد
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => setSignatureModal({
+                            open: true,
+                            signerRole: 'recipient',
+                            signerName: isViewingDoc.recipientName || 'المستلم'
+                          })}
+                          className="h-9 px-4 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                        >
+                          <PenTool size={14} />
+                          <span>وقّع باللمس (Touch)</span>
+                        </Button>
+                      </div>
+                    )}
                  </div>
-                 <div className="text-center">
-                    <span className="block text-xs font-bold text-slate-400 mb-4">توقيع السائق</span>
-                    <div className="w-40 border-b-2 border-dashed border-slate-300 mx-auto"></div>
+
+                 {/* Driver Touch Signature */}
+                 <div className="border border-slate-200/80 rounded-2xl p-4 bg-slate-50/50 flex flex-col items-center text-center">
+                    <span className="block text-xs font-black text-slate-700 mb-2">توقيع السائق: {isViewingDoc.driverName || 'السائق'}</span>
+                    {isViewingDoc.driverSignature ? (
+                      <div className="flex flex-col items-center">
+                        <img 
+                          src={isViewingDoc.driverSignature} 
+                          alt="توقيع السائق" 
+                          className="h-20 max-w-[200px] object-contain bg-white rounded-xl border border-slate-200 shadow-xs p-1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSignatureModal({
+                            open: true,
+                            signerRole: 'driver',
+                            signerName: isViewingDoc.driverName || 'السائق'
+                          })}
+                          className="text-[11px] font-bold text-blue-600 hover:underline mt-2 flex items-center gap-1"
+                        >
+                          <Edit2 size={12} />
+                          إعادة التوقيع باللمس
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-40 border-b-2 border-dashed border-slate-300 py-3 text-[11px] text-slate-400">
+                          لم يتم التوقيع بعد
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => setSignatureModal({
+                            open: true,
+                            signerRole: 'driver',
+                            signerName: isViewingDoc.driverName || 'السائق'
+                          })}
+                          className="h-9 px-4 rounded-xl text-xs font-black bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                        >
+                          <PenTool size={14} />
+                          <span>وقّع باللمس (Touch)</span>
+                        </Button>
+                      </div>
+                    )}
                  </div>
               </div>
 
@@ -479,6 +582,19 @@ export const DeliveryDocumentsManager = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Touch Electronic Signature Modal */}
+      {signatureModal?.open && (
+        <TouchSignaturePad
+          title={`توقيع ${signatureModal.signerRole === 'recipient' ? 'المستلم' : 'السائق'} باللمس`}
+          subtitle="توقيع إلكتروني فوري بالإصبع أو القلم الرقمي"
+          signerName={signatureModal.signerName}
+          signerRole={signatureModal.signerRole === 'recipient' ? 'المستلم المعتمد' : 'سائق التوصيل'}
+          onSave={handleSaveSignature}
+          onCancel={() => setSignatureModal(null)}
+          isOpen={true}
+        />
+      )}
     </div>
   );
 };

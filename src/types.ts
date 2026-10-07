@@ -1212,6 +1212,8 @@ export interface DeliveryDocument {
   driverName: string;
   recipientName: string;
   signature?: string;
+  recipientSignature?: string;
+  driverSignature?: string;
   notes: string;
   status: 'جزئي' | 'مكتمل';
   createdBy: string;
