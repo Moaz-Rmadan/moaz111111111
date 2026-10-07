@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { ScrollToTopButton } from './ScrollToTopButton';
 
 export interface DeductionsReportProps {
   attendance: Attendance[];
@@ -1064,6 +1065,19 @@ _${companyInfo?.name || 'إدارة الشؤون المالية والموارد
             </tfoot>
           </Table>
         </div>
+
+        {/* Screen Interactive Footer Toolbar with Back-to-Top Button */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-b-2xl border-t border-slate-200/90 shadow-xs print:hidden">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+            <span>إجمالي استقطاعات الفترة: <strong className="text-rose-700 font-mono">-{totalKPIs.grandTotal.toLocaleString()} ج.م</strong> ({filteredSummaries.length} موظف)</span>
+          </div>
+          <ScrollToTopButton
+            variant="inline"
+            label="العودة لأعلى تقرير الاستقطاعات"
+            sublabel="أعلى الشاشة"
+          />
+        </div>
       </Card>
 
       {/* 6. Print Signatures & Tafqeet */}
@@ -1390,6 +1404,12 @@ _${companyInfo?.name || 'إدارة الشؤون المالية والموارد
           </div>
         </div>
       )}
+
+      {/* Floating Scroll to Top Button for Deductions Module */}
+      <ScrollToTopButton
+        label="العودة لأعلى تقرير الاستقطاعات"
+        sublabel="الانتقال لقمة التقرير ⬆️"
+      />
     </div>
   );
 };

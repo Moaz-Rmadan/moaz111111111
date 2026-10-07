@@ -91,6 +91,7 @@ import { TestingPage } from './modules/testing/TestingPage';
 import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 import { PrintHeader, PrintSignatures } from './components/PrintHeader';
 import { DeductionsReport } from './components/DeductionsReport';
+import { ScrollToTopButton } from './components/ScrollToTopButton';
 import { tafqeetArabic } from './lib/tafqeet';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
@@ -1571,6 +1572,19 @@ function PayrollMasterReport({
             </tfoot>
           </Table>
         </CardContent>
+
+        {/* Screen Interactive Footer Toolbar with Back-to-Top Button */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-b-2xl border-t border-slate-200/90 shadow-xs print:hidden">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
+            <span>عرض كافة أجور <strong>{tableData.length}</strong> موظف في التقرير الشامل</span>
+          </div>
+          <ScrollToTopButton
+            variant="inline"
+            label="العودة لأعلى التقرير الشامل"
+            sublabel="بداية الرسوم والتحليلات"
+          />
+        </div>
       </Card>
 
       <PrintSignatures
@@ -1578,6 +1592,12 @@ function PayrollMasterReport({
         preparedByTitle="مسؤول الرواتب وشؤون العاملين"
         auditedByTitle="المراجعة والتدقيق المالي"
         approvedByTitle="اعتماد الإدارة والمدير العام"
+      />
+
+      {/* Floating Scroll to Top Button for Master Report */}
+      <ScrollToTopButton
+        label="العودة لأعلى تقرير الأجور"
+        sublabel="قمة التقرير الشامل ⬆️"
       />
     </div>
   );
@@ -4202,6 +4222,11 @@ function MainApp({
             </div>
           </Card>
         </div>
+      )}
+
+      {/* Global Return-to-Top Button for all views */}
+      {activeTab !== 'payroll' && activeTab !== 'payrollMasterReport' && (
+        <ScrollToTopButton />
       )}
     </div>
   );
@@ -20585,6 +20610,19 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
           </tfoot>
         </Table>
       </div>
+
+      {/* Screen Interactive Footer Toolbar with Back-to-Top Button */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-b-2xl border-t border-slate-200/90 shadow-xs print:hidden">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>تم عرض كشوف رواتب <strong>{processedPayrolls.length}</strong> موظف بنجاح (الأسبوع {selectedWeek})</span>
+        </div>
+        <ScrollToTopButton
+          variant="inline"
+          label="العودة لأعلى كشف الرواتب"
+          sublabel="بداية الجدول والأدوات"
+        />
+      </div>
     </Card>
 
     <PrintSignatures
@@ -20843,6 +20881,19 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
               </tr>
             </tfoot>
           </Table>
+        </div>
+
+        {/* Screen Interactive Footer Toolbar with Back-to-Top Button */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white rounded-b-2xl border-t border-slate-200/90 shadow-xs print:hidden">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+            <span>إجمالي مستحقات اليوم: <strong>{filteredDailyTotal.toLocaleString()} ج.م</strong> ({filteredDailyPayroll.length} موظف)</span>
+          </div>
+          <ScrollToTopButton
+            variant="inline"
+            label="العودة لأعلى الكشف اليومي"
+            sublabel="الانتقال للقمة"
+          />
         </div>
       </Card>
 
@@ -22135,6 +22186,12 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
           </div>
         );
       })()}
+
+      {/* Dedicated Floating Return to Top Button for Payroll Module */}
+      <ScrollToTopButton
+        label="العودة لأعلى مسير الرواتب"
+        sublabel="الانتقال لقمة المسير والأدوات ⬆️"
+      />
     </div>
   );
 });
@@ -24160,95 +24217,5 @@ const Settings = React.memo(function Settings({
     </div>
   );
 });
-
-// Scroll To Top Floating Button Component
-const ScrollToTopButton = React.memo(function ScrollToTopButton() {
-  const [showButton, setShowButton] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      let currentScroll = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-      
-      const mainElem = document.getElementById('main-scroll-container') || document.querySelector('main');
-      if (mainElem && mainElem.scrollTop > currentScroll) {
-        currentScroll = mainElem.scrollTop;
-      }
-
-      const allScrollables = document.querySelectorAll('.overflow-y-auto, .overflow-auto');
-      allScrollables.forEach(el => {
-        if (el.scrollTop > currentScroll) {
-          currentScroll = el.scrollTop;
-        }
-      });
-
-      if (currentScroll > 40) {
-        setShowButton(true);
-      } else {
-        setShowButton(false);
-      }
-    };
-
-    handleScroll();
-    const timer = setInterval(handleScroll, 200);
-
-    const mainElem = document.getElementById('main-scroll-container') || document.querySelector('main');
-    if (mainElem) {
-      mainElem.addEventListener('scroll', handleScroll, { passive: true });
-    }
-    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
-    document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
-
-    return () => {
-      clearInterval(timer);
-      if (mainElem) {
-        mainElem.removeEventListener('scroll', handleScroll);
-      }
-      window.removeEventListener('scroll', handleScroll, { capture: true });
-      document.removeEventListener('scroll', handleScroll, { capture: true });
-    };
-  }, []);
-
-  const scrollToTop = () => {
-    const mainElem = document.getElementById('main-scroll-container') || document.querySelector('main');
-    if (mainElem) {
-      mainElem.scrollTo({ top: 0, behavior: 'smooth' });
-      mainElem.scrollTop = 0;
-    }
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-
-    const allScrollables = document.querySelectorAll('.overflow-y-auto, .overflow-auto');
-    allScrollables.forEach(el => {
-      try {
-        el.scrollTo({ top: 0, behavior: 'smooth' });
-        el.scrollTop = 0;
-      } catch (e) {
-        // ignore
-      }
-    });
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={scrollToTop}
-      aria-label="العودة لأعلى الشاشة"
-      title="العودة لأعلى الشاشة"
-      className={`fixed bottom-22 right-5 md:bottom-8 md:right-8 z-[999999] px-4 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-2xl shadow-2xl shadow-indigo-900/80 border-2 border-white/80 backdrop-blur-md transition-all duration-300 transform flex items-center justify-center gap-2.5 group cursor-pointer hover:scale-110 active:scale-95 no-print ${
-        showButton ? 'translate-y-0 opacity-100 scale-100 ring-4 ring-blue-500/30 ring-offset-2' : 'translate-y-16 opacity-0 scale-50 pointer-events-none'
-      }`}
-    >
-      <div className="p-1.5 rounded-xl bg-white/20 group-hover:bg-white/30 transition-colors shrink-0">
-        <ChevronUp size={22} className="stroke-[3] group-hover:-translate-y-1 transition-transform" />
-      </div>
-      <span className="font-black text-xs md:text-sm text-white drop-shadow-sm whitespace-nowrap pl-1">
-        العودة للأعلى ⬆️
-      </span>
-    </button>
-  );
-});
-
 
 export default AppContent;
