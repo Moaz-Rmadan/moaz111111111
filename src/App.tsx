@@ -19,7 +19,7 @@ import {
   Check, AlertCircle, Package, DollarSign, Users, LayoutGrid, Plus, BarChart3, Search, Download, ShoppingCart, Truck, Settings as SettingsIcon, Calculator,
   LayoutDashboard, ChevronDown, Layers, Wrench, Building2, ShoppingBag, ShieldAlert, HeartHandshake,
   Activity, Printer, ArrowDownLeft, ArrowUpRight, Menu, ChevronLeft, Calendar, PieChartIcon,
-  TrendingUp, Filter, Edit2, MessageSquare, FileText, CheckCircle2, PackageCheck, RotateCcw,
+  TrendingUp, TrendingDown, Filter, Edit2, MessageSquare, FileText, CheckCircle2, PackageCheck, RotateCcw,
   ReceiptText, ClipboardCheck, ClipboardList, PlusCircle, FileCheck, CreditCard, Scale, Wallet, Coins, ArrowRight,
   ChevronUp, Target, Database, Briefcase, Home, Code, Save, Upload, ArrowLeft,
   ArrowUpToLine, ArrowDownToLine, Eye, EyeOff, Box, Clock, List, Zap, Warehouse as WarehouseIcon, X, Image as ImageIcon,
@@ -90,6 +90,7 @@ import { VehiclesView } from './components/VehiclesView';
 import { TestingPage } from './modules/testing/TestingPage';
 import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 import { PrintHeader, PrintSignatures } from './components/PrintHeader';
+import { DeductionsReport } from './components/DeductionsReport';
 import { tafqeetArabic } from './lib/tafqeet';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
@@ -752,13 +753,17 @@ function PayrollMasterReport({
   attendance, 
   hrTransactions, 
   loans, 
-  productionRecords 
+  productionRecords,
+  companySettings,
+  companyInfo
 }: { 
   payrolls: Payroll[], 
   attendance: Attendance[], 
   hrTransactions: FinancialTransaction[], 
   loans: Loan[], 
-  productionRecords: ProductionRecord[] 
+  productionRecords: ProductionRecord[],
+  companySettings?: CompanySettings,
+  companyInfo?: CompanySettings
 }) {
   const [reportMode, setReportMode] = useState<'live' | 'archived'>('live');
   const [includeDrafts, setIncludeDrafts] = useState(false);
@@ -863,6 +868,16 @@ function PayrollMasterReport({
   const totalLoansRecovered = useMemo(() => {
     return departmentFilteredPayrolls.reduce((sum, p) => sum + (p.totalLoans || 0), 0);
   }, [departmentFilteredPayrolls]);
+
+  const totalBaseSalary = useMemo(() => {
+    return departmentFilteredPayrolls.reduce((sum, p) => sum + (p.baseSalary || 0), 0);
+  }, [departmentFilteredPayrolls]);
+
+  const totalProduction = useMemo(() => {
+    return departmentFilteredPayrolls.reduce((sum, p) => sum + (p.totalProduction || 0), 0);
+  }, [departmentFilteredPayrolls]);
+
+  const totalNetSalary = totalWages;
   
   const avgNetSalary = useMemo(() => {
     return paidEmployeeCount > 0 ? totalWages / paidEmployeeCount : 0;
@@ -2723,6 +2738,50 @@ function MainApp({
   const handleNavClick = (tab: string) => {
     setActiveTab(tab);
     setMobileMenuOpen(false);
+    try {
+      const mainContainer = document.getElementById('main-scroll-container');
+      if (mainContainer) {
+        mainContainer.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const getActiveTabTitle = (tab: string) => {
+    const titles: Record<string, string> = {
+      dashboard: 'لوحة التحكم',
+      sales: 'المبيعات والمعارض',
+      suppliers: 'الموردين',
+      purchases: 'مشتريات الخامات',
+      inventory: 'أرصدة الأصناف',
+      itemCard: 'كارت الصنف',
+      stockTransfers: 'التحويل المخزني',
+      issuances: 'صرف المواد',
+      returns: 'المرتجعات',
+      stockAudit: 'جرد المخازن',
+      waste: 'سجل الهالك',
+      safe: 'الخزينة والمالية',
+      monthlyStipends: 'الشهريات',
+      banks: 'إدارة البنوك',
+      customers: 'العملاء',
+      workOrders: 'أوامر التشغيل',
+      deliveryDocuments: 'الاستلام والتسليم',
+      employees: 'الموظفين',
+      attendance: 'دفتر الحضور',
+      hrProduction: 'إنتاج العمال',
+      hrTransactions: 'التسويات والجزاءات',
+      loans: 'طلبات السلف',
+      payroll: 'مسير الرواتب',
+      archive: 'أرشيف الرواتب',
+      reports: 'التحليل العام',
+      payrollMasterReport: 'كشف الأجور المجمع',
+      maintenanceOrders: 'قسم الصيانة',
+      vehicles: 'حركة السيارات'
+    };
+    return titles[tab] || 'الرئيسية';
   };
 
   const getItemMovements = (itemId: string) => {
@@ -2846,24 +2905,26 @@ function MainApp({
 
       <aside className={cn(
         "fixed inset-y-0 right-0 bg-[#0F172A] border-l border-slate-800 flex flex-col z-50 transition-all duration-300 ease-in-out group/sidebar overflow-hidden",
-        sidebarCollapsed ? "w-20" : "w-64",
-        "md:relative md:translate-x-0 no-print shadow-xl shadow-slate-900/30 md:shadow-none xl:shadow-xl xl:shadow-slate-900/30",
+        "w-[85vw] max-w-[320px] md:relative md:translate-x-0",
+        sidebarCollapsed ? "md:w-20" : "md:w-64",
+        "no-print shadow-2xl md:shadow-none xl:shadow-xl xl:shadow-slate-900/30",
         mobileMenuOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
       )}>
         {/* Mobile Sidebar Close Button */}
-        <div className="md:hidden absolute left-4 top-6 z-[60]">
+        <div className="md:hidden absolute left-3 top-4 z-[60]">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => setMobileMenuOpen(false)}
-            className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+            className="w-11 h-11 rounded-xl bg-slate-800/90 text-slate-300 hover:text-white border border-slate-700/60"
+            aria-label="إغلاق القائمة"
           >
-            <X size={18} />
+            <X size={20} />
           </Button>
         </div>
 
         {/* Brand Header with Collapse Toggle */}
-        <div className="p-5 pb-3 flex items-center justify-between border-b border-slate-800/80">
+        <div className="p-4 sm:p-5 pb-3 flex items-center justify-between border-b border-slate-800/80">
           <div className="flex items-center gap-3 group cursor-pointer overflow-hidden" onClick={() => handleNavClick('dashboard')}>
             <motion.div 
               whileHover={{ rotate: 12, scale: 1.1 }}
@@ -2872,7 +2933,7 @@ function MainApp({
             >
               <img src={elNaggarLogo} alt="النجار ديزاين" className="w-full h-full object-cover" />
             </motion.div>
-            {!sidebarCollapsed && (
+            {(!sidebarCollapsed || mobileMenuOpen) && (
               <div className="flex flex-col text-right overflow-hidden whitespace-nowrap transition-all duration-300">
                 <h1 className="font-extrabold text-sm text-white leading-none">
                   النجار ديزاين
@@ -2893,14 +2954,14 @@ function MainApp({
         </div>
 
         {/* Quick Search */}
-        {!sidebarCollapsed && (
+        {(!sidebarCollapsed || mobileMenuOpen) && (
           <div className="px-4 py-3">
             <div className="relative group/search">
               <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/search:text-blue-400 transition-all" size={15} />
               <input 
                 type="text" 
                 placeholder="البحث الذكي في الأقسام..."
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl h-10 pr-10 pl-3 text-[11px] font-bold text-slate-200 focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-500"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl h-10 pr-10 pl-3 text-xs font-bold text-slate-200 focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -3100,7 +3161,7 @@ function MainApp({
         </nav>
 
         {/* User Profile Footer */}
-        {!sidebarCollapsed && (
+        {(!sidebarCollapsed || mobileMenuOpen) && (
           <div className="p-3 bg-[#0F172A] border-t border-slate-800/80">
             <div className="flex items-center gap-3 p-2.5 bg-slate-900/90 rounded-2xl border border-slate-800 shadow-inner">
               <div className="relative shrink-0">
@@ -3137,30 +3198,38 @@ function MainApp({
       {/* Main Content */}
       <main id="main-scroll-container" className="flex-1 overflow-x-hidden overflow-y-auto allow-print relative bg-slate-50 pb-20 md:pb-0">
         {/* Mobile Top Header */}
-        <div className="md:hidden sticky top-0 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 h-12 flex items-center justify-between z-40 transition-all">
-           <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-900 rounded-[14px] flex items-center justify-center text-white shadow-xl shadow-slate-900/20 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-transparent" />
-                <Package size={22} className="relative z-10" />
+        <div className="md:hidden sticky top-0 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-3 sm:px-4 h-14 flex items-center justify-between z-40 transition-all pt-safe shadow-xs">
+           <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm overflow-hidden bg-slate-900 shrink-0 border border-slate-200/60">
+                <img src={elNaggarLogo} alt="النجار ديزاين" className="w-full h-full object-cover" />
               </div>
-              <div className="flex flex-col">
-                <h1 className="font-black text-lg tracking-tight text-slate-900 leading-none">
-                  {settings.name}
-                </h1>
-                <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1">المنظومة الذكية</p>
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="font-extrabold text-xs sm:text-sm tracking-tight text-slate-900 leading-none truncate">
+                    النجار ديزاين
+                  </h1>
+                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200/60 truncate max-w-[130px]">
+                    {getActiveTabTitle(activeTab)}
+                  </span>
+                </div>
+                <p className="text-[9px] text-slate-400 font-bold tracking-wider truncate mt-0.5">المنظومة المتكاملة للإنتاج والمخازن</p>
               </div>
            </div>
-           <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setMobileMenuOpen(true)}
-            className="w-12 h-12 rounded-[14px] bg-slate-50 text-slate-600 shadow-sm border border-slate-100 hover:bg-slate-100"
-           >
-             <Menu size={24} />
-           </Button>
+           
+           <div className="flex items-center gap-1.5 shrink-0">
+             <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setMobileMenuOpen(true)}
+              className="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 active:scale-95 transition-transform"
+              aria-label="فتح القائمة الرئيسية"
+             >
+               <Menu size={20} />
+             </Button>
+           </div>
         </div>
 
-        <div className="p-6 md:p-8 lg:p-10 max-w-[1680px] mx-auto w-full">
+        <div className="p-3 sm:p-5 md:p-8 lg:p-10 max-w-[1680px] mx-auto w-full">
           {['employees', 'attendance', 'loans', 'payroll', 'hrTransactions', 'hrProduction'].includes(activeTab) && (
             <HRWorkflowGuide activeTab={activeTab} onTabChange={setActiveTab} />
           )}
@@ -3236,7 +3305,7 @@ function MainApp({
         {activeTab === 'employees' && <EmployeesView employees={employees} />}
         {activeTab === 'attendance' && <AttendanceView employees={employees} />}
         {activeTab === 'hrProduction' && <HRProductionView employees={employees} productionRecords={productionRecords} />}
-        {activeTab === 'hrTransactions' && <HRTransactionsView employees={employees} transactions={hrTransactions} />}
+        {activeTab === 'hrTransactions' && <HRTransactionsView employees={employees} transactions={hrTransactions} companySettings={settings} />}
         {activeTab === 'loans' && <LoansView employees={employees} safes={safes} companySettings={settings} />}
         {activeTab === 'payroll' && (
           <PayrollView 
@@ -3258,6 +3327,8 @@ function MainApp({
             attendance={attendance}
             loans={loans}
             productionRecords={productionRecords}
+            companySettings={settings}
+            companyInfo={settings}
           />
         )}
         {activeTab === 'sales' && (
@@ -3320,8 +3391,8 @@ function MainApp({
             loans={loans}
             custodies={custodies}
             settlementExpenses={settlementExpenses}
-            companySettings={companySettings}
-            companyInfo={companyInfo}
+            companySettings={settings}
+            companyInfo={settings}
           />
         )}
         {activeTab === 'userManagement' && <UsersManager />}
@@ -3431,41 +3502,67 @@ function MainApp({
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation & FAB */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200/60 z-40 pb-safe">
-        <div className="flex items-center justify-around h-16 px-2 relative">
+      {/* Mobile Bottom Navigation & Thumb Ergonomics */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 z-40 pb-safe shadow-[0_-4px_25px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-around h-16 px-1 relative">
+          {/* 1. Dashboard */}
           <button 
             onClick={() => handleNavClick('dashboard')}
-            className={cn("flex flex-col items-center justify-center w-16 h-full transition-colors", activeTab === 'dashboard' ? "text-indigo-600" : "text-slate-400")}
+            className={cn(
+              "flex flex-col items-center justify-center flex-1 h-full min-h-[44px] transition-all active:scale-95", 
+              activeTab === 'dashboard' ? "text-blue-600 font-black" : "text-slate-400 font-bold hover:text-slate-600"
+            )}
           >
             <LayoutDashboard size={20} strokeWidth={activeTab === 'dashboard' ? 2.5 : 2} />
-            <span className="text-[9px] font-black mt-1">الرئيسية</span>
+            <span className="text-[10px] mt-1">الرئيسية</span>
           </button>
+
+          {/* 2. Warehouses / Inventory */}
           <button 
             onClick={() => handleNavClick('inventory')}
-            className={cn("flex flex-col items-center justify-center w-16 h-full transition-colors", ['inventory', 'itemCard', 'issuances'].includes(activeTab) ? "text-indigo-600" : "text-slate-400")}
+            className={cn(
+              "flex flex-col items-center justify-center flex-1 h-full min-h-[44px] transition-all active:scale-95", 
+              ['inventory', 'itemCard', 'issuances', 'stockTransfers', 'stockAudit', 'waste'].includes(activeTab) ? "text-blue-600 font-black" : "text-slate-400 font-bold hover:text-slate-600"
+            )}
           >
-            <Box size={20} strokeWidth={['inventory', 'itemCard', 'issuances'].includes(activeTab) ? 2.5 : 2} />
-            <span className="text-[9px] font-black mt-1">المخازن</span>
+            <Box size={20} strokeWidth={['inventory', 'itemCard', 'issuances', 'stockTransfers', 'stockAudit', 'waste'].includes(activeTab) ? 2.5 : 2} />
+            <span className="text-[10px] mt-1">المخازن</span>
           </button>
           
-          {/* Main Action FAB Wrapper */}
-          <div className="relative -top-5 flex justify-center w-16">
+          {/* 3. Main Center FAB (Thumb Natural Reach Zone) */}
+          <div className="relative -top-3 flex justify-center px-1">
             <button 
               onClick={() => setMobileMenuOpen(true)}
-              className="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-600/30 active:scale-95 transition-transform"
+              className="w-13 h-13 min-w-[50px] min-h-[50px] bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/35 active:scale-90 transition-transform"
+              title="القائمة الشاملة والأقسام"
+              aria-label="القائمة الشاملة والأقسام"
             >
-              <LayoutGrid size={24} />
+              <LayoutGrid size={22} />
             </button>
           </div>
 
-
+          {/* 4. Financials / Safes */}
           <button 
-            onClick={() => handleNavClick('employees')}
-            className={cn("flex flex-col items-center justify-center w-16 h-full transition-colors", ['employees', 'attendance', 'payroll'].includes(activeTab) ? "text-indigo-600" : "text-slate-400")}
+            onClick={() => handleNavClick('safe')}
+            className={cn(
+              "flex flex-col items-center justify-center flex-1 h-full min-h-[44px] transition-all active:scale-95", 
+              ['safe', 'banks', 'monthlyStipends'].includes(activeTab) ? "text-blue-600 font-black" : "text-slate-400 font-bold hover:text-slate-600"
+            )}
           >
-            <Receipt size={20} strokeWidth={['employees', 'attendance', 'payroll'].includes(activeTab) ? 2.5 : 2} />
-            <span className="text-[9px] font-black mt-1">الأجور</span>
+            <CreditCard size={20} strokeWidth={['safe', 'banks', 'monthlyStipends'].includes(activeTab) ? 2.5 : 2} />
+            <span className="text-[10px] mt-1">المالية</span>
+          </button>
+
+          {/* 5. HR & Payroll */}
+          <button 
+            onClick={() => handleNavClick('payroll')}
+            className={cn(
+              "flex flex-col items-center justify-center flex-1 h-full min-h-[44px] transition-all active:scale-95", 
+              ['employees', 'attendance', 'payroll', 'hrTransactions', 'hrProduction', 'loans', 'archive'].includes(activeTab) ? "text-blue-600 font-black" : "text-slate-400 font-bold hover:text-slate-600"
+            )}
+          >
+            <Receipt size={20} strokeWidth={['employees', 'attendance', 'payroll', 'hrTransactions', 'hrProduction', 'loans', 'archive'].includes(activeTab) ? 2.5 : 2} />
+            <span className="text-[10px] mt-1">الرواتب</span>
           </button>
         </div>
       </div>
@@ -4475,7 +4572,23 @@ function UserManagement() {
 }
 
 
-const ItemCardView = React.memo(function ItemCardView({ items, suppliers, purchases, issuances, getItemMovements }: { items: Item[], suppliers: Supplier[], purchases: Purchase[], issuances: Issuance[], getItemMovements: (id: string) => any[] }) {
+const ItemCardView = React.memo(function ItemCardView({ 
+  items, 
+  suppliers, 
+  purchases, 
+  issuances, 
+  getItemMovements,
+  companySettings,
+  companyInfo
+}: { 
+  items: Item[], 
+  suppliers: Supplier[], 
+  purchases: Purchase[], 
+  issuances: Issuance[], 
+  getItemMovements: (id: string) => any[],
+  companySettings?: CompanySettings,
+  companyInfo?: CompanySettings
+}) {
   const [selectedId, setSelectedId] = useState<string>('');
   const selectedItem = items.find(i => i.id === selectedId);
   const movements = selectedId ? getItemMovements(selectedId) : [];
@@ -4536,7 +4649,7 @@ const ItemCardView = React.memo(function ItemCardView({ items, suppliers, purcha
           {/* Item Card Print Header */}
           <PrintHeader
             title="كارت حركة الصنف (أستاذ المخزون العام)"
-            subtitle={`${selectedItem.name} | الكود: ${selectedItem.code || '-'} | الوحدة: ${selectedItem.unit} | التصنيف: ${selectedItem.category || '-'}`}
+            subtitle={`${selectedItem.name} | الكود: ${(selectedItem as any).code || selectedItem.id?.slice(0, 8) || '-'} | الوحدة: ${selectedItem.unit} | التصنيف: ${(selectedItem as any).category || '-'}`}
             companyInfo={companySettings || companyInfo}
             kpis={[
               { label: 'رصيد أول المدة', value: `${(selectedItem.openingBalance || 0).toLocaleString()} ${selectedItem.unit}` },
@@ -10702,12 +10815,14 @@ const Finance = React.memo(function Finance({
   );
 });
 
-const Purchases = React.memo(function Purchases({ items, suppliers, purchases, safes, profile }: { 
+const Purchases = React.memo(function Purchases({ items, suppliers, purchases, safes, profile, companySettings, companyInfo }: { 
   items: Item[], 
   suppliers: Supplier[], 
   purchases: Purchase[],
   safes: Safe[],
-  profile: UserProfile | null
+  profile: UserProfile | null,
+  companySettings?: CompanySettings,
+  companyInfo?: CompanySettings
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showPayDebt, setShowPayDebt] = useState(false);
@@ -11495,7 +11610,19 @@ const Purchases = React.memo(function Purchases({ items, suppliers, purchases, s
   );
 });
 
-const Issuances = React.memo(function Issuances({ items, issuances, costCenters }: { items: Item[], issuances: Issuance[], costCenters: CostCenter[] }) {
+const Issuances = React.memo(function Issuances({ 
+  items, 
+  issuances, 
+  costCenters,
+  companySettings,
+  companyInfo
+}: { 
+  items: Item[], 
+  issuances: Issuance[], 
+  costCenters: CostCenter[],
+  companySettings?: CompanySettings,
+  companyInfo?: CompanySettings
+}) {
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -14488,14 +14615,41 @@ const OldReportsView = React.memo(function OldReportsView({
   );
 });
 
-const EmployeesView = React.memo(function EmployeesView({ employees }: { employees: Employee[] }) {
+const EmployeesView = React.memo(function EmployeesView({ 
+  employees,
+  companySettings 
+}: { 
+  employees: Employee[],
+  companySettings?: CompanySettings 
+}) {
   const safeEmployees = employees || [];
   const departments = ['الكل', ...new Set(safeEmployees.filter(e => e.department).map(e => e.department!))];
+  const jobCategories = ['الكل', 'إدارة', 'فني ورشة', 'سائق', 'عامل مصنع', 'خدمات ومعاونة', 'أخرى'];
+  
+  // UI States
   const [showAdd, setShowAdd] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [selectedDept, setSelectedDept] = useState<string>('الكل');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+
+  // Multi-Criteria Filter States
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDept, setSelectedDept] = useState<string>('الكل');
+  const [statusFilter, setStatusFilter] = useState<'الكل' | 'نشط' | 'موقوف' | 'مستقيل'>('الكل');
+  const [payMethodFilter, setPayMethodFilter] = useState<'الكل' | 'daily' | 'production'>('الكل');
+  const [groupFilter, setGroupFilter] = useState<'الكل' | 'A' | 'B' | 'none'>('الكل');
+  const [categoryFilter, setCategoryFilter] = useState<string>('الكل');
+  const [minDailyRate, setMinDailyRate] = useState<string>('');
+  const [maxDailyRate, setMaxDailyRate] = useState<string>('');
+  const [hireDateFrom, setHireDateFrom] = useState<string>('');
+  const [hireDateTo, setHireDateTo] = useState<string>('');
+  const [insuranceFilter, setInsuranceFilter] = useState<'الكل' | 'insured' | 'uninsured'>('الكل');
+  const [quickPreset, setQuickPreset] = useState<'all' | 'active' | 'production' | 'daily' | 'groupA' | 'groupB' | 'technicians' | 'stopped'>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'dailyRate' | 'hireDate' | 'department'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // New Employee Form Data
   const [formData, setFormData] = useState({
     name: '',
     position: '',
@@ -14508,15 +14662,232 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
     status: 'نشط' as const,
     shiftStart: '08:00',
     shiftEnd: '18:00',
-    productionGroup: '' as 'A' | 'B' | ''
+    productionGroup: '' as 'A' | 'B' | '',
+    nationalId: '',
+    address: '',
+    jobCategory: 'عامل مصنع' as const
   });
 
+  // Calculate Active Filters Count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm.trim()) count++;
+    if (selectedDept !== 'الكل') count++;
+    if (statusFilter !== 'الكل') count++;
+    if (payMethodFilter !== 'الكل') count++;
+    if (groupFilter !== 'الكل') count++;
+    if (categoryFilter !== 'الكل') count++;
+    if (minDailyRate) count++;
+    if (maxDailyRate) count++;
+    if (hireDateFrom) count++;
+    if (hireDateTo) count++;
+    if (insuranceFilter !== 'الكل') count++;
+    if (quickPreset !== 'all') count++;
+    return count;
+  }, [
+    searchTerm, selectedDept, statusFilter, payMethodFilter, 
+    groupFilter, categoryFilter, minDailyRate, maxDailyRate, 
+    hireDateFrom, hireDateTo, insuranceFilter, quickPreset
+  ]);
 
-  const filteredEmployees = safeEmployees.filter(e => {
-    const matchesDept = selectedDept === 'الكل' || e.department === selectedDept;
-    const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesDept && matchesSearch;
-  });
+  // Reset All Filters
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSelectedDept('الكل');
+    setStatusFilter('الكل');
+    setPayMethodFilter('الكل');
+    setGroupFilter('الكل');
+    setCategoryFilter('الكل');
+    setMinDailyRate('');
+    setMaxDailyRate('');
+    setHireDateFrom('');
+    setHireDateTo('');
+    setInsuranceFilter('الكل');
+    setQuickPreset('all');
+  };
+
+  // Apply Quick Presets
+  const applyPreset = (preset: typeof quickPreset) => {
+    setQuickPreset(preset);
+    if (preset === 'all') {
+      setStatusFilter('الكل');
+      setPayMethodFilter('الكل');
+      setGroupFilter('الكل');
+      setCategoryFilter('الكل');
+    } else if (preset === 'active') {
+      setStatusFilter('نشط');
+      setPayMethodFilter('الكل');
+      setGroupFilter('الكل');
+      setCategoryFilter('الكل');
+    } else if (preset === 'production') {
+      setPayMethodFilter('production');
+      setStatusFilter('الكل');
+      setGroupFilter('الكل');
+      setCategoryFilter('الكل');
+    } else if (preset === 'daily') {
+      setPayMethodFilter('daily');
+      setStatusFilter('الكل');
+      setGroupFilter('الكل');
+      setCategoryFilter('الكل');
+    } else if (preset === 'groupA') {
+      setGroupFilter('A');
+      setPayMethodFilter('production');
+      setStatusFilter('الكل');
+      setCategoryFilter('الكل');
+    } else if (preset === 'groupB') {
+      setGroupFilter('B');
+      setPayMethodFilter('production');
+      setStatusFilter('الكل');
+      setCategoryFilter('الكل');
+    } else if (preset === 'technicians') {
+      setCategoryFilter('فني ورشة');
+      setStatusFilter('الكل');
+      setPayMethodFilter('الكل');
+      setGroupFilter('الكل');
+    } else if (preset === 'stopped') {
+      setStatusFilter('موقوف');
+      setPayMethodFilter('الكل');
+      setGroupFilter('الكل');
+      setCategoryFilter('الكل');
+    }
+  };
+
+  // Comprehensive Multi-Criteria Search & Filter
+  const filteredEmployees = useMemo(() => {
+    return safeEmployees.filter(e => {
+      // 1. Text Search across multiple properties
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase().trim();
+        const matchName = e.name?.toLowerCase().includes(term);
+        const matchPhone = e.phone?.replace(/[^0-9]/g, '').includes(term.replace(/[^0-9]/g, ''));
+        const matchNatId = e.nationalId?.includes(term);
+        const matchPos = e.position?.toLowerCase().includes(term);
+        const matchDept = e.department?.toLowerCase().includes(term);
+        const matchAddr = e.address?.toLowerCase().includes(term);
+        const matchId = e.id?.toLowerCase().includes(term);
+        if (!matchName && !matchPhone && !matchNatId && !matchPos && !matchDept && !matchAddr && !matchId) {
+          return false;
+        }
+      }
+
+      // 2. Department filter
+      if (selectedDept !== 'الكل' && e.department !== selectedDept) {
+        return false;
+      }
+
+      // 3. Status filter
+      if (statusFilter !== 'الكل') {
+        const empStatus = e.status || 'نشط';
+        if (empStatus !== statusFilter) return false;
+      }
+
+      // 4. Pay Method filter
+      if (payMethodFilter !== 'الكل') {
+        const method = e.payMethod || 'daily';
+        if (method !== payMethodFilter) return false;
+      }
+
+      // 5. Production Group filter
+      if (groupFilter !== 'الكل') {
+        if (groupFilter === 'none' && (e.productionGroup === 'A' || e.productionGroup === 'B')) return false;
+        if (groupFilter === 'A' && e.productionGroup !== 'A') return false;
+        if (groupFilter === 'B' && e.productionGroup !== 'B') return false;
+      }
+
+      // 6. Job Category filter
+      if (categoryFilter !== 'الكل' && e.jobCategory !== categoryFilter) {
+        return false;
+      }
+
+      // 7. Daily Rate / Piece Rate Range filter
+      const effectiveRate = e.payMethod === 'daily' ? (e.dailyRate || 0) : (e.pieceRate || 0);
+      if (minDailyRate && effectiveRate < Number(minDailyRate)) {
+        return false;
+      }
+      if (maxDailyRate && effectiveRate > Number(maxDailyRate)) {
+        return false;
+      }
+
+      // 8. Hire Date Range filter
+      if (hireDateFrom && e.hireDate && e.hireDate < hireDateFrom) {
+        return false;
+      }
+      if (hireDateTo && e.hireDate && e.hireDate > hireDateTo) {
+        return false;
+      }
+
+      // 9. Insurance filter
+      if (insuranceFilter === 'insured' && (!e.socialInsuranceDeduction || e.socialInsuranceDeduction <= 0)) {
+        return false;
+      }
+      if (insuranceFilter === 'uninsured' && e.socialInsuranceDeduction && e.socialInsuranceDeduction > 0) {
+        return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'name') {
+        comparison = (a.name || '').localeCompare(b.name || '');
+      } else if (sortBy === 'dailyRate') {
+        const rateA = a.payMethod === 'daily' ? (a.dailyRate || 0) : (a.pieceRate || 0);
+        const rateB = b.payMethod === 'daily' ? (b.dailyRate || 0) : (b.pieceRate || 0);
+        comparison = rateA - rateB;
+      } else if (sortBy === 'hireDate') {
+        comparison = (a.hireDate || '').localeCompare(b.hireDate || '');
+      } else if (sortBy === 'department') {
+        comparison = (a.department || '').localeCompare(b.department || '');
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [
+    safeEmployees, searchTerm, selectedDept, statusFilter, 
+    payMethodFilter, groupFilter, categoryFilter, minDailyRate, 
+    maxDailyRate, hireDateFrom, hireDateTo, insuranceFilter, sortBy, sortOrder
+  ]);
+
+  // Search Results Metrics
+  const metrics = useMemo(() => {
+    const totalCount = filteredEmployees.length;
+    const activeCount = filteredEmployees.filter(e => (e.status || 'نشط') === 'نشط').length;
+    const dailyCount = filteredEmployees.filter(e => (e.payMethod || 'daily') === 'daily').length;
+    const prodCount = filteredEmployees.filter(e => e.payMethod === 'production').length;
+    const dailyWorkers = filteredEmployees.filter(e => (e.payMethod || 'daily') === 'daily');
+    const totalDailyCost = dailyWorkers.reduce((sum, e) => sum + (e.dailyRate || 0), 0);
+    const avgDailyRate = dailyWorkers.length > 0 ? Math.round(totalDailyCost / dailyWorkers.length) : 0;
+
+    return { totalCount, activeCount, dailyCount, prodCount, totalDailyCost, avgDailyRate };
+  }, [filteredEmployees]);
+
+  // Export to Excel
+  const exportToExcel = () => {
+    const dataToExport = filteredEmployees.map((e, idx) => ({
+      'م': idx + 1,
+      'كود الموظف': e.id.slice(0, 8),
+      'اسم الموظف': e.name,
+      'القسم': e.department || 'غير محدد',
+      'المسمى الوظيفي': e.position || 'عامل',
+      'الفئة': e.jobCategory || 'أخرى',
+      'الحالة': e.status || 'نشط',
+      'نظام الأجر': e.payMethod === 'production' ? 'بالإنتاج' : 'باليومية',
+      'اليومية / سعر القطعة': e.payMethod === 'production' ? (e.pieceRate || 0) : (e.dailyRate || 0),
+      'سعر الساعة (10س)': e.dailyRate ? Math.round((e.dailyRate / 10) * 100) / 100 : 0,
+      'مجموعة الإنتاج': e.productionGroup || 'بدون',
+      'الراتب الأساسي': e.baseSalary || 0,
+      'رقم الهاتف': e.phone || '---',
+      'الرقم القومي': e.nationalId || '---',
+      'تاريخ التعيين': e.hireDate || '---',
+      'مواعيد العمل': `${e.shiftStart || '08:00'} - ${e.shiftEnd || '18:00'}`,
+      'بدل انتقال': e.transportAllowance || 0,
+      'بدل سكن': e.housingAllowance || 0,
+      'تأمينات اجتماعية': e.socialInsuranceDeduction || 0,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Employees");
+    XLSX.writeFile(wb, `سجل_الموظفين_المفلتر_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
 
   const handleAdd = async () => {
     if (!formData.name) {
@@ -14532,172 +14903,728 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
       return;
     }
     try {
-      await addDoc(collection(db, 'employees'), formData);
+      await addDoc(collection(db, 'employees'), {
+        ...formData,
+        createdAt: new Date().toISOString()
+      });
       setShowAdd(false);
-    } catch (err) { console.error(err); } };
+      setFormData({
+        name: '',
+        position: '',
+        department: '',
+        dailyRate: 0,
+        payMethod: 'daily',
+        pieceRate: 0,
+        baseSalary: 0,
+        phone: '',
+        status: 'نشط',
+        shiftStart: '08:00',
+        shiftEnd: '18:00',
+        productionGroup: '',
+        nationalId: '',
+        address: '',
+        jobCategory: 'عامل مصنع'
+      });
+    } catch (err) { console.error(err); } 
+  };
 
   const handleUpdate = async () => {
     if (!editingEmployee) return;
     try {
       const { id, ...data } = editingEmployee;
-      await updateDoc(doc(db, 'employees', id), data);
+      await updateDoc(doc(db, 'employees', id), {
+        ...data,
+        updatedAt: new Date().toISOString()
+      });
       setEditingEmployee(null);
-    } catch (err) { console.error(err); } };
+    } catch (err) { console.error(err); } 
+  };
 
   const handleDelete = async () => {
     if (!deletingId) return;
     try {
       await deleteDoc(doc(db, 'employees', deletingId));
       setDeletingId(null);
-  } catch (err) { console.error(err); } };
+    } catch (err) { console.error(err); } 
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-6" dir="rtl">
+      {/* Header Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">الموظفين</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">إدارة بيانات الموظفين والرواتب اليومية</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <Input 
-              className="h-10 md:h-12 w-64 rounded-[14px] border-slate-200 pr-10 font-bold text-sm" 
-              placeholder="بحث بالاسم..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+              <Users size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">سجل ودليل الموظفين</h2>
+              <p className="text-slate-500 font-medium text-xs md:text-sm mt-0.5">محرك البحث المتقدم، تصنيف الهيكل الإداري والعمالة، وإدارة الأجور</p>
+            </div>
           </div>
-          <select 
-            className="h-10 md:h-12 rounded-[14px] border border-slate-200 px-4 bg-white font-bold text-sm"
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button 
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            variant={showAdvancedFilters || activeFiltersCount > 0 ? "default" : "outline"}
+            className={cn(
+              "h-11 px-4 rounded-xl font-black text-xs flex items-center gap-2 transition-all",
+              showAdvancedFilters || activeFiltersCount > 0 
+                ? "bg-slate-900 text-white hover:bg-slate-800 shadow-md shadow-slate-900/20" 
+                : "border-slate-200 hover:bg-slate-50 text-slate-700"
+            )}
           >
-            {departments.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
-          </select>
-          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8">
-            <Plus size={18} className="ml-2" />
+            <Sliders size={16} />
+            <span>بحث وفلاتر متقدمة</span>
+            {activeFiltersCount > 0 && (
+              <span className="w-5 h-5 bg-blue-500 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-pulse">
+                {activeFiltersCount}
+              </span>
+            )}
+          </Button>
+
+          <Button 
+            onClick={exportToExcel}
+            variant="outline" 
+            className="h-11 px-4 rounded-xl font-bold border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-2 text-xs shadow-sm"
+          >
+            <Download size={16} className="text-emerald-600" />
+            <span className="hidden sm:inline">تصدير XLSX</span>
+          </Button>
+
+          <Button 
+            onClick={() => safePrint()} 
+            variant="outline" 
+            className="h-11 px-4 rounded-xl font-bold border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-2 text-xs shadow-sm"
+          >
+            <Printer size={16} className="text-blue-600" />
+            <span className="hidden sm:inline">طباعة الكشف</span>
+          </Button>
+
+          <Button onClick={() => setShowAdd(true)} className="btn-primary h-11 px-6 font-black rounded-xl shadow-lg shadow-primary/20 text-xs">
+            <Plus size={18} className="ml-1.5" />
             إضافة موظف جديد
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-3 gap-6">
-        {filteredEmployees.map(emp => (
-          <Card key={emp.id} className="dribbble-card border-none overflow-hidden group">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between mb-2">
-                <Badge className={`rounded-lg px-3 py-1 border-none font-black text-[10px] uppercase tracking-widest ${
-                  emp.status === 'نشط' ? 'bg-green-100 text-green-700' : 
-                  emp.status === 'موقوف' ? 'bg-red-100 text-red-700' :
-                  'bg-slate-100 text-slate-700'
-                }`}>
-                  {emp.status}
-                </Badge>
-                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                  <Users size={20} />
+      {/* Main Search & Quick Filter Strip */}
+      <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40 p-4 print:hidden space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Realtime Smart Search Input */}
+          <div className="relative flex-1">
+            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Input 
+              className="h-12 w-full rounded-xl border-slate-200 bg-slate-50/70 focus:bg-white pr-10 pl-10 font-bold text-sm transition-all" 
+              placeholder="ابحث بالاسم، رقم الهاتف، الرقم القومي، المسمى الوظيفي، أو كود الموظف..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm('')} 
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 text-xs p-1"
+                title="مسح البحث"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Department Select */}
+          <div className="flex items-center gap-2">
+            <select 
+              className="h-12 rounded-xl border border-slate-200 px-4 bg-white font-bold text-xs text-slate-700 outline-none min-w-[140px]"
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+            >
+              {departments.map(dept => (
+                <option key={dept} value={dept}>القسم: {dept}</option>
+              ))}
+            </select>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/70 shrink-0">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={cn(
+                  "p-2 rounded-lg transition-all",
+                  viewMode === 'grid' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                )}
+                title="عرض شبكي (كروت)"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={cn(
+                  "p-2 rounded-lg transition-all",
+                  viewMode === 'table' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                )}
+                title="عرض جدول تفصيلي"
+              >
+                <List size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Presets Pills Strip */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 border-t border-slate-100">
+          <span className="text-[11px] font-black text-slate-400 uppercase ml-2 shrink-0">تصفية سريعة:</span>
+          {[
+            { id: 'all', label: 'الكل' },
+            { id: 'active', label: '🟢 النشطين فقط' },
+            { id: 'production', label: '⚡ عمال الإنتاج (قطعة)' },
+            { id: 'daily', label: '📅 عمال اليومية' },
+            { id: 'groupA', label: '🅰️ المجموعة (أ)' },
+            { id: 'groupB', label: '🅱️ المجموعة (ب)' },
+            { id: 'technicians', label: '🔧 فنيين وورش' },
+            { id: 'stopped', label: '🛑 موقوف / مستقيل' },
+          ].map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => applyPreset(preset.id as any)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-black transition-all whitespace-nowrap shrink-0",
+                quickPreset === preset.id
+                  ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
+              )}
+            >
+              {preset.label}
+            </button>
+          ))}
+          {activeFiltersCount > 0 && (
+            <button 
+              onClick={handleResetFilters}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all mr-auto shrink-0 flex items-center gap-1"
+            >
+              <RotateCcw size={12} />
+              مسح الفلاتر ({activeFiltersCount})
+            </button>
+          )}
+        </div>
+
+        {/* Expandable Advanced Multi-Criteria Filter Drawer */}
+        <AnimatePresence>
+          {showAdvancedFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden pt-3 border-t border-slate-100"
+            >
+              <div className="bg-slate-50/90 rounded-2xl p-4 border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-black text-xs text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                    <Filter size={14} className="text-blue-600" />
+                    معايير الفلترة المتقدمة المتعددة
+                  </h4>
+                  <span className="text-[11px] font-bold text-slate-400">حدد المعايير لتضييق نطاق البحث بدقة متناهية</span>
                 </div>
-              </div>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="font-black text-xl text-slate-900">{emp.name}</CardTitle>
-                  <CardDescription className="font-bold text-primary flex items-center flex-wrap gap-2 mt-0.5">
-                    <span>{emp.position} {emp.department && <span className="text-slate-400 mr-1">| {emp.department}</span>}</span>
-                    {emp.payMethod === 'production' && (
-                      <Badge className={`rounded px-1.5 py-0.5 border-none font-black text-[9px] ${
-                        emp.productionGroup === 'A' ? 'bg-indigo-100 text-indigo-800' :
-                        emp.productionGroup === 'B' ? 'bg-purple-100 text-purple-800' :
-                        'bg-amber-100 text-amber-800'
-                      }`}>
-                        {emp.productionGroup === 'A' ? 'المجموعة أ' :
-                         emp.productionGroup === 'B' ? 'المجموعة ب' :
-                         'سعر فردي'}
-                      </Badge>
-                    )}
-                  </CardDescription>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-right">
+                  {/* Status */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">الحالة الوظيفية</label>
+                    <select 
+                      className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 font-bold text-xs"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as any)}
+                    >
+                      <option value="الكل">كافة الحالات</option>
+                      <option value="نشط">نشط على رأس العمل</option>
+                      <option value="موقوف">موقوف مؤقتاً</option>
+                      <option value="مستقيل">مستقيل / منتهي</option>
+                    </select>
+                  </div>
+
+                  {/* Pay Method */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">نظام احتساب الأجر</label>
+                    <select 
+                      className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 font-bold text-xs"
+                      value={payMethodFilter}
+                      onChange={(e) => setPayMethodFilter(e.target.value as any)}
+                    >
+                      <option value="الكل">كافة أنظمة الأجر</option>
+                      <option value="daily">باليومية (أجر يومي)</option>
+                      <option value="production">بالإنتاج (حسب القطعة)</option>
+                    </select>
+                  </div>
+
+                  {/* Production Group */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">مجموعة تسعير الإنتاج</label>
+                    <select 
+                      className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 font-bold text-xs"
+                      value={groupFilter}
+                      onChange={(e) => setGroupFilter(e.target.value as any)}
+                    >
+                      <option value="الكل">كافة المجموعات</option>
+                      <option value="A">المجموعة الأولى (أ)</option>
+                      <option value="B">المجموعة الثانية (ب)</option>
+                      <option value="none">بدون مجموعة (سعر فردي)</option>
+                    </select>
+                  </div>
+
+                  {/* Job Category */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">الفئة الوظيفية</label>
+                    <select 
+                      className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 font-bold text-xs"
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                    >
+                      {jobCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Min Daily Rate */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">الحد الأدنى لليومية (ج.م)</label>
+                    <Input 
+                      type="number"
+                      placeholder="مثال: 150"
+                      className="h-10 rounded-xl bg-white border-slate-200 font-bold text-xs"
+                      value={minDailyRate}
+                      onChange={(e) => setMinDailyRate(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Max Daily Rate */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">الحد الأقصى لليومية (ج.م)</label>
+                    <Input 
+                      type="number"
+                      placeholder="مثال: 600"
+                      className="h-10 rounded-xl bg-white border-slate-200 font-bold text-xs"
+                      value={maxDailyRate}
+                      onChange={(e) => setMaxDailyRate(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Hire Date From */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">تاريخ التعيين (من)</label>
+                    <Input 
+                      type="date"
+                      className="h-10 rounded-xl bg-white border-slate-200 font-bold text-xs"
+                      value={hireDateFrom}
+                      onChange={(e) => setHireDateFrom(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Hire Date To */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">تاريخ التعيين (إلى)</label>
+                    <Input 
+                      type="date"
+                      className="h-10 rounded-xl bg-white border-slate-200 font-bold text-xs"
+                      value={hireDateTo}
+                      onChange={(e) => setHireDateTo(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Insurance Filter */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">التأمينات الاجتماعية</label>
+                    <select 
+                      className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 font-bold text-xs"
+                      value={insuranceFilter}
+                      onChange={(e) => setInsuranceFilter(e.target.value as any)}
+                    >
+                      <option value="الكل">الكل</option>
+                      <option value="insured">مؤمن عليه (يوجد استقطاع)</option>
+                      <option value="uninsured">غير مؤمن عليه</option>
+                    </select>
+                  </div>
+
+                  {/* Sort By */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">ترتيب النتائج حسب</label>
+                    <div className="flex gap-1.5">
+                      <select 
+                        className="flex-1 h-10 rounded-xl border border-slate-200 bg-white px-3 font-bold text-xs"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                      >
+                        <option value="name">الاسم أبجدياً</option>
+                        <option value="dailyRate">قيمة اليومية / الأجر</option>
+                        <option value="hireDate">تاريخ التعيين</option>
+                        <option value="department">القسم</option>
+                      </select>
+                      <button
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        className="h-10 w-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center font-bold text-xs hover:bg-slate-100"
+                        title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+                      >
+                        {sortOrder === 'asc' ? '↑' : '↓'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button onClick={() => setEditingEmployee(emp)} variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50 rounded-lg">
-                    <Edit2 size={14} />
+
+                <div className="flex justify-end pt-2 border-t border-slate-200/60">
+                  <Button 
+                    onClick={handleResetFilters}
+                    variant="ghost" 
+                    size="sm"
+                    className="text-xs font-bold text-rose-600 hover:bg-rose-50"
+                  >
+                    <RotateCcw size={14} className="ml-1.5" />
+                    إعادة ضبط كافة الفلاتر
                   </Button>
-                  <Button onClick={() => setDeletingId(emp.id)} variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-50 rounded-lg">
-                    <Trash2 size={14} />
-                  </Button>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{emp.payMethod === 'daily' ? 'اليومية' : 'سعر القطعة'}</span>
-                    <span className="font-black text-slate-900">{(emp.payMethod === 'daily' ? emp.dailyRate : (emp.pieceRate || 0)).toLocaleString()} ج.م</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">سعر الساعة (10س)</span>
-                    <span className="font-black text-blue-600">{(emp.dailyRate / 10).toLocaleString()} ج.م</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex flex-col text-right">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">تاريخ التعيين</span>
-                    <span className="font-bold text-slate-700 text-xs">{emp.hireDate || '---'}</span>
-                  </div>
-                  <div className="flex flex-col items-end text-left">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">مواعيد العمل</span>
-                    <span className="font-bold text-slate-500 text-xs">{emp.shiftStart || '08:00'} - {emp.shiftEnd || '18:00'}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+
+      {/* Summary KPI Strip for Current Filtered Results */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
+        <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">الموظفون المطابقون</span>
+            <span className="text-2xl font-black font-mono text-slate-900">{metrics.totalCount}</span>
+            <span className="text-[10px] text-slate-400 mr-1 font-bold">من أصل {safeEmployees.length}</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+            <Users size={20} />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">متوسط اليومية</span>
+            <span className="text-2xl font-black font-mono text-emerald-600">{metrics.avgDailyRate.toLocaleString()}</span>
+            <span className="text-[10px] text-slate-400 mr-1 font-bold">ج.م / يوم</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+            <DollarSign size={20} />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">عمال الإنتاج</span>
+            <span className="text-2xl font-black font-mono text-purple-600">{metrics.prodCount}</span>
+            <span className="text-[10px] text-slate-400 mr-1 font-bold">موظف (قطعة)</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+            <Layers size={20} />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">تكلفة اليوميات المجمعة</span>
+            <span className="text-2xl font-black font-mono text-indigo-600">{metrics.totalDailyCost.toLocaleString()}</span>
+            <span className="text-[10px] text-slate-400 mr-1 font-bold">ج.م / يوم</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+            <Calculator size={20} />
+          </div>
+        </div>
       </div>
 
+      {/* Official Print Header (Visible ONLY during Print) */}
+      <PrintHeader
+        title="كشف وبيان بيانات الموظفين والعاملين المعتمد"
+        subtitle="سجل تفصيلي ببيانات العمالة ومعدلات الأجور والبيانات الوظيفية"
+        periodText={`القسم: ${selectedDept} | الحالة: ${statusFilter} | طريقة الأجر: ${payMethodFilter === 'production' ? 'بالإنتاج' : payMethodFilter === 'daily' ? 'باليومية' : 'الكل'}`}
+        companyInfo={companySettings}
+        kpis={[
+          { label: 'إجمالي الموظفين المدرجين', value: `${filteredEmployees.length} موظف`, highlight: true },
+          { label: 'متوسط اليومية للأجور', value: `${metrics.avgDailyRate.toLocaleString()} ج.م` },
+          { label: 'إجمالي تكلفة اليومية', value: `${metrics.totalDailyCost.toLocaleString()} ج.م` },
+          { label: 'عمال الإنتاج بالقطعة', value: `${metrics.prodCount} عامل` },
+        ]}
+      />
+
+      {/* Results Presentation (Grid or Table View) */}
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 print:hidden">
+          {filteredEmployees.map(emp => (
+            <Card key={emp.id} className="dribbble-card border-none overflow-hidden group hover:shadow-xl transition-all">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Badge className={cn(
+                    "rounded-lg px-3 py-1 border-none font-black text-[10px] uppercase tracking-widest",
+                    emp.status === 'نشط' || !emp.status ? 'bg-green-100 text-green-700' : 
+                    emp.status === 'موقوف' ? 'bg-red-100 text-red-700' :
+                    'bg-slate-100 text-slate-700'
+                  )}>
+                    {emp.status || 'نشط'}
+                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    {emp.jobCategory && (
+                      <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                        {emp.jobCategory}
+                      </span>
+                    )}
+                    <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                      <Users size={16} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="font-black text-xl text-slate-900">{emp.name}</CardTitle>
+                    <CardDescription className="font-bold text-primary flex items-center flex-wrap gap-2 mt-0.5">
+                      <span>{emp.position || 'عامل'} {emp.department && <span className="text-slate-400 mr-1">| {emp.department}</span>}</span>
+                      {emp.payMethod === 'production' && (
+                        <Badge className={cn(
+                          "rounded px-1.5 py-0.5 border-none font-black text-[9px]",
+                          emp.productionGroup === 'A' ? 'bg-indigo-100 text-indigo-800' :
+                          emp.productionGroup === 'B' ? 'bg-purple-100 text-purple-800' :
+                          'bg-amber-100 text-amber-800'
+                        )}>
+                          {emp.productionGroup === 'A' ? 'المجموعة أ' :
+                           emp.productionGroup === 'B' ? 'المجموعة ب' :
+                           'سعر فردي'}
+                        </Badge>
+                      )}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button onClick={() => setEditingEmployee(emp)} variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50 rounded-lg">
+                      <Edit2 size={14} />
+                    </Button>
+                    <Button onClick={() => setDeletingId(emp.id)} variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-50 rounded-lg">
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{emp.payMethod === 'daily' ? 'اليومية' : 'سعر القطعة'}</span>
+                      <span className="font-black text-slate-900 text-lg">{(emp.payMethod === 'daily' ? emp.dailyRate : (emp.pieceRate || 0)).toLocaleString()} ج.م</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">سعر الساعة (10س)</span>
+                      <span className="font-black text-blue-600 font-mono">{emp.dailyRate ? (emp.dailyRate / 10).toLocaleString() : 0} ج.م</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-50">
+                    <div className="flex flex-col text-right">
+                      <span className="text-[10px] font-bold text-slate-400">رقم الهاتف</span>
+                      <span className="font-mono font-bold text-slate-800">{emp.phone || '---'}</span>
+                    </div>
+                    <div className="flex flex-col items-end text-left">
+                      <span className="text-[10px] font-bold text-slate-400">تاريخ التعيين</span>
+                      <span className="font-bold text-slate-700">{emp.hireDate || '---'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 text-slate-500 text-[11px] font-bold">
+                    <span>الوردية: {emp.shiftStart || '08:00'} - {emp.shiftEnd || '18:00'}</span>
+                    {emp.socialInsuranceDeduction && emp.socialInsuranceDeduction > 0 ? (
+                      <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px]">مؤمن عليه</span>
+                    ) : null}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Detailed Table View (Rendered when in table mode OR for Print) */}
+      <Card className={cn(
+        "dribbble-card border-none overflow-hidden shadow-xl shadow-slate-200/40",
+        viewMode === 'grid' ? "hidden print:block" : "block"
+      )}>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-slate-50/80">
+              <TableRow>
+                <TableHead className="text-right font-black text-slate-900 w-12">م</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
+                <TableHead className="text-right font-black text-slate-900">القسم</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الوظيفة / الفئة</TableHead>
+                <TableHead className="text-center font-black text-slate-900">الحالة</TableHead>
+                <TableHead className="text-center font-black text-slate-900">نظام الأجر</TableHead>
+                <TableHead className="text-right font-black text-slate-900">اليومية / الفئة</TableHead>
+                <TableHead className="text-right font-black text-slate-900">سعر الساعة</TableHead>
+                <TableHead className="text-right font-black text-slate-900">الهاتف</TableHead>
+                <TableHead className="text-right font-black text-slate-900">تاريخ التعيين</TableHead>
+                <TableHead className="text-center font-black text-slate-900 print:hidden">إجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEmployees.map((emp, idx) => (
+                <TableRow key={emp.id} className="hover:bg-slate-50/60 transition-colors">
+                  <TableCell className="font-mono text-xs font-bold text-slate-400">{idx + 1}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-black text-slate-900 text-sm">{emp.name}</span>
+                      {emp.nationalId && <span className="text-[10px] text-slate-400 font-mono">الرقم القومي: {emp.nationalId}</span>}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-bold text-slate-700 text-xs">{emp.department || 'عام'}</TableCell>
+                  <TableCell className="text-xs">
+                    <span className="font-bold text-slate-800">{emp.position || 'عامل'}</span>
+                    {emp.jobCategory && <span className="text-[10px] text-slate-400 block">{emp.jobCategory}</span>}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge className={cn(
+                      "rounded-lg px-2.5 py-0.5 border-none font-black text-[10px]",
+                      emp.status === 'نشط' || !emp.status ? 'bg-green-100 text-green-700' : 
+                      emp.status === 'موقوف' ? 'bg-red-100 text-red-700' :
+                      'bg-slate-100 text-slate-700'
+                    )}>
+                      {emp.status || 'نشط'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center text-xs font-bold">
+                    {emp.payMethod === 'production' ? (
+                      <span className="text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md text-[10px] font-black">
+                        بالإنتاج {emp.productionGroup ? `(${emp.productionGroup})` : ''}
+                      </span>
+                    ) : (
+                      <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md text-[10px] font-black">
+                        باليومية
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono font-black text-slate-900 text-sm">
+                    {(emp.payMethod === 'production' ? (emp.pieceRate || 0) : (emp.dailyRate || 0)).toLocaleString()} ج.م
+                  </TableCell>
+                  <TableCell className="font-mono font-bold text-blue-600 text-xs">
+                    {emp.dailyRate ? Math.round((emp.dailyRate / 10) * 100) / 100 : 0} ج.م
+                  </TableCell>
+                  <TableCell className="font-mono text-xs font-bold text-slate-600">{emp.phone || '---'}</TableCell>
+                  <TableCell className="text-xs font-bold text-slate-500">{emp.hireDate || '---'}</TableCell>
+                  <TableCell className="text-center print:hidden">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button onClick={() => setEditingEmployee(emp)} variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50 rounded-lg">
+                        <Edit2 size={14} />
+                      </Button>
+                      <Button onClick={() => setDeletingId(emp.id)} variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-50 rounded-lg">
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredEmployees.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center py-16 text-slate-400 font-bold">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <Users size={36} className="text-slate-300" />
+                      <p className="text-base text-slate-600">لا توجد نتائج مطابقة لمعايير البحث والفلترة المحددة</p>
+                      <Button onClick={handleResetFilters} variant="outline" size="sm" className="rounded-xl text-xs font-bold">
+                        إعادة ضبط الفلاتر
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+            <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
+              <tr>
+                <td colSpan={3} className="text-right py-3 px-4 font-black text-slate-900">
+                  الإجمالي العام للموظفين المدرجين ({filteredEmployees.length} موظف):
+                </td>
+                <td colSpan={3} className="text-right font-black text-slate-700">
+                  متوسط الأجر اليومي: {metrics.avgDailyRate.toLocaleString()} ج.م
+                </td>
+                <td colSpan={2} className="text-right font-black font-mono text-slate-950">
+                  إجمالي تكلفة اليوميات: {metrics.totalDailyCost.toLocaleString()} ج.م
+                </td>
+                <td colSpan={3} className="text-center text-xs text-slate-400">-</td>
+              </tr>
+            </tfoot>
+          </Table>
+        </div>
+      </Card>
+
+      {/* Official Signatures (Visible ONLY during Print) */}
+      <PrintSignatures
+        tafqeetText={metrics.totalDailyCost > 0 ? tafqeetArabic(metrics.totalDailyCost, 'جنيه مصري') : undefined}
+        preparedByTitle="مسؤول الموارد البشرية وشؤون العاملين"
+        auditedByTitle="المراجعة والتدقيق المالي"
+        approvedByTitle="اعتماد الإدارة العامة"
+      />
+
+      {/* Add Employee Modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
-          <Card className="dribbble-card w-full max-w-md animate-in fade-in zoom-in duration-200">
+          <Card className="dribbble-card w-full max-w-lg max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
             <CardHeader className="pb-4">
-              <CardTitle className="font-black text-2xl text-right font-bold">إضافة موظف جديد</CardTitle>
+              <CardTitle className="font-black text-2xl text-right font-bold flex items-center gap-2">
+                <PlusCircle className="text-blue-600" size={24} />
+                إضافة موظف جديد
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-right">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 block text-right">الاسم بالكامل</label>
-                <Input className="rounded-xl h-11 text-right font-bold animate-input" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                <Input className="rounded-xl h-11 text-right font-bold animate-input" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="الاسم ثلاثي أو رباعي..." />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">رقم الهاتف (للواتساب)</label>
-                <Input className="rounded-xl h-11 text-right font-bold" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="01xxxxxxxxx" />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 block text-right">رقم الهاتف (للواتساب)</label>
+                  <Input className="rounded-xl h-11 text-right font-bold font-mono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="01xxxxxxxxx" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 block text-right">الرقم القومي (14 رقم)</label>
+                  <Input className="rounded-xl h-11 text-right font-bold font-mono" value={formData.nationalId} onChange={e => setFormData({...formData, nationalId: e.target.value})} placeholder="2xxxxxxxxxxxxx" />
+                </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">الوظيفة / المسمى الوظيفي</label>
-                  <Input className="rounded-xl h-11 text-right font-bold" value={formData.position} onChange={e => setFormData({...formData, position: e.target.value})} />
+                  <Input className="rounded-xl h-11 text-right font-bold" value={formData.position} onChange={e => setFormData({...formData, position: e.target.value})} placeholder="مثال: نجار، استورجي، محاسب..." />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">القسم</label>
-                  <Input className="rounded-xl h-11 text-right font-bold" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} placeholder="مثال: الإنتاج، المخازن..." />
+                  <Input className="rounded-xl h-11 text-right font-bold" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} placeholder="مثال: النجارة، الدهان، المخازن..." />
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 block text-right">الراتب الأساسي</label>
-                  <Input type="number" className="rounded-xl h-11 text-right font-bold" value={formData.baseSalary} onChange={e => setFormData({...formData, baseSalary: Number(e.target.value)})} />
+                  <label className="text-sm font-bold text-slate-700 block text-right">الفئة الوظيفية</label>
+                  <select 
+                    className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-sm"
+                    value={formData.jobCategory}
+                    onChange={e => setFormData({...formData, jobCategory: e.target.value as any})}
+                  >
+                    <option value="عامل مصنع">عامل مصنع وإنتاج</option>
+                    <option value="فني ورشة">فني ورشة وتصنيع</option>
+                    <option value="إدارة">إدارة ومكاتب</option>
+                    <option value="سائق">سائقين ونقل</option>
+                    <option value="خدمات ومعاونة">خدمات ومعاونة</option>
+                    <option value="أخرى">أخرى</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">نظام القبض</label>
                   <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-sm" value={formData.payMethod} onChange={e => setFormData({...formData, payMethod: e.target.value as any})}>
-                    <option value="daily">باليومية</option>
+                    <option value="daily">باليومية (أجر يومي)</option>
                     <option value="production">بالإنتاج (بالقطعة)</option>
                   </select>
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {formData.payMethod === 'daily' ? (
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 block text-right">اليومية</label>
+                    <label className="text-sm font-bold text-slate-700 block text-right">اليومية (ج.م)</label>
                     <Input type="number" className="rounded-xl h-11 text-right font-bold" value={formData.dailyRate} onChange={e => {
                       const val = Number(e.target.value);
                       setFormData({...formData, dailyRate: val, hourlyRate: val / 10});
@@ -14724,6 +15651,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   </div>
                 )}
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">موعد الحضور</label>
@@ -14734,6 +15662,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   <Input type="time" className="rounded-xl h-11 text-right" value={formData.shiftEnd} onChange={e => setFormData({...formData, shiftEnd: e.target.value})} />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 block text-right">الحالة</label>
                 <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-sm" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
@@ -14742,6 +15671,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   <option value="مستقيل">مستقيل</option>
                 </select>
               </div>
+
               <div className="flex justify-end gap-3 pt-6 font-bold">
                 <Button variant="ghost" className="btn-ghost" onClick={() => setShowAdd(false)}>إلغاء</Button>
                 <Button onClick={handleAdd} className="btn-primary px-10 h-11 rounded-xl">حفظ البيانات</Button>
@@ -14751,21 +15681,32 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
         </div>
       )}
 
+      {/* Edit Employee Modal */}
       {editingEmployee && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
-          <Card className="dribbble-card w-full max-w-md animate-in fade-in zoom-in duration-200">
+          <Card className="dribbble-card w-full max-w-lg max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
             <CardHeader className="pb-4">
-              <CardTitle className="font-black text-2xl text-right font-bold">تعديل بيانات الموظف</CardTitle>
+              <CardTitle className="font-black text-2xl text-right font-bold flex items-center gap-2">
+                <Edit2 className="text-blue-600" size={24} />
+                تعديل بيانات الموظف
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 block text-right">الاسم بالكامل</label>
                 <Input className="rounded-xl h-11 text-right font-bold" value={editingEmployee.name} onChange={e => setEditingEmployee({...editingEmployee, name: e.target.value})} />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">رقم الهاتف (للواتساب)</label>
-                <Input className="rounded-xl h-11 text-right font-bold" value={editingEmployee.phone || ''} onChange={e => setEditingEmployee({...editingEmployee, phone: e.target.value})} placeholder="01xxxxxxxxx" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 block text-right">رقم الهاتف (للواتساب)</label>
+                  <Input className="rounded-xl h-11 text-right font-bold font-mono" value={editingEmployee.phone || ''} onChange={e => setEditingEmployee({...editingEmployee, phone: e.target.value})} placeholder="01xxxxxxxxx" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 block text-right">الرقم القومي</label>
+                  <Input className="rounded-xl h-11 text-right font-bold font-mono" value={editingEmployee.nationalId || ''} onChange={e => setEditingEmployee({...editingEmployee, nationalId: e.target.value})} placeholder="2xxxxxxxxxxxxx" />
+                </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">الوظيفة / المسمى الوظيفي</label>
@@ -14776,6 +15717,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   <Input className="rounded-xl h-11 text-right font-bold" value={editingEmployee.department || ''} onChange={e => setEditingEmployee({...editingEmployee, department: e.target.value})} placeholder="مثال: الإنتاج، المخازن..." />
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">الراتب الأساسي</label>
@@ -14789,6 +15731,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   </select>
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {editingEmployee.payMethod === 'daily' ? (
                   <div className="space-y-2">
@@ -14819,10 +15762,12 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   </div>
                 )}
               </div>
+
               <div className="space-y-2 text-right">
                 <label className="text-sm font-bold text-slate-700 block text-right">تاريخ التعيين</label>
                 <Input type="date" className="rounded-xl h-11 text-right font-bold" value={editingEmployee.hireDate} onChange={e => setEditingEmployee({...editingEmployee, hireDate: e.target.value})} />
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">موعد الحضور</label>
@@ -14833,7 +15778,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   <Input type="time" className="rounded-xl h-11" value={editingEmployee.shiftEnd || '18:00'} onChange={e => setEditingEmployee({...editingEmployee, shiftEnd: e.target.value})} />
                 </div>
               </div>
-              {/* Job Category & Department */}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 block text-right">الفئة الوظيفية</label>
@@ -14860,7 +15805,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                 </div>
               </div>
 
-              {/* Allowances & Fixed Deductions Tree (شجرة البدلات والتأمينات الثابتة) */}
+              {/* Allowances & Fixed Deductions Tree */}
               <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-3">
                 <div className="flex items-center gap-2 text-indigo-950 font-black text-sm">
                   <span>🌳 شجرة البدلات والتأمينات الثابتة (مكونات الأجر)</span>
@@ -14888,7 +15833,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">بدل هاتف واتصالات (ج.م)</label>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">بدل هاتف/اتصالات (ج.م)</label>
                     <Input 
                       type="number" 
                       className="rounded-xl h-9 text-right font-bold text-xs bg-white" 
@@ -14909,22 +15854,22 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-right pt-2 border-t border-indigo-200/80">
+                <div className="grid grid-cols-2 gap-3 text-right pt-2 border-t border-indigo-100">
                   <div>
-                    <label className="text-[11px] font-bold text-rose-800 block mb-1">استقطاع التأمين الاجتماعي (شهري)</label>
+                    <label className="text-[11px] font-bold text-rose-700 block mb-1">استقطاع التأمين الاجتماعي (ج.م)</label>
                     <Input 
                       type="number" 
-                      className="rounded-xl h-9 text-right font-bold text-xs bg-white text-rose-700" 
+                      className="rounded-xl h-9 text-right font-bold text-xs bg-white border-rose-200" 
                       value={editingEmployee.socialInsuranceDeduction || ''} 
                       onChange={e => setEditingEmployee({...editingEmployee, socialInsuranceDeduction: Number(e.target.value)})} 
                       placeholder="0"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-rose-800 block mb-1">ضريبة كسب العمل (شهري)</label>
+                    <label className="text-[11px] font-bold text-rose-700 block mb-1">استقطاع ضريبة كسب عمل (ج.م)</label>
                     <Input 
                       type="number" 
-                      className="rounded-xl h-9 text-right font-bold text-xs bg-white text-rose-700" 
+                      className="rounded-xl h-9 text-right font-bold text-xs bg-white border-rose-200" 
                       value={editingEmployee.incomeTaxDeduction || ''} 
                       onChange={e => setEditingEmployee({...editingEmployee, incomeTaxDeduction: Number(e.target.value)})} 
                       placeholder="0"
@@ -14932,6 +15877,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
                   </div>
                 </div>
               </div>
+
               <div className="flex justify-end gap-3 pt-6">
                 <Button variant="ghost" className="btn-ghost" onClick={() => setEditingEmployee(null)}>إلغاء</Button>
                 <Button onClick={handleUpdate} className="btn-primary px-10 h-12">حفظ التعديلات</Button>
@@ -14941,6 +15887,7 @@ const EmployeesView = React.memo(function EmployeesView({ employees }: { employe
         </div>
       )}
 
+      {/* Delete Confirmation */}
       {deletingId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <Card className="dribbble-card w-full max-w-sm">
@@ -14972,8 +15919,8 @@ function HRWorkflowGuide({ activeTab, onTabChange }: { activeTab: string, onTabC
   if (currentIndex === -1 && activeTab !== 'employees' && activeTab !== 'loans') return null;
 
   return (
-    <div className="mb-10 bg-white border border-slate-200 rounded-[14px] p-4 shadow-sm">
-      <div className="flex flex-col md:flex-row items-stretch gap-2">
+    <div className="mb-4 sm:mb-6 md:mb-8 bg-white border border-slate-200/80 rounded-2xl p-2.5 sm:p-4 shadow-xs">
+      <div className="flex flex-row overflow-x-auto md:overflow-visible gap-2 pb-1 md:pb-0 custom-scrollbar">
         {steps.map((step, index) => {
           const isActive = activeTab === step.id;
           const isDone = currentIndex > index;
@@ -14982,31 +15929,31 @@ function HRWorkflowGuide({ activeTab, onTabChange }: { activeTab: string, onTabC
             <div 
               key={step.id}
               onClick={() => onTabChange(step.id)}
-              className={`flex-1 relative cursor-pointer group transition-all duration-200 rounded-[14px] p-4 ${
-                isActive ? 'bg-primary/5 border-2 border-primary/20 shadow-inner' : 'hover:bg-slate-50'
+              className={`min-w-[160px] sm:min-w-[190px] md:min-w-0 md:flex-1 shrink-0 md:shrink relative cursor-pointer group transition-all duration-200 rounded-xl p-2.5 sm:p-3.5 ${
+                isActive ? 'bg-primary/5 border border-primary/30 shadow-xs' : 'hover:bg-slate-50 border border-slate-100'
               }`}
             >
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                  isActive ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/30' : 
+              <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center transition-all shrink-0 ${
+                  isActive ? 'bg-primary text-white scale-105 shadow-md shadow-primary/30' : 
                   isDone ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'
                 }`}>
-                  {isDone ? <CheckCircle2 size={16} /> : step.icon}
+                  {isDone ? <CheckCircle2 size={14} className="sm:w-4 sm:h-4" /> : step.icon}
                 </div>
-                <div>
-                  <h4 className={`text-sm font-black transition-all ${isActive ? 'text-primary' : 'text-slate-600'}`}>
+                <div className="min-w-0">
+                  <h4 className={`text-xs sm:text-sm font-black transition-all truncate ${isActive ? 'text-primary' : 'text-slate-700'}`}>
                     {step.label}
                   </h4>
-                  <p className="text-[10px] font-bold text-slate-400">الخطوة {index + 1}</p>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-slate-400">الخطوة {index + 1}</p>
                 </div>
               </div>
-              <p className={`text-[11px] font-medium leading-relaxed transition-all ${isActive ? 'text-slate-700' : 'text-slate-400 opacity-60'}`}>
+              <p className={`text-[10px] sm:text-[11px] font-medium leading-relaxed transition-all line-clamp-2 ${isActive ? 'text-slate-700' : 'text-slate-400 opacity-60'}`}>
                 {step.desc}
               </p>
               
               {index < steps.length - 1 && (
-                <div className="hidden md:block absolute -left-1 top-1/2 -translate-y-1/2 z-10">
-                  <ChevronLeft className={`text-slate-200 ${isDone ? 'text-green-500' : ''}`} size={16} />
+                <div className="hidden md:block absolute -left-1.5 top-1/2 -translate-y-1/2 z-10">
+                  <ChevronLeft className={`text-slate-300 ${isDone ? 'text-green-500' : ''}`} size={16} />
                 </div>
               )}
             </div>
@@ -15601,6 +16548,7 @@ interface DeductionsViewProps {
   transactions: FinancialTransaction[];
   loans: Loan[];
   companyInfo?: any;
+  companySettings?: any;
   employees: Employee[];
 }
 
@@ -15609,184 +16557,18 @@ const DeductionsView = React.memo(function DeductionsView({
   transactions,
   loans,
   companyInfo,
+  companySettings,
   employees
 }: DeductionsViewProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDept, setSelectedDept] = useState('الكل');
-
-  const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
-
-  // Filter transactions that are deductions
-  const deductionTransactions = transactions.filter(t => 
-    t.employeeId && 
-    ((t.type as string) === 'خصم' || (t.type as string) === 'خصومات' || t.type === 'جزاء' || (t.type as string) === 'تأخير')
-  );
-
-  // Total calculations
-  const totalPenalties = deductionTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-  const activeLoans = loans.filter(l => l.status === 'نشط');
-  const totalOutstandingLoans = activeLoans.reduce((sum, l) => sum + (l.remainingAmount || 0), 0);
-
-  const filteredEmployees = employees.filter(emp => {
-    const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = selectedDept === 'الكل' || emp.department === selectedDept;
-    return matchesSearch && matchesDept;
-  });
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
-        <div>
-          <h3 className="font-black text-xl text-slate-900">إدارة الخصومات والجزاءات والسلف</h3>
-          <p className="text-slate-400 text-xs mt-0.5">متابعة كافة الاستقطاعات والخصومات المالية الصادرة بحق العمال</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <Input 
-            placeholder="بحث عن موظف..." 
-            value={searchTerm} 
-            onChange={e => setSearchTerm(e.target.value)} 
-            className="w-64 h-11 bg-white border-slate-200 rounded-xl"
-          />
-          <select 
-            className="h-11 rounded-xl border border-slate-200 px-4 bg-white font-bold text-sm focus:ring-2 focus:ring-blue-500"
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
-          >
-            {departments.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
-          </select>
-          <Button onClick={() => safePrint()} variant="outline" className="h-11 rounded-xl font-bold border-slate-200">
-            <Printer size={16} className="ml-2" />
-            طباعة
-          </Button>
-        </div>
-      </div>
-
-      <PrintHeader
-        title="تقرير استقطاعات وجزاءات وسلف العاملين"
-        subtitle="كشف تفصيلي بموقف الخصومات والجزاءات المسجلة وأرصدة السلف المستحقة"
-        periodText={`القسم: ${selectedDept}`}
-        companyInfo={companyInfo}
-        kpis={[
-          { label: 'إجمالي الخصومات والجزاءات', value: `${totalPenalties.toLocaleString()} ج.م`, highlight: true },
-          { label: 'إجمالي السلف القائمة', value: `${totalOutstandingLoans.toLocaleString()} ج.م`, highlight: totalOutstandingLoans > 0 },
-          { label: 'عدد الموظفين المشمولين', value: `${filteredEmployees.length} موظف` },
-        ]}
-      />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:hidden">
-        <Card className="dribbble-card border-none bg-rose-50/50">
-          <CardContent className="p-6 flex justify-between items-center">
-            <div className="space-y-1">
-              <p className="text-rose-600 font-bold text-sm">إجمالي الخصومات والجزاءات</p>
-              <h4 className="text-3xl font-black font-mono text-rose-700">{totalPenalties.toLocaleString('en-US')} ج.م</h4>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
-              <ArrowDownLeft size={24} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="dribbble-card border-none bg-amber-50/50">
-          <CardContent className="p-6 flex justify-between items-center">
-            <div className="space-y-1">
-              <p className="text-amber-600 font-bold text-sm">إجمالي السلف القائمة</p>
-              <h4 className="text-3xl font-black font-mono text-amber-700">{totalOutstandingLoans.toLocaleString('en-US')} ج.م</h4>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
-              <Clock size={24} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="dribbble-card border-none overflow-hidden shadow-xl shadow-slate-200/30">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-          <h4 className="font-black text-lg text-slate-800">تفاصيل استقطاعات الموظفين</h4>
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-slate-50/20">
-              <TableRow>
-                <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
-                <TableHead className="text-right font-black text-slate-900">القسم</TableHead>
-                <TableHead className="text-right font-black text-slate-900">الخصومات والجزاءات المسجلة</TableHead>
-                <TableHead className="text-right font-black text-slate-900">إجمالي السلف المفعلة</TableHead>
-                <TableHead className="text-right font-black text-slate-900">ما تم سداده من السلف</TableHead>
-                <TableHead className="text-right font-black text-slate-900">المتبقي من السلف</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEmployees.map(emp => {
-                const empDeductions = deductionTransactions
-                  .filter(t => t.employeeId === emp.id)
-                  .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-                const empLoans = loans.filter(l => l.employeeId === emp.id);
-                const totalLoanAmount = empLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
-                const remainingLoanAmount = empLoans.filter(l => l.status === 'نشط').reduce((sum, l) => sum + (l.remainingAmount || 0), 0);
-                const repaidLoanAmount = totalLoanAmount - remainingLoanAmount;
-
-                return (
-                  <TableRow key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                    <TableCell className="font-black text-slate-950">{emp.name}</TableCell>
-                    <TableCell className="font-bold text-slate-500 text-xs">{emp.department || 'غير محدد'}</TableCell>
-                    <TableCell className="font-mono font-bold text-rose-600">
-                      {empDeductions > 0 ? `${empDeductions.toLocaleString('en-US')} ج.م` : '0'}
-                    </TableCell>
-                    <TableCell className="font-mono font-bold text-amber-600">
-                      {totalLoanAmount > 0 ? `${totalLoanAmount.toLocaleString('en-US')} ج.م` : '0'}
-                    </TableCell>
-                    <TableCell className="font-mono font-bold text-green-600">
-                      {repaidLoanAmount > 0 ? `${repaidLoanAmount.toLocaleString('en-US')} ج.م` : '0'}
-                    </TableCell>
-                    <TableCell className="font-mono font-black text-slate-900">
-                      {remainingLoanAmount > 0 ? `${remainingLoanAmount.toLocaleString('en-US')} ج.م` : '0'}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {filteredEmployees.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-slate-400 font-bold">
-                    لا توجد سجلات مطابقة للبحث
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-            <tfoot className="hidden print:table-footer-group bg-slate-100 font-black border-t-2 border-slate-900">
-              <tr>
-                <td colSpan={2} className="text-right py-3 px-4 font-black text-slate-900">
-                  الإجمالي العام ({filteredEmployees.length} موظف):
-                </td>
-                <td className="text-right font-black font-mono text-rose-700">
-                  {totalPenalties.toLocaleString()} ج.م
-                </td>
-                <td className="text-right font-black font-mono text-amber-700">
-                  {filteredEmployees.reduce((sum, emp) => sum + loans.filter(l => l.employeeId === emp.id).reduce((s, l) => s + (l.amount || 0), 0), 0).toLocaleString()} ج.م
-                </td>
-                <td className="text-right font-black font-mono text-emerald-700">
-                  {filteredEmployees.reduce((sum, emp) => sum + loans.filter(l => l.employeeId === emp.id).reduce((s, l) => s + (l.amount - (l.remainingAmount || 0)), 0), 0).toLocaleString()} ج.م
-                </td>
-                <td className="text-right font-black font-mono text-slate-950 text-base">
-                  {totalOutstandingLoans.toLocaleString()} ج.م
-                </td>
-              </tr>
-            </tfoot>
-          </Table>
-        </div>
-      </Card>
-
-      <PrintSignatures
-        tafqeetText={tafqeetArabic(totalPenalties + totalOutstandingLoans, 'جنيه مصري')}
-        preparedByTitle="مسؤول شؤون العاملين"
-        auditedByTitle="المراجعة والتدقيق المالي"
-        approvedByTitle="اعتماد الإدارة العامة"
-      />
-    </div>
+    <DeductionsReport
+      attendance={attendance}
+      transactions={transactions}
+      loans={loans}
+      companyInfo={companyInfo}
+      companySettings={companySettings || companyInfo}
+      employees={employees}
+    />
   );
 });
 
@@ -16354,20 +17136,17 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5 flex-1 max-w-md text-right">
                 <label className="text-sm font-bold text-slate-700 block text-right font-bold">اختر الموظف لعرض كشف حسابه الكامل</label>
-                <select
-                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold text-right text-sm focus:border-primary focus:bg-white transition-all outline-none"
-                  value={selectedEmpIdForStatement}
-                  onChange={e => setSelectedEmpIdForStatement(e.target.value)}
-                >
-                  <option value="">-- اختر الموظف --</option>
-                  {employees.map(emp => {
-                    return (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name} ({emp.department || 'الإنتاج'})
-                      </option>
-                    );
-                  })}
-                </select>
+                <SearchableSelect
+                  options={employees.map(emp => ({
+                    id: emp.id,
+                    name: emp.name,
+                    subtext: emp.department || 'الإنتاج'
+                  }))}
+                  selectedValue={selectedEmpIdForStatement}
+                  onChange={setSelectedEmpIdForStatement}
+                  placeholder="-- ابحث بالاسم أو القسم لعرض كشف الحساب --"
+                  searchPlaceholder="اكتب اسم الموظف..."
+                />
               </div>              {selectedEmpIdForStatement && (
                 <div className="flex items-center gap-2 self-end mt-4 md:mt-0">
                   <Button 
@@ -16710,16 +17489,17 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
             <CardContent className="p-6 space-y-5">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700 block text-right">الموظف / العامل</label>
-                <select 
-                  className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 px-3 font-bold text-right text-sm focus:border-primary focus:bg-white transition-all outline-none"
-                  value={formData.employeeId} 
-                  onChange={e => setFormData({...formData, employeeId: e.target.value})}
-                >
-                  <option value="">-- اختر الموظف --</option>
-                  {employees.filter(e => e.status === 'نشط').map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name} ({emp.department || 'بدون قسم'})</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  options={employees.filter(e => e.status === 'نشط' || !e.status).map(emp => ({
+                    id: emp.id,
+                    name: emp.name,
+                    subtext: emp.department || 'الإنتاج'
+                  }))}
+                  selectedValue={formData.employeeId}
+                  onChange={val => setFormData({...formData, employeeId: val})}
+                  placeholder="-- ابحث بالاسم لاختيار الموظف المقترض --"
+                  searchPlaceholder="اكتب اسم الموظف..."
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -16786,16 +17566,17 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
               {/* Safe Selection */}
               <div className="space-y-2 text-right">
                 <label className="text-sm font-bold text-slate-700 block text-right">الخزنة / العهدة (لصرف المبلغ)</label>
-                <select 
-                  className="w-full h-12 rounded-xl border border-slate-200 bg-emerald-50/30 px-3 font-bold text-right text-sm focus:border-emerald-500 focus:bg-white transition-all outline-none"
-                  value={formData.safeId}
-                  onChange={e => setFormData({ ...formData, safeId: e.target.value })}
-                >
-                  <option value="">-- اختر الخزنة المصدر --</option>
-                  {safes.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} (الرصيد الحالي: {s.balance.toLocaleString()} ج.م)</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  options={safes.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    subtext: `الرصيد: ${s.balance.toLocaleString()} ج.م`
+                  }))}
+                  selectedValue={formData.safeId}
+                  onChange={val => setFormData({ ...formData, safeId: val })}
+                  placeholder="-- اختر الخزنة المصدر --"
+                  searchPlaceholder="ابحث باسم الخزنة أو العهدة..."
+                />
                 <p className="text-[10px] text-slate-400 font-medium">سيتم خصم مبلغ السلفة آلياً من الخزنة المختارة وتسجيل حركة "سحب" عليها.</p>
               </div>
 
@@ -17167,15 +17948,36 @@ const LoansView = React.memo(function LoansView({ employees, safes, companySetti
   );
 });
 
-const HRTransactionsView = React.memo(function HRTransactionsView({ employees, transactions }: { employees: Employee[], transactions: FinancialTransaction[] }) {
+const HRTransactionsView = React.memo(function HRTransactionsView({ 
+  employees, 
+  transactions,
+  companySettings 
+}: { 
+  employees: Employee[], 
+  transactions: FinancialTransaction[],
+  companySettings?: CompanySettings 
+}) {
+  const safeEmployees = employees || [];
+  const safeTransactions = transactions || [];
+  const departments = ['الكل', ...new Set(safeEmployees.map(e => e.department).filter(Boolean) as string[])];
 
-
-  const departments = ['الكل', ...new Set(employees.map(e => e.department).filter(Boolean) as string[])];
   const [showAdd, setShowAdd] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<FinancialTransaction | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [selectedDept, setSelectedDept] = useState<string>('الكل');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Search and Filter States
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDept, setSelectedDept] = useState<string>('الكل');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('الكل');
+  const [selectedType, setSelectedType] = useState<string>('الكل');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [minAmount, setMinAmount] = useState<string>('');
+  const [maxAmount, setMaxAmount] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'date' | 'employee' | 'amount' | 'type'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   const [formData, setFormData] = useState({
     employeeId: '',
@@ -17187,10 +17989,36 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
     overtimeRate: 1.5 as 1.33 | 1.5 | 2
   });
 
+  // Calculate active filter count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm.trim()) count++;
+    if (selectedDept !== 'الكل') count++;
+    if (selectedEmployeeId !== 'الكل') count++;
+    if (selectedType !== 'الكل') count++;
+    if (dateFrom) count++;
+    if (dateTo) count++;
+    if (minAmount) count++;
+    if (maxAmount) count++;
+    return count;
+  }, [searchTerm, selectedDept, selectedEmployeeId, selectedType, dateFrom, dateTo, minAmount, maxAmount]);
+
+  // Reset Filters
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSelectedDept('الكل');
+    setSelectedEmployeeId('الكل');
+    setSelectedType('الكل');
+    setDateFrom('');
+    setDateTo('');
+    setMinAmount('');
+    setMaxAmount('');
+  };
+
   const handleAdd = async () => {
     if (!formData.employeeId || isSaving) return;
     
-    const emp = employees.find(e => e.id === formData.employeeId);
+    const emp = safeEmployees.find(e => e.id === formData.employeeId);
     let finalData = { 
       ...formData,
       employeeName: emp?.name || ''
@@ -17198,7 +18026,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
     
     if (formData.type === 'إضافي') {
       if (emp && formData.overtimeHours > 0) {
-        const hourlyRate = emp.dailyRate / 10;
+        const hourlyRate = (emp.dailyRate || 0) / 10;
         finalData.amount = formData.overtimeHours * formData.overtimeRate * hourlyRate;
         if (!finalData.description) {
           finalData.description = `إضافي ${formData.overtimeHours} ساعة بمعدل ${formData.overtimeRate}`;
@@ -17231,7 +18059,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
   const handleUpdate = async () => {
     if (!editingTransaction || isSaving) return;
     
-    const emp = employees.find(e => e.id === editingTransaction.employeeId);
+    const emp = safeEmployees.find(e => e.id === editingTransaction.employeeId);
     let finalData = { 
       ...editingTransaction,
       employeeName: emp?.name || (editingTransaction as any).employeeName || ''
@@ -17239,7 +18067,7 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
     
     if (finalData.type === 'إضافي') {
       if (emp && finalData.overtimeHours && finalData.overtimeHours > 0) {
-        const hourlyRate = emp.dailyRate / 10;
+        const hourlyRate = (emp.dailyRate || 0) / 10;
         finalData.amount = finalData.overtimeHours * (finalData.overtimeRate || 1.5) * hourlyRate;
       }
     }
@@ -17271,160 +18099,644 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
     }
   };
 
+  // Comprehensive Search & Filter Logic
+  const filteredTransactions = useMemo(() => {
+    return safeTransactions.filter(tr => {
+      const emp = safeEmployees.find(e => e.id === tr.employeeId);
+      const empName = emp?.name || (tr as any).employeeName || '';
+      const empDept = emp?.department || '';
 
-  const filteredTransactions = selectedDept === 'الكل'
-    ? transactions
-    : transactions.filter(tr => {
-        const emp = employees.find(e => e.id === tr.employeeId);
-        return emp?.department === selectedDept;
-      });
+      // 1. Text Search
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase().trim();
+        const matchEmpName = empName.toLowerCase().includes(term);
+        const matchDesc = tr.description?.toLowerCase().includes(term);
+        const matchType = tr.type?.toLowerCase().includes(term);
+        const matchPhone = emp?.phone?.replace(/[^0-9]/g, '').includes(term.replace(/[^0-9]/g, ''));
+        const matchNatId = emp?.nationalId?.includes(term);
+        const matchId = tr.id?.toLowerCase().includes(term);
+        const matchAmount = String(tr.amount).includes(term);
+
+        if (!matchEmpName && !matchDesc && !matchType && !matchPhone && !matchNatId && !matchId && !matchAmount) {
+          return false;
+        }
+      }
+
+      // 2. Specific Employee Filter
+      if (selectedEmployeeId !== 'الكل' && tr.employeeId !== selectedEmployeeId) {
+        return false;
+      }
+
+      // 3. Department Filter
+      if (selectedDept !== 'الكل' && empDept !== selectedDept) {
+        return false;
+      }
+
+      // 4. Transaction Type Filter
+      if (selectedType !== 'الكل' && tr.type !== selectedType) {
+        return false;
+      }
+
+      // 5. Date Range Filter
+      if (dateFrom && tr.date < dateFrom) {
+        return false;
+      }
+      if (dateTo && tr.date > dateTo) {
+        return false;
+      }
+
+      // 6. Amount Range Filter
+      if (minAmount && tr.amount < Number(minAmount)) {
+        return false;
+      }
+      if (maxAmount && tr.amount > Number(maxAmount)) {
+        return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
+      let comp = 0;
+      if (sortBy === 'date') {
+        comp = (a.date || '').localeCompare(b.date || '');
+      } else if (sortBy === 'employee') {
+        const nameA = safeEmployees.find(e => e.id === a.employeeId)?.name || (a as any).employeeName || '';
+        const nameB = safeEmployees.find(e => e.id === b.employeeId)?.name || (b as any).employeeName || '';
+        comp = nameA.localeCompare(nameB);
+      } else if (sortBy === 'amount') {
+        comp = (a.amount || 0) - (b.amount || 0);
+      } else if (sortBy === 'type') {
+        comp = (a.type || '').localeCompare(b.type || '');
+      }
+      return sortOrder === 'asc' ? comp : -comp;
+    });
+  }, [
+    safeTransactions, safeEmployees, searchTerm, selectedEmployeeId, 
+    selectedDept, selectedType, dateFrom, dateTo, minAmount, maxAmount, 
+    sortBy, sortOrder
+  ]);
+
+  // Financial KPIs and Analytics for Filtered Data
+  const stats = useMemo(() => {
+    let totalAdditions = 0; // مكافآت + إضافي + بدل
+    let totalDeductions = 0; // خصم + مصروف + خصم سلف
+    let bonusesCount = 0;
+    let overtimeHoursTotal = 0;
+
+    filteredTransactions.forEach(tr => {
+      if (tr.type === 'مكافأة' || tr.type === 'إضافي' || tr.type === 'بدل') {
+        totalAdditions += (tr.amount || 0);
+        if (tr.type === 'مكافأة') bonusesCount++;
+        if (tr.type === 'إضافي' && tr.overtimeHours) overtimeHoursTotal += tr.overtimeHours;
+      } else {
+        totalDeductions += (tr.amount || 0);
+      }
+    });
+
+    const netImpact = totalAdditions - totalDeductions;
+    return {
+      count: filteredTransactions.length,
+      totalAdditions,
+      totalDeductions,
+      netImpact,
+      bonusesCount,
+      overtimeHoursTotal
+    };
+  }, [filteredTransactions]);
+
+  // Export to Excel
+  const exportToExcel = () => {
+    const dataToExport = filteredTransactions.map((tr, idx) => {
+      const emp = safeEmployees.find(e => e.id === tr.employeeId);
+      return {
+        'م': idx + 1,
+        'التاريخ': tr.date,
+        'كود الموظف': tr.employeeId?.slice(0, 8) || '---',
+        'اسم الموظف': emp?.name || (tr as any).employeeName || 'موظف عام',
+        'القسم': emp?.department || '---',
+        'المسمى الوظيفي': emp?.position || '---',
+        'نوع الحركة': tr.type,
+        'المبلغ (ج.م)': tr.amount,
+        'ساعات الإضافي': tr.overtimeHours || '---',
+        'معدل الإضافي': tr.overtimeRate ? `×${tr.overtimeRate}` : '---',
+        'البيان / الوصف': tr.description || '---',
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "HR_Transactions");
+    XLSX.writeFile(wb, `سجل_التسويات_المالية_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900">الحركات المالية</h2>
-          <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">تسجيل المكافآت والخصومات والبدلات والوقت الإضافي</p>
-        </div>
+    <div className="space-y-6" dir="rtl">
+      {/* Print Header */}
+      <div className="hidden print:block mb-6">
+        <PrintHeader
+          title="تقرير وحركات التسويات المالية للأجور"
+          subtitle={`كشف تفصيلي بالمكافآت، الخصومات، البدلات والوقت الإضافي${selectedDept !== 'الكل' ? ` - قسم: ${selectedDept}` : ''}`}
+          periodText={dateFrom && dateTo ? `الفترة من ${dateFrom} إلى ${dateTo}` : `حتى تاريخ ${format(new Date(), 'yyyy/MM/dd')}`}
+          companyInfo={companySettings}
+          kpis={[
+            { label: 'إجمالي الحركات', value: stats.count, highlight: false },
+            { label: 'إجمالي المكافآت والبدلات', value: `${stats.totalAdditions.toLocaleString()} ج.م`, highlight: false },
+            { label: 'إجمالي الخصومات والسلف', value: `${stats.totalDeductions.toLocaleString()} ج.م`, highlight: false },
+            { label: 'صافي التأثير المالي', value: `${stats.netImpact >= 0 ? '+' : ''}${stats.netImpact.toLocaleString()} ج.م`, highlight: true }
+          ]}
+        />
+      </div>
+
+      {/* Header Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-3">
-          <select 
-            className="h-10 md:h-12 rounded-[14px] border border-slate-200 px-4 bg-white font-bold text-sm"
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
+          <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+            <DollarSign size={24} />
+          </div>
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">تسوية الحسابات والحركات المالية</h2>
+            <p className="text-slate-500 font-medium text-xs md:text-sm mt-0.5">محرك البحث المتقدم، المكافآت، الخصومات، البدلات وساعات العمل الإضافي</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button 
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            variant={showAdvancedFilters || activeFiltersCount > 0 ? "default" : "outline"}
+            className={cn(
+              "h-11 px-4 rounded-xl font-black text-xs flex items-center gap-2 transition-all",
+              showAdvancedFilters || activeFiltersCount > 0 
+                ? "bg-slate-900 text-white hover:bg-slate-800 shadow-md shadow-slate-900/20" 
+                : "border-slate-200 hover:bg-slate-50 text-slate-700"
+            )}
           >
-            {departments.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
-          </select>
-          <Button onClick={() => setShowAdd(true)} className="btn-primary h-10 md:h-12 px-6 md:px-8">
-            <Plus size={18} className="ml-2" />
+            <Sliders size={16} />
+            <span>فلاتر متقدمة</span>
+            {activeFiltersCount > 0 && (
+              <span className="w-5 h-5 bg-emerald-500 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-pulse">
+                {activeFiltersCount}
+              </span>
+            )}
+          </Button>
+
+          <Button 
+            onClick={exportToExcel}
+            variant="outline" 
+            className="h-11 px-4 rounded-xl font-bold border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-2 text-xs shadow-sm"
+          >
+            <Download size={16} className="text-emerald-600" />
+            <span className="hidden sm:inline">تصدير XLSX</span>
+          </Button>
+
+          <Button 
+            onClick={() => safePrint()} 
+            variant="outline" 
+            className="h-11 px-4 rounded-xl font-bold border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-2 text-xs shadow-sm"
+          >
+            <Printer size={16} className="text-blue-600" />
+            <span className="hidden sm:inline">طباعة الكشف</span>
+          </Button>
+
+          <Button onClick={() => setShowAdd(true)} className="btn-primary h-11 px-6 font-black rounded-xl shadow-lg shadow-primary/20 text-xs">
+            <Plus size={18} className="ml-1.5" />
             إضافة حركة جديدة
           </Button>
         </div>
       </div>
 
-      <Card className="dribbble-card overflow-hidden border-none">
+      {/* Financial Analytics Strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
+        <Card className="dribbble-card p-4 border-none shadow-sm bg-slate-900 text-white">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400">إجمالي الحركات</span>
+            <Receipt className="text-slate-400" size={18} />
+          </div>
+          <div className="mt-2 text-2xl font-black">{stats.count}</div>
+          <span className="text-[11px] font-medium text-slate-400">حركة مطابقة للبحث</span>
+        </Card>
+
+        <Card className="dribbble-card p-4 border-none shadow-sm bg-emerald-50 border-emerald-100">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-800">مكافآت وبدلات وإضافي (+)</span>
+            <TrendingUp className="text-emerald-600" size={18} />
+          </div>
+          <div className="mt-2 text-2xl font-black text-emerald-700">+{stats.totalAdditions.toLocaleString()} <span className="text-xs font-normal">ج.م</span></div>
+          <span className="text-[11px] font-bold text-emerald-600">{stats.bonusesCount} مكافأة | {stats.overtimeHoursTotal} س إضافي</span>
+        </Card>
+
+        <Card className="dribbble-card p-4 border-none shadow-sm bg-rose-50 border-rose-100">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-rose-800">خصومات وسلف ومصاريف (-)</span>
+            <TrendingDown className="text-rose-600" size={18} />
+          </div>
+          <div className="mt-2 text-2xl font-black text-rose-700">-{stats.totalDeductions.toLocaleString()} <span className="text-xs font-normal">ج.م</span></div>
+          <span className="text-[11px] font-bold text-rose-600">استقطاعات مباشرة</span>
+        </Card>
+
+        <Card className="dribbble-card p-4 border-none shadow-sm bg-indigo-50 border-indigo-100">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-indigo-900">صافي التأثير المالي</span>
+            <DollarSign className="text-indigo-600" size={18} />
+          </div>
+          <div className={`mt-2 text-2xl font-black ${stats.netImpact >= 0 ? 'text-indigo-800' : 'text-rose-700'}`}>
+            {stats.netImpact >= 0 ? '+' : ''}{stats.netImpact.toLocaleString()} <span className="text-xs font-normal">ج.م</span>
+          </div>
+          <span className="text-[11px] font-medium text-indigo-600">صافي الاستحقاق/الخصم</span>
+        </Card>
+      </div>
+
+      {/* Main Search & Filters Card */}
+      <Card className="dribbble-card border-none shadow-xl shadow-slate-200/40 p-4 print:hidden space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Smart Search Input */}
+          <div className="relative flex-1">
+            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Input 
+              className="h-12 w-full rounded-xl border-slate-200 bg-slate-50/70 focus:bg-white pr-10 pl-10 font-bold text-sm transition-all" 
+              placeholder="ابحث باسم الموظف، سبب الحركة، نوع الحركة، رقم الهاتف، أو المبلغ..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm('')} 
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 text-xs p-1"
+                title="مسح البحث"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Employee Searchable Dropdown Selector */}
+          <div className="flex items-center gap-2">
+            <div className="w-56">
+              <SearchableSelect 
+                options={[
+                  { id: 'الكل', name: `👤 كافة الموظفين (${safeEmployees.length})` },
+                  ...safeEmployees.map(emp => ({
+                    id: emp.id,
+                    name: emp.name,
+                    subtext: emp.department || 'الإنتاج'
+                  }))
+                ]}
+                selectedValue={selectedEmployeeId}
+                onChange={setSelectedEmployeeId}
+                placeholder="اختر موظف..."
+                searchPlaceholder="ابحث بالاسم أو القسم..."
+              />
+            </div>
+
+            {/* Department Selector */}
+            <select 
+              className="h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-xs text-slate-700 outline-none min-w-[130px]"
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+            >
+              {departments.map(dept => (
+                <option key={dept} value={dept}>القسم: {dept}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Quick Transaction Type Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 border-t border-slate-100">
+          <span className="text-[11px] font-black text-slate-400 uppercase ml-2 shrink-0">نوع الحركة:</span>
+          {[
+            { id: 'الكل', label: 'الكل' },
+            { id: 'مكافأة', label: '🎁 مكافأة' },
+            { id: 'إضافي', label: '⏱️ وقت إضافي' },
+            { id: 'بدل', label: '🏷️ بدل' },
+            { id: 'خصم', label: '🔻 خصم' },
+            { id: 'مصروف', label: '💵 سلفة أسبوعية / مصروف' },
+            { id: 'خصم سلف', label: '💳 خصم سلف' },
+          ].map((type) => (
+            <button
+              key={type.id}
+              onClick={() => setSelectedType(type.id)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-xs font-black transition-all whitespace-nowrap shrink-0",
+                selectedType === type.id
+                  ? "bg-slate-900 text-white shadow-sm shadow-slate-900/20"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
+              )}
+            >
+              {type.label}
+            </button>
+          ))}
+          {activeFiltersCount > 0 && (
+            <button 
+              onClick={handleResetFilters}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all mr-auto shrink-0 flex items-center gap-1"
+            >
+              <RotateCcw size={12} />
+              مسح الفلاتر ({activeFiltersCount})
+            </button>
+          )}
+        </div>
+
+        {/* Expandable Advanced Multi-Criteria Filter Drawer */}
+        <AnimatePresence>
+          {showAdvancedFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden pt-3 border-t border-slate-100"
+            >
+              <div className="bg-slate-50/90 rounded-2xl p-4 border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-black text-xs text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                    <Filter size={14} className="text-emerald-600" />
+                    معايير الفلترة المتقدمة والتاريخ
+                  </h4>
+                  <span className="text-[11px] font-bold text-slate-400">حدد المعايير لتضييق نطاق حركات التسوية بدقة</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-right">
+                  {/* Date From */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">من تاريخ</label>
+                    <Input 
+                      type="date"
+                      className="h-10 rounded-xl bg-white border-slate-200 font-bold text-xs"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Date To */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">إلى تاريخ</label>
+                    <Input 
+                      type="date"
+                      className="h-10 rounded-xl bg-white border-slate-200 font-bold text-xs"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Min Amount */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">الحد الأدنى للمبلغ (ج.م)</label>
+                    <Input 
+                      type="number"
+                      placeholder="0"
+                      className="h-10 rounded-xl bg-white border-slate-200 font-bold text-xs"
+                      value={minAmount}
+                      onChange={(e) => setMinAmount(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Max Amount */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">الحد الأقصى للمبلغ (ج.م)</label>
+                    <Input 
+                      type="number"
+                      placeholder="10000"
+                      className="h-10 rounded-xl bg-white border-slate-200 font-bold text-xs"
+                      value={maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Sort By */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">ترتيب حسب</label>
+                    <div className="flex gap-1.5">
+                      <select 
+                        className="flex-1 h-10 rounded-xl border border-slate-200 bg-white px-2 font-bold text-xs"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                      >
+                        <option value="date">التاريخ</option>
+                        <option value="employee">اسم الموظف</option>
+                        <option value="amount">المبلغ</option>
+                        <option value="type">النوع</option>
+                      </select>
+                      <button
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        className="h-10 w-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center font-bold text-xs hover:bg-slate-100"
+                        title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+                      >
+                        {sortOrder === 'asc' ? '↑' : '↓'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2 border-t border-slate-200/60">
+                  <Button 
+                    onClick={handleResetFilters}
+                    variant="ghost" 
+                    size="sm"
+                    className="text-xs font-bold text-rose-600 hover:bg-rose-50"
+                  >
+                    <RotateCcw size={14} className="ml-1.5" />
+                    إعادة ضبط كافة الفلاتر
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Card>
+
+      {/* Main Transactions Table */}
+      <Card className="dribbble-card overflow-hidden border-none shadow-xl shadow-slate-200/40">
         <div className="overflow-x-auto w-full">
           <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow>
-              <TableHead className="text-right font-black text-slate-900 py-5">التاريخ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الموظف</TableHead>
-              <TableHead className="text-right font-black text-slate-900">النوع</TableHead>
-              <TableHead className="text-right font-black text-slate-900">المبلغ</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الوصف</TableHead>
-              <TableHead className="text-right font-black text-slate-900">الإجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredTransactions.map(tr => (
-              <TableRow key={tr.id} className="hover:bg-slate-50/50 transition-colors">
-                <TableCell className="font-bold text-slate-500">{tr.date}</TableCell>
-                <TableCell className="font-black text-slate-900">
-                  {employees.find(e => e.id === tr.employeeId)?.name || (tr as any).employeeName || (tr.description ? `تسوية: ${tr.description}` : 'موظف عام')}
-                </TableCell>
-                <TableCell>
-                  <Badge className={`rounded-lg px-3 py-1 border-none font-black text-[10px] uppercase tracking-widest ${
-                    tr.type === 'مكافأة' ? 'bg-green-100 text-green-700' : 
-                    tr.type === 'خصم' ? 'bg-red-100 text-red-700' :
-                    tr.type === 'إضافي' ? 'bg-blue-100 text-blue-700' :
-                    tr.type === 'مصروف' ? 'bg-orange-100 text-orange-700' :
-                    'bg-slate-100 text-slate-700'
-                  }`}>
-                    {tr.type}
-                  </Badge>
-                </TableCell>
-                <TableCell className={`font-black ${tr.type === 'خصم' || tr.type === 'مصروف' ? 'text-red-600' : 'text-green-600'}`}>
-                  {tr.type === 'خصم' || tr.type === 'مصروف' ? '-' : '+'}{tr.amount.toLocaleString()} ج.م
-                </TableCell>
-                <TableCell className="text-sm text-slate-600 text-right">
-                  {tr.description}
-                  {tr.type === 'إضافي' && tr.overtimeHours && (
-                    <span className="mr-2 text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
-                      {tr.overtimeHours} س × {tr.overtimeRate}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="text-left pl-4">
-                  <div className="flex items-center gap-2 justify-end">
-                    <Button onClick={() => setEditingTransaction(tr)} variant="ghost" size="icon" className="text-blue-600 hover:bg-blue-50 rounded-xl">
-                      <Edit2 size={16} />
-                    </Button>
-                    <Button onClick={() => setDeletingId(tr.id)} variant="ghost" size="icon" className="text-red-600 hover:bg-red-50 rounded-xl">
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </TableCell>
+            <TableHeader className="bg-slate-50/70">
+              <TableRow className="border-b border-slate-100">
+                <TableHead className="text-right font-black text-slate-900 py-4 text-xs">التاريخ</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs">اسم الموظف / القسم</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs">نوع الحركة</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs">المبلغ</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs">البيان والوصف</TableHead>
+                <TableHead className="text-left font-black text-slate-900 text-xs print:hidden">الإجراءات</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {filteredTransactions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-slate-400 font-bold">
+                    لا توجد حركات تسوية مالية مطابقة لمعايير البحث الحالية
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTransactions.map(tr => {
+                  const emp = safeEmployees.find(e => e.id === tr.employeeId);
+                  const isAddition = tr.type === 'مكافأة' || tr.type === 'إضافي' || tr.type === 'بدل';
+                  
+                  return (
+                    <TableRow key={tr.id} className="hover:bg-slate-50/60 transition-colors border-b border-slate-50">
+                      <TableCell className="font-bold text-slate-600 text-xs">{tr.date}</TableCell>
+                      <TableCell>
+                        <div className="font-black text-slate-900 text-sm">
+                          {emp?.name || (tr as any).employeeName || (tr.description ? `تسوية: ${tr.description}` : 'موظف عام')}
+                        </div>
+                        {emp?.department && (
+                          <span className="text-[11px] font-bold text-slate-400 block">{emp.department} • {emp.position || 'عامل'}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`rounded-lg px-2.5 py-1 border-none font-black text-[10px] uppercase tracking-wider ${
+                          tr.type === 'مكافأة' ? 'bg-emerald-100 text-emerald-800' : 
+                          tr.type === 'خصم' ? 'bg-rose-100 text-rose-800' :
+                          tr.type === 'إضافي' ? 'bg-blue-100 text-blue-800' :
+                          tr.type === 'مصروف' ? 'bg-amber-100 text-amber-800' :
+                          tr.type === 'خصم سلف' ? 'bg-purple-100 text-purple-800' :
+                          tr.type === 'بدل' ? 'bg-indigo-100 text-indigo-800' :
+                          'bg-slate-100 text-slate-700'
+                        }`}>
+                          {tr.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className={`font-black text-sm ${isAddition ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {isAddition ? '+' : '-'}{(tr.amount || 0).toLocaleString()} ج.م
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-600 text-right max-w-xs">
+                        <span className="font-bold text-slate-800">{tr.description || 'بدون بيان'}</span>
+                        {tr.type === 'إضافي' && tr.overtimeHours && (
+                          <span className="mr-2 inline-flex items-center text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-black border border-blue-200/60">
+                            {tr.overtimeHours} ساعة × معدل {tr.overtimeRate || 1.5}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-left pl-4 print:hidden">
+                        <div className="flex items-center gap-1.5 justify-end">
+                          <Button 
+                            onClick={() => setEditingTransaction(tr)} 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            title="تعديل"
+                          >
+                            <Edit2 size={14} />
+                          </Button>
+                          <Button 
+                            onClick={() => setDeletingId(tr.id)} 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-rose-600 hover:bg-rose-50 rounded-lg"
+                            title="حذف"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+            <tfoot className="hidden print:table-footer-group bg-slate-100 font-black text-xs">
+              <tr>
+                <td colSpan={3} className="p-3 text-right">الإجمالي المالي للحركات المفلترة:</td>
+                <td className="p-3 text-right text-emerald-800 font-black">
+                  +{stats.totalAdditions.toLocaleString()} / -{stats.totalDeductions.toLocaleString()} ج.م
+                </td>
+                <td colSpan={2} className="p-3 text-right">
+                  الصافي: {stats.netImpact.toLocaleString()} ج.م
+                </td>
+              </tr>
+            </tfoot>
+          </Table>
+        </div>
+      </Card>
 
+      {/* Print Signatures */}
+      <div className="hidden print:block pt-4">
+        <PrintSignatures 
+          preparedByTitle="المحاسب المسؤول"
+          auditedByTitle="المراجع الداخلي"
+          approvedByTitle="مدير الموارد البشرية والمالية"
+          tafqeetText={tafqeetArabic(Math.abs(stats.netImpact), 'جنيه مصري')}
+        />
+      </div>
+
+      {/* Add Transaction Modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
           <Card className="dribbble-card w-full max-w-md animate-in fade-in zoom-in duration-200">
-            <CardHeader anonymity="true" className="pb-4">
-              <CardTitle className="font-black text-2xl text-right font-bold">إضافة حركة مالية جديدة</CardTitle>
+            <CardHeader className="pb-4">
+              <CardTitle className="font-black text-2xl text-right font-bold text-slate-900">إضافة حركة مالية جديدة</CardTitle>
+              <CardDescription className="text-right text-xs font-bold text-slate-500">
+                تسجيل تسوية (مكافأة، خصم، سلفة، أو وقت إضافي) في كشف حساب الموظف
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-right">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">الموظف / العامل</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right" value={formData.employeeId} onChange={e => setFormData({...formData, employeeId: e.target.value})}>
-                  <option value="">اختر موظف...</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                </select>
+                <label className="text-xs font-bold text-slate-700 block text-right">الموظف / العامل</label>
+                <SearchableSelect
+                  options={safeEmployees.map(e => ({
+                    id: e.id,
+                    name: e.name,
+                    subtext: `${e.department || 'الإنتاج'} • يومية: ${e.dailyRate || 0} ج.م`
+                  }))}
+                  selectedValue={formData.employeeId}
+                  onChange={val => setFormData({...formData, employeeId: val})}
+                  placeholder="-- ابحث بالاسم أو القسم لاختيار الموظف --"
+                  searchPlaceholder="اكتب اسم الموظف..."
+                />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11 text-right font-bold" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">النوع</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-sm" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})}>
-                  <option value="مكافأة">مكافأة</option>
-                  <option value="خصم">خصم</option>
-                  <option value="مصروف">مصروف (سلفة أسبوعية)</option>
-                  <option value="خصم سلف">خصم سلف</option>
-                  <option value="بدل">بدل</option>
-                  <option value="إضافي">وقت إضافي</option>
-                </select>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block text-right">التاريخ</label>
+                  <Input type="date" className="rounded-xl h-11 text-right font-bold text-xs" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block text-right">نوع الحركة</label>
+                  <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-xs" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})}>
+                    <option value="مكافأة">مكافأة (+)</option>
+                    <option value="إضافي">وقت إضافي (+)</option>
+                    <option value="بدل">بدل (+)</option>
+                    <option value="خصم">خصم (-)</option>
+                    <option value="مصروف">مصروف (سلفة أسبوعية) (-)</option>
+                    <option value="خصم سلف">خصم سلف (-)</option>
+                  </select>
+                </div>
               </div>
 
               {formData.type === 'إضافي' ? (
-                <div className="pt-4 border-t border-slate-100 space-y-4 font-bold">
-                  <h4 className="font-black text-sm text-slate-900 block text-right">تفاصيل الإضافي</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 block text-right">عدد الساعات</label>
-                      <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={formData.overtimeHours} onChange={e => setFormData({...formData, overtimeHours: Number(e.target.value)})} />
+                <div className="p-3.5 rounded-xl bg-blue-50/80 border border-blue-200 space-y-3 font-bold text-right">
+                  <h4 className="font-black text-xs text-blue-900 block text-right">حساب ساعات العمل الإضافي</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 block text-right">عدد الساعات</label>
+                      <Input type="number" step="any" placeholder="مثال: 3" className="rounded-xl h-10 text-right font-bold text-xs bg-white" value={formData.overtimeHours || ''} onChange={e => setFormData({...formData, overtimeHours: Number(e.target.value)})} />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 block text-right">المعدل</label>
-                      <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right cursor-pointer" value={formData.overtimeRate} onChange={e => setFormData({...formData, overtimeRate: Number(e.target.value) as any})}>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 block text-right">معدل الساعة</label>
+                      <select className="w-full h-10 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-xs cursor-pointer" value={formData.overtimeRate} onChange={e => setFormData({...formData, overtimeRate: Number(e.target.value) as any})}>
                         <option value={1.33}>ساعة وثلث (1.33)</option>
                         <option value={1.5}>ساعة ونصف (1.5)</option>
                         <option value={2}>ساعتين (2.0)</option>
                       </select>
                     </div>
                   </div>
-                  <p className="text-[10px] font-bold text-slate-400 block text-right">سيتم احتساب المبلغ تلقائياً بناءً على يومية الموظف (اليومية ÷ 10 ساعات)</p>
+                  <p className="text-[10px] font-bold text-blue-700 block text-right">
+                    اليومية = {safeEmployees.find(e => e.id === formData.employeeId)?.dailyRate || 0} ج.م | قيمة الساعة = {Math.round(((safeEmployees.find(e => e.id === formData.employeeId)?.dailyRate || 0) / 10) * 100) / 100} ج.م
+                  </p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 block text-right">المبلغ (ج.م)</label>
-                  <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={formData.amount} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} />
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block text-right">المبلغ (ج.م)</label>
+                  <Input type="number" step="any" placeholder="0" className="rounded-xl h-11 text-right font-bold text-sm" value={formData.amount || ''} onChange={e => setFormData({...formData, amount: Number(e.target.value)})} />
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">الوصف</label>
-                <Input className="rounded-xl h-11 text-right font-bold" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="سبب الحركة..." />
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block text-right">البيان / سبب الحركة</label>
+                <Input className="rounded-xl h-11 text-right font-bold text-xs" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="مثال: مكافأة إنجاز خط تصنيع، خصم تأخير، سلفة أسبوعية..." />
               </div>
-              <div className="flex justify-end gap-3 pt-6 font-bold">
-                <Button variant="ghost" className="btn-ghost shadow-none" onClick={() => setShowAdd(false)}>إلغاء</Button>
-                <Button onClick={handleAdd} disabled={isSaving} className="btn-primary px-10 h-11 rounded-xl font-bold">
+
+              <div className="flex justify-end gap-2.5 pt-4 font-bold">
+                <Button variant="ghost" className="btn-ghost shadow-none text-xs" onClick={() => setShowAdd(false)}>إلغاء</Button>
+                <Button onClick={handleAdd} disabled={isSaving || !formData.employeeId} className="btn-primary px-8 h-11 rounded-xl font-black text-xs">
                   {isSaving ? "جاري الحفظ..." : "حفظ الحركة"}
                 </Button>
               </div>
@@ -17433,69 +18745,79 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
         </div>
       )}
 
+      {/* Edit Transaction Modal */}
       {editingTransaction && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
           <Card className="dribbble-card w-full max-w-md animate-in fade-in zoom-in duration-200">
-            <CardHeader anonymity="true" className="pb-4">
-              <CardTitle className="font-black text-2xl text-right font-bold">تعديل الحركة المالية</CardTitle>
+            <CardHeader className="pb-4">
+              <CardTitle className="font-black text-2xl text-right font-bold text-slate-900">تعديل الحركة المالية</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-right">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">الموظف / العامل</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right" value={editingTransaction.employeeId} onChange={e => setEditingTransaction({...editingTransaction, employeeId: e.target.value})}>
-                  <option value="">اختر موظف...</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                </select>
+                <label className="text-xs font-bold text-slate-700 block text-right">الموظف / العامل</label>
+                <SearchableSelect
+                  options={safeEmployees.map(e => ({
+                    id: e.id,
+                    name: e.name,
+                    subtext: `${e.department || 'الإنتاج'} • يومية: ${e.dailyRate || 0} ج.م`
+                  }))}
+                  selectedValue={editingTransaction.employeeId}
+                  onChange={val => setEditingTransaction({...editingTransaction, employeeId: val})}
+                  placeholder="-- ابحث بالاسم أو القسم لاختيار الموظف --"
+                  searchPlaceholder="اكتب اسم الموظف..."
+                />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">التاريخ</label>
-                <Input type="date" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.date} onChange={e => setEditingTransaction({...editingTransaction, date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">النوع</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-sm" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value as any})}>
-                  <option value="مكافأة">مكافأة</option>
-                  <option value="خصم">خصم</option>
-                  <option value="مصروف">مصروف (سلفة أسبوعية)</option>
-                  <option value="خصم سلف">خصم سلف</option>
-                  <option value="بدل">بدل</option>
-                  <option value="إضافي">وقت إضافي</option>
-                </select>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block text-right">التاريخ</label>
+                  <Input type="date" className="rounded-xl h-11 text-right font-bold text-xs" value={editingTransaction.date} onChange={e => setEditingTransaction({...editingTransaction, date: e.target.value})} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block text-right">النوع</label>
+                  <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-xs" value={editingTransaction.type} onChange={e => setEditingTransaction({...editingTransaction, type: e.target.value as any})}>
+                    <option value="مكافأة">مكافأة (+)</option>
+                    <option value="إضافي">وقت إضافي (+)</option>
+                    <option value="بدل">بدل (+)</option>
+                    <option value="خصم">خصم (-)</option>
+                    <option value="مصروف">مصروف (سلفة أسبوعية) (-)</option>
+                    <option value="خصم سلف">خصم سلف (-)</option>
+                  </select>
+                </div>
               </div>
 
               {editingTransaction.type === 'إضافي' ? (
-                <div className="pt-4 border-t border-slate-100 space-y-4 font-bold">
-                  <h4 className="font-black text-sm text-slate-900 block text-right">تفاصيل الإضافي</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 block text-right">عدد الساعات</label>
-                      <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.overtimeHours || 0} onChange={e => setEditingTransaction({...editingTransaction, overtimeHours: Number(e.target.value)})} />
+                <div className="p-3.5 rounded-xl bg-blue-50/80 border border-blue-200 space-y-3 font-bold text-right">
+                  <h4 className="font-black text-xs text-blue-900 block text-right">تفاصيل الإضافي</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 block text-right">عدد الساعات</label>
+                      <Input type="number" step="any" className="rounded-xl h-10 text-right font-bold text-xs bg-white" value={editingTransaction.overtimeHours || 0} onChange={e => setEditingTransaction({...editingTransaction, overtimeHours: Number(e.target.value)})} />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 block text-right">المعدل</label>
-                      <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right cursor-pointer" value={editingTransaction.overtimeRate || 1.5} onChange={e => setEditingTransaction({...editingTransaction, overtimeRate: Number(e.target.value) as any})}>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 block text-right">المعدل</label>
+                      <select className="w-full h-10 rounded-xl border border-slate-200 px-3 bg-white font-bold text-right text-xs cursor-pointer" value={editingTransaction.overtimeRate || 1.5} onChange={e => setEditingTransaction({...editingTransaction, overtimeRate: Number(e.target.value) as any})}>
                         <option value={1.33}>ساعة وثلث (1.33)</option>
                         <option value={1.5}>ساعة ونصف (1.5)</option>
                         <option value={2}>ساعتين (2.0)</option>
                       </select>
                     </div>
                   </div>
-                  <p className="text-[10px] font-bold text-slate-400 block text-right">سيتم احتساب المبلغ تلقائياً بناءً على يومية الموظف (اليومية ÷ 10 ساعات)</p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-700 block text-right">المبلغ (ج.م)</label>
-                  <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold" value={editingTransaction.amount} onChange={e => setEditingTransaction({...editingTransaction, amount: Number(e.target.value)})} />
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block text-right">المبلغ (ج.م)</label>
+                  <Input type="number" step="any" className="rounded-xl h-11 text-right font-bold text-sm" value={editingTransaction.amount} onChange={e => setEditingTransaction({...editingTransaction, amount: Number(e.target.value)})} />
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 block text-right">الوصف</label>
-                <Input className="rounded-xl h-11 text-right font-bold" value={editingTransaction.description} onChange={e => setEditingTransaction({...editingTransaction, description: e.target.value})} placeholder="سبب الحركة..." />
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block text-right">الوصف</label>
+                <Input className="rounded-xl h-11 text-right font-bold text-xs" value={editingTransaction.description} onChange={e => setEditingTransaction({...editingTransaction, description: e.target.value})} placeholder="سبب الحركة..." />
               </div>
-              <div className="flex justify-end gap-3 pt-6 font-bold">
-                <Button variant="ghost" className="btn-ghost shadow-none" onClick={() => setEditingTransaction(null)}>إلغاء</Button>
-                <Button onClick={handleUpdate} disabled={isSaving} className="btn-primary px-10 h-11 rounded-xl font-bold">
+              <div className="flex justify-end gap-2.5 pt-4 font-bold">
+                <Button variant="ghost" className="btn-ghost shadow-none text-xs" onClick={() => setEditingTransaction(null)}>إلغاء</Button>
+                <Button onClick={handleUpdate} disabled={isSaving} className="btn-primary px-8 h-11 rounded-xl font-black text-xs">
                   {isSaving ? "جاري الحفظ..." : "حفظ التعديل"}
                 </Button>
               </div>
@@ -17504,22 +18826,23 @@ const HRTransactionsView = React.memo(function HRTransactionsView({ employees, t
         </div>
       )}
 
+      {/* Delete Modal */}
       {deletingId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-auto text-right" dir="rtl">
           <Card className="dribbble-card w-full max-w-sm border-none shadow-2xl animate-in fade-in zoom-in duration-200">
             <CardHeader className="pb-2">
-              <div className="w-12 h-12 bg-red-50 rounded-[14px] flex items-center justify-center mb-4">
-                <AlertCircle className="text-red-500" size={24} />
+              <div className="w-12 h-12 bg-rose-50 rounded-[14px] flex items-center justify-center mb-4">
+                <AlertCircle className="text-rose-500" size={24} />
               </div>
               <CardTitle className="font-black text-xl text-slate-900">تأكيد الحذف</CardTitle>
-              <CardDescription className="font-bold text-slate-500">
-                هل أنت متأكد من رغبتك في حذف هذه الحركة المالية؟ لا يمكن التراجع عن هذا الإجراء.
+              <CardDescription className="font-bold text-slate-500 text-xs">
+                هل أنت متأكد من رغبتك في حذف هذه الحركة المالية نهائياً؟
               </CardDescription>
             </CardHeader>
             <CardContent className="flex gap-3 pt-4 font-bold">
-              <Button variant="ghost" className="btn-ghost flex-1 h-11" onClick={() => setDeletingId(null)}>إلغاء</Button>
-              <Button variant="destructive" className="btn-danger flex-1 h-11 font-bold" disabled={isSaving} onClick={handleDelete}>
-                {isSaving ? "جاري الحذف..." : "حذف الحركة"}
+              <Button variant="ghost" className="btn-ghost flex-1 h-11 text-xs" onClick={() => setDeletingId(null)}>إلغاء</Button>
+              <Button variant="destructive" className="btn-danger flex-1 h-11 font-bold text-xs" disabled={isSaving} onClick={handleDelete}>
+                {isSaving ? "جاري الحذف..." : "حذف نهائي"}
               </Button>
             </CardContent>
           </Card>
@@ -17875,14 +19198,16 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
               <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 text-right">
                   <label className="text-sm font-bold text-slate-700 block text-right">الموظف / المقاول بالإنتاج</label>
-                  <select 
-                    className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold text-sm text-right cursor-pointer"
-                    value={entryEmployeeId} 
-                    onChange={e => {
-                      const empId = e.target.value;
-                      const emp = productionEmployees.find(emp => emp.id === empId);
+                  <SearchableSelect
+                    options={productionEmployees.map(e => ({
+                      id: e.id,
+                      name: e.name,
+                      subtext: e.productionGroup ? `المجموعة (${e.productionGroup === 'A' ? 'أ' : 'ب'})` : (e.pieceRate ? `سعر القطعة: ${e.pieceRate} ج.م` : 'عمالة عامة')
+                    }))}
+                    selectedValue={entryEmployeeId}
+                    onChange={empId => {
+                      const emp = productionEmployees.find(e => e.id === empId);
                       setEntryEmployeeId(empId);
-                      // Update rate of current items based on the employee's group if they choose a matching itemName
                       setItems(items.map(item => {
                         const matchedRate = productionRates.find(r => r.itemName === item.itemName);
                         if (matchedRate) {
@@ -17893,14 +19218,9 @@ const HRProductionView = React.memo(function HRProductionView({ employees, produ
                         }
                       }));
                     }}
-                  >
-                    <option value="">اختر الموظف أو المقاول بالإنتاج...</option>
-                    {productionEmployees.map(e => (
-                      <option key={e.id} value={e.id}>
-                        {e.name} {e.productionGroup ? `(المجموعة ${e.productionGroup === 'A' ? 'أ' : 'ب'})` : '(بدون مجموعة)'}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="-- ابحث بالاسم لاختيار موظف الإنتاج --"
+                    searchPlaceholder="اكتب اسم الموظف أو الفني..."
+                  />
                 </div>
                 <div className="space-y-2 text-right">
                   <label className="text-sm font-bold text-slate-700 block text-right">التاريخ</label>
@@ -18403,7 +19723,7 @@ const PayrollView = React.memo(function PayrollView({
             status: 'مسودة',
             payMethod: emp.payMethod || 'daily'
           };
-          const calc = calculateLivePayroll(virtualP, attendance, transactions, loans, productionRecords, companySettings, employees);
+          const calc = calculateLivePayroll(virtualP, attendance, transactions, loans, productionRecords, companyInfo, employees);
           const { id: _ignore, ...cleanP } = calc;
           return {
             ...cleanP,
@@ -18889,15 +20209,19 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
               onChange={e => setSelectedYear(Number(e.target.value))}
             />
           </div>
-          <select 
-            className="h-10 md:h-12 rounded-[14px] border border-slate-200 px-4 bg-white font-bold text-sm"
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
-          >
-            {departments.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
-            ))}
-          </select>
+          <div className="w-48">
+            <SearchableSelect 
+              options={departments.map(dept => ({ 
+                id: dept, 
+                name: dept === 'الكل' ? 'جميع الأقسام' : dept, 
+                subtext: dept === 'الكل' ? `${employees.length} موظف` : `${employees.filter(e => e.department === dept).length} موظف` 
+              }))}
+              selectedValue={selectedDept}
+              onChange={(val) => setSelectedDept(val || 'الكل')}
+              placeholder="اختر القسم..."
+              searchPlaceholder="ابحث في الأقسام..."
+            />
+          </div>
           <Button onClick={() => setShowVouchers(true)} variant="outline" className="h-10 md:h-12 px-6 rounded-[14px] font-bold border-slate-200">
             <Printer size={18} className="ml-2" />
             قسائم الصرف
@@ -19565,15 +20889,19 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
                   </div>
 
                   {/* Department select inside modal */}
-                  <select 
-                    className="h-10 rounded-xl border border-slate-200 px-3 bg-white font-bold text-xs"
-                    value={voucherDept}
-                    onChange={(e) => setVoucherDept(e.target.value)}
-                  >
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept === 'الكل' ? 'كل الأقسام' : dept}</option>
-                    ))}
-                  </select>
+                  <div className="w-48">
+                    <SearchableSelect 
+                      options={departments.map(dept => ({ 
+                        id: dept, 
+                        name: dept === 'الكل' ? 'جميع الأقسام' : dept, 
+                        subtext: dept === 'الكل' ? `${employees.length} موظف` : `${employees.filter(e => e.department === dept).length} موظف` 
+                      }))}
+                      selectedValue={voucherDept}
+                      onChange={(val) => setVoucherDept(val || 'الكل')}
+                      placeholder="اختر القسم..."
+                      searchPlaceholder="ابحث في الأقسام..."
+                    />
+                  </div>
 
                   {/* Quick toggle buttons */}
                   <Button 
@@ -20088,10 +21416,17 @@ ${liveP.totalDeductions > 0 ? `• خصومات وجزاءات: -${liveP.totalDe
             <CardContent>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">اختر الخزنة</label>
-                <select className="w-full h-11 rounded-xl border border-slate-200 px-3 bg-white font-bold" value={selectedArchiveSafe} onChange={e => setSelectedArchiveSafe(e.target.value)}>
-                  <option value="">-- اختر الخزنة --</option>
-                  {safes.map(s => <option key={s.id} value={s.id}>{s.name} ({s.balance.toLocaleString()} ج.م)</option>)}
-                </select>
+                <SearchableSelect
+                  options={safes.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    subtext: `${(s.balance || 0).toLocaleString()} ج.م`
+                  }))}
+                  selectedValue={selectedArchiveSafe}
+                  onChange={val => setSelectedArchiveSafe(val || '')}
+                  placeholder="اختر الخزنة..."
+                  searchPlaceholder="ابحث باسم الخزنة..."
+                />
               </div>
             </CardContent>
             <CardFooter className="flex justify-end gap-3">

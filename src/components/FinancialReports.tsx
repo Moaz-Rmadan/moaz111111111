@@ -1036,8 +1036,8 @@ export function FinancialReports({
         periodText={`الفترة: ${statementPeriod === 'custom' ? `من ${pnlDateFrom} إلى ${pnlDateTo}` : statementPeriod === 'this_month' ? 'الشهر الحالي' : statementPeriod === 'last_month' ? 'الشهر الماضي' : statementPeriod === 'this_quarter' ? 'الربع الحالي' : statementPeriod === 'this_year' ? 'العام الحالي' : 'كافة الفترات المالية'}`}
         companyInfo={companySettings || companyInfo}
         kpis={[
-          { label: 'إجمالي المبيعات', value: `${(incomeStatementData?.revenue?.total || 0).toLocaleString()} ج.م` },
-          { label: 'صافي الربح المالي', value: `${(incomeStatementData?.netIncome || 0).toLocaleString()} ج.م`, highlight: true },
+          { label: 'إجمالي المبيعات', value: `${(pnlData?.revenues || 0).toLocaleString()} ج.م` },
+          { label: 'صافي الربح المالي', value: `${(pnlData?.netProfit || 0).toLocaleString()} ج.م`, highlight: true },
           { label: 'إجمالي قيمة المخزون', value: `${items.reduce((s, i) => s + (i.currentBalance * (i.price || 0)), 0).toLocaleString()} ج.م` },
           { label: 'مديونيات الموردين', value: `${suppliers.reduce((s, sup) => s + (sup.balance || 0), 0).toLocaleString()} ج.م` },
         ]}
@@ -2443,7 +2443,7 @@ export function FinancialReports({
       )}
 
       <PrintSignatures
-        tafqeetText={activeReportTab === 'income_statement' && incomeStatementData?.netIncome ? tafqeetArabic(incomeStatementData.netIncome, 'جنيه مصري') : undefined}
+        tafqeetText={activeReportTab === 'income_statement' && pnlData?.netProfit ? tafqeetArabic(pnlData.netProfit, 'جنيه مصري') : undefined}
         preparedByTitle="المحاسب المالي والتكاليف"
         auditedByTitle="المراجعة الداخلية والتدقيق"
         approvedByTitle="اعتماد الإدارة العامة والمدير المالي"
