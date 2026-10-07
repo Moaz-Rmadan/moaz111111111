@@ -92,6 +92,8 @@ import elNaggarLogo from './assets/images/el_naggar_logo_1784363217999.jpg';
 import { PrintHeader, PrintSignatures } from './components/PrintHeader';
 import { DeductionsReport } from './components/DeductionsReport';
 import { ScrollToTopButton } from './components/ScrollToTopButton';
+import { UnifiedHRSuiteHub } from './components/UnifiedHRSuiteHub';
+import { EmployeeHR360Modal } from './components/EmployeeHR360Modal';
 import { tafqeetArabic } from './lib/tafqeet';
 
 const loginWithGoogle = () => signInWithPopup(auth, getGoogleProvider());
@@ -2817,6 +2819,17 @@ function MainApp({
     }
   };
 
+  // Unified HR & Payroll Interconnection States
+  const [hr360Employee, setHr360Employee] = useState<Employee | null>(null);
+  const [hrTargetEmployeeId, setHrTargetEmployeeId] = useState<string | null>(null);
+
+  const handleHRTabChange = (tab: string, empId?: string) => {
+    if (empId) {
+      setHrTargetEmployeeId(empId);
+    }
+    handleNavClick(tab);
+  };
+
   const getActiveTabTitle = (tab: string) => {
     const titles: Record<string, string> = {
       dashboard: 'لوحة التحكم',
@@ -3302,8 +3315,20 @@ function MainApp({
         </div>
 
         <div className="p-3 sm:p-5 md:p-8 lg:p-10 max-w-[1680px] mx-auto w-full">
-          {['employees', 'attendance', 'loans', 'payroll', 'hrTransactions', 'hrProduction'].includes(activeTab) && (
-            <HRWorkflowGuide activeTab={activeTab} onTabChange={setActiveTab} />
+          {['employees', 'attendance', 'loans', 'payroll', 'hrTransactions', 'hrProduction', 'archive', 'payrollMasterReport'].includes(activeTab) && (
+            <UnifiedHRSuiteHub 
+              activeTab={activeTab} 
+              onTabChange={handleHRTabChange}
+              employees={employees}
+              attendance={attendance}
+              transactions={hrTransactions}
+              loans={loans}
+              payrolls={payrolls}
+              productionRecords={productionRecords}
+              companySettings={settings}
+              onOpenEmployee360={(emp) => setHr360Employee(emp)}
+              targetEmployeeId={hrTargetEmployeeId}
+            />
           )}
           <AnimatePresence mode="wait">
             <motion.div
@@ -4227,6 +4252,21 @@ function MainApp({
       {/* Global Return-to-Top Button for all views */}
       {activeTab !== 'payroll' && activeTab !== 'payrollMasterReport' && (
         <ScrollToTopButton />
+      )}
+
+      {/* Unified HR 360 Employee Card Modal */}
+      {hr360Employee && (
+        <EmployeeHR360Modal
+          employee={hr360Employee}
+          attendance={attendance}
+          transactions={hrTransactions}
+          loans={loans}
+          payrolls={payrolls}
+          productionRecords={productionRecords}
+          companySettings={settings}
+          onNavigateTab={handleHRTabChange}
+          onClose={() => setHr360Employee(null)}
+        />
       )}
     </div>
   );
