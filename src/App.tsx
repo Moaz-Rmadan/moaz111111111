@@ -3368,6 +3368,15 @@ function MainApp({
                 productionRecords={productionRecords}
                 safes={safes}
                 profile={profile}
+                salesOrders={salesOrders}
+                customers={customers}
+                customerPayments={customerPayments}
+                vehicles={vehicles}
+                vehicleExpenses={vehicleExpenses}
+                bankAccounts={bankAccounts}
+                bankTransactions={bankTransactions}
+                warehouses={warehouses}
+                onNavigate={handleNavClick}
               />}
         {activeTab === 'inventory' && (
           <Inventory 
@@ -12357,13 +12366,160 @@ const Suppliers = React.memo(function Suppliers({
     }
   };
 
-  const filtered = suppliers.filter(s => s.name.includes(search));
   const supplierPurchases = purchases.filter(p => p.supplierId === selectedSupplier?.id);
   const supplierPaymentsList = supplierPayments.filter(p => p.supplierId === selectedSupplier?.id);
 
   const totalPurchases = suppliers.reduce((acc, s) => acc + (s.totalPurchases || 0), 0);
   const totalPayments = suppliers.reduce((acc, s) => acc + (s.totalPayments || 0), 0);
   const totalBalance = suppliers.reduce((acc, s) => acc + (s.balance || 0), 0);
+
+  // Advanced Search & Filter States
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [debtStatusFilter, setDebtStatusFilter] = useState<'all' | 'hasDebt' | 'fullyPaid'>('all');
+  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState<string>('all');
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+  const [quickDatePreset, setQuickDatePreset] = useState<'all' | 'today' | 'this_week' | 'this_month' | 'last_month' | 'this_year'>('all');
+
+  // Handle Quick Date Presets
+  const applyQuickPreset = (preset: 'all' | 'today' | 'this_week' | 'this_month' | 'last_month' | 'this_year') => {
+    setQuickDatePreset(preset);
+    const now = new Date();
+    if (preset === 'all') {
+      setDateFrom('');
+      setDateTo('');
+    } else if (preset === 'today') {
+      const todayStr = format(now, 'yyyy-MM-dd');
+      setDateFrom(todayStr);
+      setDateTo(todayStr);
+    } else if (preset === 'this_week') {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      setDateFrom(format(startOfWeek, 'yyyy-MM-dd'));
+      setDateTo(format(now, 'yyyy-MM-dd'));
+    } else if (preset === 'this_month') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      setDateFrom(format(startOfMonth, 'yyyy-MM-dd'));
+      setDateTo(format(now, 'yyyy-MM-dd'));
+    } else if (preset === 'last_month') {
+      const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      setDateFrom(format(startOfLastMonth, 'yyyy-MM-dd'));
+      setDateTo(format(endOfLastMonth, 'yyyy-MM-dd'));
+    } else if (preset === 'this_year') {
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      setDateFrom(format(startOfYear, 'yyyy-MM-dd'));
+      setDateTo(format(now, 'yyyy-MM-dd'));
+    }
+  };
+
+  // Filter Purchases and Payments by date range
+  const filteredPurchasesByDate = useMemo(() => {
+    return purchases.filter(p => {
+      if (!p.date) return true;
+      if (dateFrom && p.date < dateFrom) return false;
+      if (dateTo && p.date > dateTo) return false;
+      return true;
+    });
+  }, [purchases, dateFrom, dateTo]);
+
+  const filteredPaymentsByDate = useMemo(() => {
+    return supplierPayments.filter(p => {
+      if (!p.date) return true;
+      if (dateFrom && p.date < dateFrom) return false;
+      if (dateTo && p.date > dateTo) return false;
+      return true;
+    });
+  }, [supplierPayments, dateFrom, dateTo]);
+
+  // Compute filtered supplier stats based on date range & filters
+  const supplierComputedData = useMemo(() => {
+    return suppliers.map(s => {
+      const sPurchases = filteredPurchasesByDate.filter(p => p.supplierId === s.id);
+      const sPayments = filteredPaymentsByDate.filter(p => p.supplierId === s.id);
+
+      const periodPurchases = sPurchases.reduce((acc, p) => acc + (p.total || 0), 0);
+      const periodPaidWithPurchases = sPurchases.reduce((acc, p) => acc + (p.paidAmount || 0), 0);
+      const periodDirectPayments = sPayments.reduce((acc, p) => acc + (p.amount || 0), 0);
+      const totalPeriodPaid = periodPaidWithPurchases + periodDirectPayments;
+
+      // Period net change
+      const periodNetChange = periodPurchases - totalPeriodPaid;
+
+      // Overall balance remains the authoritative balance from the supplier record or period calculation
+      const displayPurchases = (dateFrom || dateTo) ? periodPurchases : (s.totalPurchases || 0);
+      const displayPayments = (dateFrom || dateTo) ? totalPeriodPaid : (s.totalPayments || 0);
+      const displayBalance = (dateFrom || dateTo) ? periodNetChange : (s.balance || 0);
+
+      const hasActivity = sPurchases.length > 0 || sPayments.length > 0;
+
+      return {
+        ...s,
+        displayPurchases,
+        displayPayments,
+        displayBalance,
+        purchasesCount: sPurchases.length,
+        paymentsCount: sPayments.length,
+        hasActivity
+      };
+    });
+  }, [suppliers, filteredPurchasesByDate, filteredPaymentsByDate, dateFrom, dateTo]);
+
+  // Filtered suppliers matching all search & date criteria
+  const filtered = useMemo(() => {
+    return supplierComputedData.filter(s => {
+      // Name / Phone Search
+      if (search.trim()) {
+        const query = search.trim().toLowerCase();
+        const matchesName = (s.name || '').toLowerCase().includes(query);
+        const matchesPhone = (s.phone || '').includes(query);
+        if (!matchesName && !matchesPhone) return false;
+      }
+
+      // Specific Supplier Filter
+      if (selectedSupplierFilter !== 'all' && s.id !== selectedSupplierFilter) {
+        return false;
+      }
+
+      // Debt Status Filter
+      if (debtStatusFilter === 'hasDebt' && s.displayBalance <= 0) {
+        return false;
+      }
+      if (debtStatusFilter === 'fullyPaid' && s.displayBalance > 0) {
+        return false;
+      }
+
+      // If date range is active, optionally only show suppliers with activity or balances
+      if ((dateFrom || dateTo) && !s.hasActivity && s.displayBalance === 0) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [supplierComputedData, search, selectedSupplierFilter, debtStatusFilter, dateFrom, dateTo]);
+
+  const totalFilteredPurchases = filtered.reduce((acc, s) => acc + s.displayPurchases, 0);
+  const totalFilteredPayments = filtered.reduce((acc, s) => acc + s.displayPayments, 0);
+  const totalFilteredBalance = filtered.reduce((acc, s) => acc + s.displayBalance, 0);
+
+  // Export filtered suppliers & receivables to Excel
+  const handleExportSuppliersExcel = () => {
+    const dataToExport = filtered.map(s => ({
+      'كود المورد': s.id.substring(0, 8),
+      'اسم المورد': s.name,
+      'رقم الهاتف': s.phone || '---',
+      'إجمالي المشتريات والتوريدات (ج.م)': s.displayPurchases,
+      'إجمالي المدفوعات والمسدد (ج.م)': s.displayPayments,
+      'صافي الرصيد المستحق (ج.م)': s.displayBalance,
+      'حالة الحساب': s.displayBalance > 0 ? 'مستحق السداد' : 'خالص تماماً',
+      'فترة البحث': (dateFrom || dateTo) ? `من ${dateFrom || 'البداية'} إلى ${dateTo || 'الآن'}` : 'كافة الفترات'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "الموردين_والمستحقات");
+    XLSX.writeFile(wb, `تقرير_الموردين_والمستحقات_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
@@ -12372,33 +12528,219 @@ const Suppliers = React.memo(function Suppliers({
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest px-3 py-1 bg-primary/10 rounded-full w-fit">
             <Truck size={14} />
-            إدارة التوريد
+            إدارة التوريد والمستحقات
           </div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900">الموردون وشركاء العمل</h2>
-          <p className="text-slate-500 font-bold text-xs sm:text-sm md:text-base max-w-lg">متابعة حسابات الموردين، حجم المشتريات، وجدولة المستحقات المالية</p>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900">الموردون وحسابات المستحقات</h2>
+          <p className="text-slate-500 font-bold text-xs sm:text-sm md:text-base max-w-lg">
+            بحث متقدم وفلترة دقيقة بالتاريخ من وإلى، كشف مديونيات الموردين، وجدولة الدفعات باحترافية
+          </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full sm:w-72 md:w-80 group">
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
-              <Search size={16} />
-            </div>
-            <Input 
-              placeholder="بحث بالاسم أو الهاتف..." 
-              className="pr-12 h-12 rounded-xl border-slate-200 bg-white shadow-sm font-bold text-slate-700 text-sm"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button 
+            onClick={handleExportSuppliersExcel}
+            variant="outline"
+            className="h-11 px-4 rounded-xl border-slate-200 bg-white hover:bg-slate-50 font-bold text-xs text-slate-700 shadow-sm flex items-center gap-2"
+          >
+            <Download size={15} />
+            تصدير إكسيل
+          </Button>
+
+          <Button 
+            onClick={() => safePrint()}
+            variant="outline"
+            className="h-11 px-4 rounded-xl border-slate-200 bg-white hover:bg-slate-50 font-bold text-xs text-slate-700 shadow-sm flex items-center gap-2"
+          >
+            <Printer size={15} />
+            طباعة
+          </Button>
 
           <Button 
             onClick={() => setShowSupplierAdd(true)}
-            className="btn-primary h-12 px-5 rounded-xl font-black text-xs sm:text-sm shrink-0 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all"
+            className="btn-primary h-11 px-5 rounded-xl font-black text-xs sm:text-sm shrink-0 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all"
           >
             <Plus size={18} />
             إضافة مورد جديد
           </Button>
         </div>
+      </div>
+
+      {/* Advanced Professional Date & Criteria Search Bar */}
+      <div className="p-4 sm:p-5 bg-white rounded-2xl border border-slate-200/80 shadow-md space-y-4 print:hidden">
+        {/* Row 1: Primary Search + Quick Supplier Dropdown + Date Range */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          {/* Text Search */}
+          <div className="md:col-span-4 relative group">
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 group-focus-within:bg-primary/10 group-focus-within:text-primary transition-all">
+              <Search size={16} />
+            </div>
+            <Input 
+              placeholder="ابحث بالاسم أو رقم الهاتف..." 
+              className="pr-12 h-11 rounded-xl border-slate-200 bg-white shadow-sm font-bold text-slate-700 text-xs sm:text-sm"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button 
+                onClick={() => setSearch('')}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Supplier Picker */}
+          <div className="md:col-span-3">
+            <select
+              value={selectedSupplierFilter}
+              onChange={e => setSelectedSupplierFilter(e.target.value)}
+              className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50/50 px-3 font-bold text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="all">كل الموردين ({suppliers.length})</option>
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.balance > 0 ? `(متبقي: ${s.balance.toLocaleString()} ج.م)` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date Range Inputs: From -> To */}
+          <div className="md:col-span-5 flex items-center gap-2">
+            <div className="flex-1 relative">
+              <span className="absolute -top-2 right-2 px-1 bg-white text-[9px] font-black text-slate-400 rounded">من تاريخ</span>
+              <Input 
+                type="date"
+                value={dateFrom}
+                onChange={e => {
+                  setDateFrom(e.target.value);
+                  setQuickDatePreset('all');
+                }}
+                className="h-11 rounded-xl border-slate-200 font-bold text-xs bg-slate-50/50 text-slate-800"
+              />
+            </div>
+
+            <div className="flex-1 relative">
+              <span className="absolute -top-2 right-2 px-1 bg-white text-[9px] font-black text-slate-400 rounded">إلى تاريخ</span>
+              <Input 
+                type="date"
+                value={dateTo}
+                onChange={e => {
+                  setDateTo(e.target.value);
+                  setQuickDatePreset('all');
+                }}
+                className="h-11 rounded-xl border-slate-200 font-bold text-xs bg-slate-50/50 text-slate-800"
+              />
+            </div>
+
+            {(dateFrom || dateTo) && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => {
+                  setDateFrom('');
+                  setDateTo('');
+                  setQuickDatePreset('all');
+                }}
+                className="h-11 w-11 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 shrink-0"
+                title="تفريغ التواريخ"
+              >
+                <X size={16} />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: Quick Presets & Status Filters */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+          {/* Quick Date Range Buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-black text-slate-400 ml-1">فترات سريعة:</span>
+            {[
+              { id: 'all', label: 'الكل' },
+              { id: 'today', label: 'اليوم' },
+              { id: 'this_week', label: 'هذا الأسبوع' },
+              { id: 'this_month', label: 'الشهر الحالي' },
+              { id: 'last_month', label: 'الشهر الماضي' },
+              { id: 'this_year', label: 'العام الحالي' }
+            ].map(preset => (
+              <button
+                key={preset.id}
+                onClick={() => applyQuickPreset(preset.id as any)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${
+                  quickDatePreset === preset.id
+                    ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Debt Status Segmented Tabs */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => setDebtStatusFilter('all')}
+              className={`px-3 py-1 text-xs font-black rounded-lg transition-all ${
+                debtStatusFilter === 'all'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              الكل ({suppliers.length})
+            </button>
+            <button
+              onClick={() => setDebtStatusFilter('hasDebt')}
+              className={`px-3 py-1 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 ${
+                debtStatusFilter === 'hasDebt'
+                  ? 'bg-orange-500 text-white shadow-sm'
+                  : 'text-orange-700 hover:bg-orange-100/50'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              مستحق السداد ({suppliers.filter(s => s.balance > 0).length})
+            </button>
+            <button
+              onClick={() => setDebtStatusFilter('fullyPaid')}
+              className={`px-3 py-1 text-xs font-black rounded-lg transition-all ${
+                debtStatusFilter === 'fullyPaid'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-emerald-700 hover:bg-emerald-100/50'
+              }`}
+            >
+              خالص تماماً ({suppliers.filter(s => s.balance <= 0).length})
+            </button>
+          </div>
+        </div>
+
+        {/* Search Active Notification Tag */}
+        {(dateFrom || dateTo || search || selectedSupplierFilter !== 'all' || debtStatusFilter !== 'all') && (
+          <div className="flex items-center justify-between p-2.5 bg-blue-50/80 border border-blue-200/60 rounded-xl text-blue-900 text-xs font-bold">
+            <div className="flex items-center gap-2">
+              <Filter size={14} className="text-blue-600" />
+              <span>
+                نتائج التصفية الحالية: <strong>{filtered.length} مورد</strong>
+                {dateFrom || dateTo ? ` (من ${dateFrom || 'البداية'} إلى ${dateTo || 'الآن'})` : ''}
+                {debtStatusFilter === 'hasDebt' ? ' [المستحق فقط]' : debtStatusFilter === 'fullyPaid' ? ' [الخالص فقط]' : ''}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setSearch('');
+                setDateFrom('');
+                setDateTo('');
+                setSelectedSupplierFilter('all');
+                setDebtStatusFilter('all');
+                setQuickDatePreset('all');
+              }}
+              className="text-[11px] font-black text-blue-700 hover:underline mr-2"
+            >
+              إعادة ضبط الفلاتر
+            </button>
+          </div>
+        )}
       </div>
       
       {/* KPI Cards */}
@@ -12410,9 +12752,13 @@ const Suppliers = React.memo(function Suppliers({
               <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">إجمالي المشتريات</p>
+              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">
+                {(dateFrom || dateTo) ? 'مشتريات الفترة المحددة' : 'إجمالي المشتريات والتوريدات'}
+              </p>
               <div className="flex items-baseline gap-1 flex-wrap">
-                <p className="text-base sm:text-2xl font-black text-slate-900 tracking-tighter break-all">{totalPurchases.toLocaleString()}</p>
+                <p className="text-base sm:text-2xl font-black text-slate-900 tracking-tighter break-all">
+                  {totalFilteredPurchases.toLocaleString()}
+                </p>
                 <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">ج.م</span>
               </div>
             </div>
@@ -12426,9 +12772,13 @@ const Suppliers = React.memo(function Suppliers({
               <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">إجمالي المدفوعات</p>
+              <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-0.5">
+                {(dateFrom || dateTo) ? 'مدفوعات الفترة المحددة' : 'إجمالي المسدد نقداً/بنكياً'}
+              </p>
               <div className="flex items-baseline gap-1 flex-wrap">
-                <p className="text-base sm:text-2xl font-black text-emerald-600 tracking-tighter break-all">{totalPayments.toLocaleString()}</p>
+                <p className="text-base sm:text-2xl font-black text-emerald-600 tracking-tighter break-all">
+                  {totalFilteredPayments.toLocaleString()}
+                </p>
                 <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">ج.م</span>
               </div>
             </div>
@@ -12442,9 +12792,13 @@ const Suppliers = React.memo(function Suppliers({
               <Scale className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-black text-orange-600 uppercase tracking-wider mb-0.5">صافي المديونية للموردين</p>
+              <p className="text-[10px] sm:text-[11px] font-black text-orange-600 uppercase tracking-wider mb-0.5">
+                {(dateFrom || dateTo) ? 'صافي مستحقات الفترة المحددة' : 'صافي الرصيد والمديونية القائمة'}
+              </p>
               <div className="flex items-baseline gap-1 flex-wrap">
-                <p className="text-base sm:text-2xl font-black text-orange-600 tracking-tighter break-all">{totalBalance.toLocaleString()}</p>
+                <p className="text-base sm:text-2xl font-black text-orange-600 tracking-tighter break-all">
+                  {totalFilteredBalance.toLocaleString()}
+                </p>
                 <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">ج.م</span>
               </div>
             </div>
@@ -12464,11 +12818,11 @@ const Suppliers = React.memo(function Suppliers({
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900 text-base leading-snug">{s.name}</h3>
-                  <p className="text-[11px] font-bold text-slate-400">مورد معتمد</p>
+                  <p className="text-[11px] font-bold text-slate-400">{s.phone || 'مورد معتمد'}</p>
                 </div>
               </div>
               <div>
-                {s.balance > 0 ? (
+                {s.displayBalance > 0 ? (
                   <Badge className="bg-orange-50 text-orange-700 border border-orange-200 font-black text-[10px] px-2.5 py-1 rounded-lg">
                     مطلوب السداد
                   </Badge>
@@ -12483,16 +12837,20 @@ const Suppliers = React.memo(function Suppliers({
             {/* Financial Metrics Grid */}
             <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 mb-0.5">إجمالي المشتريات</p>
-                <p className="text-xs font-black font-mono text-slate-800">{s.totalPurchases.toLocaleString()}</p>
+                <p className="text-[10px] font-bold text-slate-400 mb-0.5">
+                  {(dateFrom || dateTo) ? 'مشتريات الفترة' : 'إجمالي المشتريات'}
+                </p>
+                <p className="text-xs font-black font-mono text-slate-800">{s.displayPurchases.toLocaleString()}</p>
               </div>
               <div className="border-r border-l border-slate-200/60 px-1">
-                <p className="text-[10px] font-bold text-slate-400 mb-0.5">المسدد نقداً</p>
-                <p className="text-xs font-black font-mono text-emerald-600">{s.totalPayments.toLocaleString()}</p>
+                <p className="text-[10px] font-bold text-slate-400 mb-0.5">
+                  {(dateFrom || dateTo) ? 'مسدد الفترة' : 'المسدد نقداً'}
+                </p>
+                <p className="text-xs font-black font-mono text-emerald-600">{s.displayPayments.toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 mb-0.5">الرصيد المستحق</p>
-                <p className="text-xs font-black font-mono text-orange-600">{s.balance.toLocaleString()}</p>
+                <p className="text-xs font-black font-mono text-orange-600">{s.displayBalance.toLocaleString()}</p>
               </div>
             </div>
 
@@ -12549,7 +12907,7 @@ const Suppliers = React.memo(function Suppliers({
             <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mx-auto">
               <Search size={28} />
             </div>
-            <p className="text-slate-500 font-black text-sm">لا يوجد موردون يطابقون بحثك</p>
+            <p className="text-slate-500 font-black text-sm">لا يوجد موردون يطابقون خيارات البحث والفترة الزمنية</p>
           </div>
         )}
       </div>
@@ -12561,8 +12919,12 @@ const Suppliers = React.memo(function Suppliers({
             <TableHeader className="bg-slate-50/50 h-20">
               <TableRow className="hover:bg-transparent border-slate-100">
                 <TableHead className="text-right font-black text-slate-900 px-8 text-xs uppercase tracking-[0.2em]">اسم الشركة / المورد</TableHead>
-                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">إجمالي التوريدات</TableHead>
-                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">المسدد نقداً / بنكياً</TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">
+                  {(dateFrom || dateTo) ? 'توريدات الفترة المحددة' : 'إجمالي التوريدات'}
+                </TableHead>
+                <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">
+                  {(dateFrom || dateTo) ? 'مسدد الفترة المحددة' : 'المسدد نقداً / بنكياً'}
+                </TableHead>
                 <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">الرصيد المستحق</TableHead>
                 <TableHead className="text-right font-black text-slate-900 text-xs uppercase tracking-[0.2em]">الحالة المالية</TableHead>
                 <TableHead className="text-left font-black text-slate-900 px-8 text-xs uppercase tracking-[0.2em]">الإجراءات</TableHead>
@@ -12576,26 +12938,33 @@ const Suppliers = React.memo(function Suppliers({
                       <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black group-hover:bg-primary group-hover:text-white transition-all duration-200">
                         {s.name.charAt(0)}
                       </div>
-                      {s.name}
+                      <div>
+                        <div className="font-black text-slate-900">{s.name}</div>
+                        {s.phone && <div className="text-xs font-mono font-bold text-slate-400">{s.phone}</div>}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="font-bold text-slate-500 font-mono">
-                    {s.totalPurchases.toLocaleString()} 
+                    {s.displayPurchases.toLocaleString()} 
                     <span className="text-[10px] mr-1 opacity-50">ج.م</span>
                   </TableCell>
                   <TableCell className="font-bold text-emerald-600 font-mono">
-                    {s.totalPayments.toLocaleString()}
+                    {s.displayPayments.toLocaleString()}
                     <span className="text-[10px] mr-1 opacity-50">ج.م</span>
                   </TableCell>
                   <TableCell className="font-black text-orange-600 font-mono text-xl tracking-tighter">
-                    {s.balance.toLocaleString()}
+                    {s.displayBalance.toLocaleString()}
                     <span className="text-[10px] mr-1 opacity-50">ج.م</span>
                   </TableCell>
                   <TableCell>
-                    {s.balance > 0 ? (
-                      <Badge className="bg-orange-50 text-orange-600 border-none font-black text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-xl animate-pulse">مطلوب السداد</Badge>
+                    {s.displayBalance > 0 ? (
+                      <Badge className="bg-orange-50 text-orange-600 border-none font-black text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-xl animate-pulse">
+                        مطلوب السداد
+                      </Badge>
                     ) : (
-                      <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-xl">خالص تماماً</Badge>
+                      <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-xl">
+                        خالص تماماً
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell className="px-8">
@@ -12628,7 +12997,7 @@ const Suppliers = React.memo(function Suppliers({
                         <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
                           <Search size={40} />
                         </div>
-                        <p className="text-slate-400 font-black text-lg tracking-tight">لا يوجد موردون يطابقون بحثك</p>
+                        <p className="text-slate-400 font-black text-lg tracking-tight">لا يوجد موردون يطابقون شروط البحث أو التواريخ المحددة</p>
                      </div>
                   </TableCell>
                 </TableRow>
@@ -12638,7 +13007,7 @@ const Suppliers = React.memo(function Suppliers({
         </div>
       </Card>
 
-      {/* Supplier Account Statement Dialog */}
+      {/* Supplier Account Statement Dialog with Dedicated Date Range Filter */}
       {selectedSupplier && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-50 animate-in fade-in duration-200">
           <Card className="dribbble-card w-full max-w-5xl max-h-[95vh] sm:max-h-[92vh] overflow-hidden flex flex-col border-none shadow-2xl rounded-2xl">
@@ -12652,7 +13021,10 @@ const Suppliers = React.memo(function Suppliers({
                   </div>
                   <div>
                     <CardTitle className="font-black text-xl sm:text-3xl tracking-tight text-slate-900">كشف حساب: {selectedSupplier.name}</CardTitle>
-                    <CardDescription className="font-bold text-slate-500 text-xs sm:text-base mt-0.5">تفاصيل التوريدات والمدفوعات والمستحقات المتبقية</CardDescription>
+                    <CardDescription className="font-bold text-slate-500 text-xs sm:text-base mt-0.5">
+                      تفاصيل التوريدات والمدفوعات والمستحقات المتبقية
+                      {(dateFrom || dateTo) ? ` (الفترة: ${dateFrom || 'البداية'} إلى ${dateTo || 'الآن'})` : ''}
+                    </CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-center print:hidden">
@@ -12672,11 +13044,12 @@ const Suppliers = React.memo(function Suppliers({
                 title={`كشف حساب مورد: ${selectedSupplier.name}`}
                 subtitle={`كود المورد: ${selectedSupplier.id.slice(0, 8)} | هاتف: ${selectedSupplier.phone || '-'} | العنوان: ${selectedSupplier.address || '-'}`}
                 companyInfo={companyInfo}
+                periodText={(dateFrom || dateTo) ? `الفترة من ${dateFrom || 'البداية'} إلى ${dateTo || 'الآن'}` : 'كافة العمليات حتى تاريخه'}
                 kpis={[
                   { label: 'رصيد أول المدة', value: `${(selectedSupplier.openingBalance || 0).toLocaleString()} ج.م` },
-                  { label: 'إجمالي المشتريات', value: `${selectedSupplier.totalPurchases.toLocaleString()} ج.م` },
-                  { label: 'إجمالي المسدد', value: `${selectedSupplier.totalPayments.toLocaleString()} ج.م` },
-                  { label: 'الرصيد المستحق الحالي', value: `${selectedSupplier.balance.toLocaleString()} ج.م`, highlight: selectedSupplier.balance > 0 },
+                  { label: (dateFrom || dateTo) ? 'مشتريات الفترة' : 'إجمالي المشتريات', value: `${(selectedSupplier as any).displayPurchases?.toLocaleString() || selectedSupplier.totalPurchases.toLocaleString()} ج.م` },
+                  { label: (dateFrom || dateTo) ? 'مسدد الفترة' : 'إجمالي المسدد', value: `${(selectedSupplier as any).displayPayments?.toLocaleString() || selectedSupplier.totalPayments.toLocaleString()} ج.م` },
+                  { label: 'الرصيد المستحق', value: `${(selectedSupplier as any).displayBalance?.toLocaleString() || selectedSupplier.balance.toLocaleString()} ج.م`, highlight: selectedSupplier.balance > 0 },
                 ]}
               />
 
@@ -12691,25 +13064,35 @@ const Suppliers = React.memo(function Suppliers({
                 </div>
 
                 <div className="p-3 sm:p-5 bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">إجمالي المشتريات</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">
+                    {(dateFrom || dateTo) ? 'مشتريات الفترة المحددة' : 'إجمالي المشتريات'}
+                  </p>
                   <div className="flex items-baseline gap-1">
-                    <p className="text-base sm:text-xl font-black text-slate-900 tracking-tighter font-mono">{selectedSupplier.totalPurchases.toLocaleString()}</p>
+                    <p className="text-base sm:text-xl font-black text-slate-900 tracking-tighter font-mono">
+                      {((selectedSupplier as any).displayPurchases || selectedSupplier.totalPurchases).toLocaleString()}
+                    </p>
                     <span className="text-[10px] font-bold text-slate-300">ج.م</span>
                   </div>
                 </div>
 
                 <div className="p-3 sm:p-5 bg-white rounded-xl sm:rounded-2xl border border-emerald-100 shadow-sm">
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-0.5">إجمالي المسدد</p>
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-0.5">
+                    {(dateFrom || dateTo) ? 'مسدد الفترة المحددة' : 'إجمالي المسدد'}
+                  </p>
                   <div className="flex items-baseline gap-1">
-                    <p className="text-base sm:text-xl font-black text-emerald-600 tracking-tighter font-mono">{selectedSupplier.totalPayments.toLocaleString()}</p>
+                    <p className="text-base sm:text-xl font-black text-emerald-600 tracking-tighter font-mono">
+                      {((selectedSupplier as any).displayPayments || selectedSupplier.totalPayments).toLocaleString()}
+                    </p>
                     <span className="text-[10px] font-bold text-emerald-300">ج.م</span>
                   </div>
                 </div>
 
                 <div className="p-3 sm:p-5 bg-white rounded-xl sm:rounded-2xl border border-orange-100 shadow-sm">
-                  <p className="text-[10px] font-black text-orange-600 uppercase tracking-wider mb-0.5">الرصيد المتبقي</p>
+                  <p className="text-[10px] font-black text-orange-600 uppercase tracking-wider mb-0.5">الرصيد المستحق</p>
                   <div className="flex items-baseline gap-1">
-                    <p className="text-base sm:text-xl font-black text-orange-600 tracking-tighter font-mono">{selectedSupplier.balance.toLocaleString()}</p>
+                    <p className="text-base sm:text-xl font-black text-orange-600 tracking-tighter font-mono">
+                      {((selectedSupplier as any).displayBalance ?? selectedSupplier.balance).toLocaleString()}
+                    </p>
                     <span className="text-[10px] font-bold text-orange-300">ج.م</span>
                   </div>
                 </div>
@@ -12718,14 +13101,28 @@ const Suppliers = React.memo(function Suppliers({
               {/* Transactions List / Table Container */}
               <div className="overflow-auto flex-1 custom-scrollbar p-3 sm:px-10 sm:pt-6">
                 {(() => {
+                  const filteredSupplierPurchases = supplierPurchases.filter(p => {
+                    if (!p.date) return true;
+                    if (dateFrom && p.date < dateFrom) return false;
+                    if (dateTo && p.date > dateTo) return false;
+                    return true;
+                  });
+
+                  const filteredSupplierPayments = supplierPaymentsList.filter(p => {
+                    if (!p.date) return true;
+                    if (dateFrom && p.date < dateFrom) return false;
+                    if (dateTo && p.date > dateTo) return false;
+                    return true;
+                  });
+
                   const combinedTransactions = [
-                    ...supplierPurchases.map(p => ({
+                    ...filteredSupplierPurchases.map(p => ({
                       ...p,
                       _type: 'purchase',
                       _dateStr: p.date,
                       _date: new Date(p.date || 0).getTime()
                     })),
-                    ...supplierPaymentsList.map(p => ({
+                    ...filteredSupplierPayments.map(p => ({
                       ...p,
                       _type: 'payment',
                       _dateStr: p.date,
