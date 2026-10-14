@@ -6384,27 +6384,31 @@ const Inventory = React.memo(function Inventory({
             <span className="text-slate-300">للمواد الخام</span>
           </h2>
         </div>
-        <div className="flex flex-wrap gap-4">
-          <Button onClick={() => setShowItemAdd(true)} className="h-12 px-8 rounded-[14px] bg-slate-900 hover:bg-slate-800 text-white font-black text-base shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3">
-            <Plus size={20} strokeWidth={3} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={exportToExcel} variant="outline" className="h-11 px-4 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-xs flex items-center gap-2 transition-all">
+            <Download size={16} />
+            <span>تصدير إكسيل</span>
+          </Button>
+          <Button onClick={() => setShowItemAdd(true)} className="h-11 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-md shadow-slate-900/10 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
+            <Plus size={18} strokeWidth={2.5} />
             إضافة صنف جديد
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button variant="outline" className="h-12 w-12 rounded-[14px] p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-sm flex items-center justify-center transition-all hover:rotate-90">
-                  <SettingsIcon size={20} />
+                <Button variant="outline" className="h-11 w-11 rounded-xl p-0 border-slate-200 bg-white hover:bg-slate-50 shadow-xs flex items-center justify-center transition-all hover:rotate-90">
+                  <SettingsIcon size={18} />
                 </Button>
               }
             />
-            <DropdownMenuContent align="end" className="w-60 p-2 rounded-[14px] shadow-2xl border-slate-100">
-              <DropdownMenuItem onClick={() => setShowCostCenterAdd(true)} className="rounded-lg p-3 font-black gap-3 text-slate-700 hover:bg-slate-50">
-                <Layers size={16} className="text-blue-500" />
+            <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-xl shadow-xl border-slate-100">
+              <DropdownMenuItem onClick={() => setShowCostCenterAdd(true)} className="rounded-lg p-2.5 font-bold text-xs gap-2.5 text-slate-700 hover:bg-slate-50">
+                <Layers size={15} className="text-blue-500" />
                 إضافة مركز تكلفة
               </DropdownMenuItem>
-              <div className="h-px bg-slate-50 my-1" />
-              <DropdownMenuItem onClick={() => safePrint()} className="rounded-lg p-3 font-black gap-3 text-slate-700 md:flex hidden hover:bg-slate-50">
-                <Printer size={16} className="text-slate-400" />
+              <div className="h-px bg-slate-100 my-1" />
+              <DropdownMenuItem onClick={() => safePrint()} className="rounded-lg p-2.5 font-bold text-xs gap-2.5 text-slate-700 md:flex hidden hover:bg-slate-50">
+                <Printer size={15} className="text-slate-400" />
                 طباعة الكشف
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -6443,49 +6447,6 @@ const Inventory = React.memo(function Inventory({
             </div>
           </Card>
         ))}
-      </div>
-
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 pb-6 border-b border-slate-100">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="relative group min-w-[300px] max-w-full">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-all duration-200 group-focus-within:scale-110" size={18} />
-            <Input 
-              placeholder="ابحث عن صنف بالاسم أو الكود..." 
-              className="pr-12 h-12 rounded-[14px] border-slate-100 bg-slate-50 focus:bg-white font-black text-base shadow-inner focus:ring-[6px] focus:ring-primary/5 transition-all"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
-
-          <Button 
-            variant={lowStockOnly ? "destructive" : "outline"} 
-            onClick={() => setLowStockOnly(!lowStockOnly)}
-            className={cn(
-              "h-12 px-6 rounded-[14px] font-black text-xs transition-all duration-200",
-              lowStockOnly ? "bg-rose-500 text-white shadow-lg shadow-rose-200" : "hover:border-rose-100 hover:bg-rose-50/30"
-            )}
-          >
-            <AlertCircle size={18} className="ml-2" />
-            النواقص الحرجة
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex bg-slate-100/50 p-1 rounded-[14px] border border-slate-200/50 backdrop-blur-sm">
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("grid")} className={`rounded-[10px] h-10 px-4 ${viewMode === "grid" ? "bg-white text-primary shadow-lg font-black scale-105" : "text-slate-400 hover:text-slate-600"}`}>
-              <LayoutGrid size={18} className="ml-2" />
-              شبكة
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setViewMode("table")} className={`rounded-[10px] h-10 px-4 ${viewMode === "table" ? "bg-white text-primary shadow-lg font-black scale-105" : "text-slate-400 hover:text-slate-600"}`}>
-              <List size={18} className="ml-2" />
-              جدول
-            </Button>
-          </div>
-          <Button variant="outline" onClick={exportToExcel} className="h-16 px-8 rounded-[1.5rem] font-black text-sm border-slate-200 hover:bg-slate-50 transition-all active:scale-95 shadow-sm">
-            <Download size={20} className="ml-3" />
-            تصدير البيانات
-          </Button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-3 gap-6">
@@ -6558,212 +6519,327 @@ const Inventory = React.memo(function Inventory({
          </Card>
       </div>
 
-      <div className="bg-white/50 backdrop-blur-3xl p-6 rounded-[14px] border border-white/60 shadow-2xl shadow-slate-200/50 space-y-10 relative overflow-hidden group/filter">
-        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none group-hover/filter:scale-110 transition-transform duration-200" />
-        <div className="flex flex-col lg:flex-row gap-6 justify-between relative z-10">
-           <div className="flex-1 relative max-w-2xl">
-              <div className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300">
-                <Search size={22} strokeWidth={2.5} />
-              </div>
-              <Input 
-                placeholder="منـصة الـبحث الذكـي عن الأصـناف والأكـواد..." 
-                className="w-full h-24 pr-24 pl-10 rounded-[14px] border-none bg-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] focus-visible:ring-0 focus-visible:shadow-[0_20px_60px_-15px_rgba(99,102,241,0.15)] font-black text-xl placeholder:text-slate-300 placeholder:italic transition-all duration-200 hover:shadow-indigo-500/5" 
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-           </div>
+      {/* FILTER & CONTROL BAR */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-4 print:hidden">
+        <div className="flex flex-col lg:flex-row gap-3.5 lg:items-center justify-between">
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-xl">
+            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Input 
+              placeholder="ابحث بالاسم أو الكود أو الوحدة..." 
+              className="w-full h-11 pr-10 pl-9 rounded-xl border-slate-200 bg-slate-50/70 focus:bg-white font-bold text-sm focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400" 
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button 
+                onClick={() => setSearch('')}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
 
-           <div className="flex flex-wrap items-center gap-4">
-               <div className="p-2.5 bg-white/60 backdrop-blur-xl rounded-[14px] border border-white/80 shadow-xl shadow-slate-200/20 flex items-center gap-2">
-                  <div className="w-12 h-12 rounded-[14px] bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-lg">
-                     <Filter size={18} strokeWidth={2.5} />
-                  </div>
-                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-sm px-2">
-                    {['الكل', 'مادة خام', 'منتج نهائي', 'تعبئة وتغليف'].map((cat) => (
-                       <button
-                         key={cat}
-                         onClick={() => setCategory(cat === 'الكل' ? 'all' : cat)}
-                         className={cn(
-                           "h-12 px-8 rounded-[14px] font-black text-[11px] uppercase tracking-widest transition-all duration-200 shrink-0 whitespace-nowrap",
-                           (category === 'all' && cat === 'الكل') || (category === cat)
-                             ? "bg-primary text-white shadow-xl shadow-primary/20 scale-105"
-                             : "text-slate-400 hover:bg-white hover:text-slate-600"
-                         )}
-                       >
-                         {cat}
-                       </button>
-                    ))}
-                  </div>
-               </div>
+          {/* Quick Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Category Pills */}
+            <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl overflow-x-auto no-scrollbar">
+              {['الكل', 'مادة خام', 'منتج نهائي', 'تعبئة وتغليف'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat === 'الكل' ? 'all' : cat)}
+                  className={cn(
+                    "h-8 px-3.5 rounded-lg font-bold text-xs transition-all shrink-0 whitespace-nowrap",
+                    (category === 'all' && cat === 'الكل') || (category === cat)
+                      ? "bg-white text-slate-900 shadow-xs font-black"
+                      : "text-slate-500 hover:text-slate-800"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
 
-               <button
-                 onClick={() => setLowStockOnly(!lowStockOnly)}
-                 className={cn(
-                   "h-16 px-8 rounded-[14px] font-black text-xs uppercase tracking-widest transition-all duration-200 flex items-center gap-3 border shadow-lg",
-                   lowStockOnly
-                     ? "bg-rose-500 text-white border-rose-500 shadow-rose-500/20 scale-105"
-                     : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50 shadow-slate-200/20"
-                 )}
-               >
-                 <AlertTriangle size={16} className={lowStockOnly ? "animate-bounce text-white" : "text-rose-500"} />
-                 نواقص ومخزون حرج فقط
-               </button>
-           </div>
+            {/* Critical Low Stock Button */}
+            <button
+              onClick={() => setLowStockOnly(!lowStockOnly)}
+              className={cn(
+                "h-9 px-3.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 border shadow-2xs",
+                lowStockOnly
+                  ? "bg-rose-500 text-white border-rose-500 shadow-rose-200"
+                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+              )}
+            >
+              <AlertTriangle size={14} className={lowStockOnly ? "text-white" : "text-rose-500"} />
+              <span>نواقص حرجة</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-5 pt-2 border-t border-slate-100/60 relative z-10">
-           <div className="flex items-center gap-3 px-6 py-3 bg-slate-50/50 rounded-[14px] border border-slate-100/50">
-              <WarehouseIcon size={16} className="text-slate-400" />
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">تصنيف المستودعات:</span>
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+        {/* Warehouses & Departments Secondary Filters */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+              <WarehouseIcon size={13} />
+              المستودع:
+            </span>
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+              <button 
+                onClick={() => setSelectedWarehouseId('all')}
+                className={`h-7 px-2.5 rounded-lg font-bold text-[11px] transition-all whitespace-nowrap ${selectedWarehouseId === 'all' ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-100/70 text-slate-600 hover:bg-slate-200/70'}`}
+              >
+                كافة المخازن
+              </button>
+              {warehouses.map(w => (
+                <button 
+                  key={w.id}
+                  onClick={() => setSelectedWarehouseId(w.id)}
+                  className={`h-7 px-2.5 rounded-lg font-bold text-[11px] transition-all whitespace-nowrap ${selectedWarehouseId === w.id ? 'bg-slate-900 text-white shadow-2xs' : 'bg-slate-100/70 text-slate-600 hover:bg-slate-200/70'}`}
+                >
+                  {w.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {costCenters.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold text-slate-400">القسم:</span>
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                <button 
+                  onClick={() => setSelectedCostCenter('all')}
+                  className={`h-7 px-2.5 rounded-lg font-bold text-[11px] transition-all whitespace-nowrap ${selectedCostCenter === 'all' ? 'bg-primary text-white shadow-2xs' : 'bg-slate-100/70 text-slate-600 hover:bg-slate-200/70'}`}
+                >
+                  الكل
+                </button>
+                {costCenters.map(c => (
                   <button 
-                   onClick={() => setSelectedWarehouseId('all')}
-                   className={`h-11 px-6 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === 'all' ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
+                    key={c.id}
+                    onClick={() => setSelectedCostCenter(c.name)}
+                    className={`h-7 px-2.5 rounded-lg font-bold text-[11px] transition-all whitespace-nowrap ${selectedCostCenter === c.name ? 'bg-primary text-white shadow-2xs' : 'bg-slate-100/70 text-slate-600 hover:bg-slate-200/70'}`}
                   >
-                   كافة المخازن
+                    {c.name}
                   </button>
-                  {warehouses.map(w => (
-                    <button 
-                     key={w.id}
-                     onClick={() => setSelectedWarehouseId(w.id)}
-                     className={`h-11 px-6 rounded-xl text-[11px] font-black transition-all whitespace-nowrap ${selectedWarehouseId === w.id ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                     {w.name}
-                    </button>
-                  ))}
+                ))}
               </div>
-           </div>
-           
-           <div className="flex items-center gap-3 px-6 py-3 bg-slate-50/50 rounded-[14px] border border-slate-100/50 ml-auto">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">مراكز التكلفة:</span>
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                  <button 
-                   onClick={() => setSelectedCostCenter('all')}
-                   className={`h-11 px-6 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === 'all' ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                   جميع الأقسام
-                  </button>
-                  {costCenters.map(c => (
-                    <button 
-                     key={c.id}
-                     onClick={() => setSelectedCostCenter(c.name)}
-                     className={`h-11 px-6 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${selectedCostCenter === c.name ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                     {c.name}
-                    </button>
-                  ))}
-              </div>
-           </div>
+            </div>
+          )}
+        </div>
+
+        {/* Counter and Quick Switch */}
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100/80 text-xs">
+          <span className="text-slate-500 font-bold">
+            عرض <strong className="text-slate-900 font-mono font-black">{filtered.length}</strong> صنف من أصل <span className="font-mono">{items.length}</span>
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 text-[11px] hidden sm:inline">طريقة العرض:</span>
+            <div className="flex bg-slate-100 p-0.5 rounded-lg">
+              <button 
+                onClick={() => setViewMode("grid")} 
+                className={cn(
+                  "h-7 px-2.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all",
+                  viewMode === "grid" ? "bg-white text-primary shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                <LayoutGrid size={13} />
+                <span>كروت</span>
+              </button>
+              <button 
+                onClick={() => setViewMode("table")} 
+                className={cn(
+                  "h-7 px-2.5 rounded-md text-xs font-bold flex items-center gap-1 transition-all",
+                  viewMode === "table" ? "bg-white text-primary shadow-2xs font-black" : "text-slate-500 hover:text-slate-800"
+                )}
+              >
+                <List size={13} />
+                <span>جدول</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 md:grid-cols-3 gap-6">
-          {filtered.map((item, idx) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05, duration: 0.8, ease: "easeOut" }}
-              className="h-full"
-            >
-               <Card className="dribbble-card border-none group h-full flex flex-col relative overflow-hidden bg-white shadow-[0_15px_40px_-5px_rgba(0,0,0,0.03)] hover:shadow-[0_45px_100px_-10px_rgba(99,102,241,0.12)] transition-all duration-200 rounded-[14px] border border-slate-100/40 hover:border-primary/10">
-                  <div className={cn(
-                    "absolute top-0 inset-x-0 h-2 transition-all duration-200 z-20",
-                    item.currentBalance <= item.safetyLimit ? "bg-red-500 shadow-[0_5px_15px_rgba(239,68,68,0.3)] animate-pulse" : "bg-slate-100 group-hover:bg-primary"
-                  )} />
-                  
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-slate-50 opacity-40 rounded-bl-[10rem] -mr-16 -mt-16 group-hover:bg-primary/5 transition-all duration-200 rotate-12 pointer-events-none" />
-                  
-                  <CardContent className="p-6 pb-6 flex-1 relative z-10 flex flex-col">
-                    <div className="flex justify-between items-start mb-8 gap-4">
-                       <div className="flex flex-col min-w-0 flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-primary/10 group-hover:rotate-12 transition-all duration-200 border border-slate-100">
-                              <Package size={16} className="text-slate-400 group-hover:text-primary transition-colors" />
-                            </div>
-                            <Badge variant="outline" className="bg-white border-slate-100 text-[9px] font-black tracking-widest text-slate-400 px-3 uppercase rounded-full group-hover:border-primary/20 group-hover:text-primary transition-all duration-200">
-                                {warehouses.find(w => w.id === item.warehouseId)?.name || 'غير معروف'}
-                            </Badge>
-                          </div>
-                          <h3 className="font-black text-2xl text-slate-900 group-hover:text-primary transition-colors leading-[1.2] line-clamp-2 tracking-tight group-hover:translate-x-1 duration-200">
-                             {item.name}
-                          </h3>
-                       </div>
-                       <div className="shrink-0 flex flex-col items-end text-left">
-                          <div className="w-14 h-14 rounded-[14px] bg-slate-900 border border-slate-800 text-white flex items-center justify-center font-black text-xl shadow-xl shadow-slate-900/20 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-200">
-                             {item.unit}
-                          </div>
-                       </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-3.5">
+          {filtered.length === 0 ? (
+            <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+              <Package className="mx-auto h-12 w-12 text-slate-300 mb-3" />
+              <h3 className="font-black text-slate-800 text-base">لا توجد أصناف مطابقة للبحث أو الفلترة</h3>
+              <p className="text-xs text-slate-400 mt-1">جرب تغيير كلمات البحث أو إعادة ضبط خيارات التصفية أعلاه</p>
+            </div>
+          ) : (
+            filtered.map((item, idx) => {
+              const isOut = (item.currentBalance || 0) <= 0;
+              const isLow = !isOut && (item.currentBalance || 0) <= (item.safetyLimit || 0);
+              const warehouseName = warehouses.find(w => w.id === item.warehouseId)?.name || 'عام';
+              const totalVal = item.totalValue || ((item.currentBalance || 0) * (item.price || 0));
+              const healthPercent = item.safetyLimit > 0 
+                ? Math.min(100, Math.max(5, ((item.currentBalance || 0) / (item.safetyLimit * 2)) * 100))
+                : ((item.currentBalance || 0) > 0 ? 100 : 0);
+
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(idx * 0.02, 0.3), duration: 0.2 }}
+                  className="h-full"
+                >
+                  <Card className="group h-full flex flex-col justify-between relative overflow-hidden bg-white hover:bg-slate-50/50 rounded-2xl border border-slate-200/80 hover:border-primary/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3.5">
+                    {/* Top status indicator line */}
+                    <div className={cn(
+                      "absolute top-0 inset-x-0 h-1 transition-colors duration-200",
+                      isOut ? "bg-rose-500" : isLow ? "bg-amber-500" : "bg-emerald-500"
+                    )} />
+
+                    {/* Card Header */}
+                    <div>
+                      <div className="flex items-center justify-between gap-1.5 mb-2">
+                        {/* Warehouse Badge */}
+                        <span 
+                          className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[110px]"
+                          title={`المستودع: ${warehouseName}`}
+                        >
+                          {warehouseName}
+                        </span>
+
+                        {/* Status & Unit Badges */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {isOut ? (
+                            <span className="text-[9px] font-black text-rose-700 bg-rose-50 border border-rose-200/80 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                              نفد
+                            </span>
+                          ) : isLow ? (
+                            <span className="text-[9px] font-black text-amber-700 bg-amber-50 border border-amber-200/80 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              حرج
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              آمن
+                            </span>
+                          )}
+
+                          <span className="text-[10px] font-black text-white bg-slate-900 px-1.5 py-0.5 rounded-md">
+                            {item.unit || '-'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Item Name */}
+                      <h4 
+                        className="font-extrabold text-sm text-slate-900 group-hover:text-primary transition-colors leading-snug line-clamp-2 min-h-[2.5rem]"
+                        title={item.name}
+                      >
+                        {item.name}
+                      </h4>
                     </div>
 
-                    <div className="mt-8 space-y-6 flex-1">
-                       <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-[14px] bg-slate-50/50 border border-slate-100 shadow-sm relative group-hover:bg-white group-hover:border-primary/10 transition-all duration-200 overflow-hidden">
+                    {/* Card Metrics */}
+                    <div className="space-y-2 my-2">
+                      {/* Balance & Safety Row */}
+                      <div className="bg-slate-50/90 rounded-xl p-2.5 border border-slate-100">
+                        <div className="flex items-center justify-between">
                           <div>
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-right">الرصيد المتاح</p>
-                             <div className="flex items-baseline gap-2 justify-end">
-                                <span className={cn(
-                                  "text-4xl font-black tracking-tighter transition-all duration-200 group-hover:scale-110 origin-right",
-                                  item.currentBalance <= item.safetyLimit ? "text-red-600" : "text-slate-900"
-                                )}>
-                                  {item.currentBalance}
-                                </span>
-                             </div>
-                          </div>
-                          <div className="border-r border-slate-100 pr-6">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 text-right">حد الأمان</p>
-                             <div className="flex items-baseline gap-2 justify-end">
-                                <span className="text-xl font-black text-slate-400 tracking-tight group-hover:text-slate-600 transition-colors">
-                                  {item.safetyLimit}
-                                </span>
-                             </div>
-                          </div>
-                       </div>
-                       
-                       {/* Dual UOM Secondary Unit Balance Badge */}
-                       {item.secondaryUnit && item.conversionFactor && item.conversionFactor > 0 ? (
-                         <div className="flex items-center justify-between p-3.5 rounded-xl bg-amber-50/90 border border-amber-200/80 text-amber-900 text-xs font-bold shadow-sm">
-                            <div className="flex items-center gap-2">
-                               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                               <span>المكافئ بالتعبئة: <strong className="font-black text-sm font-mono text-amber-950">{(item.currentBalance / item.conversionFactor).toFixed(1)} {item.secondaryUnit}</strong></span>
+                            <span className="text-[10px] font-bold text-slate-400 block leading-tight">الرصيد المتاح</span>
+                            <div className="flex items-baseline gap-1">
+                              <span className={cn(
+                                "text-xl font-black font-mono tracking-tight",
+                                isOut ? "text-rose-600" : isLow ? "text-amber-600" : "text-slate-900"
+                              )}>
+                                {(item.currentBalance || 0).toLocaleString()}
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-500">{item.unit}</span>
                             </div>
-                            <span className="text-[10px] text-amber-700 font-mono">(1 {item.secondaryUnit} = {item.conversionFactor} {item.unit})</span>
-                         </div>
-                       ) : null}
-
-                       <div className="flex items-center justify-between p-6 rounded-[14px] bg-indigo-50/30 border border-indigo-100/50 group-hover:bg-indigo-500 group-hover:border-indigo-500 transition-all duration-200">
-                          <TrendingUp size={24} className="text-indigo-200 group-hover:text-white transition-colors" />
-                          <div className="text-left">
-                             <p className="text-[9px] font-black text-indigo-400 group-hover:text-white/60 uppercase tracking-widest mb-1">القيمة السوقية</p>
-                             <div className="flex items-baseline gap-2 justify-end">
-                                <span className="text-2xl font-black text-slate-900 group-hover:text-white transition-colors tracking-tighter">
-                                   {(item.totalValue || (item.currentBalance * item.price)).toLocaleString()}
-                                </span>
-                                <span className="text-[10px] font-bold text-slate-400 group-hover:text-white/50">ج.م</span>
-                             </div>
                           </div>
-                       </div>
-                    </div>
-                  </CardContent>
 
-                  <CardFooter className="p-6 pt-0 flex gap-4 transition-all duration-200 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                    <Button variant="ghost" className="flex-1 rounded-[14px] h-14 font-black bg-slate-50 hover:bg-slate-900 hover:text-white transition-all duration-200" onClick={() => setSelectedItemCard(item)}>
-                      <Eye size={18} className="ml-2" />
-                      التفاصيل
-                    </Button>
-                    <Button variant="ghost" className="flex-1 rounded-[14px] h-14 font-black bg-indigo-50 text-primary hover:bg-primary hover:text-white transition-all duration-200" onClick={() => setEditingItem(item)}>
-                      <Edit2 size={18} className="ml-2" />
-                      تعديل
-                    </Button>
-                    {(profile?.isAdmin || profile?.permissions.canDelete) && (
-                      <Button variant="ghost" className="rounded-[14px] h-14 w-14 font-black bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-200" onClick={() => setShowDeleteConfirm(item.id)}>
-                        <Trash2 size={18} />
+                          <div className="text-left border-r border-slate-200/70 pr-2.5">
+                            <span className="text-[10px] font-bold text-slate-400 block leading-tight">حد الأمان</span>
+                            <span className="text-xs font-black font-mono text-slate-600 block">
+                              {(item.safetyLimit || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Mini Visual Stock Progress Bar */}
+                        <div className="w-full bg-slate-200/60 rounded-full h-1 mt-2 overflow-hidden">
+                          <div 
+                            className={cn(
+                              "h-full rounded-full transition-all duration-300",
+                              isOut ? "w-0" : isLow ? "bg-amber-500" : "bg-emerald-500"
+                            )}
+                            style={{ width: `${healthPercent}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Dual UOM (Secondary Unit) if applicable */}
+                      {item.secondaryUnit && item.conversionFactor && item.conversionFactor > 0 && (
+                        <div className="text-[10px] font-bold text-amber-900 bg-amber-50/90 border border-amber-200/70 rounded-lg px-2 py-1 flex items-center justify-between">
+                          <span className="flex items-center gap-1 truncate">
+                            <Layers size={11} className="text-amber-600 shrink-0" />
+                            <span className="truncate">المكافئ:</span>
+                            <strong className="font-mono text-amber-950 font-black">
+                              {((item.currentBalance || 0) / item.conversionFactor).toFixed(1)} {item.secondaryUnit}
+                            </strong>
+                          </span>
+                          <span className="text-[9px] text-amber-700 font-mono shrink-0">
+                            (1={item.conversionFactor})
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Price & Valuation Summary */}
+                      <div className="flex items-center justify-between text-[11px] py-1 px-2 bg-slate-100/60 rounded-lg border border-slate-200/40 text-slate-600">
+                        <span>
+                          السعر: <strong className="font-mono font-bold text-slate-800">{(item.price || 0).toLocaleString()}</strong>
+                        </span>
+                        <span className="text-left">
+                          القيمة: <strong className="font-mono font-black text-primary">{totalVal.toLocaleString()}</strong> <span className="text-[9px]">ج.م</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Card Actions Footer */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="flex-1 h-7 text-[11px] font-bold text-slate-700 hover:text-slate-900 bg-slate-100/80 hover:bg-slate-200/80 rounded-lg transition-colors flex items-center justify-center gap-1 px-1"
+                        onClick={() => setSelectedItemCard(item)}
+                      >
+                        <Eye size={12} />
+                        <span>تفاصيل</span>
                       </Button>
-                    )}
-                  </CardFooter>
-               </Card>
-            </motion.div>
-          ))}
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="flex-1 h-7 text-[11px] font-bold text-primary hover:text-white bg-primary/10 hover:bg-primary rounded-lg transition-colors flex items-center justify-center gap-1 px-1"
+                        onClick={() => setEditingItem(item)}
+                      >
+                        <Edit2 size={12} />
+                        <span>تعديل</span>
+                      </Button>
+                      {(profile?.isAdmin || profile?.permissions.canDelete) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0 flex items-center justify-center"
+                          title="حذف الصنف"
+                          onClick={() => setShowDeleteConfirm(item.id)}
+                        >
+                          <Trash2 size={12} />
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            })
+          )}
         </div>
       ) : (
         <Card className="dribbble-card border-none bg-white shadow-xl overflow-hidden rounded-[14px]">
