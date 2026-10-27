@@ -1,7 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
+import { 
+  onAuthStateChanged, 
+  User, 
+  signOut as firebaseSignOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile as firebaseUpdateProfile
+} from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot, query, collection, where, getDocs } from 'firebase/firestore';
 import { UserRole, UserPermissions } from './core/types';
 import { ROLE_PERMISSIONS } from './core/permissions';
 
@@ -39,6 +46,13 @@ export interface UserProfile {
   role: UserRole;
   isAdmin: boolean;
   permissions: UserPermissions;
+  status?: 'active' | 'disabled';
+  disabled?: boolean;
+  authMigrated?: boolean;
+  authUid?: string;
+  authProvider?: 'google' | 'firebase_email' | 'local_bridge';
+  migratedAt?: string;
+  createdAt?: string;
 }
 
 export const DEFAULT_PERMISSIONS: UserPermissions = {
@@ -76,10 +90,14 @@ export const normalizeProfile = (data: any, isMasterAdmin: boolean): UserProfile
     });
   }
 
+  const isActive = data.status ? data.status === 'active' : (data.disabled !== true);
+
   return {
     ...data,
     role,
     isAdmin,
+    status: isActive ? 'active' : 'disabled',
+    disabled: !isActive,
     permissions: mergedPermissions
   } as UserProfile;
 };
@@ -133,6 +151,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (docSnap.exists()) {
           const data = docSnap.data();
+
+          // Enforce active account status
+          if (data.status === 'disabled' || data.disabled === true) {
+            safeStorage.removeItem('custom_uid');
+            safeStorage.removeItem('custom_password');
+            return false;
+          }
+
           if (data.password?.trim() === cleanPsw) {
             const isMasterAdmin = data.email === "cfo.moaz@gmail.com";
             const normalized = normalizeProfile(data, isMasterAdmin);
@@ -146,7 +172,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Subscribe to real-time changes
             unsubscribeProfile = onSnapshot(doc(db, 'users', normalized.uid || cleanUid), (snap) => {
               if (snap.exists()) {
-                setProfile(normalizeProfile(snap.data(), isMasterAdmin));
+                const updated = snap.data();
+                if (updated.status === 'disabled' || updated.disabled === true) {
+                  // User got disabled during active session
+                  logout();
+                  return;
+                }
+                setProfile(normalizeProfile(updated, isMasterAdmin));
               }
             });
 
@@ -193,6 +225,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   ...legacyData,
                   uid,
                   email: firebaseUser.email,
+                  authMigrated: true,
+                  authUid: uid,
+                  authProvider: firebaseUser.providerData?.[0]?.providerId || 'google',
+                  migratedAt: new Date().toISOString()
                 };
                 await setDoc(uidDocRef, migratedProfile);
                 docSnap = await getDoc(uidDocRef);
@@ -209,6 +245,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 name: firebaseUser.displayName || 'مستخدم جديد',
                 role: initialRole,
                 isAdmin: isMasterAdmin,
+                status: 'active',
+                disabled: false,
+                authMigrated: true,
+                authUid: uid,
+                authProvider: 'google',
                 permissions: {
                   ...roleBasePerms,
                   dashboard: true,
@@ -220,6 +261,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             unsubscribeProfile = onSnapshot(uidDocRef, (snap) => {
               if (snap.exists()) {
                 const data = snap.data();
+                if (data.status === 'disabled' || data.disabled === true) {
+                  // User disabled by admin
+                  logout();
+                  return;
+                }
                 const normalized = normalizeProfile(data, isMasterAdmin);
                 if (isMasterAdmin && normalized.role !== 'super_admin') {
                   setDoc(uidDocRef, { ...normalized, role: 'super_admin', isAdmin: true });
@@ -261,14 +307,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('يرجى إدخال اسم المستخدم وكلمة المرور.');
       }
 
+      // Step 1: Check if identifier can authenticate directly via Firebase Auth (Email/Password)
+      let firebaseAuthSuccess = false;
+      if (cleanIdentifier.includes('@')) {
+        try {
+          const userCred = await signInWithEmailAndPassword(auth, cleanIdentifier, cleanPsw);
+          if (userCred.user) {
+            firebaseAuthSuccess = true;
+            // Clear any old local custom credentials since user is fully on Firebase Auth
+            safeStorage.removeItem('custom_uid');
+            safeStorage.removeItem('custom_password');
+            return;
+          }
+        } catch (authErr: any) {
+          // If password wrong on existing Firebase Auth user, re-throw correct message
+          if (authErr.code === 'auth/wrong-password' || authErr.code === 'auth/invalid-credential') {
+            // Check if user exists in Firestore to distinguish from non-migrated accounts
+            const directDoc = await getDoc(doc(db, 'users', cleanIdentifier));
+            if (directDoc.exists() && directDoc.data().authMigrated) {
+              throw new Error('كلمة المرور غير صحيحة. يرجى التأكد من حالة الأحرف ولغة الإدخال.');
+            }
+          }
+          // Continue to fallback hybrid check below
+        }
+      }
+
+      // Step 2: Fallback to Firestore Document Check (Safe Migration Bridge)
       let userDocRef = doc(db, 'users', cleanIdentifier);
       let docSnap = await getDoc(userDocRef);
+
+      // If not found by ID, query by email or phone
+      if (!docSnap.exists()) {
+        const emailQuery = query(collection(db, 'users'), where('email', '==', cleanIdentifier));
+        const emailSnap = await getDocs(emailQuery);
+        if (!emailSnap.empty) {
+          docSnap = emailSnap.docs[0];
+          userDocRef = docSnap.ref;
+        } else {
+          const phoneQuery = query(collection(db, 'users'), where('phone', '==', cleanIdentifier));
+          const phoneSnap = await getDocs(phoneQuery);
+          if (!phoneSnap.empty) {
+            docSnap = phoneSnap.docs[0];
+            userDocRef = docSnap.ref;
+          }
+        }
+      }
 
       if (!docSnap.exists()) {
         throw new Error('المستخدم غير مسجل في النظام. يرجى التأكد من كتابة البريد أو الرقم بشكل صحيح.');
       }
 
       const data = docSnap.data();
+
+      // Check account active status
+      if (data.status === 'disabled' || data.disabled === true) {
+        throw new Error('تم تعطيل هذا الحساب من قبل إدارة النظام. يرجى التواصل مع المسؤول.');
+      }
+
       if (!data.password) {
         throw new Error('هذا الحساب مهيأ لتسجيل الدخول باستخدام جوجل فقط.');
       }
@@ -277,9 +372,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('كلمة المرور غير صحيحة. يرجى التأكد من لغة لوحة المفاتيح وحالة الأحرف.');
       }
 
+      // Step 3: Seamless Background Migration to Firebase Auth if eligible
       const isMasterAdmin = data.email === "cfo.moaz@gmail.com";
       const normalized = normalizeProfile(data, isMasterAdmin);
 
+      if (cleanIdentifier.includes('@') && cleanPsw.length >= 6 && !data.authMigrated) {
+        try {
+          const newAuthUser = await createUserWithEmailAndPassword(auth, cleanIdentifier, cleanPsw);
+          if (newAuthUser.user) {
+            if (normalized.name) {
+              await firebaseUpdateProfile(newAuthUser.user, { displayName: normalized.name });
+            }
+            // Tag document as migrated
+            await updateDoc(userDocRef, {
+              authMigrated: true,
+              authUid: newAuthUser.user.uid,
+              authProvider: 'firebase_email',
+              migratedAt: new Date().toISOString()
+            });
+            // Successfully migrated and signed in via Firebase Auth!
+            safeStorage.removeItem('custom_uid');
+            safeStorage.removeItem('custom_password');
+            return;
+          }
+        } catch (migErr: any) {
+          // If already exists in Firebase Auth, attempt signing in
+          if (migErr.code === 'auth/email-already-in-use') {
+            try {
+              await signInWithEmailAndPassword(auth, cleanIdentifier, cleanPsw);
+              await updateDoc(userDocRef, {
+                authMigrated: true,
+                authProvider: 'firebase_email',
+                migratedAt: new Date().toISOString()
+              });
+              safeStorage.removeItem('custom_uid');
+              safeStorage.removeItem('custom_password');
+              return;
+            } catch (ignore) {
+              // Fall back to local bridge session below
+            }
+          }
+          console.warn("Background auth migration deferred, using secure local bridge:", migErr);
+        }
+      }
+
+      // Step 4: Establish Local Bridge Session (Zero Disruption)
       safeStorage.setItem('custom_uid', normalized.uid || cleanIdentifier);
       safeStorage.setItem('custom_password', cleanPsw);
 
@@ -290,7 +427,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       setProfile(normalized);
     } catch (err: any) {
-      console.error("Custom login error:", err);
+      console.error("Authentication bridge error:", err);
       setLoading(false);
       throw err;
     } finally {
@@ -303,7 +440,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     safeStorage.removeItem('custom_password');
     setUser(null);
     setProfile(null);
-    await firebaseSignOut(auth);
+    try {
+      await firebaseSignOut(auth);
+    } catch (e) {
+      console.warn("SignOut error:", e);
+    }
   };
 
   return (

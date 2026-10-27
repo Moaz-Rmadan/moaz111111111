@@ -277,6 +277,10 @@ export function UsersManager() {
       const uid = newUserIdentifier.toLowerCase().trim();
       const cleanPassword = newUserPassword.trim();
 
+      if (cleanPassword && cleanPassword.length < 6) {
+        throw new Error('كلمة المرور يجب أن لا تقل عن 6 أحرف أو أرقام للتوافق مع متطلبات أمان Firebase Auth.');
+      }
+
       // Check if user already exists
       if (users.some(u => u.uid === uid)) {
         throw new Error('هذا البريد أو رقم الهاتف مسجل بالفعل');
@@ -296,15 +300,20 @@ export function UsersManager() {
       };
       const assignedRole = roleMap[selectedTemplate] || 'worker';
 
-      // Create profile
+      // Create profile with Phase 1 migration tracking & status
       const newProfile: UserProfile = {
         uid,
         email: isEmail ? uid : '',
         phone: isEmail ? '' : uid,
-        password: cleanPassword, // Optional if they choose to log in with Google
+        password: cleanPassword, // Maintained for Phase 1 local fallback bridge
         name: newUserName.trim(),
         role: assignedRole,
         isAdmin: false,
+        status: 'active',
+        disabled: false,
+        authMigrated: false,
+        authProvider: 'local_bridge',
+        createdAt: new Date().toISOString(),
         permissions
       };
 
@@ -458,6 +467,32 @@ export function UsersManager() {
       console.error("Error updating admin status:", err);
       // Revert on error
       setUsers(users.map(u => u.uid === uid ? userToUpdate : u));
+    }
+  };
+
+  const handleToggleStatus = async (uid: string) => {
+    const userToUpdate = users.find(u => u.uid === uid);
+    if (!userToUpdate) return;
+
+    const isCurrentlyDisabled = userToUpdate.status === 'disabled' || userToUpdate.disabled === true;
+    const newStatus: 'active' | 'disabled' = isCurrentlyDisabled ? 'active' : 'disabled';
+    const updatedProfile: UserProfile = {
+      ...userToUpdate,
+      status: newStatus,
+      disabled: !isCurrentlyDisabled
+    };
+
+    // Optimistic update
+    setUsers(users.map(u => u.uid === uid ? updatedProfile : u));
+
+    try {
+      await setDoc(doc(db, 'users', uid), updatedProfile);
+      setSuccessMsg(newStatus === 'active' ? 'تم تنشيط حساب الموظف بنجاح' : 'تم تعطيل الحساب ومنع الوصول بنجاح');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      console.error("Error updating account status:", err);
+      setUsers(users.map(u => u.uid === uid ? userToUpdate : u));
+      setError('حدث خطأ أثناء تعديل حالة الحساب');
     }
   };
 
@@ -922,6 +957,7 @@ export function UsersManager() {
                     <TableRow>
                       <TableHead className="text-right py-4 px-6 font-black text-slate-600 text-xs">المستخدم والموظف</TableHead>
                       <TableHead className="text-right py-4 px-6 font-black text-slate-600 text-xs">حالة الحساب</TableHead>
+                      <TableHead className="text-right py-4 px-6 font-black text-slate-600 text-xs">المصادقة والأمان</TableHead>
                       <TableHead className="text-right py-4 px-6 font-black text-slate-600 text-xs">الصلاحيات النشطة</TableHead>
                       <TableHead className="text-center py-4 px-6 font-black text-slate-600 text-xs">الإجراءات</TableHead>
                     </TableRow>
@@ -930,7 +966,7 @@ export function UsersManager() {
                     <AnimatePresence>
                       {filteredUsers.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-12 text-slate-400 font-bold text-sm">
+                          <TableCell colSpan={5} className="text-center py-12 text-slate-400 font-bold text-sm">
                             لا يوجد مستخدمين يطابقون خيارات البحث الحالية.
                           </TableCell>
                         </TableRow>
@@ -938,11 +974,13 @@ export function UsersManager() {
                         filteredUsers.map((user) => {
                           const avatar = getAvatarStyles(user.name);
                           const isMasterUser = user.email === 'cfo.moaz@gmail.com';
+                          const isDisabled = user.status === 'disabled' || user.disabled === true;
+                          const isFirebaseAuth = user.authMigrated || isMasterUser || (!user.password && user.email);
                           
                           return (
                             <TableRow 
                               key={user.uid} 
-                              className="hover:bg-slate-50/50 border-b border-slate-50 transition-colors"
+                              className={`border-b border-slate-50 transition-colors ${isDisabled ? 'bg-slate-50/60 opacity-75' : 'hover:bg-slate-50/50'}`}
                             >
                               {/* Name & Avatar Column */}
                               <TableCell className="py-4 px-6">
@@ -961,37 +999,49 @@ export function UsersManager() {
                                     </div>
                                     <div className="flex flex-col gap-0.5">
                                       <span className="font-bold text-slate-400 text-[11px] truncate" dir="ltr">{user.email || user.phone || user.uid}</span>
-                                      {user.password && (
-                                        <span className="text-[10px] text-indigo-500 font-bold">كلمة المرور: <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-indigo-600">{user.password}</span></span>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
                               </TableCell>
 
-                              {/* Admin Status Switcher */}
+                              {/* Account Status Switcher (Active / Disabled) */}
                               <TableCell className="py-4 px-6">
                                 <div className="flex items-center gap-2">
                                   <label className="relative inline-flex items-center cursor-pointer">
                                     <input 
                                       type="checkbox" 
                                       className="sr-only peer" 
-                                      checked={user.isAdmin}
-                                      onChange={() => handleToggleAdmin(user.uid)}
+                                      checked={!isDisabled}
+                                      onChange={() => handleToggleStatus(user.uid)}
                                       disabled={isMasterUser}
                                     />
-                                    <div className="w-10 h-5.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-500 disabled:opacity-50"></div>
+                                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 disabled:opacity-50"></div>
                                   </label>
-                                  <span className={`text-[11px] font-black ${user.isAdmin ? 'text-emerald-600' : 'text-slate-400'}`}>
-                                    {user.isAdmin ? 'مدير عام' : 'موظف مخصص'}
+                                  <span className={`text-[11px] font-black ${!isDisabled ? 'text-emerald-600' : 'text-red-500'}`}>
+                                    {!isDisabled ? 'نشط' : 'معطل'}
                                   </span>
                                 </div>
+                              </TableCell>
+
+                              {/* Authentication Status Badge */}
+                              <TableCell className="py-4 px-6">
+                                {isFirebaseAuth ? (
+                                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-black inline-flex items-center gap-1">
+                                    <Shield size={11} className="text-emerald-600" />
+                                    Firebase Auth
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md font-black inline-flex items-center gap-1" title="حساب محلي ينتقل تلقائياً لـ Firebase Auth فور أول تسجيل دخول">
+                                    <RefreshCw size={11} className="text-amber-600" />
+                                    محلي (جسر مرحلي)
+                                  </span>
+                                )}
                               </TableCell>
 
                               {/* Permissions Tags */}
                               <TableCell className="py-4 px-6">
                                 {user.isAdmin ? (
-                                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg font-black inline-flex items-center gap-1">
+                                  <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-lg font-black inline-flex items-center gap-1">
                                     <Shield size={12} />
                                     كل الصلاحيات مفتوحة تلقائياً
                                   </span>

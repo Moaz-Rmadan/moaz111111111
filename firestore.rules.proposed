@@ -1,0 +1,449 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // CORE HELPER FUNCTIONS & AUTHENTICATION ENFORCEMENT
+    // ===============================================================
+
+    // Check if user is authenticated with a valid Firebase Auth token
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // Check if the authenticated user is the designated Master Super Admin
+    function isMasterAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "cfo.moaz@gmail.com" || 
+         request.auth.token.email == "admin@factory.com");
+    }
+
+    // Retrieve the user profile document safely from the users collection
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check user role from verified database record
+    function hasRole(role) {
+      return isAuthenticated() && (
+        isMasterAdmin() || 
+        getUserData().role == role
+      );
+    }
+
+    // Check if user has administrative rights
+    function isAdmin() {
+      return isAuthenticated() && (
+        isMasterAdmin() || 
+        getUserData().role == 'super_admin' || 
+        getUserData().role == 'admin' || 
+        getUserData().isAdmin == true
+      );
+    }
+
+    // Check if user has one of several authorized roles
+    function hasAnyRole(roles) {
+      return isAuthenticated() && (
+        isAdmin() || 
+        getUserData().role in roles
+      );
+    }
+
+    // Check if user has specific granular permission
+    function hasPermission(perm) {
+      return isAuthenticated() && (
+        isAdmin() || 
+        (getUserData().permissions != null && getUserData().permissions[perm] == true)
+      );
+    }
+
+    // ===============================================================
+    // DOMAIN 1: IDENTITY, USERS & SYSTEM SETTINGS
+    // ===============================================================
+
+    match /users/{userId} {
+      // Any authenticated user can read individual profiles (for mentions, task assigning)
+      allow get: if isAuthenticated();
+      
+      // Listing all users is restricted to Admins and Managers
+      allow list: if isAdmin() || hasRole('manager');
+
+      // Creation: Admins can create any user; New users can only create their own base profile
+      allow create: if isAdmin() || (
+        isAuthenticated() && 
+        request.auth.uid == userId && 
+        (!('role' in request.resource.data) || request.resource.data.role == 'worker') &&
+        (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == false)
+      );
+
+      // Updates: Admins can update any user; Users can update their own data BUT CANNOT escalate privileges
+      allow update: if isAdmin() || (
+        isAuthenticated() && 
+        request.auth.uid == userId &&
+        // Prevent changing own role
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isAdmin', 'permissions']))
+      );
+
+      // Deletions: Restricted to Admin
+      allow delete: if isAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ===============================================================
+    // DOMAIN 2: TREASURY, SAFES, BANKS & FINANCIAL TRANSACTIONS
+    // ===============================================================
+
+    match /safes/{safeId} {
+      // Finance and managers can view all safes; Sales and Purchasing can read safe info for invoicing
+      allow get: if isAuthenticated() && (isAdmin() || hasAnyRole(['finance', 'accountant', 'manager', 'sales', 'purchasing']));
+      allow list: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+      // Balance updates occur during sales, purchases, or treasury operations
+      allow create: if isAdmin() || hasAnyRole(['finance', 'accountant']);
+      allow update: if isAdmin() || hasAnyRole(['finance', 'accountant', 'sales', 'purchasing']);
+      allow delete: if isAdmin();
+    }
+
+    match /safeTransactions/{txId} {
+      // Sales and purchasing can view specific receipts, but only finance/managers can list all transactions
+      allow get: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager', 'sales', 'purchasing']);
+      allow list: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+      // Sales and purchasing record cash movements during atomic batch writes
+      allow create: if isAdmin() || hasAnyRole(['finance', 'accountant', 'sales', 'purchasing']);
+      allow update: if isAdmin() || hasAnyRole(['finance', 'accountant']);
+      allow delete: if isAdmin();
+    }
+
+    match /safe_transactions/{txId} {
+      allow get: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager', 'sales', 'purchasing']);
+      allow list: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+      allow create: if isAdmin() || hasAnyRole(['finance', 'accountant', 'sales', 'purchasing']);
+      allow update: if isAdmin() || hasAnyRole(['finance', 'accountant']);
+      allow delete: if isAdmin();
+    }
+
+    match /bankAccounts/{bankId} {
+      allow read: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+      allow write: if isAdmin() || hasAnyRole(['finance', 'accountant']);
+    }
+
+    match /bankTransactions/{txId} {
+      allow read: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+      allow write: if isAdmin() || hasAnyRole(['finance', 'accountant']);
+    }
+
+    match /checks/{checkId} {
+      allow read: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+      allow write: if isAdmin() || hasAnyRole(['finance', 'accountant']);
+    }
+
+    match /treasuryCustodies/{custodyId} {
+      allow read: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+      allow write: if isAdmin() || hasAnyRole(['finance', 'accountant']);
+    }
+
+    match /custodySettlements/{settlementId} {
+      allow read: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+      allow write: if isAdmin() || hasAnyRole(['finance', 'accountant']);
+    }
+
+    match /safeAudits/{auditId} {
+      allow read, write: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+    }
+
+    match /safeSettlements/{settlementId} {
+      allow read, write: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+    }
+
+    match /cashTransactions/{txId} {
+      allow read: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+      allow write: if isAdmin() || hasAnyRole(['finance', 'accountant']);
+    }
+
+    // ===============================================================
+    // DOMAIN 3: SALES, CUSTOMERS & DISPATCH
+    // ===============================================================
+
+    match /customers/{customerId} {
+      allow read: if isAdmin() || hasAnyRole(['sales', 'manager', 'finance', 'accountant', 'reports', 'showroom']);
+      allow create, update: if isAdmin() || hasAnyRole(['sales', 'manager', 'showroom']);
+      allow delete: if isAdmin();
+    }
+
+    match /salesOrders/{orderId} {
+      allow read: if isAdmin() || hasAnyRole(['sales', 'manager', 'finance', 'accountant', 'reports', 'showroom', 'production']);
+      allow create, update: if isAdmin() || hasAnyRole(['sales', 'manager', 'showroom']);
+      allow delete: if isAdmin();
+    }
+
+    match /sales/{saleId} {
+      allow read: if isAdmin() || hasAnyRole(['sales', 'manager', 'finance', 'accountant', 'reports', 'showroom', 'production']);
+      allow create, update: if isAdmin() || hasAnyRole(['sales', 'manager', 'showroom']);
+      allow delete: if isAdmin();
+    }
+
+    match /customerPayments/{paymentId} {
+      allow read: if isAdmin() || hasAnyRole(['sales', 'manager', 'finance', 'accountant', 'reports']);
+      allow create, update: if isAdmin() || hasAnyRole(['sales', 'manager', 'finance', 'accountant']);
+      allow delete: if isAdmin();
+    }
+
+    match /deliveryDocuments/{docId} {
+      allow read: if isAdmin() || hasAnyRole(['sales', 'manager', 'inventory', 'warehouse', 'reports']);
+      allow write: if isAdmin() || hasAnyRole(['sales', 'manager', 'inventory', 'warehouse']);
+    }
+
+    match /deliveryReceipts/{receiptId} {
+      allow read: if isAdmin() || hasAnyRole(['sales', 'manager', 'inventory', 'warehouse']);
+      allow write: if isAdmin() || hasAnyRole(['sales', 'manager', 'inventory', 'warehouse']);
+    }
+
+    match /lostSales/{lostId} {
+      allow read, write: if isAdmin() || hasAnyRole(['sales', 'manager']);
+    }
+
+    // ===============================================================
+    // DOMAIN 4: INVENTORY, WAREHOUSING & CATALOG
+    // ===============================================================
+
+    match /items/{itemId} {
+      // Product catalog is read by all authenticated operational staff
+      allow read: if isAuthenticated();
+      // Stock updates happen on purchases, issuances, transfers, or sales
+      allow create: if isAdmin() || hasAnyRole(['inventory', 'warehouse', 'manager', 'purchasing']);
+      allow update: if isAdmin() || hasAnyRole(['inventory', 'warehouse', 'manager', 'purchasing', 'sales', 'production', 'showroom']);
+      allow delete: if isAdmin();
+    }
+
+    match /warehouses/{warehouseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || hasAnyRole(['inventory', 'warehouse', 'manager']);
+    }
+
+    match /units/{unitId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || hasAnyRole(['inventory', 'manager']);
+    }
+
+    match /costCenters/{centerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || hasAnyRole(['finance', 'accountant', 'manager']);
+    }
+
+    match /issuances/{issuanceId} {
+      allow read: if isAdmin() || hasAnyRole(['inventory', 'warehouse', 'production', 'manager', 'reports']);
+      allow write: if isAdmin() || hasAnyRole(['inventory', 'warehouse', 'production', 'manager']);
+    }
+
+    match /transferOrders/{orderId} {
+      allow read, write: if isAdmin() || hasAnyRole(['inventory', 'warehouse', 'manager', 'showroom']);
+    }
+
+    match /warehouseTransfers/{transferId} {
+      allow read, write: if isAdmin() || hasAnyRole(['inventory', 'warehouse', 'manager', 'showroom']);
+    }
+
+    match /stockAudits/{auditId} {
+      allow read, write: if isAdmin() || hasAnyRole(['inventory', 'manager']);
+    }
+
+    match /waste/{wasteId} {
+      allow read, write: if isAdmin() || hasAnyRole(['inventory', 'production', 'manager']);
+    }
+
+    match /showrooms/{showroomId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || hasAnyRole(['manager', 'showroom']);
+    }
+
+    match /showroomInventory/{invId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || hasAnyRole(['showroom', 'inventory', 'manager']);
+    }
+
+    match /byproductSales/{saleId} {
+      allow read, write: if isAdmin() || hasAnyRole(['inventory', 'sales', 'manager']);
+    }
+
+    // ===============================================================
+    // DOMAIN 5: PURCHASES & SUPPLIERS
+    // ===============================================================
+
+    match /suppliers/{supplierId} {
+      allow read: if isAdmin() || hasAnyRole(['purchasing', 'inventory', 'finance', 'accountant', 'manager', 'reports']);
+      // Purchasing and Finance update supplier balances on bills and payments
+      allow create, update: if isAdmin() || hasAnyRole(['purchasing', 'finance', 'accountant', 'manager']);
+      allow delete: if isAdmin();
+    }
+
+    match /purchases/{purchaseId} {
+      allow read: if isAdmin() || hasAnyRole(['purchasing', 'inventory', 'finance', 'accountant', 'manager', 'reports']);
+      allow create, update: if isAdmin() || hasAnyRole(['purchasing', 'manager']);
+      allow delete: if isAdmin();
+    }
+
+    match /supplierPayments/{paymentId} {
+      allow read: if isAdmin() || hasAnyRole(['purchasing', 'finance', 'accountant', 'manager', 'reports']);
+      allow create, update: if isAdmin() || hasAnyRole(['purchasing', 'finance', 'accountant', 'manager']);
+      allow delete: if isAdmin();
+    }
+
+    match /supplierTransactions/{txId} {
+      allow read, write: if isAdmin() || hasAnyRole(['purchasing', 'finance', 'accountant', 'manager']);
+    }
+
+    match /supplierLedger/{ledgerId} {
+      allow read, write: if isAdmin() || hasAnyRole(['purchasing', 'finance', 'accountant', 'manager']);
+    }
+
+    // ===============================================================
+    // DOMAIN 6: HR, PAYROLL & ATTENDANCE
+    // ===============================================================
+
+    match /employees/{employeeId} {
+      allow read: if isAdmin() || hasAnyRole(['hr', 'manager', 'finance', 'accountant', 'reports', 'production']);
+      allow create, update: if isAdmin() || hasAnyRole(['hr', 'manager']);
+      allow delete: if isAdmin();
+    }
+
+    match /attendance/{attId} {
+      allow read: if isAdmin() || hasAnyRole(['hr', 'manager', 'production', 'reports']);
+      // HR, Production supervisors or attendance kiosks register attendance
+      allow write: if isAdmin() || hasAnyRole(['hr', 'manager', 'production']);
+    }
+
+    match /payrolls/{payrollId} {
+      allow read: if isAdmin() || hasAnyRole(['hr', 'manager', 'finance', 'accountant', 'reports']);
+      // HR generates; Finance updates payment status on disbursement
+      allow create, update: if isAdmin() || hasAnyRole(['hr', 'manager', 'finance', 'accountant']);
+      allow delete: if isAdmin();
+    }
+
+    match /loans/{loanId} {
+      allow read: if isAdmin() || hasAnyRole(['hr', 'manager', 'finance', 'accountant', 'reports']);
+      allow create, update: if isAdmin() || hasAnyRole(['hr', 'manager', 'finance', 'accountant']);
+      allow delete: if isAdmin();
+    }
+
+    match /hrTransactions/{txId} {
+      allow read, write: if isAdmin() || hasAnyRole(['hr', 'manager']);
+    }
+
+    match /departments/{deptId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || hasRole('hr');
+    }
+
+    match /jobPositions/{posId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || hasRole('hr');
+    }
+
+    match /beneficiaries/{benId} {
+      allow read, write: if isAdmin() || hasAnyRole(['hr', 'finance']);
+    }
+
+    match /disbursement_runs/{runId} {
+      allow read, write: if isAdmin() || hasAnyRole(['hr', 'finance']);
+    }
+
+    // ===============================================================
+    // DOMAIN 7: MANUFACTURING & PRODUCTION
+    // ===============================================================
+
+    match /productionJobs/{jobId} {
+      allow read: if isAdmin() || hasAnyRole(['production', 'manager', 'inventory', 'warehouse', 'reports']) || hasRole('worker');
+      allow write: if isAdmin() || hasAnyRole(['production', 'manager']);
+    }
+
+    match /workOrders/{orderId} {
+      allow read: if isAdmin() || hasAnyRole(['production', 'manager', 'inventory', 'warehouse', 'reports']) || hasRole('worker');
+      allow write: if isAdmin() || hasAnyRole(['production', 'manager']);
+    }
+
+    match /productionRecords/{recId} {
+      allow read: if isAdmin() || hasAnyRole(['production', 'manager', 'hr', 'reports']) || hasRole('worker');
+      allow write: if isAdmin() || hasAnyRole(['production', 'manager']);
+    }
+
+    match /productionRates/{rateId} {
+      allow read: if isAdmin() || hasAnyRole(['production', 'manager', 'hr']);
+      allow write: if isAdmin() || hasAnyRole(['production', 'manager']);
+    }
+
+    match /manufacturingOperations/{opId} {
+      allow read, write: if isAdmin() || hasAnyRole(['production', 'manager']);
+    }
+
+    match /boms/{bomId} {
+      allow read, write: if isAdmin() || hasAnyRole(['production', 'manager']);
+    }
+
+    match /productRecipes/{recipeId} {
+      allow read, write: if isAdmin() || hasAnyRole(['production', 'manager']);
+    }
+
+    match /workCenters/{centerId} {
+      allow read, write: if isAdmin() || hasAnyRole(['production', 'manager']);
+    }
+
+    match /jobLabors/{laborId} {
+      allow read, write: if isAdmin() || hasAnyRole(['production', 'manager', 'accountant']);
+    }
+
+    match /jobOtherCosts/{costId} {
+      allow read, write: if isAdmin() || hasAnyRole(['production', 'manager', 'accountant']);
+    }
+
+    // ===============================================================
+    // DOMAIN 8: FLEET, MAINTENANCE & LOGISTICS
+    // ===============================================================
+
+    match /vehicles/{vehicleId} {
+      allow read: if isAdmin() || hasAnyRole(['manager', 'production', 'finance', 'reports']);
+      allow write: if isAdmin() || hasRole('manager');
+    }
+
+    match /vehicleExpenses/{expId} {
+      allow read: if isAdmin() || hasAnyRole(['manager', 'finance', 'accountant', 'reports']);
+      allow write: if isAdmin() || hasAnyRole(['manager', 'finance', 'accountant']);
+    }
+
+    match /loadingManifests/{manifestId} {
+      allow read, write: if isAdmin() || hasAnyRole(['inventory', 'warehouse', 'sales', 'manager']);
+    }
+
+    match /maintenanceOrders/{orderId} {
+      allow read, write: if isAdmin() || hasAnyRole(['maintenance', 'production', 'manager']);
+    }
+
+    // ===============================================================
+    // DOMAIN 9: SYSTEM LOGS & AUTOMATION
+    // ===============================================================
+
+    match /documentCounters/{counterId} {
+      // Counter increments used in runTransaction for auto numbering
+      allow read, write: if isAuthenticated();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Append-only immutable audit trail
+    }
+
+    match /whatsappDrafts/{draftId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // ===============================================================
+    // DEFAULT CATCH-ALL: SECURE BY DEFAULT (DENY ALL UNMATCHED)
+    // ===============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
